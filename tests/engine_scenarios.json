@@ -1,0 +1,66 @@
+{
+  "bad_sleep_restore_day": {
+    "input": {
+      "sleepDebtHours7d": 5.2,
+      "rhrDeviationBpm": 9,
+      "motivationScore": 2,
+      "digestionScore": 4,
+      "plannedWorkout": "heavy_lower_body"
+    },
+    "expected": {
+      "dayMode": "restore",
+      "dailyPriority": "recovery_rhythm",
+      "trainingAllowed": false,
+      "reasonCodesIncludes": [
+        "high_sleep_debt",
+        "rhr_above_baseline",
+        "digestion_off"
+      ]
+    }
+  },
+  "good_recovery_one_more": {
+    "input": {
+      "readinessZone": "green",
+      "sleepDebtHours7d": 0.6,
+      "painFlags": [],
+      "patternPermission": "allowed",
+      "lastSession": [
+        {
+          "exercise": "Bench Press",
+          "load": 225,
+          "reps": 5
+        },
+        {
+          "exercise": "DB Bench Press",
+          "load": 70,
+          "reps": 8
+        },
+        {
+          "exercise": "Smith Incline",
+          "load": 185,
+          "reps": 10
+        }
+      ]
+    },
+    "expected": {
+      "dayMode": "build",
+      "progressionAllowed": true,
+      "progressionTargetCount": 1
+    }
+  },
+  "food_quality_personal_response_override": {
+    "input": {
+      "generalQualityScore": 90,
+      "similarFoodAverageResponse": 3.2,
+      "similarFoodLogCount": 8,
+      "digestionToday": "off"
+    },
+    "expected": {
+      "label": "not_today",
+      "reasonCodesIncludes": [
+        "food_response_negative",
+        "digestion_off"
+      ]
+    }
+  }
+}
