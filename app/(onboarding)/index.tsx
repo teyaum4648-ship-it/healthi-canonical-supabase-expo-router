@@ -121,18 +121,20 @@ export default function OnboardingScreen() {
       return;
     }
 
-    supabase
-      .from('profiles')
-      .update({ onboarding_status: 'in_progress' })
-      .eq('id', user.id)
-      .then(({ error }) => {
+    void (async () => {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ onboarding_status: 'in_progress' })
+          .eq('id', user.id);
+
         if (error) {
           throw error;
         }
-      })
-      .catch(() => {
+      } catch {
         // The completed submission updates this status again; this is only a helpful marker.
-      });
+      }
+    })();
   }, [profile?.onboarding_status, user?.id]);
 
   const sectionLabel = useMemo(
