@@ -1,3 +1,6 @@
+import type { ReasonCode } from '../constants/reasonCodes';
+import type { DataConfidence } from './common';
+
 export type OnboardingQuestionKey =
   | 'primary_goal'
   | 'blocking_factors'
@@ -185,4 +188,107 @@ export type LifestylePlan = {
   priorityFocus: string[];
   weeklyMilestones: string[];
   warningFlags: string[];
+};
+
+export type FoundationDomain =
+  | 'recovery_rhythm'
+  | 'nourishment'
+  | 'movement_capacity'
+  | 'mind_life_load'
+  | 'balanced';
+
+export type FocusDomainScore = {
+  focus_pressure_score: number;
+  confidence: DataConfidence;
+  reason_codes: ReasonCode[];
+  limiting_factors: string[];
+};
+
+export type TrainingBias =
+  | 'normal_progression'
+  | 'reduce_intensity'
+  | 'increase_recovery_spacing'
+  | 'movement_quality_first'
+  | 'consistency_first'
+  | 'stress_adapted_training';
+
+export type LifestyleBias =
+  | 'circadian_consistency'
+  | 'hydration_and_meal_rhythm'
+  | 'stress_decompression'
+  | 'movement_restoration'
+  | 'balanced';
+
+export type NourishmentBias =
+  | 'hydration_first'
+  | 'meal_rhythm_first'
+  | 'digestion_support'
+  | 'protein_energy_adequacy'
+  | 'food_constraints_awareness'
+  | 'balanced';
+
+export type RecoveryBias =
+  | 'sleep_timing'
+  | 'wind_down'
+  | 'morning_light'
+  | 'caffeine_cutoff'
+  | 'recovery_spacing'
+  | 'balanced';
+
+export type BiweeklyFocusProfile = {
+  user_id?: string;
+  cycle_start_date: string;
+  cycle_end_date: string;
+  primary_focus: FoundationDomain;
+  secondary_focus?: FoundationDomain;
+  scorecard: {
+    recovery_rhythm: FocusDomainScore;
+    nourishment: FocusDomainScore;
+    movement_capacity: FocusDomainScore;
+    mind_life_load: FocusDomainScore;
+  };
+  confidence: DataConfidence;
+  reason_codes: ReasonCode[];
+  top_limiting_factors: string[];
+  training_bias: TrainingBias;
+  lifestyle_bias: LifestyleBias;
+  nourishment_bias: NourishmentBias;
+  recovery_bias: RecoveryBias;
+  generated_from: 'onboarding' | 'biweekly_reassessment';
+  calibration_status: 'calibrating' | 'active';
+  reassessment_due_at: string;
+  generated_at: string;
+  dynamic_score_sheet: DynamicScoreSheet;
+};
+
+export type PriorityBand = 'low' | 'moderate' | 'high';
+
+export type ScoreSheetDomain = {
+  label: string;
+  score: number;
+  priority: PriorityBand;
+  color_token: 'green' | 'yellow' | 'red';
+  weight: number;
+  reasons: RankedScoreReason[];
+};
+
+export type RankedScoreReason = {
+  domain: Exclude<FoundationDomain, 'balanced'>;
+  label: string;
+  explanation: string;
+  impact_score: number;
+  reason_code: string;
+};
+
+export type DynamicScoreSheet = {
+  overall_priority: PriorityBand;
+  overall_score: number;
+  domain_scores: {
+    recovery_rhythm: ScoreSheetDomain;
+    nourishment: ScoreSheetDomain;
+    mind_life_load: ScoreSheetDomain;
+    movement_capacity: ScoreSheetDomain;
+  };
+  ranked_reasons: RankedScoreReason[];
+  summary: string;
 };
