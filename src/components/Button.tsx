@@ -59,12 +59,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg
   },
   primary: {
-    backgroundColor: colors.primary
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16
   },
   secondary: {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: 'transparent'
+    backgroundColor: 'rgba(255, 255, 255, 0.48)'
   },
   danger: {
     borderWidth: 1,

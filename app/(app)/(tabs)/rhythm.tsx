@@ -179,7 +179,7 @@ function TimingCard({
   return (
     <View style={styles.timingCard}>
       <View style={styles.timingIcon}>
-        <Ionicons color={colors.lavenderMist} name={icon} size={18} />
+        <Ionicons color={colors.deepViolet} name={icon} size={18} />
       </View>
       <View style={styles.timingText}>
         <Text style={styles.timingTitle}>{title}</Text>
@@ -533,7 +533,7 @@ export default function RhythmScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.midnightPlum
+    backgroundColor: colors.background
   },
   scroll: {
     gap: spacing.md,
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md
   },
   eyebrow: {
-    color: colors.signalGreen,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800',
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   title: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.display,
     fontSize: 38,
     fontWeight: '400',
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     maxWidth: 680,
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 16,
     lineHeight: 24
@@ -569,9 +569,13 @@ const styles = StyleSheet.create({
   mainCard: {
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.18)',
+    borderColor: colors.border,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(58, 33, 95, 0.58)',
+    backgroundColor: colors.surface,
+    shadowColor: colors.deepViolet,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.08,
+    shadowRadius: 28,
     padding: spacing.lg
   },
   cardHeader: {
@@ -581,7 +585,7 @@ const styles = StyleSheet.create({
     gap: spacing.md
   },
   cardEyebrow: {
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800',
@@ -589,7 +593,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   phase: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.display,
     fontSize: 32,
     lineHeight: 38
@@ -601,10 +605,10 @@ const styles = StyleSheet.create({
   dataBadge: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(111, 175, 142, 0.34)',
+    borderColor: 'rgba(108, 168, 115, 0.28)',
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(111, 175, 142, 0.14)',
-    color: colors.signalGreen,
+    backgroundColor: colors.surfaceMuted,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '900',
@@ -616,13 +620,13 @@ const styles = StyleSheet.create({
   leadSignal: {
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.12)',
+    borderColor: 'rgba(108, 168, 115, 0.2)',
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(19, 10, 33, 0.36)',
+    backgroundColor: colors.surfaceMuted,
     padding: spacing.md
   },
   leadLabel: {
-    color: colors.signalGreen,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '900',
@@ -630,14 +634,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   leadText: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 18,
     fontWeight: '900',
     lineHeight: 25
   },
   leadSubcopy: {
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 20
@@ -652,13 +656,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.12)',
+    borderColor: colors.border,
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(19, 10, 33, 0.46)',
+    backgroundColor: colors.warmIvory,
     padding: spacing.md
   },
   metricLabel: {
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
@@ -666,7 +670,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   metricValue: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 16,
     fontWeight: '800'
@@ -674,9 +678,13 @@ const styles = StyleSheet.create({
   panel: {
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.14)',
+    borderColor: colors.border,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(24, 13, 42, 0.72)',
+    backgroundColor: colors.surface,
+    shadowColor: colors.deepViolet,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 22,
     padding: spacing.md
   },
   panelHeader: {
@@ -686,13 +694,13 @@ const styles = StyleSheet.create({
     gap: spacing.md
   },
   panelTitle: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 17,
     fontWeight: '800'
   },
   panelMeta: {
-    color: colors.signalGreen,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
@@ -717,7 +725,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(238, 232, 247, 0.08)'
+    backgroundColor: colors.surfaceMuted
   },
   energyFill: {
     borderTopLeftRadius: radii.sm,
@@ -725,14 +733,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.signalGreen
   },
   energyTime: {
-    color: colors.lavenderMist,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800'
   },
   energyLabel: {
     minHeight: 28,
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 10,
     lineHeight: 13,
@@ -746,9 +754,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.12)',
+    borderColor: colors.border,
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(58, 33, 95, 0.32)',
+    backgroundColor: colors.warmIvory,
     padding: spacing.md
   },
   timingIcon: {
@@ -757,34 +765,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(111, 175, 142, 0.18)'
+    backgroundColor: colors.surfaceMuted
   },
   timingText: {
     flex: 1,
     gap: 3
   },
   timingTitle: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 15,
     fontWeight: '800'
   },
   timingLabel: {
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase'
   },
   timingValue: {
-    color: colors.lavenderMist,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 14,
     fontWeight: '800',
     lineHeight: 19
   },
   mutedCopy: {
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 14,
     lineHeight: 21
@@ -800,7 +808,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   inputLabel: {
-    color: colors.lavenderMist,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800',
@@ -808,7 +816,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   inputHint: {
-    color: colors.mutedViolet,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 11
   },
@@ -816,10 +824,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.14)',
+    borderColor: colors.border,
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(19, 10, 33, 0.54)',
-    color: colors.cosmicWhite,
+    backgroundColor: colors.warmIvory,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 17,
     fontWeight: '800',
@@ -838,13 +846,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.14)',
+    borderColor: colors.border,
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(19, 10, 33, 0.54)',
+    backgroundColor: colors.warmIvory,
     paddingHorizontal: spacing.sm
   },
   qualityUnsetText: {
-    color: colors.lavenderMist,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800'
@@ -855,16 +863,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.14)',
+    borderColor: colors.border,
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(19, 10, 33, 0.54)'
+    backgroundColor: colors.warmIvory
   },
   qualityDotActive: {
     borderColor: colors.signalGreen,
-    backgroundColor: 'rgba(111, 175, 142, 0.22)'
+    backgroundColor: colors.surfaceMuted
   },
   qualityText: {
-    color: colors.cosmicWhite,
+    color: colors.text,
     fontFamily: fonts.body,
     fontSize: 13,
     fontWeight: '800'
@@ -876,13 +884,13 @@ const styles = StyleSheet.create({
   },
   quickTime: {
     borderWidth: 1,
-    borderColor: 'rgba(238, 232, 247, 0.14)',
+    borderColor: colors.border,
     borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm
   },
   quickTimeText: {
-    color: colors.lavenderMist,
+    color: colors.deepViolet,
     fontFamily: fonts.body,
     fontSize: 12,
     fontWeight: '800'
@@ -899,7 +907,7 @@ const styles = StyleSheet.create({
     opacity: 0.58
   },
   submitText: {
-    color: colors.midnightPlum,
+    color: colors.primaryText,
     fontFamily: fonts.body,
     fontSize: 12,
     fontWeight: '900',
@@ -911,14 +919,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(111, 175, 142, 0.26)',
+    borderColor: 'rgba(108, 168, 115, 0.26)',
     borderRadius: radii.md,
-    backgroundColor: 'rgba(111, 175, 142, 0.1)',
+    backgroundColor: colors.surfaceMuted,
     padding: spacing.md
   },
   noteText: {
     flex: 1,
-    color: colors.lavenderMist,
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 20

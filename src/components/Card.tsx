@@ -13,6 +13,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.sm,
     backgroundColor: colors.surface,
+    shadowColor: colors.deepViolet,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
     padding: spacing.md
   }
 });
