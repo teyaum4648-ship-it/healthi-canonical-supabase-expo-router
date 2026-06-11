@@ -100,6 +100,31 @@ function phaseTitle(label: string): string {
     .join(' ');
 }
 
+function phaseLabel(label: string): string {
+  const labels: Record<string, string> = {
+    wake_grogginess: 'Wake-up ramp',
+    rising: 'Rising energy',
+    morning_peak: 'Morning peak',
+    afternoon_dip: 'Lower-energy window',
+    second_peak: 'Second peak',
+    wind_down: 'Wind-down',
+    sleep_window: 'Sleep window',
+    unknown: 'Calibrating'
+  };
+
+  return labels[label] ?? phaseTitle(label);
+}
+
+function getRhythmLead(briefing: CircadianBriefing): string {
+  const deepWorkWindow = briefing.rhythm_plan.deep_work_windows[0];
+
+  if (!deepWorkWindow) {
+    return "Healthi is still calibrating today's rhythm estimate.";
+  }
+
+  return `Deep work looks strongest around ${formatWindow(deepWorkWindow)}.`;
+}
+
 function getLatestSleepDuration(session: SleepSession | undefined): number | null {
   if (!session) {
     return null;
@@ -124,7 +149,7 @@ function EnergyCurvePreview({ points }: { points: CircadianEnergyPoint[] }) {
             <View style={[styles.energyFill, { height: `${Math.max(point.estimated_energy, 12)}%` }]} />
           </View>
           <Text style={styles.energyTime}>{formatTime(point.time)}</Text>
-          <Text style={styles.energyLabel}>{phaseTitle(point.label)}</Text>
+          <Text style={styles.energyLabel}>{phaseLabel(point.label)}</Text>
         </View>
       ))}
     </View>
@@ -159,8 +184,8 @@ function TimingCard({
       <View style={styles.timingText}>
         <Text style={styles.timingTitle}>{title}</Text>
         <Text style={styles.timingLabel}>{label}</Text>
+        <Text style={styles.timingValue}>{value}</Text>
       </View>
-      <Text style={styles.timingValue}>{value}</Text>
     </View>
   );
 }
@@ -254,16 +279,17 @@ export default function RhythmScreen() {
   const sleepDuration = getLatestSleepDuration(latestSession);
   const sourceLabel = getSleepSourceLabel(briefing.source_summary.sleep_source);
   const confidenceLabel = getConfidenceLabel(briefing.confidence);
+  const rhythmLead = getRhythmLead(briefing);
   const dataModeCopy =
     dataMode === 'demo'
-      ? 'Your rhythm estimate is based on demo sleep data. Confidence will improve as Healthi learns from confirmed sleep sessions.'
+      ? "Demo data is active. Add a manual sleep window when you want today's estimate to reflect your night."
       : dataMode === 'manual'
-        ? 'Your rhythm estimate is based on the manual sleep window you entered.'
-        : 'Your rhythm estimate is based on your saved sleep sessions.';
+        ? "Manual sleep data is active for today's rhythm estimate."
+        : "Saved sleep data is active for today's rhythm estimate.";
 
   async function handleManualSubmit() {
-    const qualityNumber = Number(sleepQuality);
-    const boundedQuality = Number.isFinite(qualityNumber)
+    const qualityNumber = sleepQuality ? Number(sleepQuality) : null;
+    const boundedQuality = qualityNumber !== null && Number.isFinite(qualityNumber)
       ? Math.max(1, Math.min(5, Math.round(qualityNumber)))
       : null;
     const manualSession = createManualSleepSession({
@@ -310,11 +336,20 @@ export default function RhythmScreen() {
           <View style={styles.cardHeader}>
             <View>
               <Text style={styles.cardEyebrow}>Current phase</Text>
-              <Text style={styles.phase}>{phaseTitle(briefing.current_phase)}</Text>
+              <Text style={styles.phase}>{phaseLabel(briefing.current_phase)}</Text>
             </View>
-            {isLoading ? <ActivityIndicator color={colors.signalGreen} /> : null}
+            <View style={styles.statusStack}>
+              <Text style={styles.dataBadge}>{sourceLabel}</Text>
+              {isLoading ? <ActivityIndicator color={colors.signalGreen} /> : null}
+            </View>
           </View>
-          <Text style={styles.cardCopy}>{dataModeCopy}</Text>
+          <View style={styles.leadSignal}>
+            <Text style={styles.leadLabel}>Today's strongest signal</Text>
+            <Text style={styles.leadText}>{rhythmLead}</Text>
+            <Text style={styles.leadSubcopy}>
+              {confidenceLabel}. {dataModeCopy}
+            </Text>
+          </View>
           <View style={styles.metricsGrid}>
             <Metric label="Source" value={sourceLabel} />
             <Metric label="Confidence" value={confidenceLabel} />
@@ -430,8 +465,15 @@ export default function RhythmScreen() {
             </View>
             <View style={styles.inputShell}>
               <Text style={styles.inputLabel}>Quality</Text>
-              <Text style={styles.inputHint}>1-5</Text>
+              <Text style={styles.inputHint}>Optional</Text>
               <Pressable style={styles.qualityRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSleepQuality('')}
+                  style={[styles.qualityUnset, sleepQuality === '' ? styles.qualityDotActive : null]}
+                >
+                  <Text style={styles.qualityUnsetText}>Not sure</Text>
+                </Pressable>
                 {[1, 2, 3, 4, 5].map((value) => (
                   <Pressable
                     key={value}
@@ -552,11 +594,53 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 38
   },
-  cardCopy: {
-    color: colors.lavenderMist,
+  statusStack: {
+    alignItems: 'flex-end',
+    gap: spacing.sm
+  },
+  dataBadge: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(111, 175, 142, 0.34)',
+    borderRadius: radii.sm,
+    backgroundColor: 'rgba(111, 175, 142, 0.14)',
+    color: colors.signalGreen,
     fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 23
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    textTransform: 'uppercase'
+  },
+  leadSignal: {
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(238, 232, 247, 0.12)',
+    borderRadius: radii.sm,
+    backgroundColor: 'rgba(19, 10, 33, 0.36)',
+    padding: spacing.md
+  },
+  leadLabel: {
+    color: colors.signalGreen,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase'
+  },
+  leadText: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.body,
+    fontSize: 18,
+    fontWeight: '900',
+    lineHeight: 25
+  },
+  leadSubcopy: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 20
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -659,7 +743,7 @@ const styles = StyleSheet.create({
   },
   timingCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
     borderWidth: 1,
     borderColor: 'rgba(238, 232, 247, 0.12)',
@@ -677,7 +761,7 @@ const styles = StyleSheet.create({
   },
   timingText: {
     flex: 1,
-    gap: 2
+    gap: 3
   },
   timingTitle: {
     color: colors.cosmicWhite,
@@ -693,12 +777,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   timingValue: {
-    maxWidth: 148,
     color: colors.lavenderMist,
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    textAlign: 'right'
+    lineHeight: 19
   },
   mutedCopy: {
     color: colors.mutedViolet,
@@ -746,7 +829,25 @@ const styles = StyleSheet.create({
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.xs
+  },
+  qualityUnset: {
+    minWidth: 76,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(238, 232, 247, 0.14)',
+    borderRadius: radii.sm,
+    backgroundColor: 'rgba(19, 10, 33, 0.54)',
+    paddingHorizontal: spacing.sm
+  },
+  qualityUnsetText: {
+    color: colors.lavenderMist,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontWeight: '800'
   },
   qualityDot: {
     width: 36,
