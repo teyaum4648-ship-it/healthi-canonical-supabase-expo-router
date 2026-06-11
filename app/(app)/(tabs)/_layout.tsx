@@ -39,6 +39,13 @@ export default function AppTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="rhythm"
+        options={{
+          title: 'Rhythm',
+          tabBarIcon: tabIcon('moon-outline')
+        }}
+      />
+      <Tabs.Screen
         name="food"
         options={{
           title: 'Food',
