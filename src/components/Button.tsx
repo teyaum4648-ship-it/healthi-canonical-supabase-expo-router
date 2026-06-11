@@ -6,7 +6,7 @@ import {
   type PressableProps
 } from 'react-native';
 
-import { colors, radii, spacing } from '../styles/theme';
+import { colors, fonts, radii, spacing } from '../styles/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -55,8 +55,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.lg
   },
   primary: {
     backgroundColor: colors.primary
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   secondary: {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface
+    backgroundColor: 'transparent'
   },
   danger: {
     borderWidth: 1,
@@ -79,8 +79,11 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.text,
-    fontSize: 16,
-    fontWeight: '700'
+    fontFamily: fonts.body,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase'
   },
   primaryLabel: {
     color: colors.primaryText

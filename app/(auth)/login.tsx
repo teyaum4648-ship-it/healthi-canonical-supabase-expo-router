@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   link: {
-    color: colors.primary,
+    color: colors.deepViolet,
     fontSize: 16,
     fontWeight: '800'
   }

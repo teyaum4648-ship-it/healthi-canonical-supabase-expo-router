@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing } from '../styles/theme';
+import { colors, fonts, spacing } from '../styles/theme';
 
 type SectionHeaderProps = {
   eyebrow?: string;
@@ -23,19 +23,25 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   eyebrow: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '800',
+    color: colors.deepViolet,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
     textTransform: 'uppercase'
   },
   title: {
     color: colors.text,
-    fontSize: 28,
-    fontWeight: '800'
+    fontFamily: fonts.display,
+    fontSize: 36,
+    fontWeight: '400',
+    lineHeight: 40
   },
   body: {
     color: colors.textMuted,
+    fontFamily: fonts.body,
     fontSize: 16,
-    lineHeight: 23
+    fontWeight: '400',
+    lineHeight: 25
   }
 });

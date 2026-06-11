@@ -10,13 +10,18 @@ import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { generateBaselineProfile } from '../../src/features/onboarding/generateBaselineProfile';
+import { generateBiweeklyFocusProfile } from '../../src/features/onboarding/generateBiweeklyFocusProfile';
 import { generateLifestylePlan } from '../../src/features/onboarding/generateLifestylePlan';
 import { onboardingQuestions } from '../../src/features/onboarding/onboardingQuestions';
 import { supabase } from '../../src/lib/supabase';
-import { colors, radii, spacing } from '../../src/styles/theme';
+import { colors, fonts, radii, spacing } from '../../src/styles/theme';
 import type {
+  BiweeklyFocusProfile,
+  DynamicScoreSheet,
+  FoundationDomain,
   OnboardingAnswerValue,
   OnboardingAnswers,
+  PriorityBand,
   OnboardingQuestion
 } from '../../src/types/onboarding';
 
@@ -68,10 +73,192 @@ function updateMultiAnswer(
   return [...withoutExclusiveValues, selectedValue];
 }
 
+const focusLabels: Record<FoundationDomain, string> = {
+  recovery_rhythm: 'Recovery + Rhythm',
+  nourishment: 'Nourishment',
+  movement_capacity: 'Movement Capacity',
+  mind_life_load: 'Mind + Life Load',
+  balanced: 'Balanced'
+};
+
+const focusSummaries: Record<FoundationDomain, string> = {
+  recovery_rhythm:
+    'Your answers suggest Recovery + Rhythm should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward steadier sleep timing, calmer wind-down, and better recovery spacing before pushing progression.',
+  nourishment:
+    'Your answers suggest Nourishment should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward steadier hydration, meal rhythm, digestion support, and energy consistency before increasing demand.',
+  movement_capacity:
+    'Your answers suggest Movement Capacity should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward movement quality, confidence, and consistency before adding more load.',
+  mind_life_load:
+    'Your answers suggest Mind + Life Load should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward lower friction, decompression, and consistency that fits your current life load.',
+  balanced:
+    'Your answers suggest a balanced first calibration. For the next 2 weeks, Healthi will keep your plan steady while it learns which levers matter most for you.'
+};
+
+const trainingBiasLabels: Record<BiweeklyFocusProfile['training_bias'], string> = {
+  normal_progression: 'Build consistency with normal progression.',
+  reduce_intensity: 'Keep intensity conservative while the first focus stabilizes.',
+  increase_recovery_spacing: 'Add more recovery spacing between harder efforts.',
+  movement_quality_first: 'Prioritize movement quality before adding load.',
+  consistency_first: 'Favor repeatable sessions over aggressive progression.',
+  stress_adapted_training: 'Use training that fits current stress and schedule load.'
+};
+
+const lifestyleBiasLabels: Record<BiweeklyFocusProfile['lifestyle_bias'], string> = {
+  circadian_consistency: 'Anchor sleep and wake timing where possible.',
+  hydration_and_meal_rhythm: 'Make hydration and meal rhythm easier to repeat.',
+  stress_decompression: 'Protect small daily decompression windows.',
+  movement_restoration: 'Add low-friction movement restoration through the day.',
+  balanced: 'Keep lifestyle guidance simple while calibration continues.'
+};
+
+const nourishmentBiasLabels: Record<BiweeklyFocusProfile['nourishment_bias'], string> = {
+  hydration_first: 'Start with hydration consistency.',
+  meal_rhythm_first: 'Make meal timing steadier.',
+  digestion_support: 'Keep meals simple and track response patterns.',
+  protein_energy_adequacy: 'Support protein and energy adequacy.',
+  food_constraints_awareness: 'Keep food constraints visible.',
+  balanced: 'Keep food and hydration guidance balanced.'
+};
+
+const recoveryBiasLabels: Record<BiweeklyFocusProfile['recovery_bias'], string> = {
+  sleep_timing: 'Start with a steadier sleep window.',
+  wind_down: 'Support an easier wind-down routine.',
+  morning_light: 'Use morning light to anchor rhythm.',
+  caffeine_cutoff: 'Make caffeine timing more intentional.',
+  recovery_spacing: 'Space recovery before harder efforts.',
+  balanced: 'Keep recovery guidance balanced.'
+};
+
+function formatConfidence(confidence: BiweeklyFocusProfile['confidence']) {
+  return `${confidence[0].toUpperCase()}${confidence.slice(1)} confidence`;
+}
+
+function formatDate(dateString: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(new Date(`${dateString}T00:00:00`));
+}
+
+function priorityColor(priority: PriorityBand) {
+  if (priority === 'high') {
+    return colors.signalCoral;
+  }
+
+  if (priority === 'moderate') {
+    return colors.signalAmber;
+  }
+
+  return colors.signalGreen;
+}
+
+function formatPriority(priority: PriorityBand) {
+  return `${priority[0].toUpperCase()}${priority.slice(1)} priority`;
+}
+
+function focusCopyLabel(focus: FoundationDomain) {
+  if (focus === 'balanced') {
+    return 'Balanced calibration';
+  }
+
+  return focusLabels[focus];
+}
+
+function renderScoreSheet(focusProfile: BiweeklyFocusProfile) {
+  const scoreSheet = focusProfile.dynamic_score_sheet;
+  const scoreColor = priorityColor(scoreSheet.overall_priority);
+  const domainScores = [
+    scoreSheet.domain_scores.recovery_rhythm,
+    scoreSheet.domain_scores.nourishment,
+    scoreSheet.domain_scores.mind_life_load,
+    scoreSheet.domain_scores.movement_capacity
+  ];
+
+  return (
+    <Card style={styles.scoreSheet}>
+      <View style={styles.scoreGlowOne} />
+      <View style={styles.scoreGlowTwo} />
+
+      <View style={styles.scoreSheetHeader}>
+        <Text style={styles.scoreSheetEyebrow}>Healthi Review</Text>
+        <Text style={styles.scoreSheetTitle}>Your Score Sheet</Text>
+        <Text style={styles.scoreSheetSubtitle}>
+          Your answers were weighted to identify the strongest signals shaping your next 2-week
+          focus.
+        </Text>
+      </View>
+
+      <View style={styles.scoreSummary}>
+        <View style={[styles.scoreCircle, { borderColor: scoreColor }]}>
+          <View style={[styles.scoreAura, { backgroundColor: scoreColor }]} />
+          <Text style={[styles.scorePriority, { color: scoreColor }]}>
+            {formatPriority(scoreSheet.overall_priority)}
+          </Text>
+          <Text style={styles.scoreFocus}>{focusCopyLabel(focusProfile.primary_focus)}</Text>
+          <Text style={styles.scoreCalibration}>Strongest signal for your next 2 weeks</Text>
+          <Text style={styles.scoreValue}>Signal {scoreSheet.overall_score}</Text>
+        </View>
+
+        <View style={styles.domainGrid}>
+          {domainScores.map((domain) => {
+            const domainColor = priorityColor(domain.priority);
+            const leadReason = domain.reasons[0]?.label ?? 'Calibration signal is still forming.';
+
+            return (
+              <View key={domain.label} style={styles.domainCard}>
+                <View style={styles.domainTopRow}>
+                  <View style={[styles.domainIndicator, { backgroundColor: domainColor }]} />
+                  <Text style={[styles.domainPriority, { color: domainColor }]}>
+                    {domain.priority}
+                  </Text>
+                </View>
+                <Text style={styles.domainLabel}>{domain.label}</Text>
+                <Text style={styles.domainSignal}>Signal {domain.score}</Text>
+                <Text style={styles.domainReason}>{leadReason}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.scoreSection}>
+        <Text style={styles.scoreSectionTitle}>Top Signals</Text>
+        {scoreSheet.ranked_reasons.length > 0 ? (
+          scoreSheet.ranked_reasons.slice(0, 4).map((reason, index) => (
+            <View key={`${reason.domain}-${reason.reason_code}-${index}`} style={styles.rankRow}>
+              <View style={styles.rankNumber}>
+                <Text style={styles.rankNumberText}>{index + 1}</Text>
+              </View>
+              <View style={styles.rankTextWrap}>
+                <Text style={styles.rankDomain}>{focusLabels[reason.domain]}</Text>
+                <Text style={styles.rankLabel}>{reason.label}</Text>
+                <Text style={styles.rankExplanation}>{reason.explanation}</Text>
+              </View>
+              <Text style={styles.rankImpact}>Impact {reason.impact_score}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.rankExplanation}>
+            No single signal strongly dominated. Healthi will keep the first cycle balanced while
+            calibration continues.
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.scoreSection}>
+        <Text style={styles.scoreSectionTitle}>What Healthi will prioritize</Text>
+        <Text style={styles.scoreMeaning}>{scoreSheet.summary}</Text>
+      </View>
+    </Card>
+  );
+}
+
 export default function OnboardingScreen() {
   const { profile, refreshProfile, user } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [focusProfile, setFocusProfile] = useState<BiweeklyFocusProfile | null>(null);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const question = onboardingQuestions[currentIndex];
@@ -184,6 +371,10 @@ export default function OnboardingScreen() {
         answers
       });
       const lifestylePlanResult = generateLifestylePlan(answers);
+      const biweeklyFocusProfile = generateBiweeklyFocusProfile({
+        userId: user.id,
+        answers
+      });
 
       if (isDemoMode) {
         await AsyncStorage.setItem(
@@ -191,13 +382,13 @@ export default function OnboardingScreen() {
           JSON.stringify({
             answers,
             baselineProfile,
-            lifestylePlanResult
+            lifestylePlanResult,
+            biweeklyFocusProfile
           })
         );
         await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
         await AsyncStorage.removeItem(draftKey);
-        await refreshProfile();
-        router.replace('/(app)/(tabs)');
+        setFocusProfile(biweeklyFocusProfile);
         return;
       }
 
@@ -247,7 +438,10 @@ export default function OnboardingScreen() {
         dimension_scores: lifestylePlanResult.scores,
         tags: lifestylePlanResult.tags,
         plan: lifestylePlanResult.plan,
-        raw_result: lifestylePlanResult
+        raw_result: {
+          ...lifestylePlanResult,
+          biweekly_focus_profile: biweeklyFocusProfile
+        }
       });
 
       if (planError) {
@@ -289,8 +483,7 @@ export default function OnboardingScreen() {
       }
 
       await AsyncStorage.removeItem(draftKey);
-      await refreshProfile();
-      router.replace('/(app)/(tabs)');
+      setFocusProfile(biweeklyFocusProfile);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unable to save onboarding right now.';
@@ -298,6 +491,11 @@ export default function OnboardingScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleContinueFromFocus() {
+    await refreshProfile();
+    router.replace('/(app)/(tabs)');
   }
 
   function renderAnswerControl() {
@@ -391,6 +589,78 @@ export default function OnboardingScreen() {
     );
   }
 
+  if (focusProfile) {
+    const topReasons =
+      focusProfile.top_limiting_factors.length > 0
+        ? focusProfile.top_limiting_factors
+        : ['Healthi is still calibrating from your first answers.'];
+
+    return (
+      <Screen contentStyle={styles.resultScreen}>
+        {renderScoreSheet(focusProfile)}
+
+        <View style={styles.focusHeader}>
+          <Text style={styles.focusHeaderEyebrow}>14-day calibration</Text>
+          <Text style={styles.focusHeaderTitle}>Your 2-Week Focus</Text>
+          <Text style={styles.focusHeaderBody}>{focusSummaries[focusProfile.primary_focus]}</Text>
+        </View>
+
+        <Card style={styles.focusCard}>
+          <Text style={styles.focusLabel}>Primary focus</Text>
+          <Text style={styles.focusTitle}>{focusLabels[focusProfile.primary_focus]}</Text>
+          {focusProfile.secondary_focus ? (
+            <Text style={styles.focusSecondary}>
+              Also watching {focusLabels[focusProfile.secondary_focus]}
+            </Text>
+          ) : null}
+        </Card>
+
+        <Card style={styles.resultPanel}>
+          <Text style={styles.cardTitle}>Top reasons</Text>
+          {topReasons.slice(0, 3).map((reason) => (
+            <View key={reason} style={styles.reasonRow}>
+              <View style={styles.reasonDot} />
+              <Text style={styles.reasonText}>{reason}</Text>
+            </View>
+          ))}
+        </Card>
+
+        <Card style={styles.resultPanel}>
+          <Text style={styles.cardTitle}>What this changes</Text>
+          <View style={styles.changeRow}>
+            <Text style={styles.changeLabel}>Training</Text>
+            <Text style={styles.changeText}>{trainingBiasLabels[focusProfile.training_bias]}</Text>
+          </View>
+          <View style={styles.changeRow}>
+            <Text style={styles.changeLabel}>Lifestyle</Text>
+            <Text style={styles.changeText}>
+              {lifestyleBiasLabels[focusProfile.lifestyle_bias]}
+            </Text>
+          </View>
+          <View style={styles.changeRow}>
+            <Text style={styles.changeLabel}>Food / hydration</Text>
+            <Text style={styles.changeText}>
+              {nourishmentBiasLabels[focusProfile.nourishment_bias]}
+            </Text>
+          </View>
+          <View style={styles.changeRow}>
+            <Text style={styles.changeLabel}>Recovery</Text>
+            <Text style={styles.changeText}>{recoveryBiasLabels[focusProfile.recovery_bias]}</Text>
+          </View>
+        </Card>
+
+        <Card style={styles.resultPanel}>
+          <Text style={styles.confidenceText}>{formatConfidence(focusProfile.confidence)}</Text>
+          <Text style={styles.reassessmentText}>
+            Reassessment due {formatDate(focusProfile.reassessment_due_at)}
+          </Text>
+        </Card>
+
+        <Button label="Continue" onPress={handleContinueFromFocus} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View style={styles.progressTrack}>
@@ -431,20 +701,21 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   progressTrack: {
-    height: 8,
+    height: 4,
     overflow: 'hidden',
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     backgroundColor: colors.surfaceMuted
   },
   progressFill: {
     height: '100%',
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     backgroundColor: colors.primary
   },
   helper: {
     color: colors.textMuted,
+    fontFamily: fonts.body,
     fontSize: 14,
-    lineHeight: 20
+    lineHeight: 22
   },
   options: {
     gap: spacing.sm
@@ -461,7 +732,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     backgroundColor: colors.surface
   },
   scaleOptionSelected: {
@@ -470,15 +741,16 @@ const styles = StyleSheet.create({
   },
   scaleOptionLabel: {
     color: colors.text,
-    fontSize: 16,
-    fontWeight: '800'
+    fontFamily: fonts.display,
+    fontSize: 18,
+    fontWeight: '400'
   },
   option: {
     minHeight: 48,
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm
@@ -492,11 +764,13 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     color: colors.text,
-    fontSize: 16,
-    fontWeight: '700'
+    fontFamily: fonts.body,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 21
   },
   optionLabelSelected: {
-    color: colors.primary
+    color: colors.deepViolet
   },
   actions: {
     flexDirection: 'row',
@@ -504,5 +778,379 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1
+  },
+  resultScreen: {
+    backgroundColor: colors.midnightPlum
+  },
+  scoreSheet: {
+    position: 'relative',
+    gap: spacing.lg,
+    overflow: 'hidden',
+    borderColor: 'rgba(239, 232, 255, 0.12)',
+    borderRadius: radii.xl,
+    backgroundColor: colors.plum,
+    padding: spacing.lg
+  },
+  scoreGlowOne: {
+    position: 'absolute',
+    top: -64,
+    right: -44,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    backgroundColor: 'rgba(111, 97, 168, 0.22)'
+  },
+  scoreGlowTwo: {
+    position: 'absolute',
+    bottom: 120,
+    left: -52,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: 'rgba(111, 175, 142, 0.14)'
+  },
+  scoreSheetHeader: {
+    gap: spacing.xs,
+    position: 'relative'
+  },
+  scoreSheetEyebrow: {
+    color: colors.signalGold,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase'
+  },
+  scoreSheetTitle: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 42,
+    fontWeight: '400',
+    lineHeight: 46
+  },
+  scoreSheetSubtitle: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 23
+  },
+  scoreSummary: {
+    gap: spacing.md,
+    position: 'relative'
+  },
+  scoreCircle: {
+    width: 214,
+    minHeight: 214,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderRadius: 107,
+    backgroundColor: 'rgba(19, 10, 33, 0.74)',
+    paddingHorizontal: spacing.lg
+  },
+  scoreAura: {
+    position: 'absolute',
+    width: 118,
+    height: 118,
+    borderRadius: 59,
+    opacity: 0.13
+  },
+  scoreValue: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.3,
+    marginTop: spacing.xs,
+    textTransform: 'uppercase'
+  },
+  scorePriority: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase'
+  },
+  scoreFocus: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 28,
+    fontWeight: '400',
+    lineHeight: 31,
+    textAlign: 'center'
+  },
+  scoreCalibration: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center'
+  },
+  domainGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    position: 'relative'
+  },
+  domainCard: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    minHeight: 150,
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 232, 255, 0.1)',
+    borderRadius: radii.lg,
+    backgroundColor: 'rgba(248, 245, 255, 0.07)',
+    padding: spacing.md
+  },
+  domainTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm
+  },
+  domainIndicator: {
+    width: 9,
+    height: 9,
+    borderRadius: 5
+  },
+  domainCircle: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderRadius: 24
+  },
+  domainScore: {
+    color: colors.deepViolet,
+    fontFamily: fonts.display,
+    fontSize: 20,
+    fontWeight: '400'
+  },
+  domainLabel: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 19,
+    fontWeight: '400',
+    lineHeight: 22
+  },
+  domainSignal: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase'
+  },
+  domainReason: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17
+  },
+  domainPriority: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase'
+  },
+  scoreSection: {
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(239, 232, 255, 0.1)',
+    paddingTop: spacing.md
+  },
+  scoreSectionTitle: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 24,
+    fontWeight: '400'
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 232, 255, 0.1)',
+    borderRadius: radii.lg,
+    backgroundColor: 'rgba(248, 245, 255, 0.07)',
+    padding: spacing.sm
+  },
+  rankNumber: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(248, 245, 255, 0.13)'
+  },
+  rankNumberText: {
+    color: '#FFFFFF',
+    fontFamily: fonts.body,
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center'
+  },
+  rankTextWrap: {
+    flex: 1,
+    gap: 2
+  },
+  rankDomain: {
+    color: colors.signalGold,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase'
+  },
+  rankLabel: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19
+  },
+  rankExplanation: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19
+  },
+  rankImpact: {
+    minWidth: 54,
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textAlign: 'right'
+  },
+  scoreMeaning: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 23
+  },
+  focusHeader: {
+    gap: spacing.xs,
+    paddingTop: spacing.sm
+  },
+  focusHeaderEyebrow: {
+    color: colors.signalGold,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase'
+  },
+  focusHeaderTitle: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 36,
+    fontWeight: '400',
+    lineHeight: 40
+  },
+  focusHeaderBody: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 24
+  },
+  focusCard: {
+    gap: spacing.xs,
+    borderRadius: radii.lg,
+    borderColor: 'rgba(239, 232, 255, 0.1)',
+    backgroundColor: 'rgba(248, 245, 255, 0.08)'
+  },
+  resultPanel: {
+    borderRadius: radii.lg,
+    borderColor: 'rgba(239, 232, 255, 0.1)',
+    backgroundColor: 'rgba(248, 245, 255, 0.07)'
+  },
+  focusLabel: {
+    color: colors.signalGold,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase'
+  },
+  focusTitle: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 38,
+    fontWeight: '400',
+    lineHeight: 42
+  },
+  focusSecondary: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 21
+  },
+  cardTitle: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.display,
+    fontSize: 22,
+    fontWeight: '400'
+  },
+  reasonRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm
+  },
+  reasonDot: {
+    width: 7,
+    height: 7,
+    marginTop: 7,
+    borderRadius: 4,
+    backgroundColor: colors.primary
+  },
+  reasonText: {
+    flex: 1,
+    color: colors.cosmicWhite,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 21
+  },
+  changeRow: {
+    gap: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(239, 232, 255, 0.1)',
+    paddingTop: spacing.sm
+  },
+  changeLabel: {
+    color: colors.signalGold,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase'
+  },
+  changeText: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 21
+  },
+  confidenceText: {
+    color: colors.cosmicWhite,
+    fontFamily: fonts.body,
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  reassessmentText: {
+    color: colors.mutedViolet,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20
   }
 });

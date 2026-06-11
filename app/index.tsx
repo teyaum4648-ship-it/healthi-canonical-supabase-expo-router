@@ -1,27 +1,345 @@
-import { Redirect } from 'expo-router';
+import { router } from 'expo-router';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { Button } from '../src/components/Button';
 import { Screen } from '../src/components/Screen';
-import { SectionHeader } from '../src/components/SectionHeader';
 import { useAuth } from '../src/features/auth/AuthProvider';
+import { colors, fonts, spacing } from '../src/styles/theme';
+
+const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
   const { profile, session, isLoading } = useAuth();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 820;
 
-  if (isLoading) {
-    return (
-      <Screen scroll={false}>
-        <SectionHeader title="Healthi" body="Loading your secure session." />
-      </Screen>
-    );
-  }
+  function handleStart() {
+    if (profile?.onboarding_status === 'completed') {
+      router.replace('/(app)/(tabs)');
+      return;
+    }
 
-  if (!session) {
-    return <Redirect href="/(auth)/login" />;
+    if (!session) {
+      router.push('/(auth)/signup');
+      return;
+    }
+
+    router.push('/(onboarding)');
   }
 
   return (
-    <Redirect
-      href={profile?.onboarding_status === 'completed' ? '/(app)/(tabs)' : '/(onboarding)'}
-    />
+    <Screen contentStyle={styles.screen}>
+      <View style={styles.nav}>
+        <Text style={styles.logo}>healthi</Text>
+        <Text style={styles.navLabel}>Adaptive wellness test</Text>
+      </View>
+
+      <View style={[styles.hero, isWide ? styles.heroWide : null]}>
+        <View style={[styles.heroText, isWide ? styles.heroTextWide : null]}>
+          <Text style={styles.eyebrow}>Adaptive Health Coaching</Text>
+          <Text style={styles.headline}>
+            Your body{'\n'}
+            <Text style={styles.headlineAccent}>sets the plan.</Text>
+          </Text>
+          <Text style={styles.subcopy}>
+            Start with a short wellness test that helps Healthi understand your sleep, stress,
+            nourishment, and movement signals before it suggests a first 2-week focus.
+          </Text>
+
+          <Button
+            disabled={isLoading}
+            label="Get started on your wellness test"
+            onPress={handleStart}
+            style={styles.cta}
+          />
+
+          <View style={styles.tags}>
+            {signalTags.map((tag) => (
+              <Text key={tag} style={styles.tag}>
+                {tag}
+              </Text>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.visual}>
+          <View style={styles.ringWrap}>
+            <View style={styles.outerRing} />
+            <View style={styles.mainRing} />
+            <View style={styles.ringAccentOne} />
+            <View style={styles.ringAccentTwo} />
+            <View style={styles.ringInner}>
+              <Text style={styles.ringScore}>14</Text>
+              <Text style={styles.ringLabel}>Day Focus</Text>
+              <Text style={styles.ringVerdict}>Calibrate first</Text>
+            </View>
+          </View>
+
+          <View style={styles.metrics}>
+            <View style={styles.metric}>
+              <Text style={styles.metricValue}>Sleep</Text>
+              <Text style={styles.metricLabel}>Rhythm</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.metric}>
+              <Text style={styles.metricValue}>Food</Text>
+              <Text style={styles.metricLabel}>Signal</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.metric}>
+              <Text style={styles.metricValue}>Load</Text>
+              <Text style={styles.metricLabel}>Context</Text>
+            </View>
+          </View>
+
+          <View style={styles.protocol}>
+            <View style={styles.protocolDot} />
+            <View style={styles.protocolTextWrap}>
+              <Text style={styles.protocolTitle}>First: your wellness test</Text>
+              <Text style={styles.protocolText}>
+                Healthi uses your answers to choose a calm first focus, not a label.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    gap: spacing.xl,
+    justifyContent: 'center',
+    paddingVertical: spacing.xl
+  },
+  nav: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  logo: {
+    color: colors.deepViolet,
+    fontFamily: fonts.display,
+    fontSize: 24,
+    fontWeight: '400',
+    letterSpacing: 3,
+    textTransform: 'lowercase'
+  },
+  navLabel: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase'
+  },
+  hero: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+    gap: spacing.xl
+  },
+  heroWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  heroText: {
+    gap: spacing.lg
+  },
+  heroTextWide: {
+    flex: 1,
+    maxWidth: 520
+  },
+  eyebrow: {
+    color: colors.deepViolet,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    textTransform: 'uppercase'
+  },
+  headline: {
+    color: colors.text,
+    fontFamily: fonts.display,
+    fontSize: 68,
+    fontWeight: '300',
+    lineHeight: 72
+  },
+  headlineAccent: {
+    color: colors.deepViolet,
+    fontStyle: 'italic'
+  },
+  subcopy: {
+    maxWidth: 430,
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    fontWeight: '400',
+    lineHeight: 27
+  },
+  cta: {
+    alignSelf: 'flex-start'
+  },
+  tags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm
+  },
+  tag: {
+    borderWidth: 1,
+    borderColor: 'rgba(155, 165, 148, 0.24)',
+    color: colors.dim,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    textTransform: 'uppercase'
+  },
+  visual: {
+    alignItems: 'center',
+    gap: spacing.lg
+  },
+  ringWrap: {
+    width: 280,
+    height: 280,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  outerRing: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 168, 115, 0.12)',
+    borderRadius: 130
+  },
+  mainRing: {
+    position: 'absolute',
+    width: 224,
+    height: 224,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 168, 115, 0.24)',
+    borderRadius: 112
+  },
+  ringAccentOne: {
+    position: 'absolute',
+    top: 24,
+    right: 54,
+    width: 72,
+    height: 72,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderColor: colors.primary,
+    borderRadius: 36
+  },
+  ringAccentTwo: {
+    position: 'absolute',
+    bottom: 44,
+    left: 58,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.6,
+    shadowRadius: 12
+  },
+  ringInner: {
+    alignItems: 'center',
+    gap: spacing.xs
+  },
+  ringScore: {
+    color: colors.text,
+    fontFamily: fonts.display,
+    fontSize: 74,
+    fontWeight: '300',
+    lineHeight: 78
+  },
+  ringLabel: {
+    color: colors.deepViolet,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase'
+  },
+  ringVerdict: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 12
+  },
+  metrics: {
+    width: 300,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md
+  },
+  metric: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.xs
+  },
+  metricValue: {
+    color: colors.text,
+    fontFamily: fonts.display,
+    fontSize: 18
+  },
+  metricLabel: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase'
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: colors.border
+  },
+  protocol: {
+    width: 300,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderLeftWidth: 2,
+    borderColor: colors.border,
+    borderLeftColor: colors.primary,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
+  },
+  protocolDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.primary
+  },
+  protocolTextWrap: {
+    flex: 1
+  },
+  protocolTitle: {
+    color: colors.text,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  protocolText: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 16
+  }
+});
