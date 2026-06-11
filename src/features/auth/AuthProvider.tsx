@@ -1,4 +1,5 @@
 import type { Session, User } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   useCallback,
@@ -10,6 +11,9 @@ import {
 } from 'react';
 
 import { supabase } from '../../lib/supabase';
+
+const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
 
 type AuthContextValue = {
   session: Session | null;
@@ -33,9 +37,65 @@ type HealthiProfile = {
 };
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const [demoOnboardingStatus, setDemoOnboardingStatus] =
+    useState<HealthiProfile['onboarding_status']>('in_progress');
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<HealthiProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isDemoMode) {
+      return;
+    }
+
+    AsyncStorage.getItem(demoOnboardingCompletedKey)
+      .then((value) => {
+        setDemoOnboardingStatus(value === 'true' ? 'completed' : 'in_progress');
+      })
+      .catch(() => {
+        setDemoOnboardingStatus('in_progress');
+      });
+  }, []);
+
+  if (isDemoMode) {
+    const demoUser = {
+      id: 'demo-user',
+      email: 'demo@healthi.local'
+    } as User;
+    const demoSession = {
+      access_token: 'demo',
+      refresh_token: 'demo',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: demoUser
+    } as Session;
+    const demoProfile: HealthiProfile = {
+      id: demoUser.id,
+      display_name: 'Demo User',
+      primary_goal: null,
+      training_experience: null,
+      onboarding_status: demoOnboardingStatus
+    };
+    const refreshDemoProfile = async () => {
+      const value = await AsyncStorage.getItem(demoOnboardingCompletedKey);
+      setDemoOnboardingStatus(value === 'true' ? 'completed' : 'in_progress');
+    };
+    const value: AuthContextValue = {
+      session: demoSession,
+      user: demoUser,
+      profile: demoProfile,
+      isLoading: false,
+      refreshProfile: refreshDemoProfile,
+      signIn: async () => undefined,
+      signUp: async () => undefined,
+      signOut: async () => {
+        await AsyncStorage.removeItem(demoOnboardingCompletedKey);
+        setDemoOnboardingStatus('in_progress');
+      }
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
 
   const loadProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase

@@ -20,6 +20,10 @@ import type {
   OnboardingQuestion
 } from '../../src/types/onboarding';
 
+const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
+const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
+
 function isStringArray(value: OnboardingAnswerValue | undefined): value is string[] {
   return Array.isArray(value);
 }
@@ -180,6 +184,22 @@ export default function OnboardingScreen() {
         answers
       });
       const lifestylePlanResult = generateLifestylePlan(answers);
+
+      if (isDemoMode) {
+        await AsyncStorage.setItem(
+          demoOnboardingResultKey,
+          JSON.stringify({
+            answers,
+            baselineProfile,
+            lifestylePlanResult
+          })
+        );
+        await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
+        await AsyncStorage.removeItem(draftKey);
+        await refreshProfile();
+        router.replace('/(app)/(tabs)');
+        return;
+      }
 
       const { data: session, error: sessionError } = await supabase
         .from('assessment_sessions')
