@@ -5,6 +5,7 @@ import {
   Alert,
   Animated,
   Easing,
+  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -48,6 +49,7 @@ type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
 interface SkyConfig {
   skyTop: string;
+  skyMid: string;
   skyBottom: string;
   bodyColor: string;
   bodyY: number;
@@ -56,90 +58,135 @@ interface SkyConfig {
   accentColor: string;
   periodLabel: string;
   glowColor: string;
+  cloudColor: string;
+  cloudShadow: string;
+  hazeColor: string;
 }
 
 const stars = [
-  { left: '12%', top: 38, size: 2 },
-  { left: '22%', top: 78, size: 1.5 },
-  { left: '35%', top: 28, size: 1.5 },
-  { left: '48%', top: 62, size: 2 },
-  { left: '66%', top: 42, size: 1.5 },
-  { left: '84%', top: 72, size: 2 },
-  { left: '74%', top: 24, size: 1.5 },
-  { left: '8%', top: 116, size: 1.5 }
+  { cx: 108, cy: 64, r: 1.8, opacity: 0.75 },
+  { cx: 174, cy: 108, r: 1.2, opacity: 0.62 },
+  { cx: 246, cy: 50, r: 1.4, opacity: 0.72 },
+  { cx: 330, cy: 86, r: 1.8, opacity: 0.58 },
+  { cx: 450, cy: 42, r: 1.2, opacity: 0.65 },
+  { cx: 566, cy: 94, r: 1.5, opacity: 0.68 },
+  { cx: 672, cy: 58, r: 1.1, opacity: 0.58 },
+  { cx: 766, cy: 118, r: 1.6, opacity: 0.72 },
+  { cx: 822, cy: 48, r: 1.1, opacity: 0.54 },
+  { cx: 62, cy: 142, r: 1.1, opacity: 0.52 },
+  { cx: 268, cy: 150, r: 1.1, opacity: 0.55 },
+  { cx: 610, cy: 146, r: 1.2, opacity: 0.56 }
 ] as const;
 
 function getSkyConfig(hour: number): SkyConfig {
   if (hour >= 5 && hour < 7) {
     const t = (hour - 5) / 2;
     return {
-      skyTop: '#06070B',
-      skyBottom: lerpHex('#0D0E10', '#24322C', t),
-      bodyColor: lerpHex('#BFC6D2', '#F2F4F7', t),
-      bodyY: lerp(0.82, 0.34, t),
+      skyTop: lerpHex('#141031', '#24385C', t),
+      skyMid: lerpHex('#392357', '#7F6A9E', t),
+      skyBottom: lerpHex('#B66A45', '#E3A55D', t),
+      bodyColor: lerpHex('#F6C35E', '#FFE88C', t),
+      bodyY: lerp(0.8, 0.32, t),
       isMoon: false,
-      starOpacity: lerp(0.6, 0.08, t),
-      accentColor: '#D8DEE8',
+      starOpacity: lerp(0.5, 0.02, t),
+      accentColor: '#F4C568',
       periodLabel: 'Dawn',
-      glowColor: `rgba(216, 222, 232, ${0.1 + 0.18 * t})`
+      glowColor: `rgba(255, 202, 116, ${0.24 + 0.16 * t})`,
+      cloudColor: 'rgba(255, 224, 179, 0.36)',
+      cloudShadow: 'rgba(97, 60, 97, 0.24)',
+      hazeColor: 'rgba(255, 166, 102, 0.28)'
     };
   }
 
-  if (hour >= 7 && hour < 15) {
-    const t = Math.min(1, Math.max(0, (hour - 7) / 8));
+  if (hour >= 7 && hour < 11) {
+    const t = (hour - 7) / 4;
     return {
-      skyTop: lerpHex('#080A10', '#050506', t),
-      skyBottom: lerpHex('#16211F', '#111418', t),
-      bodyColor: '#F2F4F7',
-      bodyY: lerp(0.24, 0.13, t),
+      skyTop: lerpHex('#1A1040', '#08224F', t),
+      skyMid: lerpHex('#4F4E94', '#2D72B8', t),
+      skyBottom: lerpHex('#C26B2A', '#74B8DF', t),
+      bodyColor: lerpHex('#FFE066', '#FFFDE8', t),
+      bodyY: lerp(0.3, 0.13, t),
       isMoon: false,
-      starOpacity: 0.02,
-      accentColor: '#E7EBF2',
-      periodLabel: hour < 11 ? 'Morning' : 'Midday',
-      glowColor: 'rgba(242, 244, 247, 0.18)'
+      starOpacity: 0,
+      accentColor: '#4FC98A',
+      periodLabel: 'Morning',
+      glowColor: 'rgba(255, 240, 180, 0.34)',
+      cloudColor: 'rgba(255, 255, 255, 0.36)',
+      cloudShadow: 'rgba(59, 102, 159, 0.22)',
+      hazeColor: 'rgba(105, 192, 227, 0.2)'
+    };
+  }
+
+  if (hour >= 11 && hour < 15) {
+    return {
+      skyTop: '#071220',
+      skyMid: '#0E3B68',
+      skyBottom: '#48A8D8',
+      bodyColor: '#FFFDE8',
+      bodyY: 0.11,
+      isMoon: false,
+      starOpacity: 0,
+      accentColor: '#79C6F2',
+      periodLabel: 'Midday',
+      glowColor: 'rgba(255, 248, 200, 0.44)',
+      cloudColor: 'rgba(255, 255, 255, 0.34)',
+      cloudShadow: 'rgba(38, 91, 135, 0.24)',
+      hazeColor: 'rgba(104, 190, 230, 0.18)'
     };
   }
 
   if (hour >= 15 && hour < 19) {
     const t = (hour - 15) / 4;
     return {
-      skyTop: lerpHex('#050506', '#07080C', t),
-      skyBottom: lerpHex('#111418', '#202522', t),
-      bodyColor: lerpHex('#F2F4F7', '#CED5E0', t),
-      bodyY: lerp(0.16, 0.68, t),
+      skyTop: lerpHex('#071220', '#160923', t),
+      skyMid: lerpHex('#174579', '#54305A', t),
+      skyBottom: lerpHex('#2E83BA', '#A35028', t),
+      bodyColor: lerpHex('#FFFDE8', '#FFB052', t),
+      bodyY: lerp(0.13, 0.72, t),
       isMoon: false,
-      starOpacity: lerp(0.05, 0.45, t),
-      accentColor: '#D8DEE8',
+      starOpacity: lerp(0, 0.32, t),
+      accentColor: '#F0B429',
       periodLabel: 'Afternoon',
-      glowColor: `rgba(216, 222, 232, ${0.16 + 0.08 * t})`
+      glowColor: `rgba(255, 160, 82, ${0.28 + 0.18 * t})`,
+      cloudColor: `rgba(255, 231, 199, ${0.3 + 0.1 * t})`,
+      cloudShadow: 'rgba(73, 46, 83, 0.26)',
+      hazeColor: `rgba(255, 133, 78, ${0.12 + 0.16 * t})`
     };
   }
 
   if (hour >= 19 && hour < 21) {
     const t = (hour - 19) / 2;
     return {
-      skyTop: lerpHex('#07080C', '#050506', t),
-      skyBottom: lerpHex('#202522', '#0D0E10', t),
-      bodyColor: lerpHex('#CED5E0', '#D8DEE8', t),
-      bodyY: lerp(0.7, 0.5, t),
+      skyTop: lerpHex('#160923', '#050716', t),
+      skyMid: lerpHex('#54305A', '#151B42', t),
+      skyBottom: lerpHex('#A35028', '#15102B', t),
+      bodyColor: lerpHex('#FFB052', '#D0D8FF', t),
+      bodyY: lerp(0.74, 0.5, t),
       isMoon: t > 0.5,
-      starOpacity: lerp(0.45, 0.95, t),
-      accentColor: '#D8DEE8',
+      starOpacity: lerp(0.36, 0.92, t),
+      accentColor: '#8BA5FF',
       periodLabel: 'Dusk',
-      glowColor: `rgba(216, 222, 232, ${0.14 + 0.08 * t})`
+      glowColor: `rgba(180, 180, 255, ${0.12 + 0.14 * t})`,
+      cloudColor: 'rgba(206, 216, 255, 0.22)',
+      cloudShadow: 'rgba(9, 11, 27, 0.4)',
+      hazeColor: 'rgba(160, 88, 134, 0.2)'
     };
   }
 
   return {
-    skyTop: '#050506',
-    skyBottom: '#0D0E10',
-    bodyColor: '#D8DEE8',
+    skyTop: '#04060E',
+    skyMid: '#07112E',
+    skyBottom: '#090B1E',
+    bodyColor: '#D0D8FF',
     bodyY: hour >= 21 ? lerp(0.5, 0.2, (hour - 21) / 4) : lerp(0.2, 0.48, hour / 5),
     isMoon: true,
     starOpacity: 1,
-    accentColor: '#D8DEE8',
+    accentColor: '#8BA5FF',
     periodLabel: 'Night',
-    glowColor: 'rgba(216, 222, 232, 0.16)'
+    glowColor: 'rgba(160, 175, 255, 0.2)',
+    cloudColor: 'rgba(170, 188, 255, 0.13)',
+    cloudShadow: 'rgba(0, 0, 0, 0.28)',
+    hazeColor: 'rgba(88, 112, 210, 0.12)'
   };
 }
 
@@ -214,6 +261,69 @@ function getLatestSleepDuration(session: SleepSession | undefined): number | nul
   return calculateSleepDuration(session.sleep_start_at, session.sleep_end_at);
 }
 
+function skyImageUri(skyConfig: SkyConfig): string {
+  const bodyCx = 690;
+  const bodyCy = 58 + skyConfig.bodyY * 270;
+  const bodyR = skyConfig.isMoon ? 27 : 34;
+  const starMarkup = stars
+    .map((star) => (
+      `<circle cx="${star.cx}" cy="${star.cy}" r="${star.r}" fill="#F7FAFF" opacity="${(star.opacity * skyConfig.starOpacity).toFixed(2)}" />`
+    ))
+    .join('');
+  const moonCut = skyConfig.isMoon
+    ? `<circle cx="${bodyCx + 13}" cy="${bodyCy - 7}" r="${bodyR * 0.96}" fill="${skyConfig.skyTop}" opacity="0.92" />`
+    : '';
+  const sunFlare = skyConfig.isMoon
+    ? ''
+    : `<circle cx="${bodyCx - 18}" cy="${bodyCy - 12}" r="${bodyR * 0.28}" fill="#FFFFFF" opacity="0.45" />`;
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${skyConfig.skyTop}" />
+          <stop offset="50%" stop-color="${skyConfig.skyMid}" />
+          <stop offset="100%" stop-color="${skyConfig.skyBottom}" />
+        </linearGradient>
+        <radialGradient id="bodyGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="${skyConfig.glowColor}" />
+          <stop offset="58%" stop-color="${skyConfig.glowColor}" stop-opacity="0.38" />
+          <stop offset="100%" stop-color="${skyConfig.glowColor}" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="haze" cx="50%" cy="100%" r="74%">
+          <stop offset="0%" stop-color="${skyConfig.hazeColor}" />
+          <stop offset="100%" stop-color="${skyConfig.hazeColor}" stop-opacity="0" />
+        </radialGradient>
+        <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
+      </defs>
+      <rect width="900" height="420" fill="url(#sky)" />
+      <ellipse cx="450" cy="394" rx="420" ry="150" fill="url(#haze)" />
+      <g opacity="0.95">${starMarkup}</g>
+      <circle cx="${bodyCx}" cy="${bodyCy}" r="${bodyR * 3.4}" fill="url(#bodyGlow)" filter="url(#soft)" />
+      <circle cx="${bodyCx}" cy="${bodyCy}" r="${bodyR}" fill="${skyConfig.bodyColor}" />
+      ${moonCut}
+      ${sunFlare}
+      <g filter="url(#soft)">
+        <ellipse cx="170" cy="314" rx="140" ry="42" fill="${skyConfig.cloudShadow}" />
+        <ellipse cx="324" cy="326" rx="168" ry="48" fill="${skyConfig.cloudShadow}" />
+        <ellipse cx="690" cy="302" rx="190" ry="54" fill="${skyConfig.cloudShadow}" />
+      </g>
+      <g opacity="0.92">
+        <ellipse cx="118" cy="314" rx="94" ry="30" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="218" cy="304" rx="132" ry="38" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="340" cy="324" rx="150" ry="42" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="642" cy="302" rx="146" ry="40" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="790" cy="316" rx="124" ry="34" fill="${skyConfig.cloudColor}" />
+      </g>
+      <rect width="900" height="420" fill="#000000" opacity="0.12" />
+    </svg>
+  `;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`;
+}
+
 function CelestialHeader({
   skyConfig,
   localTime
@@ -221,48 +331,16 @@ function CelestialHeader({
   skyConfig: SkyConfig;
   localTime: string;
 }) {
-  const bodyTop = 28 + skyConfig.bodyY * 130;
+  const imageUri = useMemo(() => skyImageUri(skyConfig), [skyConfig]);
 
   return (
-    <View style={[cel.root, { backgroundColor: skyConfig.skyTop }]}>
-      <View style={[cel.lowerSky, { backgroundColor: skyConfig.skyBottom }]} />
-      <View style={[cel.horizonGlow, { backgroundColor: skyConfig.glowColor }]} />
-      {stars.map((star, index) => (
-        <View
-          key={`${star.left}-${star.top}-${index}`}
-          style={[
-            cel.star,
-            {
-              left: star.left,
-              opacity: skyConfig.starOpacity,
-              top: star.top,
-              height: star.size,
-              width: star.size,
-              borderRadius: star.size / 2
-            }
-          ]}
-        />
-      ))}
-      <View
-        style={[
-          cel.bodyGlow,
-          {
-            backgroundColor: skyConfig.glowColor,
-            top: bodyTop - 36
-          }
-        ]}
-      />
-      <View
-        style={[
-          cel.body,
-          {
-            backgroundColor: skyConfig.bodyColor,
-            top: bodyTop
-          }
-        ]}
-      >
-        {skyConfig.isMoon ? <View style={[cel.moonCut, { backgroundColor: skyConfig.skyTop }]} /> : null}
-      </View>
+    <ImageBackground
+      imageStyle={cel.image}
+      resizeMode="cover"
+      source={{ uri: imageUri }}
+      style={[cel.root, { backgroundColor: skyConfig.skyTop }]}
+    >
+      <View style={cel.glassShade} />
       <View style={cel.content}>
         <View style={cel.liveBadge}>
           <View style={[cel.liveDot, { backgroundColor: skyConfig.accentColor }]} />
@@ -270,9 +348,9 @@ function CelestialHeader({
         </View>
         <Text style={[cel.eyebrow, { color: skyConfig.accentColor }]}>Sleep + Rhythm</Text>
         <Text style={cel.title}>Today's Rhythm</Text>
-        <Text style={cel.subtitle}>Circadian estimate from your sleep pattern.</Text>
+        <Text style={cel.subtitle}>{skyConfig.periodLabel} rhythm estimate from your sleep pattern.</Text>
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -284,50 +362,17 @@ const cel = StyleSheet.create({
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 22
   },
-  lowerSky: {
+  image: {
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22
+  },
+  glassShade: {
+    backgroundColor: 'rgba(0,0,0,0.14)',
     bottom: 0,
-    height: 118,
     left: 0,
-    opacity: 0.86,
     position: 'absolute',
-    right: 0
-  },
-  horizonGlow: {
-    bottom: -70,
-    height: 140,
-    left: '14%',
-    opacity: 0.9,
-    position: 'absolute',
-    right: '14%',
-    borderRadius: 100
-  },
-  star: {
-    backgroundColor: '#F2F4F7',
-    position: 'absolute'
-  },
-  bodyGlow: {
-    height: 88,
-    opacity: 0.92,
-    position: 'absolute',
-    right: '11%',
-    width: 88,
-    borderRadius: 44
-  },
-  body: {
-    height: 28,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: '18%',
-    width: 28,
-    borderRadius: 14
-  },
-  moonCut: {
-    height: 26,
-    position: 'absolute',
-    right: -6,
-    top: -3,
-    width: 26,
-    borderRadius: 13
+    right: 0,
+    top: 0
   },
   content: {
     bottom: 0,
