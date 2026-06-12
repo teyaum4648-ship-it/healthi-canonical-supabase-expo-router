@@ -47,11 +47,22 @@ const isUuid = (value: string | undefined): value is string =>
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
+const winnerPalette = {
+  blue: '#5B7FFF',
+  green: '#4FC98A',
+  gold: '#F0B429',
+  violet: '#8BA5FF',
+  silver: '#D8DEE8',
+  text: '#E8EAF2'
+};
+
 interface SkyConfig {
   skyTop: string;
   skyMid: string;
   skyBottom: string;
+  horizon: string;
   bodyColor: string;
+  bodyX: number;
   bodyY: number;
   isMoon: boolean;
   starOpacity: number;
@@ -75,8 +86,30 @@ const stars = [
   { cx: 822, cy: 48, r: 1.1, opacity: 0.54 },
   { cx: 62, cy: 142, r: 1.1, opacity: 0.52 },
   { cx: 268, cy: 150, r: 1.1, opacity: 0.55 },
-  { cx: 610, cy: 146, r: 1.2, opacity: 0.56 }
+  { cx: 610, cy: 146, r: 1.2, opacity: 0.56 },
+  { cx: 720, cy: 184, r: 1.2, opacity: 0.5 },
+  { cx: 402, cy: 190, r: 1.1, opacity: 0.48 },
+  { cx: 822, cy: 212, r: 1.4, opacity: 0.54 },
+  { cx: 138, cy: 204, r: 1.1, opacity: 0.5 },
+  { cx: 520, cy: 222, r: 1.2, opacity: 0.46 }
 ] as const;
+
+function getDayOrbit(hour: number): { bodyX: number; bodyY: number } {
+  const t = Math.max(0, Math.min(1, (hour - 5) / 16));
+  return {
+    bodyX: lerp(92, 808, t),
+    bodyY: 0.78 - Math.sin(Math.PI * t) * 0.66
+  };
+}
+
+function getNightOrbit(hour: number): { bodyX: number; bodyY: number } {
+  const nightHour = hour >= 21 ? hour - 21 : hour + 3;
+  const t = Math.max(0, Math.min(1, nightHour / 8));
+  return {
+    bodyX: lerp(98, 808, t),
+    bodyY: 0.52 - Math.sin(Math.PI * t) * 0.34
+  };
+}
 
 function getSkyConfig(hour: number): SkyConfig {
   if (hour >= 5 && hour < 7) {
@@ -85,11 +118,12 @@ function getSkyConfig(hour: number): SkyConfig {
       skyTop: lerpHex('#141031', '#24385C', t),
       skyMid: lerpHex('#392357', '#7F6A9E', t),
       skyBottom: lerpHex('#B66A45', '#E3A55D', t),
+      horizon: lerpHex('#2B173D', '#9C7EB2', t),
       bodyColor: lerpHex('#F6C35E', '#FFE88C', t),
-      bodyY: lerp(0.8, 0.32, t),
+      ...getDayOrbit(hour),
       isMoon: false,
       starOpacity: lerp(0.5, 0.02, t),
-      accentColor: '#F4C568',
+      accentColor: winnerPalette.gold,
       periodLabel: 'Dawn',
       glowColor: `rgba(255, 202, 116, ${0.24 + 0.16 * t})`,
       cloudColor: 'rgba(255, 224, 179, 0.36)',
@@ -104,11 +138,12 @@ function getSkyConfig(hour: number): SkyConfig {
       skyTop: lerpHex('#1A1040', '#08224F', t),
       skyMid: lerpHex('#4F4E94', '#2D72B8', t),
       skyBottom: lerpHex('#C26B2A', '#74B8DF', t),
+      horizon: lerpHex('#594D96', '#9DDBF4', t),
       bodyColor: lerpHex('#FFE066', '#FFFDE8', t),
-      bodyY: lerp(0.3, 0.13, t),
+      ...getDayOrbit(hour),
       isMoon: false,
       starOpacity: 0,
-      accentColor: '#4FC98A',
+      accentColor: winnerPalette.green,
       periodLabel: 'Morning',
       glowColor: 'rgba(255, 240, 180, 0.34)',
       cloudColor: 'rgba(255, 255, 255, 0.36)',
@@ -122,8 +157,9 @@ function getSkyConfig(hour: number): SkyConfig {
       skyTop: '#071220',
       skyMid: '#0E3B68',
       skyBottom: '#48A8D8',
+      horizon: '#ACE4F8',
       bodyColor: '#FFFDE8',
-      bodyY: 0.11,
+      ...getDayOrbit(hour),
       isMoon: false,
       starOpacity: 0,
       accentColor: '#79C6F2',
@@ -141,11 +177,12 @@ function getSkyConfig(hour: number): SkyConfig {
       skyTop: lerpHex('#071220', '#160923', t),
       skyMid: lerpHex('#174579', '#54305A', t),
       skyBottom: lerpHex('#2E83BA', '#A35028', t),
+      horizon: lerpHex('#7BCDEB', '#E28B4F', t),
       bodyColor: lerpHex('#FFFDE8', '#FFB052', t),
-      bodyY: lerp(0.13, 0.72, t),
+      ...getDayOrbit(hour),
       isMoon: false,
       starOpacity: lerp(0, 0.32, t),
-      accentColor: '#F0B429',
+      accentColor: winnerPalette.gold,
       periodLabel: 'Afternoon',
       glowColor: `rgba(255, 160, 82, ${0.28 + 0.18 * t})`,
       cloudColor: `rgba(255, 231, 199, ${0.3 + 0.1 * t})`,
@@ -160,11 +197,12 @@ function getSkyConfig(hour: number): SkyConfig {
       skyTop: lerpHex('#160923', '#050716', t),
       skyMid: lerpHex('#54305A', '#151B42', t),
       skyBottom: lerpHex('#A35028', '#15102B', t),
+      horizon: lerpHex('#E28B4F', '#40325E', t),
       bodyColor: lerpHex('#FFB052', '#D0D8FF', t),
-      bodyY: lerp(0.74, 0.5, t),
+      ...(t > 0.5 ? getNightOrbit(hour) : getDayOrbit(hour)),
       isMoon: t > 0.5,
       starOpacity: lerp(0.36, 0.92, t),
-      accentColor: '#8BA5FF',
+      accentColor: winnerPalette.violet,
       periodLabel: 'Dusk',
       glowColor: `rgba(180, 180, 255, ${0.12 + 0.14 * t})`,
       cloudColor: 'rgba(206, 216, 255, 0.22)',
@@ -177,11 +215,12 @@ function getSkyConfig(hour: number): SkyConfig {
     skyTop: '#04060E',
     skyMid: '#07112E',
     skyBottom: '#090B1E',
+    horizon: '#192454',
     bodyColor: '#D0D8FF',
-    bodyY: hour >= 21 ? lerp(0.5, 0.2, (hour - 21) / 4) : lerp(0.2, 0.48, hour / 5),
+    ...getNightOrbit(hour),
     isMoon: true,
     starOpacity: 1,
-    accentColor: '#8BA5FF',
+    accentColor: winnerPalette.violet,
     periodLabel: 'Night',
     glowColor: 'rgba(160, 175, 255, 0.2)',
     cloudColor: 'rgba(170, 188, 255, 0.13)',
@@ -262,8 +301,8 @@ function getLatestSleepDuration(session: SleepSession | undefined): number | nul
 }
 
 function skyImageUri(skyConfig: SkyConfig): string {
-  const bodyCx = 690;
-  const bodyCy = 58 + skyConfig.bodyY * 270;
+  const bodyCx = skyConfig.bodyX;
+  const bodyCy = 52 + skyConfig.bodyY * 280;
   const bodyR = skyConfig.isMoon ? 27 : 34;
   const starMarkup = stars
     .map((star) => (
@@ -282,7 +321,8 @@ function skyImageUri(skyConfig: SkyConfig): string {
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="${skyConfig.skyTop}" />
-          <stop offset="50%" stop-color="${skyConfig.skyMid}" />
+          <stop offset="48%" stop-color="${skyConfig.skyMid}" />
+          <stop offset="82%" stop-color="${skyConfig.horizon}" />
           <stop offset="100%" stop-color="${skyConfig.skyBottom}" />
         </linearGradient>
         <radialGradient id="bodyGlow" cx="50%" cy="50%" r="50%">
@@ -297,26 +337,40 @@ function skyImageUri(skyConfig: SkyConfig): string {
         <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="18" />
         </filter>
+        <filter id="wideSoft" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="30" />
+        </filter>
       </defs>
       <rect width="900" height="420" fill="url(#sky)" />
-      <ellipse cx="450" cy="394" rx="420" ry="150" fill="url(#haze)" />
-      <g opacity="0.95">${starMarkup}</g>
+      <ellipse cx="450" cy="392" rx="510" ry="160" fill="url(#haze)" />
+      <path d="M54 306 C220 152 432 94 846 246" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.18" />
+      <path d="M84 326 C260 190 498 132 832 284" fill="none" stroke="#FFFFFF" stroke-width="0.8" stroke-dasharray="8 16" opacity="0.15" />
+      <path d="M36 348 C244 290 616 270 884 354" fill="none" stroke="#FFFFFF" stroke-width="0.7" opacity="0.1" />
+      <g opacity="0.98">${starMarkup}</g>
+      <g opacity="0.22">
+        <circle cx="778" cy="84" r="24" fill="none" stroke="#FFFFFF" stroke-width="0.7" />
+        <circle cx="778" cy="84" r="42" fill="none" stroke="#FFFFFF" stroke-width="0.45" />
+        <path d="M740 84 H816 M778 46 V122" stroke="#FFFFFF" stroke-width="0.4" />
+      </g>
       <circle cx="${bodyCx}" cy="${bodyCy}" r="${bodyR * 3.4}" fill="url(#bodyGlow)" filter="url(#soft)" />
+      <circle cx="${bodyCx}" cy="${bodyCy}" r="${bodyR * 6.2}" fill="url(#bodyGlow)" filter="url(#wideSoft)" opacity="0.42" />
       <circle cx="${bodyCx}" cy="${bodyCy}" r="${bodyR}" fill="${skyConfig.bodyColor}" />
       ${moonCut}
       ${sunFlare}
-      <g filter="url(#soft)">
-        <ellipse cx="170" cy="314" rx="140" ry="42" fill="${skyConfig.cloudShadow}" />
-        <ellipse cx="324" cy="326" rx="168" ry="48" fill="${skyConfig.cloudShadow}" />
-        <ellipse cx="690" cy="302" rx="190" ry="54" fill="${skyConfig.cloudShadow}" />
+      <g filter="url(#soft)" opacity="0.86">
+        <ellipse cx="172" cy="326" rx="170" ry="44" fill="${skyConfig.cloudShadow}" />
+        <ellipse cx="432" cy="344" rx="230" ry="58" fill="${skyConfig.cloudShadow}" />
+        <ellipse cx="722" cy="320" rx="210" ry="52" fill="${skyConfig.cloudShadow}" />
       </g>
-      <g opacity="0.92">
-        <ellipse cx="118" cy="314" rx="94" ry="30" fill="${skyConfig.cloudColor}" />
-        <ellipse cx="218" cy="304" rx="132" ry="38" fill="${skyConfig.cloudColor}" />
-        <ellipse cx="340" cy="324" rx="150" ry="42" fill="${skyConfig.cloudColor}" />
-        <ellipse cx="642" cy="302" rx="146" ry="40" fill="${skyConfig.cloudColor}" />
-        <ellipse cx="790" cy="316" rx="124" ry="34" fill="${skyConfig.cloudColor}" />
+      <g opacity="0.72">
+        <ellipse cx="118" cy="324" rx="108" ry="28" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="270" cy="316" rx="156" ry="34" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="458" cy="348" rx="194" ry="42" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="680" cy="318" rx="162" ry="38" fill="${skyConfig.cloudColor}" />
+        <ellipse cx="822" cy="336" rx="118" ry="30" fill="${skyConfig.cloudColor}" />
       </g>
+      <ellipse cx="450" cy="474" rx="610" ry="146" fill="${skyConfig.horizon}" opacity="0.42" />
+      <ellipse cx="450" cy="438" rx="590" ry="112" fill="none" stroke="${skyConfig.accentColor}" stroke-width="1" opacity="0.18" />
       <rect width="900" height="420" fill="#000000" opacity="0.12" />
     </svg>
   `;
@@ -332,6 +386,64 @@ function CelestialHeader({
   localTime: string;
 }) {
   const imageUri = useMemo(() => skyImageUri(skyConfig), [skyConfig]);
+  const orbit = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+  const twinkle = useRef(new Animated.Value(0)).current;
+  const bodyOverlayLeft = `${Math.max(2, Math.min(88, (skyConfig.bodyX / 900) * 100 - 7))}%` as `${number}%`;
+  const bodyOverlayTop = Math.max(2, Math.min(130, ((52 + skyConfig.bodyY * 280) / 420) * 200 - 42));
+
+  useEffect(() => {
+    const orbitLoop = Animated.loop(
+      Animated.timing(orbit, {
+        duration: 11000,
+        easing: Easing.inOut(Easing.sin),
+        toValue: 1,
+        useNativeDriver: true
+      })
+    );
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          duration: 2600,
+          easing: Easing.inOut(Easing.sin),
+          toValue: 1,
+          useNativeDriver: true
+        }),
+        Animated.timing(pulse, {
+          duration: 2600,
+          easing: Easing.inOut(Easing.sin),
+          toValue: 0,
+          useNativeDriver: true
+        })
+      ])
+    );
+    const twinkleLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(twinkle, {
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          toValue: 1,
+          useNativeDriver: true
+        }),
+        Animated.timing(twinkle, {
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          toValue: 0,
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    orbitLoop.start();
+    pulseLoop.start();
+    twinkleLoop.start();
+
+    return () => {
+      orbitLoop.stop();
+      pulseLoop.stop();
+      twinkleLoop.stop();
+    };
+  }, [orbit, pulse, twinkle]);
 
   return (
     <ImageBackground
@@ -341,14 +453,54 @@ function CelestialHeader({
       style={[cel.root, { backgroundColor: skyConfig.skyTop }]}
     >
       <View style={cel.glassShade} />
+      <Animated.View
+        style={[
+          cel.bodyPulse,
+          {
+            backgroundColor: skyConfig.glowColor,
+            left: bodyOverlayLeft,
+            opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.34] }),
+            top: bodyOverlayTop,
+            transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.14] }) }]
+          }
+        ]}
+      />
+      <Animated.View
+        style={[
+          cel.orbitSweep,
+          {
+            opacity: orbit.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.08, 0.24, 0.08] }),
+            transform: [
+              { translateX: orbit.interpolate({ inputRange: [0, 1], outputRange: [-105, 120] }) },
+              { translateY: orbit.interpolate({ inputRange: [0, 0.5, 1], outputRange: [18, -8, 14] }) },
+              { rotate: '-13deg' }
+            ]
+          }
+        ]}
+      />
+      <Animated.View
+        style={[
+          cel.twinkleWash,
+          {
+            opacity: twinkle.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.22] })
+          }
+        ]}
+      />
       <View style={cel.content}>
         <View style={cel.liveBadge}>
           <View style={[cel.liveDot, { backgroundColor: skyConfig.accentColor }]} />
           <Text style={cel.liveText}>{localTime} LOCAL</Text>
         </View>
-        <Text style={[cel.eyebrow, { color: skyConfig.accentColor }]}>Sleep + Rhythm</Text>
+        <Text style={[cel.eyebrow, { color: skyConfig.accentColor }]}>
+          {skyConfig.isMoon ? 'Lunar Rhythm' : 'Solar Rhythm'}
+        </Text>
         <Text style={cel.title}>Today's Rhythm</Text>
         <Text style={cel.subtitle}>{skyConfig.periodLabel} rhythm estimate from your sleep pattern.</Text>
+        <View style={cel.telemetryRow}>
+          <Text style={cel.telemetryText}>{skyConfig.periodLabel.toUpperCase()}</Text>
+          <Text style={cel.telemetryText}>{skyConfig.isMoon ? 'MOON PATH' : 'SUN PATH'}</Text>
+          <Text style={cel.telemetryText}>LOCAL LIGHT</Text>
+        </View>
       </View>
     </ImageBackground>
   );
@@ -367,12 +519,37 @@ const cel = StyleSheet.create({
     borderBottomRightRadius: 22
   },
   glassShade: {
-    backgroundColor: 'rgba(0,0,0,0.14)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     bottom: 0,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0
+  },
+  bodyPulse: {
+    borderRadius: 56,
+    height: 112,
+    position: 'absolute',
+    width: 112
+  },
+  orbitSweep: {
+    borderColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 220,
+    borderTopWidth: 1,
+    height: 150,
+    left: -44,
+    position: 'absolute',
+    right: -44,
+    top: 34
+  },
+  twinkleWash: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 120,
+    height: 70,
+    position: 'absolute',
+    right: 50,
+    top: 22,
+    width: 150
   },
   content: {
     bottom: 0,
@@ -421,6 +598,20 @@ const cel = StyleSheet.create({
     color: 'rgba(255,255,255,0.45)',
     fontFamily: fonts.body,
     fontSize: 12
+  },
+  telemetryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 7
+  },
+  telemetryText: {
+    color: 'rgba(255,255,255,0.46)',
+    fontFamily: fonts.body,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 1.1
   }
 });
 
@@ -559,8 +750,8 @@ function EnergyCurve({ points }: { points: CircadianEnergyPoint[] }) {
   }, [barAnims]);
 
   function barColor(energy: number): string {
-    if (energy >= 70) return '#F2F4F7';
-    if (energy >= 40) return '#D8DEE8';
+    if (energy >= 70) return winnerPalette.green;
+    if (energy >= 40) return winnerPalette.blue;
     return 'rgba(255,255,255,0.24)';
   }
 
@@ -691,6 +882,7 @@ export default function RhythmScreen() {
   const [sleepQuality, setSleepQuality] = useState('4');
   const [localTime, setLocalTime] = useState('');
   const [skyConfig, setSkyConfig] = useState(() => getSkyConfig(new Date().getHours() + new Date().getMinutes() / 60));
+  const skyMinuteRef = useRef('');
 
   useEffect(() => {
     function tick() {
@@ -699,7 +891,11 @@ export default function RhythmScreen() {
       const m = String(date.getMinutes()).padStart(2, '0');
       const sec = String(date.getSeconds()).padStart(2, '0');
       setLocalTime(`${h}:${m}:${sec}`);
-      setSkyConfig(getSkyConfig(date.getHours() + date.getMinutes() / 60));
+      const skyMinute = `${h}:${m}`;
+      if (skyMinuteRef.current !== skyMinute) {
+        skyMinuteRef.current = skyMinute;
+        setSkyConfig(getSkyConfig(date.getHours() + date.getMinutes() / 60));
+      }
     }
 
     tick();
@@ -839,8 +1035,8 @@ export default function RhythmScreen() {
           <View style={s.statsGrid}>
             <StatPill label="Sleep" value={`${formatTime(latestSession?.sleep_start_at)} - ${formatTime(latestSession?.sleep_end_at)}`} />
             <StatPill label="Duration" value={formatDuration(sleepDuration)} />
-            <StatPill label="7-day debt" value={formatDebt(briefing.sleep_debt_7_day.total_sleep_debt_minutes)} accent={accent} />
-            <StatPill label="Target bedtime" value={formatTime(briefing.target_bedtime)} accent={accent} />
+            <StatPill label="7-day debt" value={formatDebt(briefing.sleep_debt_7_day.total_sleep_debt_minutes)} accent={winnerPalette.gold} />
+            <StatPill label="Target bedtime" value={formatTime(briefing.target_bedtime)} accent={winnerPalette.violet} />
           </View>
         </DataCard>
 
@@ -853,22 +1049,22 @@ export default function RhythmScreen() {
           <SectionHeader label="Organize your day" tag="Timing only" />
           <View>
             <TimingRow
-              iconBg="rgba(216,222,232,0.12)"
-              iconColor="#F2F4F7"
+              iconBg="rgba(91,127,255,0.15)"
+              iconColor={winnerPalette.blue}
               iconName="sparkles-outline"
               sub="Best window"
               title="Deep focus"
               value={formatWindow(briefing.rhythm_plan.deep_work_windows[0])}
-              valueColor="#F2F4F7"
+              valueColor={winnerPalette.blue}
             />
             <TimingRow
-              iconBg="rgba(216,222,232,0.1)"
-              iconColor="#D8DEE8"
+              iconBg="rgba(79,201,138,0.12)"
+              iconColor={winnerPalette.green}
               iconName="flash-outline"
               sub="Suggested window"
               title="Exercise"
               value={formatWindow(briefing.rhythm_plan.best_exercise_windows[0])}
-              valueColor="#D8DEE8"
+              valueColor={winnerPalette.green}
             />
             <TimingRow
               iconBg="rgba(255,255,255,0.05)"
@@ -888,33 +1084,33 @@ export default function RhythmScreen() {
             />
             {briefing.rhythm_plan.nap_windows[0] ? (
               <TimingRow
-                iconBg="rgba(216,222,232,0.08)"
-                iconColor="#D8DEE8"
+                iconBg="rgba(139,165,255,0.1)"
+                iconColor={winnerPalette.violet}
                 iconName="moon-outline"
                 sub="Possible window"
                 title="Short nap"
                 value={formatWindow(briefing.rhythm_plan.nap_windows[0])}
-                valueColor="#D8DEE8"
+                valueColor={winnerPalette.violet}
               />
             ) : null}
             <TimingRow
-              iconBg="rgba(255,255,255,0.05)"
-              iconColor="#D8DEE8"
+              iconBg="rgba(240,180,41,0.12)"
+              iconColor={winnerPalette.gold}
               iconName="cafe-outline"
               sub="Based on bedtime"
               title="Caffeine cutoff"
               value={formatTime(briefing.rhythm_plan.caffeine_cutoff)}
-              valueColor="#D8DEE8"
+              valueColor={winnerPalette.gold}
             />
             <TimingRow
-              iconBg="rgba(216,222,232,0.08)"
-              iconColor="#D8DEE8"
+              iconBg="rgba(139,165,255,0.08)"
+              iconColor={winnerPalette.violet}
               iconName="cloudy-night-outline"
               isLast
               sub="Start here"
               title="Wind-down"
               value={formatTime(briefing.rhythm_plan.wind_down_start)}
-              valueColor="#D8DEE8"
+              valueColor={winnerPalette.violet}
             />
           </View>
         </DataCard>
