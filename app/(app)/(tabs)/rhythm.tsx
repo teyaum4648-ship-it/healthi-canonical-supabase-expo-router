@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type StyleProp,
   type ViewStyle
@@ -255,6 +256,14 @@ function getLatestSleepDuration(session: SleepSession | undefined): number | nul
   if (!session) return null;
   if (typeof session.duration_minutes === 'number') return session.duration_minutes;
   return calculateSleepDuration(session.sleep_start_at, session.sleep_end_at);
+}
+
+function isValidTimeInput(value: string): boolean {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
 }
 
 function skyImageUri(skyConfig: SkyConfig): string {
@@ -868,6 +877,11 @@ export default function RhythmScreen() {
         : 'Synced from saved sleep data.';
 
   async function handleManualSubmit() {
+    if (!isValidTimeInput(sleepStartTime) || !isValidTimeInput(wakeTime)) {
+      Alert.alert('Check your sleep times', 'Use 24-hour time like 22:45 and 06:45.');
+      return;
+    }
+
     const qualityNumber = sleepQuality ? Number(sleepQuality) : null;
     const boundedQuality =
       qualityNumber !== null && Number.isFinite(qualityNumber)
@@ -1013,12 +1027,32 @@ export default function RhythmScreen() {
           <View style={s.timeRow}>
             <View style={s.timeField}>
               <Text style={s.inputLbl}>Fell asleep</Text>
-              <View style={s.timeDisplay}><Text style={s.timeDisplayTxt}>{sleepStartTime}</Text></View>
+              <TextInput
+                accessibilityLabel="Sleep start time"
+                autoCapitalize="none"
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+                onChangeText={setSleepStartTime}
+                placeholder="22:45"
+                placeholderTextColor="rgba(255,255,255,0.28)"
+                style={s.timeInput}
+                value={sleepStartTime}
+              />
             </View>
             <Text style={s.timeConnector}>to</Text>
             <View style={s.timeField}>
               <Text style={s.inputLbl}>Woke up</Text>
-              <View style={s.timeDisplay}><Text style={s.timeDisplayTxt}>{wakeTime}</Text></View>
+              <TextInput
+                accessibilityLabel="Wake time"
+                autoCapitalize="none"
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+                onChangeText={setWakeTime}
+                placeholder="06:45"
+                placeholderTextColor="rgba(255,255,255,0.28)"
+                style={s.timeInput}
+                value={wakeTime}
+              />
             </View>
           </View>
 
@@ -1168,21 +1202,20 @@ const s = StyleSheet.create({
     letterSpacing: 1.3,
     textTransform: 'uppercase'
   },
-  timeDisplay: {
+  timeInput: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 8,
     borderWidth: 1,
-    height: 44,
-    justifyContent: 'center'
-  },
-  timeDisplayTxt: {
     color: '#E8EAF2',
     fontFamily: fonts.body,
     fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 1
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    textAlign: 'center'
   },
   timeConnector: {
     color: 'rgba(255,255,255,0.25)',
