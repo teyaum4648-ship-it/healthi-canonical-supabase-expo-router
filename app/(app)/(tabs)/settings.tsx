@@ -5,6 +5,7 @@ import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { isSupabaseConfigured } from '../../../src/lib/supabase';
 import { colors } from '../../../src/styles/theme';
 
 export default function SettingsScreen() {
@@ -31,7 +32,9 @@ export default function SettingsScreen() {
           {user?.email ?? 'Signed in'}
         </Text>
         <Text style={{ color: colors.textMuted, fontSize: 15, lineHeight: 22 }}>
-          Supabase is managing this secure session.
+          {isSupabaseConfigured
+            ? 'Supabase is managing this secure session.'
+            : 'Local demo mode is active because Supabase env vars are not configured.'}
         </Text>
         <Button label="Log out" onPress={handleSignOut} variant="secondary" />
       </Card>

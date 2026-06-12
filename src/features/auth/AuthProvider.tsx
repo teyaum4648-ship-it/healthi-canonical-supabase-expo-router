@@ -10,7 +10,7 @@ import {
   type PropsWithChildren
 } from 'react';
 
-import { supabase } from '../../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
@@ -37,14 +37,16 @@ type HealthiProfile = {
 };
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const shouldUseLocalDemoAuth = isDemoMode || !isSupabaseConfigured;
   const [demoOnboardingStatus, setDemoOnboardingStatus] =
     useState<HealthiProfile['onboarding_status']>('in_progress');
+  const [isLocalDemoSignedOut, setIsLocalDemoSignedOut] = useState(!isSupabaseConfigured);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<HealthiProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isDemoMode) {
+    if (!shouldUseLocalDemoAuth) {
       return;
     }
 
@@ -55,9 +57,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .catch(() => {
         setDemoOnboardingStatus('in_progress');
       });
-  }, []);
+  }, [shouldUseLocalDemoAuth]);
 
-  if (isDemoMode) {
+  if (shouldUseLocalDemoAuth) {
     const demoUser = {
       id: 'demo-user',
       email: 'demo@healthi.local'
@@ -81,16 +83,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setDemoOnboardingStatus(value === 'true' ? 'completed' : 'in_progress');
     };
     const value: AuthContextValue = {
-      session: demoSession,
-      user: demoUser,
-      profile: demoProfile,
+      session: isLocalDemoSignedOut ? null : demoSession,
+      user: isLocalDemoSignedOut ? null : demoUser,
+      profile: isLocalDemoSignedOut ? null : demoProfile,
       isLoading: false,
       refreshProfile: refreshDemoProfile,
-      signIn: async () => undefined,
-      signUp: async () => undefined,
+      signIn: async () => {
+        await AsyncStorage.removeItem(demoOnboardingCompletedKey);
+        setDemoOnboardingStatus('in_progress');
+        setIsLocalDemoSignedOut(false);
+      },
+      signUp: async () => {
+        await AsyncStorage.removeItem(demoOnboardingCompletedKey);
+        setDemoOnboardingStatus('in_progress');
+        setIsLocalDemoSignedOut(false);
+      },
       signOut: async () => {
         await AsyncStorage.removeItem(demoOnboardingCompletedKey);
         setDemoOnboardingStatus('in_progress');
+        setIsLocalDemoSignedOut(true);
       }
     };
 

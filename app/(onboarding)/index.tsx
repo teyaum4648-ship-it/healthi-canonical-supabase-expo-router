@@ -13,7 +13,7 @@ import { generateBaselineProfile } from '../../src/features/onboarding/generateB
 import { generateBiweeklyFocusProfile } from '../../src/features/onboarding/generateBiweeklyFocusProfile';
 import { generateLifestylePlan } from '../../src/features/onboarding/generateLifestylePlan';
 import { onboardingQuestions } from '../../src/features/onboarding/onboardingQuestions';
-import { supabase } from '../../src/lib/supabase';
+import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
 import { colors, fonts, radii, spacing } from '../../src/styles/theme';
 import type {
   BiweeklyFocusProfile,
@@ -26,6 +26,7 @@ import type {
 } from '../../src/types/onboarding';
 
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+const shouldUseLocalOnboarding = isDemoMode || !isSupabaseConfigured;
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 
@@ -376,7 +377,7 @@ export default function OnboardingScreen() {
         answers
       });
 
-      if (isDemoMode) {
+      if (shouldUseLocalOnboarding) {
         await AsyncStorage.setItem(
           demoOnboardingResultKey,
           JSON.stringify({

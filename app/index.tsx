@@ -4,16 +4,23 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Button } from '../src/components/Button';
 import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
+import { isSupabaseConfigured } from '../src/lib/supabase';
 import { colors, fonts, spacing } from '../src/styles/theme';
 
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
-  const { profile, session, isLoading } = useAuth();
+  const { profile, session, isLoading, signUp } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 820;
 
-  function handleStart() {
+  async function handleStart() {
+    if (!isSupabaseConfigured) {
+      await signUp('demo@healthi.local', 'demo-password');
+      router.push('/(onboarding)');
+      return;
+    }
+
     if (profile?.onboarding_status === 'completed') {
       router.replace('/(app)/(tabs)');
       return;
