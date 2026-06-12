@@ -1,19 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
-  Easing,
-  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
-  type StyleProp,
-  type ViewStyle
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,174 +36,41 @@ import {
   getSleepSourceLabel
 } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts } from '../../../src/styles/theme';
+import { fonts, spacing } from '../../../src/styles/theme';
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
-const winnerPalette = {
-  blue: '#5B7FFF',
-  green: '#4FC98A',
-  gold: '#F0B429',
-  violet: '#8BA5FF',
-  silver: '#D8DEE8',
-  text: '#E8EAF2'
-};
+const colors = {
+  background: '#050506',
+  surface: '#0B0D14',
+  surfaceMuted: '#121623',
+  text: '#F6F2EA',
+  textMuted: '#BEB7C9',
+  textSubtle: '#817990',
+  textInverse: '#100C08',
+  border: 'rgba(240, 201, 106, 0.24)',
+  borderStrong: 'rgba(240, 201, 106, 0.38)',
+  borderMuted: 'rgba(255, 255, 255, 0.08)',
+  primary: '#F0C96A',
+  primaryMuted: 'rgba(240, 201, 106, 0.12)'
+} as const;
 
-interface SkyConfig {
-  skyTop: string;
-  skyMid: string;
-  skyBottom: string;
-  horizon: string;
-  starOpacity: number;
-  accentColor: string;
-  periodLabel: string;
-  glowColor: string;
-  hazeColor: string;
-}
-
-const stars = [
-  { cx: 108, cy: 64, r: 1.8, opacity: 0.75 },
-  { cx: 174, cy: 108, r: 1.2, opacity: 0.62 },
-  { cx: 246, cy: 50, r: 1.4, opacity: 0.72 },
-  { cx: 330, cy: 86, r: 1.8, opacity: 0.58 },
-  { cx: 450, cy: 42, r: 1.2, opacity: 0.65 },
-  { cx: 566, cy: 94, r: 1.5, opacity: 0.68 },
-  { cx: 672, cy: 58, r: 1.1, opacity: 0.58 },
-  { cx: 766, cy: 118, r: 1.6, opacity: 0.72 },
-  { cx: 822, cy: 48, r: 1.1, opacity: 0.54 },
-  { cx: 62, cy: 142, r: 1.1, opacity: 0.52 },
-  { cx: 268, cy: 150, r: 1.1, opacity: 0.55 },
-  { cx: 610, cy: 146, r: 1.2, opacity: 0.56 },
-  { cx: 720, cy: 184, r: 1.2, opacity: 0.5 },
-  { cx: 402, cy: 190, r: 1.1, opacity: 0.48 },
-  { cx: 822, cy: 212, r: 1.4, opacity: 0.54 },
-  { cx: 138, cy: 204, r: 1.1, opacity: 0.5 },
-  { cx: 520, cy: 222, r: 1.2, opacity: 0.46 },
-  { cx: 82, cy: 286, r: 1.3, opacity: 0.44 },
-  { cx: 204, cy: 272, r: 1.1, opacity: 0.5 },
-  { cx: 332, cy: 254, r: 1.5, opacity: 0.58 },
-  { cx: 488, cy: 288, r: 1.2, opacity: 0.48 },
-  { cx: 638, cy: 266, r: 1.5, opacity: 0.54 },
-  { cx: 792, cy: 284, r: 1.2, opacity: 0.46 },
-  { cx: 858, cy: 170, r: 1.2, opacity: 0.5 },
-  { cx: 46, cy: 86, r: 1, opacity: 0.5 },
-  { cx: 378, cy: 78, r: 1, opacity: 0.42 },
-  { cx: 702, cy: 22, r: 1.1, opacity: 0.48 }
-] as const;
-
-function getSkyConfig(hour: number): SkyConfig {
-  if (hour >= 5 && hour < 7) {
-    const t = (hour - 5) / 2;
-    return {
-      skyTop: lerpHex('#070616', '#11142D', t),
-      skyMid: lerpHex('#12143A', '#1C2855', t),
-      skyBottom: lerpHex('#1D1A4F', '#2D336B', t),
-      horizon: lerpHex('#2F2B7D', '#4B4DA1', t),
-      starOpacity: lerp(0.96, 0.7, t),
-      accentColor: winnerPalette.violet,
-      periodLabel: 'Starfield',
-      glowColor: 'rgba(139, 165, 255, 0.24)',
-      hazeColor: 'rgba(91, 127, 255, 0.16)'
-    };
-  }
-
-  if (hour >= 7 && hour < 11) {
-    const t = (hour - 7) / 4;
-    return {
-      skyTop: lerpHex('#060611', '#0A0D1C', t),
-      skyMid: lerpHex('#111539', '#15204A', t),
-      skyBottom: lerpHex('#1D285E', '#263B70', t),
-      horizon: lerpHex('#324287', '#4C5DA1', t),
-      starOpacity: lerp(0.88, 0.66, t),
-      accentColor: winnerPalette.blue,
-      periodLabel: 'Starfield',
-      glowColor: 'rgba(91, 127, 255, 0.22)',
-      hazeColor: 'rgba(79, 201, 138, 0.1)'
-    };
-  }
-
-  if (hour >= 11 && hour < 15) {
-    return {
-      skyTop: '#05060F',
-      skyMid: '#0E1835',
-      skyBottom: '#192A5B',
-      horizon: '#31437B',
-      starOpacity: 0.72,
-      accentColor: winnerPalette.blue,
-      periodLabel: 'Starfield',
-      glowColor: 'rgba(91, 127, 255, 0.2)',
-      hazeColor: 'rgba(121, 198, 242, 0.12)'
-    };
-  }
-
-  if (hour >= 15 && hour < 19) {
-    const t = (hour - 15) / 4;
-    return {
-      skyTop: lerpHex('#05060F', '#080513', t),
-      skyMid: lerpHex('#101B3F', '#21153F', t),
-      skyBottom: lerpHex('#22366E', '#3A276B', t),
-      horizon: lerpHex('#4B5F99', '#5B3D8D', t),
-      starOpacity: lerp(0.72, 0.9, t),
-      accentColor: winnerPalette.gold,
-      periodLabel: 'Starfield',
-      glowColor: `rgba(240, 180, 41, ${0.08 + 0.12 * t})`,
-      hazeColor: `rgba(139, 165, 255, ${0.12 + 0.08 * t})`
-    };
-  }
-
-  if (hour >= 19 && hour < 21) {
-    const t = (hour - 19) / 2;
-    return {
-      skyTop: lerpHex('#080513', '#040511', t),
-      skyMid: lerpHex('#21153F', '#0D1234', t),
-      skyBottom: lerpHex('#3A276B', '#14194A', t),
-      horizon: lerpHex('#5B3D8D', '#26306A', t),
-      starOpacity: lerp(0.9, 1, t),
-      accentColor: winnerPalette.violet,
-      periodLabel: 'Starfield',
-      glowColor: `rgba(139, 165, 255, ${0.18 + 0.1 * t})`,
-      hazeColor: 'rgba(160, 88, 134, 0.16)'
-    };
-  }
-
-  return {
-    skyTop: '#04060E',
-    skyMid: '#07112E',
-    skyBottom: '#090B1E',
-    horizon: '#192454',
-    starOpacity: 1,
-    accentColor: winnerPalette.violet,
-    periodLabel: 'Starfield',
-    glowColor: 'rgba(160, 175, 255, 0.24)',
-    hazeColor: 'rgba(88, 112, 210, 0.12)'
-  };
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * Math.max(0, Math.min(1, t));
-}
-
-function lerpHex(c1: string, c2: string, t: number): string {
-  const p1 = parseHex(c1);
-  const p2 = parseHex(c2);
-  const r = Math.round(lerp(p1[0], p2[0], t));
-  const g = Math.round(lerp(p1[1], p2[1], t));
-  const b = Math.round(lerp(p1[2], p2[2], t));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function parseHex(h: string): [number, number, number] {
-  const hex = h.replace('#', '');
-  return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
-}
+const radii = {
+  sm: 8,
+  md: 12,
+  lg: 18,
+  full: 999
+} as const;
 
 function formatTime(value: string | null | undefined): string {
-  if (!value) return 'N/A';
+  if (!value) return 'Not available';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'N/A';
+  if (Number.isNaN(date.getTime())) return 'Not available';
   const hours = date.getUTCHours();
   const minutes = date.getUTCMinutes();
   const hour12 = hours % 12 || 12;
@@ -217,39 +79,48 @@ function formatTime(value: string | null | undefined): string {
 }
 
 function formatDuration(minutes: number | null): string {
-  if (minutes === null) return 'N/A';
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  if (minutes === null) return 'Not available';
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m`;
 }
 
 function formatDebt(minutes: number | null): string {
-  if (minutes === null) return 'Calibrating';
-  if (minutes === 0) return 'No debt';
-  return formatDuration(minutes);
+  if (minutes === null) return 'Still calibrating';
+  if (minutes === 0) return 'Low recent debt';
+  return `${formatDuration(minutes)} recent debt`;
 }
 
 function formatWindow(window: TimeWindow | undefined): string {
-  if (!window) return 'N/A';
-  return `${formatTime(window.start_at)} - ${formatTime(window.end_at)}`;
+  if (!window) return 'Unavailable';
+  return `${formatTime(window.start_at)} – ${formatTime(window.end_at)}`;
+}
+
+function phaseTitle(label: string): string {
+  return label
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 function phaseLabel(label: string): string {
   const labels: Record<string, string> = {
-    wake_grogginess: 'Wake Ramp',
-    rising: 'Rising Energy',
-    morning_peak: 'Morning Peak',
-    afternoon_dip: 'Recovery Dip',
-    second_peak: 'Second Peak',
-    wind_down: 'Wind-Down',
-    sleep_window: 'Sleep Window',
+    wake_grogginess: 'Wake-up ramp',
+    rising: 'Rising energy',
+    morning_peak: 'Morning peak',
+    afternoon_dip: 'Lower-energy window',
+    second_peak: 'Second peak',
+    wind_down: 'Wind-down',
+    sleep_window: 'Sleep window',
     unknown: 'Calibrating'
   };
-  return labels[label] ?? label.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+  return labels[label] ?? phaseTitle(label);
 }
 
 function getRhythmLead(briefing: CircadianBriefing): string {
-  const window = briefing.rhythm_plan.deep_work_windows[0];
-  if (!window) return 'Rhythm estimate is still calibrating.';
-  return `Deep focus peaks around ${formatWindow(window)}.`;
+  const deepWorkWindow = briefing.rhythm_plan.deep_work_windows[0];
+  if (!deepWorkWindow) return "Healthi is still calibrating today's rhythm estimate.";
+  return `Deep work looks strongest around ${formatWindow(deepWorkWindow)}.`;
 }
 
 function getLatestSleepDuration(session: SleepSession | undefined): number | null {
@@ -266,507 +137,63 @@ function isValidTimeInput(value: string): boolean {
   return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
 }
 
-function skyImageUri(skyConfig: SkyConfig): string {
-  const starMarkup = stars
-    .map((star, index) => {
-      const glowOpacity = (star.opacity * skyConfig.starOpacity * 0.22).toFixed(2);
-      const starOpacity = (star.opacity * skyConfig.starOpacity).toFixed(2);
-      return `
-        <circle cx="${star.cx}" cy="${star.cy}" r="${star.r * 3.4}" fill="#FFFFFF" opacity="${glowOpacity}" filter="url(#pinSoft${index % 2})" />
-        <circle cx="${star.cx}" cy="${star.cy}" r="${star.r}" fill="#F7FAFF" opacity="${starOpacity}" />
-      `;
-    })
-    .join('');
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${skyConfig.skyTop}" />
-          <stop offset="48%" stop-color="${skyConfig.skyMid}" />
-          <stop offset="82%" stop-color="${skyConfig.horizon}" />
-          <stop offset="100%" stop-color="${skyConfig.skyBottom}" />
-        </linearGradient>
-        <radialGradient id="bodyGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${skyConfig.glowColor}" />
-          <stop offset="58%" stop-color="${skyConfig.glowColor}" stop-opacity="0.38" />
-          <stop offset="100%" stop-color="${skyConfig.glowColor}" stop-opacity="0" />
-        </radialGradient>
-        <radialGradient id="haze" cx="50%" cy="100%" r="74%">
-          <stop offset="0%" stop-color="${skyConfig.hazeColor}" />
-          <stop offset="100%" stop-color="${skyConfig.hazeColor}" stop-opacity="0" />
-        </radialGradient>
-        <radialGradient id="nebulaA" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${skyConfig.glowColor}" />
-          <stop offset="72%" stop-color="${skyConfig.glowColor}" stop-opacity="0.18" />
-          <stop offset="100%" stop-color="${skyConfig.glowColor}" stop-opacity="0" />
-        </radialGradient>
-        <radialGradient id="nebulaB" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${skyConfig.hazeColor}" />
-          <stop offset="66%" stop-color="${skyConfig.hazeColor}" stop-opacity="0.14" />
-          <stop offset="100%" stop-color="${skyConfig.hazeColor}" stop-opacity="0" />
-        </radialGradient>
-        <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="18" />
-        </filter>
-        <filter id="pinSoft0" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="2.4" />
-        </filter>
-        <filter id="pinSoft1" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="3.2" />
-        </filter>
-      </defs>
-      <rect width="900" height="420" fill="url(#sky)" />
-      <ellipse cx="450" cy="392" rx="510" ry="160" fill="url(#haze)" />
-      <ellipse cx="696" cy="90" rx="180" ry="104" fill="url(#nebulaA)" filter="url(#soft)" opacity="0.78" />
-      <ellipse cx="210" cy="178" rx="210" ry="126" fill="url(#nebulaB)" filter="url(#soft)" opacity="0.74" />
-      <ellipse cx="492" cy="264" rx="250" ry="118" fill="url(#nebulaA)" filter="url(#soft)" opacity="0.44" />
-      <g opacity="0.98">${starMarkup}</g>
-      <g opacity="0.36">
-        <path d="M106 112 L174 108 L246 50 L330 86" fill="none" stroke="#DDE6FF" stroke-width="0.7" />
-        <path d="M520 222 L638 266 L792 284" fill="none" stroke="#DDE6FF" stroke-width="0.55" />
-        <path d="M610 146 L720 184 L858 170" fill="none" stroke="#DDE6FF" stroke-width="0.55" />
-      </g>
-      <ellipse cx="450" cy="474" rx="610" ry="146" fill="${skyConfig.horizon}" opacity="0.3" />
-      <rect width="900" height="420" fill="#000000" opacity="0.12" />
-    </svg>
-  `;
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`;
-}
-
-function CelestialHeader({
-  skyConfig,
-  localTime
-}: {
-  skyConfig: SkyConfig;
-  localTime: string;
-}) {
-  const imageUri = useMemo(() => skyImageUri(skyConfig), [skyConfig]);
-  const pulse = useRef(new Animated.Value(0)).current;
-  const twinkle = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          duration: 3600,
-          easing: Easing.inOut(Easing.sin),
-          toValue: 1,
-          useNativeDriver: true
-        }),
-        Animated.timing(pulse, {
-          duration: 3600,
-          easing: Easing.inOut(Easing.sin),
-          toValue: 0,
-          useNativeDriver: true
-        })
-      ])
-    );
-    const twinkleLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(twinkle, {
-          duration: 1600,
-          easing: Easing.inOut(Easing.sin),
-          toValue: 1,
-          useNativeDriver: true
-        }),
-        Animated.timing(twinkle, {
-          duration: 2400,
-          easing: Easing.inOut(Easing.sin),
-          toValue: 0,
-          useNativeDriver: true
-        })
-      ])
-    );
-
-    pulseLoop.start();
-    twinkleLoop.start();
-
-    return () => {
-      pulseLoop.stop();
-      twinkleLoop.stop();
-    };
-  }, [pulse, twinkle]);
+function EnergyCurvePreview({ points }: { points: CircadianEnergyPoint[] }) {
+  const sampledPoints = points.filter((_point, index) => index % 3 === 0).slice(0, 6);
+  const visiblePoints = sampledPoints.length > 0 ? sampledPoints : points.slice(0, 5);
 
   return (
-    <ImageBackground
-      imageStyle={cel.image}
-      resizeMode="cover"
-      source={{ uri: imageUri }}
-      style={[cel.root, { backgroundColor: skyConfig.skyTop }]}
-    >
-      <View style={cel.glassShade} />
-      <Animated.View
-        style={[
-          cel.nebulaPulse,
-          {
-            backgroundColor: skyConfig.glowColor,
-            opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.28] }),
-            transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.08] }) }]
-          }
-        ]}
-      />
-      <Animated.View
-        style={[
-          cel.twinkleWash,
-          {
-            opacity: twinkle.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.22] })
-          }
-        ]}
-      />
-      <View style={cel.content}>
-        <View style={cel.liveBadge}>
-          <View style={[cel.liveDot, { backgroundColor: skyConfig.accentColor }]} />
-          <Text style={cel.liveText}>{localTime} LOCAL</Text>
-        </View>
-        <Text style={[cel.eyebrow, { color: skyConfig.accentColor }]}>Sleep + Rhythm</Text>
-        <Text style={cel.title}>Today's Rhythm</Text>
-        <Text style={cel.subtitle}>A quiet starfield for your rhythm estimate.</Text>
-      </View>
-    </ImageBackground>
-  );
-}
-
-const cel = StyleSheet.create({
-  root: {
-    height: 200,
-    overflow: 'hidden',
-    position: 'relative',
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22
-  },
-  image: {
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22
-  },
-  glassShade: {
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0
-  },
-  nebulaPulse: {
-    borderRadius: 140,
-    height: 220,
-    position: 'absolute',
-    right: -34,
-    top: -42,
-    width: 280
-  },
-  twinkleWash: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 120,
-    height: 70,
-    position: 'absolute',
-    right: 52,
-    top: 30,
-    width: 150
-  },
-  content: {
-    bottom: 0,
-    gap: 3,
-    left: 0,
-    padding: 18,
-    position: 'absolute',
-    right: 0
-  },
-  liveBadge: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 100,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3
-  },
-  liveDot: { borderRadius: 3, height: 6, width: 6 },
-  liveText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontFamily: fonts.body,
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 1
-  },
-  eyebrow: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase'
-  },
-  title: {
-    color: '#E8EAF2',
-    fontFamily: fonts.display,
-    fontSize: 29,
-    fontWeight: '300',
-    letterSpacing: 0,
-    lineHeight: 34
-  },
-  subtitle: {
-    color: 'rgba(255,255,255,0.45)',
-    fontFamily: fonts.body,
-    fontSize: 12
-  }
-});
-
-function DataCard({
-  children,
-  delay = 0,
-  style
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const anim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(anim, {
-      delay,
-      duration: 550,
-      easing: Easing.out(Easing.cubic),
-      toValue: 1,
-      useNativeDriver: true
-    }).start();
-  }, [anim, delay]);
-
-  return (
-    <Animated.View
-      style={[
-        dc.card,
-        style,
-        {
-          opacity: anim,
-          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }]
-        }
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
-}
-
-const dc = StyleSheet.create({
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 13,
-    overflow: 'hidden',
-    padding: 16
-  }
-});
-
-function SectionHeader({ label, tag }: { label: string; tag?: string }) {
-  return (
-    <View style={sh.row}>
-      <Text style={sh.label}>{label}</Text>
-      {tag ? <View style={sh.tagWrap}><Text style={sh.tag}>{tag}</Text></View> : null}
-    </View>
-  );
-}
-
-const sh = StyleSheet.create({
-  row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  label: { color: '#E8EAF2', fontFamily: fonts.body, fontSize: 13, fontWeight: '600' },
-  tagWrap: {
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 100,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 2
-  },
-  tag: {
-    color: 'rgba(255,255,255,0.4)',
-    fontFamily: fonts.body,
-    fontSize: 8,
-    fontWeight: '600',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase'
-  }
-});
-
-function StatPill({ label, value, accent }: { label: string; value: string; accent?: string }) {
-  return (
-    <View style={sp.root}>
-      <Text style={sp.label}>{label}</Text>
-      <Text style={[sp.value, accent ? { color: accent } : null]}>{value}</Text>
-    </View>
-  );
-}
-
-const sp = StyleSheet.create({
-  root: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 10,
-    borderWidth: 1,
-    flex: 1,
-    gap: 4,
-    minWidth: 130,
-    padding: 11
-  },
-  label: {
-    color: 'rgba(255,255,255,0.35)',
-    fontFamily: fonts.body,
-    fontSize: 8,
-    fontWeight: '600',
-    letterSpacing: 1.3,
-    textTransform: 'uppercase'
-  },
-  value: {
-    color: '#E8EAF2',
-    fontFamily: fonts.body,
-    fontSize: 12,
-    fontWeight: '600'
-  }
-});
-
-function EnergyCurve({ points }: { points: CircadianEnergyPoint[] }) {
-  const sampled = points.filter((_point, index) => index % 3 === 0).slice(0, 6);
-  const visible = sampled.length > 0 ? sampled : points.slice(0, 5);
-  const max = Math.max(...visible.map((point) => point.estimated_energy), 1);
-  const barAnims = useRef(visible.map(() => new Animated.Value(0))).current;
-
-  useEffect(() => {
-    Animated.stagger(
-      80,
-      barAnims.map((anim) =>
-        Animated.timing(anim, {
-          duration: 700,
-          easing: Easing.out(Easing.back(1.2)),
-          toValue: 1,
-          useNativeDriver: false
-        })
-      )
-    ).start();
-  }, [barAnims]);
-
-  function barColor(energy: number): string {
-    if (energy >= 70) return winnerPalette.green;
-    if (energy >= 40) return winnerPalette.blue;
-    return 'rgba(255,255,255,0.24)';
-  }
-
-  return (
-    <View style={ec.root}>
-      {visible.map((point, index) => {
-        const pct = Math.max((point.estimated_energy / max) * 100, 6);
-        return (
-          <View key={point.time} style={ec.col}>
-            <View style={ec.track}>
-              <Animated.View
-                style={[
-                  ec.fill,
-                  {
-                    backgroundColor: barColor(point.estimated_energy),
-                    height: barAnims[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['4%', `${pct}%`]
-                    })
-                  }
-                ]}
-              />
-            </View>
-            <Text style={ec.time}>{formatTime(point.time)}</Text>
-            <Text style={ec.lbl}>{phaseLabel(point.label).split(' ')[0]}</Text>
+    <View style={styles.energyCurve}>
+      {visiblePoints.map((point) => (
+        <View key={point.time} style={styles.energyPoint}>
+          <View style={styles.energyTrack}>
+            <View style={[styles.energyFill, { height: `${Math.max(point.estimated_energy, 12)}%` }]} />
           </View>
-        );
-      })}
+          <Text style={styles.energyTime}>{formatTime(point.time)}</Text>
+          <Text style={styles.energyLabel}>{phaseLabel(point.label)}</Text>
+        </View>
+      ))}
     </View>
   );
 }
 
-const ec = StyleSheet.create({
-  root: { alignItems: 'flex-end', flexDirection: 'row', gap: 6, height: 120 },
-  col: { alignItems: 'center', flex: 1, gap: 4, height: '100%', justifyContent: 'flex-end' },
-  track: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 4,
-    flex: 1,
-    justifyContent: 'flex-end',
-    maxHeight: 80,
-    overflow: 'hidden',
-    width: '100%'
-  },
-  fill: { borderTopLeftRadius: 3, borderTopRightRadius: 3, width: '100%' },
-  time: {
-    color: '#E8EAF2',
-    fontFamily: fonts.body,
-    fontSize: 9,
-    fontWeight: '600',
-    opacity: 0.6
-  },
-  lbl: {
-    color: 'rgba(255,255,255,0.3)',
-    fontFamily: fonts.body,
-    fontSize: 8,
-    lineHeight: 12,
-    textAlign: 'center'
-  }
-});
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
+  );
+}
 
-function TimingRow({
-  iconName,
-  iconColor,
-  iconBg,
-  isLast,
-  sub,
+// Redesigned: value is right-aligned, cleaner for time-window data
+function TimingCard({
+  icon,
   title,
-  value,
-  valueColor
+  label,
+  value
 }: {
-  iconName: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  iconBg: string;
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  sub: string;
+  label: string;
   value: string;
-  valueColor?: string;
-  isLast?: boolean;
 }) {
   return (
-    <View style={[tr.root, !isLast && tr.bordered]}>
-      <View style={[tr.icon, { backgroundColor: iconBg }]}>
-        <Ionicons color={iconColor} name={iconName} size={14} />
+    <View style={styles.timingCard}>
+      <View style={styles.timingIcon}>
+        <Ionicons color={colors.primary} name={icon} size={15} />
       </View>
-      <View style={tr.body}>
-        <Text style={tr.title}>{title}</Text>
-        <Text style={tr.sub}>{sub}</Text>
+      <View style={styles.timingText}>
+        <Text style={styles.timingTitle}>{title}</Text>
+        <Text style={styles.timingLabel}>{label}</Text>
       </View>
-      <Text style={[tr.val, valueColor ? { color: valueColor } : null]}>{value}</Text>
+      <Text style={styles.timingValue}>{value}</Text>
     </View>
   );
 }
 
-const tr = StyleSheet.create({
-  root: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingVertical: 10 },
-  bordered: { borderBottomColor: 'rgba(255,255,255,0.06)', borderBottomWidth: 1 },
-  icon: { alignItems: 'center', borderRadius: 8, flexShrink: 0, height: 30, justifyContent: 'center', width: 30 },
-  body: { flex: 1, gap: 1 },
-  title: { color: '#E8EAF2', fontFamily: fonts.body, fontSize: 13, fontWeight: '500' },
-  sub: {
-    color: 'rgba(255,255,255,0.35)',
-    fontFamily: fonts.body,
-    fontSize: 9,
-    letterSpacing: 0.3
-  },
-  val: {
-    color: 'rgba(255,255,255,0.6)',
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '600',
-    maxWidth: 110,
-    textAlign: 'right'
-  }
-});
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function RhythmScreen() {
   const { user } = useAuth();
@@ -780,37 +207,15 @@ export default function RhythmScreen() {
   const [sleepStartTime, setSleepStartTime] = useState('22:45');
   const [wakeTime, setWakeTime] = useState('06:45');
   const [sleepQuality, setSleepQuality] = useState('4');
-  const [localTime, setLocalTime] = useState('');
-  const [skyConfig, setSkyConfig] = useState(() => getSkyConfig(new Date().getHours() + new Date().getMinutes() / 60));
-  const skyMinuteRef = useRef('');
 
   useEffect(() => {
-    function tick() {
-      const date = new Date();
-      const h = String(date.getHours()).padStart(2, '0');
-      const m = String(date.getMinutes()).padStart(2, '0');
-      const sec = String(date.getSeconds()).padStart(2, '0');
-      setLocalTime(`${h}:${m}:${sec}`);
-      const skyMinute = `${h}:${m}`;
-      if (skyMinuteRef.current !== skyMinute) {
-        skyMinuteRef.current = skyMinute;
-        setSkyConfig(getSkyConfig(date.getHours() + date.getMinutes() / 60));
-      }
-    }
-
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
     async function loadSleepRhythmData() {
       const userId = user?.id;
 
       if (!isUuid(userId)) {
-        if (mounted) {
+        if (isMounted) {
           setSleepSessions(createDemoSleepSessions(today));
           setSleepNeed(createDefaultSleepNeedEstimate(now));
           setDataMode('demo');
@@ -826,39 +231,45 @@ export default function RhythmScreen() {
           getActiveSleepNeedEstimate(client, userId)
         ]);
 
-        if (!mounted) return;
+        if (!isMounted) return;
 
         setSleepSessions(recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today));
         setSleepNeed(
           activeNeed
-            ? { minutes: activeNeed.minutes, confidence: activeNeed.confidence, basis: activeNeed.basis, updated_at: activeNeed.updated_at }
+            ? {
+                minutes: activeNeed.minutes,
+                confidence: activeNeed.confidence,
+                basis: activeNeed.basis,
+                updated_at: activeNeed.updated_at
+              }
             : createDefaultSleepNeedEstimate(now)
         );
         setDataMode(recentSessions.length > 0 ? 'persisted' : 'demo');
       } catch {
-        if (mounted) {
+        if (isMounted) {
           setSleepSessions(createDemoSleepSessions(today));
           setSleepNeed(createDefaultSleepNeedEstimate(now));
           setDataMode('demo');
         }
       } finally {
-        if (mounted) setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
 
     loadSleepRhythmData();
-    return () => { mounted = false; };
+    return () => { isMounted = false; };
   }, [now, today, user?.id]);
 
   const briefing: CircadianBriefing = useMemo(
-    () => generateCircadianBriefing({
-      date: today,
-      now,
-      preferredBedtime: '22:30',
-      recentSleepSessions: sleepSessions,
-      sleepNeed,
-      timezone: 'UTC'
-    }),
+    () =>
+      generateCircadianBriefing({
+        date: today,
+        timezone: 'UTC',
+        recentSleepSessions: sleepSessions,
+        sleepNeed,
+        preferredBedtime: '22:30',
+        now
+      }),
     [now, sleepNeed, sleepSessions, today]
   );
 
@@ -867,18 +278,19 @@ export default function RhythmScreen() {
   const sourceLabel = getSleepSourceLabel(briefing.source_summary.sleep_source);
   const confidenceLabel = getConfidenceLabel(briefing.confidence);
   const rhythmLead = getRhythmLead(briefing);
-  const accent = skyConfig.accentColor;
-
-  const dataModeNote =
+  const dataModeCopy =
     dataMode === 'demo'
-      ? 'Running on demo data. Log last night to personalize.'
+      ? "Demo data is active. Add a manual sleep window when you want today's estimate to reflect your night."
       : dataMode === 'manual'
-        ? 'Showing manually logged sleep.'
-        : 'Synced from saved sleep data.';
+        ? "Manual sleep data is active for today's rhythm estimate."
+        : "Saved sleep data is active for today's rhythm estimate.";
 
   async function handleManualSubmit() {
-    if (!isValidTimeInput(sleepStartTime) || !isValidTimeInput(wakeTime)) {
-      Alert.alert('Check your sleep times', 'Use 24-hour time, for example 22:45 and 06:45.');
+    const normalizedSleepStartTime = sleepStartTime.trim();
+    const normalizedWakeTime = wakeTime.trim();
+
+    if (!isValidTimeInput(normalizedSleepStartTime) || !isValidTimeInput(normalizedWakeTime)) {
+      Alert.alert('Check sleep window', 'Use 24-hour time like 22:45 and 06:45.');
       return;
     }
 
@@ -888,11 +300,11 @@ export default function RhythmScreen() {
         ? Math.max(1, Math.min(5, Math.round(qualityNumber)))
         : null;
     const manualSession = createManualSleepSession({
-      createdAt: new Date().toISOString(),
       date: today,
+      sleepStartTime: normalizedSleepStartTime,
+      wakeTime: normalizedWakeTime,
       sleepQuality: boundedQuality,
-      sleepStartTime,
-      wakeTime
+      createdAt: new Date().toISOString()
     });
 
     setIsSaving(true);
@@ -902,11 +314,12 @@ export default function RhythmScreen() {
       if (isUuid(userId)) {
         await saveSleepSession(supabase as unknown as SleepRhythmSupabaseClient, userId, manualSession);
       }
-      setSleepSessions((curr) => [manualSession, ...curr.filter((session) => session.date !== today)]);
+      setSleepSessions((current) => [manualSession, ...current.filter((session) => session.date !== today)]);
       setDataMode('manual');
     } catch (error) {
-      Alert.alert('Sleep window not saved', error instanceof Error ? error.message : 'Try again later.');
-      setSleepSessions((curr) => [manualSession, ...curr.filter((session) => session.date !== today)]);
+      const message = error instanceof Error ? error.message : 'Unable to save this sleep window right now.';
+      Alert.alert('Sleep window not saved', message);
+      setSleepSessions((current) => [manualSession, ...current.filter((session) => session.date !== today)]);
       setDataMode('manual');
     } finally {
       setIsSaving(false);
@@ -914,119 +327,157 @@ export default function RhythmScreen() {
   }
 
   return (
-    <SafeAreaView style={s.safe}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <CelestialHeader localTime={localTime} skyConfig={skyConfig} />
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        <DataCard delay={0}>
-          <View style={s.phaseRow}>
-            <View>
-              <Text style={s.phaseEyebrow}>Current phase</Text>
-              <Text style={s.phaseName}>{phaseLabel(briefing.current_phase)}</Text>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>Sleep + Rhythm</Text>
+          <Text style={styles.title}>Today's Rhythm</Text>
+          <Text style={styles.subtitle}>
+            Healthi uses your sleep and wake pattern to estimate today's energy windows.
+          </Text>
+        </View>
+
+        {/* ── Main card ──────────────────────────────────────────────────── */}
+        <View style={styles.mainCard}>
+          {/* Signature gold crown strip */}
+          <View style={styles.cardAccent} />
+
+          <View style={styles.cardInner}>
+            {/* Phase + badge row */}
+            <View style={styles.cardHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardEyebrow}>Current phase</Text>
+                <Text style={styles.phase}>{phaseLabel(briefing.current_phase)}</Text>
+              </View>
+              <View style={styles.statusStack}>
+                <View style={styles.dataBadge}>
+                  <Text style={styles.dataBadgeText}>{sourceLabel}</Text>
+                </View>
+                {isLoading ? <ActivityIndicator color={colors.primary} size="small" /> : null}
+              </View>
             </View>
-            <View style={[s.sourceBadge, { backgroundColor: `${accent}18`, borderColor: `${accent}44` }]}>
-              <View style={[s.sourceDot, { backgroundColor: accent }]} />
-              <Text style={[s.sourceTxt, { color: accent }]}>{sourceLabel}</Text>
-              {isLoading ? <ActivityIndicator color={accent} size="small" style={s.sourceLoader} /> : null}
+
+            <View style={styles.divider} />
+
+            {/* Lead signal */}
+            <View style={styles.leadSignal}>
+              <Text style={styles.leadLabel}>Today's strongest signal</Text>
+              <Text style={styles.leadText}>{rhythmLead}</Text>
+              <Text style={styles.leadSubcopy}>
+                {confidenceLabel}. {dataModeCopy}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+          </View>
+
+          {/* Metrics mosaic — bleeds to card edges */}
+          <View style={styles.metricsGrid}>
+            <Metric label="Source" value={sourceLabel} />
+            <Metric label="Confidence" value={confidenceLabel} />
+            <Metric
+              label="Last sleep"
+              value={`${formatTime(latestSession?.sleep_start_at)} – ${formatTime(latestSession?.sleep_end_at)}`}
+            />
+            <Metric label="Duration" value={formatDuration(sleepDuration)} />
+            <Metric label="7-day debt" value={formatDebt(briefing.sleep_debt_7_day.total_sleep_debt_minutes)} />
+            <Metric label="Target bedtime" value={formatTime(briefing.target_bedtime)} />
+          </View>
+        </View>
+
+        {/* ── Energy curve ───────────────────────────────────────────────── */}
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.panelTitle}>Energy curve</Text>
+              <Text style={styles.panelSubtitle}>Estimated from your sleep window</Text>
+            </View>
+            <View style={styles.panelBadge}>
+              <Text style={styles.panelBadgeText}>Estimated</Text>
             </View>
           </View>
+          <EnergyCurvePreview points={briefing.energy_curve} />
+        </View>
 
-          <View style={s.leadBox}>
-            <Text style={[s.leadEyebrow, { color: accent }]}>Strongest signal today</Text>
-            <Text style={s.leadText}>{rhythmLead}</Text>
-            <Text style={s.leadSub}>{confidenceLabel} - {dataModeNote}</Text>
+        {/* ── Organize your day ──────────────────────────────────────────── */}
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.panelTitle}>Organize your day</Text>
+              <Text style={styles.panelSubtitle}>Based on today's circadian rhythm</Text>
+            </View>
+            <View style={styles.panelBadge}>
+              <Text style={styles.panelBadgeText}>Timing only</Text>
+            </View>
           </View>
-
-          <View style={s.statsGrid}>
-            <StatPill label="Sleep" value={`${formatTime(latestSession?.sleep_start_at)} - ${formatTime(latestSession?.sleep_end_at)}`} />
-            <StatPill label="Duration" value={formatDuration(sleepDuration)} />
-            <StatPill label="7-day debt" value={formatDebt(briefing.sleep_debt_7_day.total_sleep_debt_minutes)} accent={winnerPalette.gold} />
-            <StatPill label="Target bedtime" value={formatTime(briefing.target_bedtime)} accent={winnerPalette.violet} />
-          </View>
-        </DataCard>
-
-        <DataCard delay={100}>
-          <SectionHeader label="Energy curve" tag="Estimated" />
-          <EnergyCurve points={briefing.energy_curve} />
-        </DataCard>
-
-        <DataCard delay={200}>
-          <SectionHeader label="Organize your day" tag="Timing only" />
-          <View>
-            <TimingRow
-              iconBg="rgba(91,127,255,0.15)"
-              iconColor={winnerPalette.blue}
-              iconName="sparkles-outline"
-              sub="Best window"
-              title="Deep focus"
+          <View style={styles.timingList}>
+            <TimingCard
+              icon="sparkles-outline"
+              title="Deep work"
+              label="Best window"
               value={formatWindow(briefing.rhythm_plan.deep_work_windows[0])}
-              valueColor={winnerPalette.blue}
             />
-            <TimingRow
-              iconBg="rgba(79,201,138,0.12)"
-              iconColor={winnerPalette.green}
-              iconName="flash-outline"
-              sub="Suggested window"
+            <TimingCard
+              icon="flash-outline"
               title="Exercise"
+              label="Suggested window"
               value={formatWindow(briefing.rhythm_plan.best_exercise_windows[0])}
-              valueColor={winnerPalette.green}
             />
-            <TimingRow
-              iconBg="rgba(255,255,255,0.05)"
-              iconColor="rgba(255,255,255,0.6)"
-              iconName="walk-outline"
-              sub="Walk or stretch"
-              title="Light movement"
+            <TimingCard
+              icon="walk-outline"
+              title="Walk / light movement"
+              label="Suggested window"
               value={formatWindow(briefing.rhythm_plan.best_walk_windows[0])}
             />
-            <TimingRow
-              iconBg="rgba(255,255,255,0.05)"
-              iconColor="rgba(255,255,255,0.6)"
-              iconName="leaf-outline"
-              sub="Suggested window"
-              title="Breathing reset"
+            <TimingCard
+              icon="leaf-outline"
+              title="Breathing / reset"
+              label="Suggested window"
               value={formatWindow(briefing.rhythm_plan.breathing_windows[0])}
             />
             {briefing.rhythm_plan.nap_windows[0] ? (
-              <TimingRow
-                iconBg="rgba(139,165,255,0.1)"
-                iconColor={winnerPalette.violet}
-                iconName="moon-outline"
-                sub="Possible window"
+              <TimingCard
+                icon="moon-outline"
                 title="Short nap"
+                label="Possible window"
                 value={formatWindow(briefing.rhythm_plan.nap_windows[0])}
-                valueColor={winnerPalette.violet}
               />
             ) : null}
-            <TimingRow
-              iconBg="rgba(240,180,41,0.12)"
-              iconColor={winnerPalette.gold}
-              iconName="cafe-outline"
-              sub="Based on bedtime"
+            <TimingCard
+              icon="cafe-outline"
               title="Caffeine cutoff"
+              label="Estimated from bedtime"
               value={formatTime(briefing.rhythm_plan.caffeine_cutoff)}
-              valueColor={winnerPalette.gold}
             />
-            <TimingRow
-              iconBg="rgba(139,165,255,0.08)"
-              iconColor={winnerPalette.violet}
-              iconName="cloudy-night-outline"
-              isLast
-              sub="Start here"
+            <TimingCard
+              icon="cloudy-night-outline"
               title="Wind-down"
+              label="Suggested start"
               value={formatTime(briefing.rhythm_plan.wind_down_start)}
-              valueColor={winnerPalette.violet}
             />
           </View>
-        </DataCard>
+        </View>
 
-        <DataCard delay={300}>
-          <SectionHeader label="Log sleep" tag="Optional" />
-          <Text style={s.logDesc}>Enter last night's sleep window. This updates the estimate on this device right away.</Text>
-
-          <View style={s.timeRow}>
-            <View style={s.timeField}>
-              <Text style={s.inputLbl}>Fell asleep</Text>
+        {/* ── Manual sleep window ────────────────────────────────────────── */}
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.panelTitle}>Manual sleep window</Text>
+              <Text style={styles.panelSubtitle}>Regenerate today's rhythm estimate</Text>
+            </View>
+            <View style={styles.panelBadge}>
+              <Text style={styles.panelBadgeText}>Optional</Text>
+            </View>
+          </View>
+          <Text style={styles.mutedCopy}>
+            Add last night's sleep and wake time to regenerate today's rhythm estimate.
+          </Text>
+          <View style={styles.inputGrid}>
+            <View style={styles.inputShell}>
+              <Text style={styles.inputLabel}>Sleep start</Text>
+              <Text style={styles.inputHint}>24h time</Text>
               <TextInput
                 accessibilityLabel="Sleep start time"
                 autoCapitalize="none"
@@ -1034,14 +485,14 @@ export default function RhythmScreen() {
                 maxLength={5}
                 onChangeText={setSleepStartTime}
                 placeholder="22:45"
-                placeholderTextColor="rgba(255,255,255,0.28)"
-                style={s.timeInput}
+                placeholderTextColor={colors.textSubtle}
+                style={styles.inputField}
                 value={sleepStartTime}
               />
             </View>
-            <Text style={s.timeConnector}>to</Text>
-            <View style={s.timeField}>
-              <Text style={s.inputLbl}>Woke up</Text>
+            <View style={styles.inputShell}>
+              <Text style={styles.inputLabel}>Wake time</Text>
+              <Text style={styles.inputHint}>24h time</Text>
               <TextInput
                 accessibilityLabel="Wake time"
                 autoCapitalize="none"
@@ -1049,255 +500,546 @@ export default function RhythmScreen() {
                 maxLength={5}
                 onChangeText={setWakeTime}
                 placeholder="06:45"
-                placeholderTextColor="rgba(255,255,255,0.28)"
-                style={s.timeInput}
+                placeholderTextColor={colors.textSubtle}
+                style={styles.inputField}
                 value={wakeTime}
               />
             </View>
+            <View style={styles.inputShell}>
+              <Text style={styles.inputLabel}>Quality</Text>
+              <Text style={styles.inputHint}>Optional</Text>
+              <View style={styles.qualityRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSleepQuality('')}
+                  style={[styles.qualityUnset, sleepQuality === '' ? styles.qualityItemActive : null]}
+                >
+                  <Text style={[styles.qualityUnsetText, sleepQuality === '' ? styles.qualityTextActive : null]}>
+                    Not sure
+                  </Text>
+                </Pressable>
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="button"
+                    onPress={() => setSleepQuality(String(value))}
+                    style={[styles.qualityDot, sleepQuality === String(value) ? styles.qualityItemActive : null]}
+                  >
+                    <Text style={[styles.qualityText, sleepQuality === String(value) ? styles.qualityTextActive : null]}>
+                      {value}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
           </View>
-
-          <Text style={s.inputHint}>Editable 24-hour time fields, like 22:45 to 06:45.</Text>
-
-          <View style={s.presets}>
-            {[['22:30', '06:30'], ['23:15', '07:00'], ['00:00', '07:15']].map(([start, wake]) => (
+          <View style={styles.quickTimes}>
+            {[
+              ['22:30', '06:30'],
+              ['23:15', '07:00'],
+              ['00:00', '07:15']
+            ].map(([start, wake]) => (
               <Pressable
                 key={`${start}-${wake}`}
                 accessibilityRole="button"
-                onPress={() => { setSleepStartTime(start); setWakeTime(wake); }}
-                style={s.preset}
+                onPress={() => {
+                  setSleepStartTime(start);
+                  setWakeTime(wake);
+                }}
+                style={styles.quickTime}
               >
-                <Text style={s.presetTxt}>{start} - {wake}</Text>
+                <Text style={styles.quickTimeText}>{start} – {wake}</Text>
               </Pressable>
             ))}
           </View>
-
-          <View>
-            <Text style={[s.inputLbl, s.qualityLabel]}>
-              Sleep quality <Text style={s.optional}>(optional)</Text>
-            </Text>
-            <View style={s.qualityRow}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setSleepQuality('')}
-                style={[s.qChip, sleepQuality === '' && s.qChipActive]}
-              >
-                <Text style={s.qTxt}>Not sure</Text>
-              </Pressable>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Pressable
-                  key={value}
-                  accessibilityRole="button"
-                  onPress={() => setSleepQuality(String(value))}
-                  style={[s.qChip, s.qNum, sleepQuality === String(value) && { backgroundColor: `${accent}18`, borderColor: `${accent}88` }]}
-                >
-                  <Text style={[s.qTxt, sleepQuality === String(value) && { color: accent }]}>{value}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
           <Pressable
             accessibilityRole="button"
             disabled={isSaving}
             onPress={handleManualSubmit}
-            style={[s.submitBtn, { backgroundColor: `${accent}18`, borderColor: `${accent}44` }, isSaving && s.submitDisabled]}
+            style={[styles.submitButton, isSaving ? styles.disabledButton : null]}
           >
             {isSaving
-              ? <ActivityIndicator color={accent} size="small" />
-              : <Text style={[s.submitTxt, { color: accent }]}>Save sleep window</Text>
+              ? <ActivityIndicator color={colors.textInverse} size="small" />
+              : <Text style={styles.submitText}>Update rhythm estimate</Text>
             }
           </Pressable>
-        </DataCard>
-
-        <View style={s.footnote}>
-          <Ionicons color="rgba(255,255,255,0.25)" name="information-circle-outline" size={13} style={s.footnoteIcon} />
-          <Text style={s.footnoteTxt}>Wellness estimate. Accuracy improves with more logged nights. Wearable sync coming soon.</Text>
         </View>
+
+        {/* ── Footer note ────────────────────────────────────────────────── */}
+        <View style={styles.note}>
+          <Ionicons color={colors.primary} name="information-circle-outline" size={15} />
+          <Text style={styles.noteText}>
+            This is a wellness estimate. Healthi will improve the rhythm model as more confirmed sleep
+            data is added. Wearable sync is coming later.
+          </Text>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { backgroundColor: '#050506', flex: 1 },
-  scroll: { gap: 12, paddingBottom: 104, paddingHorizontal: 16 },
-  phaseRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
-  phaseEyebrow: {
-    color: 'rgba(255,255,255,0.35)',
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+
+  // ── Layout
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background
+  },
+  scroll: {
+    gap: spacing.lg,
+    padding: spacing.lg,
+    paddingBottom: 56
+  },
+
+  // ── Header
+  header: {
+    gap: 6,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm
+  },
+  eyebrow: {
+    color: colors.primary,
     fontFamily: fonts.body,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 1.5,
-    marginBottom: 4,
+    letterSpacing: 2.5,
     textTransform: 'uppercase'
   },
-  phaseName: {
-    color: '#E8EAF2',
+  title: {
+    color: colors.text,
     fontFamily: fonts.display,
-    fontSize: 22,
-    fontWeight: '300',
-    letterSpacing: 0
+    fontSize: 40,
+    fontWeight: '400',
+    lineHeight: 46
   },
-  sourceBadge: {
-    alignItems: 'center',
-    borderRadius: 100,
+  subtitle: {
+    maxWidth: 680,
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: 2
+  },
+
+  // ── Main card
+  mainCard: {
     borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    elevation: 8
+  },
+  // Signature element: 2px gold crown at the top of the hero card
+  cardAccent: {
+    height: 2,
+    backgroundColor: colors.primary
+  },
+  cardInner: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg
+  },
+  cardHeader: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: 2,
-    paddingHorizontal: 9,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md
+  },
+  cardEyebrow: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    marginBottom: 4
+  },
+  phase: {
+    color: colors.text,
+    fontFamily: fonts.display,
+    fontSize: 30,
+    lineHeight: 36
+  },
+  statusStack: {
+    alignItems: 'flex-end',
+    gap: spacing.sm
+  },
+  dataBadge: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryMuted,
+    paddingHorizontal: 10,
     paddingVertical: 4
   },
-  sourceDot: { borderRadius: 2.5, height: 5, width: 5 },
-  sourceTxt: {
+  dataBadgeText: {
+    color: colors.primary,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase'
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderMuted,
+    marginHorizontal: -spacing.lg
+  },
+  leadSignal: {
+    gap: 6
+  },
+  leadLabel: {
+    color: colors.primary,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2
+  },
+  leadText: {
+    color: colors.text,
+    fontFamily: fonts.display,
+    fontSize: 18,
+    lineHeight: 26
+  },
+  leadSubcopy: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 2
+  },
+
+  // ── Metrics mosaic — bleeds flush to card edges
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 1,
+    backgroundColor: colors.borderMuted
+  },
+  metric: {
+    minWidth: 145,
+    flexGrow: 1,
+    gap: 4,
+    backgroundColor: colors.surfaceMuted,
+    padding: spacing.md
+  },
+  metricLabel: {
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 9,
     fontWeight: '600',
-    letterSpacing: 0.8,
+    letterSpacing: 1.4,
     textTransform: 'uppercase'
   },
-  sourceLoader: { marginLeft: 4 },
-  leadBox: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 10,
+  metricValue: {
+    color: colors.text,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    fontWeight: '600'
+  },
+
+  // ── Panels
+  panel: {
+    gap: spacing.md,
     borderWidth: 1,
-    gap: 5,
-    padding: 13
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3
   },
-  leadEyebrow: {
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md
+  },
+  panelTitle: {
+    color: colors.text,
     fontFamily: fonts.body,
-    fontSize: 8,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 1.5,
-    opacity: 0.7,
-    textTransform: 'uppercase'
+    marginBottom: 2
   },
-  leadText: {
-    color: '#E8EAF2',
+  panelSubtitle: {
+    color: colors.textMuted,
     fontFamily: fonts.body,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20
+    fontSize: 12
   },
-  leadSub: {
-    color: 'rgba(255,255,255,0.4)',
-    fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 16
-  },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  logDesc: {
-    color: 'rgba(255,255,255,0.48)',
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: -4
-  },
-  timeRow: { alignItems: 'flex-end', flexDirection: 'row', gap: 8 },
-  timeField: { flex: 1, gap: 5 },
-  inputLbl: {
-    color: 'rgba(255,255,255,0.35)',
-    fontFamily: fonts.body,
-    fontSize: 8,
-    fontWeight: '600',
-    letterSpacing: 1.3,
-    textTransform: 'uppercase'
-  },
-  timeInput: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(216,222,232,0.24)',
-    borderRadius: 8,
+  panelBadge: {
+    overflow: 'hidden',
     borderWidth: 1,
-    color: '#E8EAF2',
-    fontFamily: fonts.body,
-    fontSize: 18,
-    fontWeight: '700',
-    height: 48,
-    justifyContent: 'center',
+    borderColor: colors.border,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-start'
+  },
+  panelBadgeText: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase'
+  },
+
+  // ── Energy curve
+  energyCurve: {
+    minHeight: 184,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm
+  },
+  energyPoint: {
+    flex: 1,
+    minWidth: 44,
+    alignItems: 'center',
+    gap: spacing.xs
+  },
+  energyTrack: {
+    width: '100%',
+    height: 100,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted
+  },
+  energyFill: {
+    borderTopLeftRadius: radii.sm,
+    borderTopRightRadius: radii.sm,
+    backgroundColor: colors.primary,
+    opacity: 0.82
+  },
+  energyTime: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    fontWeight: '600'
+  },
+  energyLabel: {
+    minHeight: 28,
+    color: colors.textSubtle,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    lineHeight: 12,
     textAlign: 'center'
   },
-  inputHint: {
-    color: 'rgba(255,255,255,0.32)',
-    fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: -3
+
+  // ── Timing cards
+  timingList: {
+    gap: 6
   },
-  timeConnector: {
-    color: 'rgba(255,255,255,0.25)',
-    fontFamily: fonts.body,
-    fontSize: 12,
-    paddingBottom: 12
-  },
-  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  preset: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 100,
+  timingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5
+    borderColor: colors.borderMuted,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceMuted,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md
   },
-  presetTxt: {
-    color: 'rgba(255,255,255,0.55)',
+  timingIcon: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryMuted
+  },
+  timingText: {
+    flex: 1,
+    gap: 2
+  },
+  timingTitle: {
+    color: colors.text,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  timingLabel: {
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '500',
-    letterSpacing: 0.3
-  },
-  qualityLabel: { marginBottom: 8 },
-  optional: {
-    fontWeight: '400',
-    letterSpacing: 0,
-    opacity: 0.4,
-    textTransform: 'none'
-  },
-  qualityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  qChip: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.09)',
-    borderRadius: 7,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6
-  },
-  qChipActive: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.35)'
-  },
-  qNum: { alignItems: 'center', minWidth: 38 },
-  qTxt: {
-    color: 'rgba(255,255,255,0.6)',
-    fontFamily: fonts.body,
-    fontSize: 11,
-    fontWeight: '500'
-  },
-  submitBtn: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    height: 48,
-    justifyContent: 'center',
-    marginTop: 2
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitTxt: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1.5,
+    letterSpacing: 0.6,
     textTransform: 'uppercase'
   },
-  footnote: { alignItems: 'flex-start', flexDirection: 'row', gap: 7, paddingHorizontal: 2 },
-  footnoteIcon: { marginTop: 1 },
-  footnoteTxt: {
-    color: 'rgba(255,255,255,0.25)',
-    flex: 1,
+  timingValue: {
+    color: colors.primary,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right'
+  },
+
+  // ── Manual input
+  mutedCopy: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 21
+  },
+  inputGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm
+  },
+  inputShell: {
+    minWidth: 130,
+    flexGrow: 1,
+    gap: spacing.xs
+  },
+  inputLabel: {
+    color: colors.primary,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase'
+  },
+  inputHint: {
+    color: colors.textSubtle,
+    fontFamily: fonts.body,
+    fontSize: 11
+  },
+  inputField: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceMuted,
+    color: colors.text,
+    fontFamily: fonts.body,
+    fontSize: 16,
+    fontWeight: '500',
+    paddingHorizontal: spacing.md
+  },
+  qualityRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6
+  },
+  qualityUnset: {
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: spacing.sm
+  },
+  qualityUnsetText: {
+    color: colors.textMuted,
     fontFamily: fonts.body,
     fontSize: 11,
-    lineHeight: 17
+    fontWeight: '600'
+  },
+  qualityDot: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted
+  },
+  qualityItemActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryMuted
+  },
+  qualityText: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  qualityTextActive: {
+    color: colors.primary
+  },
+  quickTimes: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm
+  },
+  quickTime: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
+  },
+  quickTimeText: {
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.3
+  },
+  submitButton: {
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.32,
+    shadowRadius: 14,
+    elevation: 6
+  },
+  disabledButton: {
+    opacity: 0.55
+  },
+  submitText: {
+    color: colors.textInverse,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase'
+  },
+
+  // ── Footer note
+  note: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    padding: spacing.md
+  },
+  noteText: {
+    flex: 1,
+    color: colors.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 19
   }
 });

@@ -28,6 +28,14 @@ const C = {
   textMuted: '#817990'
 };
 
+type VitalMetric = {
+  label: string;
+  value: string;
+  sub: string;
+  color: string;
+  progress: number;
+};
+
 function formatDateLabel(date: string): string {
   const parsed = new Date(`${date.slice(0, 10)}T12:00:00.000Z`);
   return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', weekday: 'long', timeZone: 'UTC' });
@@ -43,6 +51,11 @@ function readinessArc(score: number): { rotate: string; color: string }[] {
     rotate: `${index * 90}deg`,
     color: index < filled ? C.gold : 'rgba(255,255,255,0.07)'
   }));
+}
+
+function progressWidth(value: number, max: number): `${number}%` {
+  if (max <= 0) return '32%';
+  return `${Math.max(4, Math.min(100, Math.round((value / max) * 100)))}%`;
 }
 
 function Card({ children, style }: { children: React.ReactNode; style?: object }) {
@@ -109,6 +122,72 @@ function DriverTile({ tile }: { tile: DashboardModel['drivers'][number] }) {
   );
 }
 
+function VitalsCard({ model }: { model: DashboardModel }) {
+  const sleepDriver = model.drivers.find((driver) => driver.id === 'sleep_quality');
+  const recoveryDriver = model.drivers.find((driver) => driver.id === 'recovery');
+  const metrics: VitalMetric[] = [
+    {
+      label: 'Sleep',
+      value: sleepDriver?.value ?? model.sleepRhythm.duration,
+      sub: 'Estimated duration',
+      color: C.lavender,
+      progress: 78
+    },
+    {
+      label: 'Recovery',
+      value: recoveryDriver?.value ?? 'Calibrating',
+      sub: recoveryDriver?.source ?? 'Based on available data',
+      color: C.pink,
+      progress: model.readiness.score
+    },
+    {
+      label: 'Rhythm',
+      value: model.sleepRhythm.rhythmPhase,
+      sub: `Confidence: ${confidenceLabel(model.readiness.confidence)}`,
+      color: C.violet,
+      progress: 68
+    },
+    {
+      label: 'Fuel',
+      value: model.demoMode ? '2 / 4' : `${model.nutrition.mealsLogged.current} / ${model.nutrition.mealsLogged.target || '--'}`,
+      sub: model.demoMode ? 'Demo meal signal' : model.nutrition.source,
+      color: C.green,
+      progress: model.demoMode ? 50 : Math.max(24, Number.parseInt(progressWidth(model.nutrition.mealsLogged.current, model.nutrition.mealsLogged.target), 10))
+    }
+  ];
+
+  return (
+    <Card style={s.vitalsCard}>
+      <View style={s.cardTopRow}>
+        <Label>VITALS</Label>
+        <Text style={s.sourceText}>{model.demoMode ? 'Demo signals' : 'Based on available data'}</Text>
+      </View>
+      <View style={s.vitalGrid}>
+        {metrics.map((metric) => (
+          <View key={metric.label} style={s.vitalCell}>
+            <Text style={s.vitalLabel}>{metric.label}</Text>
+            <Text style={[s.vitalValue, { color: metric.color }]} numberOfLines={1}>{metric.value}</Text>
+            <Text style={s.vitalSub} numberOfLines={1}>{metric.sub}</Text>
+            <View style={s.vitalTrack}>
+              <View style={[s.vitalFill, { backgroundColor: metric.color, width: `${Math.min(100, metric.progress)}%` as `${number}%` }]} />
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={s.signalList}>
+        <View style={s.signalLine}>
+          <Ionicons color={C.gold} name="time-outline" size={15} />
+          <Text style={s.signalText}>Best output window comes from your rhythm estimate.</Text>
+        </View>
+        <View style={s.signalLine}>
+          <Ionicons color={C.lavender} name="radio-outline" size={15} />
+          <Text style={s.signalText}>Wearable sync is not active in this demo.</Text>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
 function FocusCard({ model }: { model: DashboardModel }) {
   return (
     <Card style={s.focusCard}>
@@ -143,7 +222,7 @@ function FocusCard({ model }: { model: DashboardModel }) {
 }
 
 function ProgressBar({ value, max, color = C.violet }: { value: number; max: number; color?: string }) {
-  const width = max > 0 ? `${Math.min(100, Math.round((value / max) * 100))}%` : '28%';
+  const width = progressWidth(value, max);
   return (
     <View style={s.progressTrack}>
       <View style={[s.progressFill, { backgroundColor: color, width: width as `${number}%` }]} />
@@ -152,18 +231,21 @@ function ProgressBar({ value, max, color = C.violet }: { value: number; max: num
 }
 
 function TrainingCard({ model, onPress }: { model: DashboardModel; onPress: () => void }) {
+  const demoFallback = model.demoMode && model.training.title === 'Movement capacity';
+  const weekly = demoFallback ? { completed: 8, target: 16 } : model.training.weeklyProgress;
+
   return (
     <Card style={s.stackCard}>
       <View style={s.cardTopRow}>
         <Label>TRAINING</Label>
-        <View style={s.miniBadge}><Text style={s.miniBadgeText}>{model.training.source}</Text></View>
+        <View style={s.miniBadge}><Text style={s.miniBadgeText}>{demoFallback ? 'Program Day 3' : model.training.source}</Text></View>
       </View>
-      <Text style={s.cardTitle}>{model.training.title}</Text>
-      <Text style={s.cardSub}>{model.training.subtitle}</Text>
+      <Text style={s.cardTitle}>{demoFallback ? 'Upper Pull Focus' : model.training.title}</Text>
+      <Text style={s.cardSub}>{demoFallback ? 'Back - Biceps - Posture' : model.training.subtitle}</Text>
       <View style={s.divider} />
       <Text style={s.metricLabel}>THIS WEEK</Text>
-      <Text style={s.metricBig}>{model.training.weeklyProgress.completed} / {model.training.weeklyProgress.target || '--'} sets</Text>
-      <ProgressBar value={model.training.weeklyProgress.completed} max={model.training.weeklyProgress.target} />
+      <Text style={s.metricBig}>{weekly.completed} / {weekly.target || '--'} sets</Text>
+      <ProgressBar value={weekly.completed} max={weekly.target} color={C.gold} />
       <Pressable accessibilityRole="button" onPress={onPress} style={s.goldButton}>
         <Text style={s.goldButtonText}>{model.training.cta}</Text>
         <Ionicons color="#15100A" name="chevron-forward" size={18} />
@@ -172,19 +254,51 @@ function TrainingCard({ model, onPress }: { model: DashboardModel; onPress: () =
   );
 }
 
+function MacroProgress({ label, value, color }: { label: string; value: string; color: string }) {
+  const [currentText, targetText] = value.split(' / ');
+  const current = Number.parseInt(currentText.replace(/\D/g, ''), 10);
+  const target = Number.parseInt((targetText ?? '').replace(/\D/g, ''), 10);
+
+  return (
+    <View style={s.macroItem}>
+      <View style={s.macroRow}>
+        <Text style={s.macroLabel}>{label}</Text>
+        <Text style={[s.macroValue, { color }]}>{value}</Text>
+      </View>
+      <View style={s.macroTrack}>
+        <View style={[s.macroFill, { backgroundColor: color, width: progressWidth(Number.isNaN(current) ? 0 : current, Number.isNaN(target) ? 0 : target) }]} />
+      </View>
+    </View>
+  );
+}
+
 function NutritionCard({ model, onPress }: { model: DashboardModel; onPress: () => void }) {
+  const demoFallback = model.demoMode && model.nutrition.calories.target === 0;
+  const macros = demoFallback
+    ? [
+        { label: 'Calories', value: '1650 / 2300', color: C.gold },
+        { label: 'Protein', value: '112 / 160g', color: C.green },
+        { label: 'Meals', value: '2 / 4', color: C.violet }
+      ]
+    : [
+        { label: 'Calories', value: `${model.nutrition.calories.current} / ${model.nutrition.calories.target || '--'}`, color: C.gold },
+        { label: 'Protein', value: `${model.nutrition.protein.current} / ${model.nutrition.protein.target || '--'}g`, color: C.green },
+        { label: 'Meals', value: `${model.nutrition.mealsLogged.current} / ${model.nutrition.mealsLogged.target || '--'}`, color: C.violet }
+      ];
+  const foodResponse = demoFallback ? 'High-carb yesterday. Watch the early afternoon energy window.' : model.nutrition.foodResponse;
+
   return (
     <Card style={s.stackCard}>
-      <Label>NUTRITION / FOOD RESPONSE</Label>
-      <MetricRow label="Calories" value={`${model.nutrition.calories.current} / ${model.nutrition.calories.target || '--'}`} />
-      <ProgressBar value={model.nutrition.calories.current} max={model.nutrition.calories.target} />
-      <MetricRow label="Protein" value={`${model.nutrition.protein.current} / ${model.nutrition.protein.target || '--'}g`} />
-      <ProgressBar value={model.nutrition.protein.current} max={model.nutrition.protein.target} />
-      <MetricRow label="Meals Logged" value={`${model.nutrition.mealsLogged.current} / ${model.nutrition.mealsLogged.target || '--'}`} />
-      <ProgressBar value={model.nutrition.mealsLogged.current} max={model.nutrition.mealsLogged.target} />
+      <View style={s.cardTopRow}>
+        <Label>NUTRITION</Label>
+        <Text style={s.sourceText}>{demoFallback ? 'Demo response' : model.nutrition.source}</Text>
+      </View>
+      <View style={s.macroList}>
+        {macros.map((macro) => <MacroProgress key={macro.label} {...macro} />)}
+      </View>
       <View style={s.foodResponse}>
         <Ionicons color={C.green} name="leaf-outline" size={20} />
-        <Text style={s.foodResponseText}>{model.nutrition.foodResponse}</Text>
+        <Text style={s.foodResponseText}>{foodResponse}</Text>
       </View>
       <Pressable accessibilityRole="button" onPress={onPress} style={s.outlineButton}>
         <Text style={s.outlineButtonText}>{model.nutrition.cta}</Text>
@@ -282,6 +396,9 @@ export default function DashboardScreen() {
             <Text style={s.date}>{formatDateLabel(model.date)}</Text>
             <Text style={s.demoLabel}>Demo signals</Text>
           </View>
+          <View style={s.avatar}>
+            <Ionicons color={C.gold} name="person-outline" size={20} />
+          </View>
         </View>
 
         <ReadinessHero model={model} />
@@ -289,6 +406,8 @@ export default function DashboardScreen() {
         <View style={s.driverGrid}>
           {model.drivers.map((driver) => <DriverTile key={driver.id} tile={driver} />)}
         </View>
+
+        <VitalsCard model={model} />
 
         <FocusCard model={model} />
 
@@ -336,6 +455,16 @@ const s = StyleSheet.create({
   logoText: { color: C.gold, fontFamily: fonts.display, fontSize: 22 },
   brand: { color: C.gold, flex: 1, fontFamily: fonts.display, fontSize: 28 },
   headerMeta: { alignItems: 'flex-end', gap: 3 },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(240,201,106,0.34)',
+    borderRadius: 20,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40
+  },
   date: { color: C.textSub, fontFamily: fonts.body, fontSize: 12 },
   demoLabel: { color: C.goldDim, fontFamily: fonts.body, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
   card: {
@@ -394,7 +523,7 @@ const s = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 18
   },
-  heroStatus: { color: C.text, fontFamily: fonts.body, fontSize: 23, fontWeight: '600' },
+  heroStatus: { color: C.text, fontFamily: fonts.display, fontSize: 23, fontWeight: '400' },
   heroSummary: { color: C.textSub, fontFamily: fonts.body, fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: 'center' },
   confidencePill: {
     alignItems: 'center',
@@ -421,9 +550,62 @@ const s = StyleSheet.create({
     width: 52
   },
   driverBody: { flex: 1, gap: 3 },
-  driverValue: { color: C.text, fontFamily: fonts.body, fontSize: 20, fontWeight: '600' },
+  driverValue: { color: C.text, fontFamily: fonts.display, fontSize: 20, fontWeight: '400' },
   driverStatus: { fontFamily: fonts.body, fontSize: 14, fontWeight: '700' },
   sourceText: { color: C.textMuted, fontFamily: fonts.body, fontSize: 12 },
+  vitalsCard: { gap: 13 },
+  vitalGrid: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: C.borderSoft,
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 1,
+    overflow: 'hidden'
+  },
+  vitalCell: {
+    backgroundColor: 'rgba(18, 20, 30, 0.98)',
+    gap: 3,
+    minHeight: 92,
+    padding: 13,
+    width: '49.7%'
+  },
+  vitalLabel: {
+    color: C.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase'
+  },
+  vitalValue: {
+    fontFamily: fonts.display,
+    fontSize: 21,
+    fontWeight: '400',
+    letterSpacing: 0
+  },
+  vitalSub: {
+    color: C.textMuted,
+    fontFamily: fonts.body,
+    fontSize: 10
+  },
+  vitalTrack: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
+    height: 3,
+    marginTop: 6,
+    overflow: 'hidden'
+  },
+  vitalFill: { borderRadius: 2, height: '100%' },
+  signalList: {
+    borderTopColor: C.borderSoft,
+    borderTopWidth: 1,
+    gap: 9,
+    paddingTop: 12
+  },
+  signalLine: { alignItems: 'center', flexDirection: 'row', gap: 9 },
+  signalText: { color: C.textSub, flex: 1, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
   focusCard: { gap: 13, padding: 0 },
   focusArt: { backgroundColor: '#0B0B1E', height: 112, overflow: 'hidden' },
   focusStar: {
@@ -448,7 +630,7 @@ const s = StyleSheet.create({
     right: 18
   },
   focusBody: { gap: 9, paddingHorizontal: 16 },
-  focusTitle: { color: C.text, fontFamily: fonts.body, fontSize: 25, fontWeight: '600' },
+  focusTitle: { color: C.text, fontFamily: fonts.display, fontSize: 25, fontWeight: '400' },
   focusCopy: { color: C.textSub, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: {
@@ -483,11 +665,11 @@ const s = StyleSheet.create({
     paddingVertical: 4
   },
   miniBadgeText: { color: C.lavender, fontFamily: fonts.body, fontSize: 12 },
-  cardTitle: { color: C.text, fontFamily: fonts.body, fontSize: 22, fontWeight: '600' },
+  cardTitle: { color: C.text, fontFamily: fonts.display, fontSize: 22, fontWeight: '400' },
   cardSub: { color: C.textSub, fontFamily: fonts.body, fontSize: 15 },
   divider: { backgroundColor: C.borderSoft, height: 1 },
   metricLabel: { color: C.gold, fontFamily: fonts.body, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
-  metricBig: { color: C.text, fontFamily: fonts.body, fontSize: 22 },
+  metricBig: { color: C.text, fontFamily: fonts.display, fontSize: 22 },
   progressTrack: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 5, height: 7, overflow: 'hidden' },
   progressFill: { borderRadius: 5, height: '100%' },
   goldButton: {
@@ -503,7 +685,31 @@ const s = StyleSheet.create({
   goldButtonText: { color: '#15100A', fontFamily: fonts.body, fontSize: 16, fontWeight: '800' },
   metricRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   metricText: { color: C.textSub, fontFamily: fonts.body, fontSize: 14 },
-  metricValue: { color: C.text, fontFamily: fonts.body, fontSize: 14, fontWeight: '600' },
+  metricValue: { color: C.text, fontFamily: fonts.display, fontSize: 14, fontWeight: '400' },
+  macroList: { gap: 12 },
+  macroItem: { gap: 6 },
+  macroRow: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' },
+  macroLabel: {
+    color: C.textSub,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase'
+  },
+  macroValue: {
+    fontFamily: fonts.display,
+    fontSize: 14,
+    fontWeight: '400',
+    letterSpacing: 0
+  },
+  macroTrack: {
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 3,
+    height: 5,
+    overflow: 'hidden'
+  },
+  macroFill: { borderRadius: 3, height: '100%' },
   foodResponse: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
