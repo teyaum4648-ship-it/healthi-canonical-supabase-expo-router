@@ -878,7 +878,7 @@ export default function RhythmScreen() {
 
   async function handleManualSubmit() {
     if (!isValidTimeInput(sleepStartTime) || !isValidTimeInput(wakeTime)) {
-      Alert.alert('Check your sleep times', 'Use 24-hour time like 22:45 and 06:45.');
+      Alert.alert('Check your sleep times', 'Use 24-hour time, for example 22:45 and 06:45.');
       return;
     }
 
@@ -1022,7 +1022,7 @@ export default function RhythmScreen() {
 
         <DataCard delay={300}>
           <SectionHeader label="Log sleep" tag="Optional" />
-          <Text style={s.logDesc}>Enter last night's times to update your rhythm estimate.</Text>
+          <Text style={s.logDesc}>Enter last night's sleep window. This updates the estimate on this device right away.</Text>
 
           <View style={s.timeRow}>
             <View style={s.timeField}>
@@ -1055,6 +1055,8 @@ export default function RhythmScreen() {
               />
             </View>
           </View>
+
+          <Text style={s.inputHint}>Editable 24-hour time fields, like 22:45 to 06:45.</Text>
 
           <View style={s.presets}>
             {[['22:30', '06:30'], ['23:15', '07:00'], ['00:00', '07:15']].map(([start, wake]) => (
@@ -1102,7 +1104,7 @@ export default function RhythmScreen() {
           >
             {isSaving
               ? <ActivityIndicator color={accent} size="small" />
-              : <Text style={[s.submitTxt, { color: accent }]}>Update rhythm estimate</Text>
+              : <Text style={[s.submitTxt, { color: accent }]}>Save sleep window</Text>
             }
           </Pressable>
         </DataCard>
@@ -1118,7 +1120,7 @@ export default function RhythmScreen() {
 
 const s = StyleSheet.create({
   safe: { backgroundColor: '#050506', flex: 1 },
-  scroll: { gap: 12, paddingBottom: 44, paddingHorizontal: 16 },
+  scroll: { gap: 12, paddingBottom: 104, paddingHorizontal: 16 },
   phaseRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
   phaseEyebrow: {
     color: 'rgba(255,255,255,0.35)',
@@ -1186,7 +1188,7 @@ const s = StyleSheet.create({
   },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   logDesc: {
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255,255,255,0.48)',
     fontFamily: fonts.body,
     fontSize: 12,
     lineHeight: 18,
@@ -1204,18 +1206,25 @@ const s = StyleSheet.create({
   },
   timeInput: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(216,222,232,0.24)',
     borderRadius: 8,
     borderWidth: 1,
     color: '#E8EAF2',
     fontFamily: fonts.body,
     fontSize: 18,
     fontWeight: '700',
-    height: 44,
+    height: 48,
     justifyContent: 'center',
     paddingHorizontal: 10,
     textAlign: 'center'
+  },
+  inputHint: {
+    color: 'rgba(255,255,255,0.32)',
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: -3
   },
   timeConnector: {
     color: 'rgba(255,255,255,0.25)',

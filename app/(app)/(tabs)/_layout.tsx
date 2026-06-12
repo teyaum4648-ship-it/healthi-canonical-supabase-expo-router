@@ -18,9 +18,16 @@ export default function AppTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.mutedViolet,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600'
+        },
         tabBarStyle: {
           borderTopColor: 'rgba(214, 168, 79, 0.26)',
-          backgroundColor: colors.midnightPlum
+          backgroundColor: colors.midnightPlum,
+          height: 66,
+          paddingBottom: 8,
+          paddingTop: 6
         }
       }}
     >

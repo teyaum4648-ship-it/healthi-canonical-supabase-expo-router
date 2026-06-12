@@ -33,6 +33,10 @@ function formatDateLabel(date: string): string {
   return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', weekday: 'long', timeZone: 'UTC' });
 }
 
+function confidenceLabel(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function readinessArc(score: number): { rotate: string; color: string }[] {
   const filled = Math.max(1, Math.min(4, Math.round(score / 25)));
   return [0, 1, 2, 3].map((index) => ({
@@ -76,7 +80,7 @@ function ReadinessHero({ model }: { model: DashboardModel }) {
       </View>
       <View style={s.confidencePill}>
         <View style={s.goldDot} />
-        <Text style={s.confidenceText}>Confidence: {model.readiness.confidence}</Text>
+        <Text style={s.confidenceText}>Confidence: {confidenceLabel(model.readiness.confidence)}</Text>
       </View>
     </View>
   );
@@ -99,7 +103,7 @@ function DriverTile({ tile }: { tile: DashboardModel['drivers'][number] }) {
         <Label>{tile.label}</Label>
         <Text style={s.driverValue}>{tile.value}</Text>
         <Text style={[s.driverStatus, { color }]}>{tile.status}</Text>
-        <Text style={s.sourceText}>{tile.source} - {tile.confidence}</Text>
+        <Text style={s.sourceText}>{tile.source} - Confidence: {confidenceLabel(tile.confidence)}</Text>
       </View>
     </Card>
   );
@@ -234,7 +238,7 @@ function QuickAction({ action, onPress }: { action: DashboardModel['quickActions
       <View style={s.quickIcon}>
         <Ionicons color={C.text} name={iconById[action.id]} size={22} />
       </View>
-      <View>
+      <View style={s.quickTextWrap}>
         <Text style={s.quickLabel}>{action.label}</Text>
         <Text style={s.quickSub}>{action.subtitle}</Text>
       </View>
@@ -274,7 +278,10 @@ export default function DashboardScreen() {
         <View style={s.header}>
           <View style={s.logoMark}><Text style={s.logoText}>H</Text></View>
           <Text style={s.brand}>Healthi</Text>
-          <Text style={s.date}>{formatDateLabel(model.date)}</Text>
+          <View style={s.headerMeta}>
+            <Text style={s.date}>{formatDateLabel(model.date)}</Text>
+            <Text style={s.demoLabel}>Demo signals</Text>
+          </View>
         </View>
 
         <ReadinessHero model={model} />
@@ -304,9 +311,9 @@ export default function DashboardScreen() {
 const s = StyleSheet.create({
   safe: { backgroundColor: C.bg, flex: 1 },
   scroll: {
-    gap: 18,
-    paddingBottom: 34,
-    paddingHorizontal: 18,
+    gap: 16,
+    paddingBottom: 104,
+    paddingHorizontal: 16,
     paddingTop: 12
   },
   header: {
@@ -328,17 +335,19 @@ const s = StyleSheet.create({
   },
   logoText: { color: C.gold, fontFamily: fonts.display, fontSize: 22 },
   brand: { color: C.gold, flex: 1, fontFamily: fonts.display, fontSize: 28 },
-  date: { color: C.textSub, fontFamily: fonts.body, fontSize: 13 },
+  headerMeta: { alignItems: 'flex-end', gap: 3 },
+  date: { color: C.textSub, fontFamily: fonts.body, fontSize: 12 },
+  demoLabel: { color: C.goldDim, fontFamily: fonts.body, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
   card: {
     backgroundColor: C.panel,
     borderColor: C.border,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
-    padding: 16,
+    padding: 15,
     shadowColor: C.violet,
-    shadowOpacity: 0.14,
-    shadowRadius: 18
+    shadowOpacity: 0.12,
+    shadowRadius: 14
   },
   label: {
     color: C.gold,
@@ -348,45 +357,45 @@ const s = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase'
   },
-  heroWrap: { alignItems: 'center', paddingVertical: 10 },
+  heroWrap: { alignItems: 'center', paddingVertical: 4 },
   heroGlow: {
     backgroundColor: 'rgba(240,201,106,0.18)',
-    borderRadius: 130,
-    height: 260,
+    borderRadius: 118,
+    height: 236,
     position: 'absolute',
     top: 0,
-    width: 260
+    width: 236
   },
   heroRing: {
     alignItems: 'center',
     borderColor: 'rgba(240,201,106,0.18)',
-    borderRadius: 130,
+    borderRadius: 112,
     borderWidth: 1,
-    height: 244,
+    height: 220,
     justifyContent: 'center',
-    width: 244
+    width: 220
   },
   arc: {
     borderColor: 'transparent',
-    borderRadius: 120,
+    borderRadius: 106,
     borderRightWidth: 5,
     borderTopWidth: 5,
-    height: 222,
+    height: 202,
     position: 'absolute',
-    width: 222
+    width: 202
   },
   heroInner: { alignItems: 'center', maxWidth: 180 },
   score: {
     color: C.gold,
     fontFamily: fonts.display,
-    fontSize: 86,
-    lineHeight: 96,
+    fontSize: 78,
+    lineHeight: 86,
     shadowColor: C.gold,
     shadowOpacity: 0.45,
     shadowRadius: 18
   },
-  heroStatus: { color: C.text, fontFamily: fonts.body, fontSize: 26, fontWeight: '600' },
-  heroSummary: { color: C.textSub, fontFamily: fonts.body, fontSize: 14, lineHeight: 20, marginTop: 8, textAlign: 'center' },
+  heroStatus: { color: C.text, fontFamily: fonts.body, fontSize: 23, fontWeight: '600' },
+  heroSummary: { color: C.textSub, fontFamily: fonts.body, fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: 'center' },
   confidencePill: {
     alignItems: 'center',
     backgroundColor: 'rgba(240,201,106,0.09)',
@@ -401,22 +410,22 @@ const s = StyleSheet.create({
   },
   goldDot: { backgroundColor: C.gold, borderRadius: 4, height: 8, width: 8 },
   confidenceText: { color: C.gold, fontFamily: fonts.body, fontSize: 13 },
-  driverGrid: { gap: 12 },
-  driverCard: { alignItems: 'center', flexDirection: 'row', gap: 14 },
+  driverGrid: { gap: 10 },
+  driverCard: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   iconOrb: {
     alignItems: 'center',
     borderRadius: 30,
     borderWidth: 1,
-    height: 58,
+    height: 52,
     justifyContent: 'center',
-    width: 58
+    width: 52
   },
   driverBody: { flex: 1, gap: 3 },
-  driverValue: { color: C.text, fontFamily: fonts.body, fontSize: 22, fontWeight: '600' },
+  driverValue: { color: C.text, fontFamily: fonts.body, fontSize: 20, fontWeight: '600' },
   driverStatus: { fontFamily: fonts.body, fontSize: 14, fontWeight: '700' },
   sourceText: { color: C.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  focusCard: { gap: 15, padding: 0 },
-  focusArt: { backgroundColor: '#0B0B1E', height: 130, overflow: 'hidden' },
+  focusCard: { gap: 13, padding: 0 },
+  focusArt: { backgroundColor: '#0B0B1E', height: 112, overflow: 'hidden' },
   focusStar: {
     backgroundColor: C.gold,
     borderRadius: 40,
@@ -439,8 +448,8 @@ const s = StyleSheet.create({
     right: 18
   },
   focusBody: { gap: 9, paddingHorizontal: 16 },
-  focusTitle: { color: C.text, fontFamily: fonts.body, fontSize: 28, fontWeight: '600' },
-  focusCopy: { color: C.textSub, fontFamily: fonts.body, fontSize: 16, lineHeight: 24 },
+  focusTitle: { color: C.text, fontFamily: fonts.body, fontSize: 25, fontWeight: '600' },
+  focusCopy: { color: C.textSub, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: {
     alignItems: 'center',
@@ -461,7 +470,7 @@ const s = StyleSheet.create({
     padding: 16
   },
   reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 9 },
-  reasonText: { color: C.textSub, fontFamily: fonts.body, fontSize: 14 },
+  reasonText: { color: C.textSub, flex: 1, fontFamily: fonts.body, fontSize: 14 },
   stackGrid: { gap: 12 },
   stackCard: { gap: 12 },
   cardTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
@@ -517,25 +526,28 @@ const s = StyleSheet.create({
     paddingVertical: 12
   },
   outlineButtonText: { color: C.gold, fontFamily: fonts.body, fontSize: 15, fontWeight: '700' },
-  quickStrip: { gap: 10 },
+  quickStrip: { flexDirection: 'row', gap: 8 },
   quickAction: {
     alignItems: 'center',
     backgroundColor: C.panelRaised,
     borderColor: C.border,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 14,
-    padding: 14
+    flex: 1,
+    gap: 8,
+    minHeight: 94,
+    paddingHorizontal: 8,
+    paddingVertical: 10
   },
   quickIcon: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 25,
-    height: 50,
+    borderRadius: 22,
+    height: 44,
     justifyContent: 'center',
-    width: 50
+    width: 44
   },
-  quickLabel: { color: C.text, fontFamily: fonts.body, fontSize: 17, fontWeight: '600' },
-  quickSub: { color: C.textMuted, fontFamily: fonts.body, fontSize: 13 }
+  quickTextWrap: { alignItems: 'center', gap: 2 },
+  quickLabel: { color: C.text, fontFamily: fonts.body, fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  quickSub: { color: C.textMuted, fontFamily: fonts.body, fontSize: 11, textAlign: 'center' }
 });
