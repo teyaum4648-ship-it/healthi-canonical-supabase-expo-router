@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -6,26 +7,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
 import { composeDashboardModel, type DashboardModel } from '../../../src/features/dashboard/dashboardComposer';
+import {
+  AnimatedReadinessRing,
+  BodyClockArc,
+  OrbGlow,
+  ScoreRing,
+  Starfield,
+  StressSpark,
+  ouraColors,
+  ouraGradients,
+  ouraType
+} from '../../../src/features/dashboard/ouraVisuals';
 import { createDefaultSleepNeedEstimate, createDemoSleepSessions } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { fonts } from '../../../src/styles/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 const C = {
-  bg: '#040407',
-  panel: 'rgba(12, 13, 18, 0.94)',
-  panelRaised: 'rgba(20, 21, 29, 0.92)',
-  border: 'rgba(231, 190, 96, 0.26)',
+  bg: ouraColors.bg,
+  panel: 'rgba(255,255,255,0.025)',
+  panelRaised: 'rgba(255,255,255,0.04)',
+  border: 'rgba(95, 211, 201, 0.20)',
   borderSoft: 'rgba(255,255,255,0.08)',
-  gold: '#F0C96A',
-  goldDim: '#B89148',
-  violet: '#9A6DFF',
-  lavender: '#C7B5FF',
-  green: '#A7E46A',
-  pink: '#FF6F9F',
-  text: '#F7F2EA',
-  textSub: '#BEB7C9',
-  textMuted: '#817990'
+  gold: ouraColors.teal,
+  goldDim: ouraColors.tealDim,
+  violet: ouraColors.blue,
+  lavender: ouraColors.blue,
+  green: ouraColors.green,
+  pink: ouraColors.rose,
+  text: ouraColors.text,
+  textSub: ouraColors.sub,
+  textMuted: ouraColors.muted
 };
 
 type VitalMetric = {
@@ -94,6 +106,106 @@ function ReadinessHero({ model }: { model: DashboardModel }) {
       <View style={s.confidencePill}>
         <View style={s.goldDot} />
         <Text style={s.confidenceText}>Confidence: {confidenceLabel(model.readiness.confidence)}</Text>
+      </View>
+    </View>
+  );
+}
+
+function OuraTodayHero({ model }: { model: DashboardModel }) {
+  return (
+    <View style={s.ouraHero}>
+      <LinearGradient colors={ouraGradients.nebula} style={StyleSheet.absoluteFill} />
+      <OrbGlow color={ouraColors.teal} opacity={0.3} size={300} style={{ right: -80, top: -60 }} />
+      <OrbGlow color="#3A5BD0" opacity={0.22} size={300} style={{ bottom: -90, left: -90 }} />
+      <Starfield />
+      <Text style={s.ouraDate}>{formatDateLabel(model.date).toUpperCase()}</Text>
+      <View style={s.ouraRingWrap}>
+        <AnimatedReadinessRing score={model.readiness.score} />
+      </View>
+      <Text style={s.ouraInsight}>{model.readiness.summary}</Text>
+      <View style={s.heroStats}>
+        <View style={s.heroStat}>
+          <Text style={s.heroStatLabel}>SLEEP</Text>
+          <Text style={s.heroStatValue}>{model.sleepRhythm.duration}</Text>
+        </View>
+        <View style={s.heroDivider} />
+        <View style={s.heroStat}>
+          <Text style={s.heroStatLabel}>RHYTHM</Text>
+          <Text style={s.heroStatValue}>{model.sleepRhythm.rhythmPhase}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function ContributorRings() {
+  return (
+    <View style={s.scoreRow}>
+      <ScoreRing color={ouraColors.blue} delay={500} label="Sleep" pct={0.82} value="82" />
+      <ScoreRing color={ouraColors.green} delay={640} label="Activity" pct={0.74} value="74" />
+      <ScoreRing color={ouraColors.teal} delay={780} label="Stress" pct={0.3} value="Low" />
+    </View>
+  );
+}
+
+function CheckInCard() {
+  const pills = ['Good sleep', 'Rest day', 'Hydration', 'Steady meals'];
+
+  return (
+    <View style={s.checkCard}>
+      <LinearGradient colors={ouraGradients.check} style={StyleSheet.absoluteFill} />
+      <OrbGlow color={ouraColors.teal} opacity={0.22} size={150} style={{ right: -30, top: -40 }} />
+      <View style={s.checkInner}>
+        <View style={s.checkHead}>
+          <Ionicons color={C.text} name="pricetag-outline" size={16} />
+          <Text style={s.checkTitle}>Check in</Text>
+        </View>
+        <Text style={s.checkPrompt}>Your readiness is higher than usual.</Text>
+        <Text style={s.checkPrompt}>What do you think helped?</Text>
+        <View style={s.pills}>
+          {pills.map((pill) => (
+            <Pressable accessibilityRole="button" key={pill} style={({ pressed }) => [s.pill, pressed && { opacity: 0.7 }]}>
+              <Text style={s.pillText}>{pill}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function BodyClockCard({ model }: { model: DashboardModel }) {
+  return (
+    <View style={s.clockCard}>
+      <LinearGradient colors={ouraGradients.clock} style={StyleSheet.absoluteFill} />
+      <View style={s.clockInner}>
+        <View style={s.clockHead}>
+          <Text style={s.clockTitle}>Body Clock</Text>
+          <Ionicons color={C.textSub} name="arrow-forward" size={18} />
+        </View>
+        <View style={s.clockArcWrap}>
+          <BodyClockArc mid={0.5} />
+        </View>
+        <Text style={s.clockCaption}>
+          {model.focus.tags[1] ?? 'Your rhythm supports focused work before early afternoon.'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function DaytimeStressCard() {
+  return (
+    <View style={s.stressCard}>
+      <View style={s.stressHead}>
+        <View>
+          <Text style={s.stressTitle}>Daytime stress</Text>
+          <Text style={s.stressSub}>Mostly restored - demo signal</Text>
+        </View>
+        <Text style={s.stressLevel}>Low</Text>
+      </View>
+      <View style={s.stressSparkWrap}>
+        <StressSpark />
       </View>
     </View>
   );
@@ -401,13 +513,15 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <ReadinessHero model={model} />
+        <OuraTodayHero model={model} />
 
-        <View style={s.driverGrid}>
-          {model.drivers.map((driver) => <DriverTile key={driver.id} tile={driver} />)}
-        </View>
+        <ContributorRings />
 
-        <VitalsCard model={model} />
+        <CheckInCard />
+
+        <BodyClockCard model={model} />
+
+        <DaytimeStressCard />
 
         <FocusCard model={model} />
 
@@ -430,9 +544,9 @@ export default function DashboardScreen() {
 const s = StyleSheet.create({
   safe: { backgroundColor: C.bg, flex: 1 },
   scroll: {
-    gap: 16,
+    gap: 18,
     paddingBottom: 104,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingTop: 12
   },
   header: {
@@ -470,13 +584,13 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: C.panel,
     borderColor: C.border,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     overflow: 'hidden',
-    padding: 15,
-    shadowColor: C.violet,
-    shadowOpacity: 0.12,
-    shadowRadius: 14
+    padding: 18,
+    shadowColor: C.gold,
+    shadowOpacity: 0.08,
+    shadowRadius: 18
   },
   label: {
     color: C.gold,
@@ -485,6 +599,166 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
     textTransform: 'uppercase'
+  },
+  ouraHero: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    paddingBottom: 16,
+    paddingTop: 22
+  },
+  ouraDate: {
+    ...ouraType.eyebrow,
+    color: ouraColors.teal,
+    letterSpacing: 2.5,
+    textAlign: 'center'
+  },
+  ouraRingWrap: {
+    alignItems: 'center',
+    marginTop: 4
+  },
+  ouraInsight: {
+    ...ouraType.body,
+    color: ouraColors.sub,
+    fontSize: 13,
+    marginTop: 8,
+    paddingHorizontal: 20,
+    textAlign: 'center'
+  },
+  heroStats: {
+    borderTopColor: ouraColors.hairline,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    marginHorizontal: 22,
+    marginTop: 18,
+    paddingTop: 13
+  },
+  heroStat: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 4
+  },
+  heroStatLabel: {
+    ...ouraType.caption,
+    color: ouraColors.muted,
+    fontSize: 9.5,
+    fontWeight: '600',
+    letterSpacing: 1.5
+  },
+  heroStatValue: {
+    ...ouraType.serifSm,
+    color: ouraColors.text,
+    textAlign: 'center'
+  },
+  heroDivider: {
+    backgroundColor: ouraColors.hairline,
+    width: 1
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 2,
+    marginTop: 2
+  },
+  checkCard: {
+    borderColor: ouraColors.cardBorder,
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden'
+  },
+  checkInner: {
+    padding: 22
+  },
+  checkHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7
+  },
+  checkTitle: {
+    ...ouraType.body,
+    color: ouraColors.text,
+    fontSize: 15,
+    fontWeight: '600'
+  },
+  checkPrompt: {
+    ...ouraType.body,
+    color: ouraColors.sub,
+    marginTop: 6
+  },
+  pills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12
+  },
+  pill: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8
+  },
+  pillText: {
+    ...ouraType.caption,
+    color: ouraColors.text,
+    fontSize: 12.5
+  },
+  clockCard: {
+    borderColor: ouraColors.cardBorder,
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden'
+  },
+  clockInner: {
+    padding: 22,
+    paddingBottom: 16
+  },
+  clockHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  clockTitle: {
+    ...ouraType.serifSm,
+    color: ouraColors.text
+  },
+  clockArcWrap: {
+    marginTop: 8
+  },
+  clockCaption: {
+    ...ouraType.body,
+    color: ouraColors.sub,
+    fontSize: 13,
+    marginTop: 8
+  },
+  stressCard: {
+    backgroundColor: ouraColors.card,
+    borderColor: ouraColors.cardBorder,
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 22
+  },
+  stressHead: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  stressTitle: {
+    ...ouraType.serifSm,
+    color: ouraColors.text
+  },
+  stressSub: {
+    ...ouraType.caption,
+    color: ouraColors.muted,
+    marginTop: 3
+  },
+  stressLevel: {
+    ...ouraType.display,
+    color: ouraColors.teal,
+    fontSize: 22
+  },
+  stressSparkWrap: {
+    marginTop: 8
   },
   heroWrap: { alignItems: 'center', paddingVertical: 4 },
   heroGlow: {
