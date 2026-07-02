@@ -4,7 +4,9 @@ export { calculateFoodResponse } from './calculateFoodResponse';
 export { calculateNutrientSummary } from './calculateNutrientSummary';
 export { generateNutritionReadinessSignal } from './generateNutritionReadinessSignal';
 export { getFoodPatternResultCopy } from './foodPatternResultCopy';
+export { adaptScannedProductToMealLog } from './scannerAdapter';
 export { scoreFoodPatternMealResponse, updateFoodPatternProfileFromResponse } from './updateFoodPatternProfileFromResponse';
+export type { AdaptScannedProductParams, ScannedProductInput, ScannedProductNutriments } from './scannerAdapter';
 export type {
   FoodPatternAnswers,
   FoodPatternLabel,
