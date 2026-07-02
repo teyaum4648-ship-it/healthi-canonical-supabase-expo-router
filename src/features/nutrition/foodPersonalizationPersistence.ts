@@ -87,9 +87,18 @@ type SelectQuery<TRow> = {
   limit(count: number): Promise<QueryResponse<TRow[]>>;
 };
 
+type UpdateQuery<TRow> = {
+  eq(column: string, value: string | boolean): UpdateQuery<TRow>;
+  then<TResult1 = QueryResponse<TRow[]>, TResult2 = never>(
+    onfulfilled?: ((value: QueryResponse<TRow[]>) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2>;
+};
+
 type TableQuery<TInsert, TRow> = {
   insert(payload: TInsert): InsertQuery<TRow>;
   select(columns: string): SelectQuery<TRow>;
+  update(payload: Partial<TInsert>): UpdateQuery<TRow>;
 };
 
 export type FoodPersonalizationSupabaseClient = {
@@ -163,6 +172,24 @@ export async function saveFoodPatternProfile(
   }
 
   return data;
+}
+
+export async function replaceActiveFoodPatternProfile(
+  client: FoodPersonalizationSupabaseClient,
+  userId: string,
+  profile: FoodPatternProfilePersistenceInput
+): Promise<FoodPatternProfileRow> {
+  const { error } = await client
+    .from('food_pattern_profiles')
+    .update({ is_active: false })
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (error) {
+    raiseSupabaseError(error);
+  }
+
+  return saveFoodPatternProfile(client, userId, profile, true);
 }
 
 export async function getActiveFoodPatternProfile(

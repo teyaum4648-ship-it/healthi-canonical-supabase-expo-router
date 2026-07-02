@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { calculateFoodPatternProfile } from '../../../src/engines/nutrition';
 import type { FoodPatternAnswers } from '../../../src/engines/nutrition';
 import {
+  replaceActiveFoodPatternProfile,
   toFoodPatternProfileInsert,
   toPostMealResponseLogInsert,
+  type FoodPatternProfileInsert,
+  type FoodPatternProfileRow,
+  type FoodPersonalizationSupabaseClient,
   type PostMealResponseLogInput
 } from '../../../src/features/nutrition/foodPersonalizationPersistence';
 
@@ -52,6 +56,59 @@ function responseLog(overrides: Partial<PostMealResponseLogInput> = {}): PostMea
     reason_codes: ['food_response_steady'],
     ...overrides
   };
+}
+
+function createReplacementClient(calls: Array<{ action: string; payload?: unknown; column?: string; value?: unknown }>) {
+  const rowFromPayload = (payload: FoodPatternProfileInsert): FoodPatternProfileRow => ({
+    ...payload,
+    id: '33333333-3333-3333-3333-333333333333',
+    created_at: '2026-07-01T12:01:00.000Z',
+    updated_at: '2026-07-01T12:01:00.000Z'
+  });
+
+  return {
+    from(table: 'food_pattern_profiles' | 'post_meal_response_logs') {
+      if (table !== 'food_pattern_profiles') {
+        throw new Error('Unexpected table in replacement test.');
+      }
+
+      return {
+        update(payload: Partial<FoodPatternProfileInsert>) {
+          calls.push({ action: 'update', payload });
+          const query = {
+            eq(column: string, value: string | boolean) {
+              calls.push({ action: 'update_eq', column, value });
+              return query;
+            },
+            then<TResult1 = { data: FoodPatternProfileRow[] | null; error: null }, TResult2 = never>(
+              onfulfilled?: ((value: { data: FoodPatternProfileRow[] | null; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
+              _onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+            ) {
+              return Promise.resolve({ data: [], error: null }).then(onfulfilled ?? ((value) => value as TResult1));
+            }
+          };
+          return query;
+        },
+        insert(payload: FoodPatternProfileInsert) {
+          calls.push({ action: 'insert', payload });
+          return {
+            select(columns: string) {
+              calls.push({ action: 'insert_select', payload: columns });
+              return {
+                single() {
+                  calls.push({ action: 'insert_single' });
+                  return Promise.resolve({ data: rowFromPayload(payload), error: null });
+                }
+              };
+            }
+          };
+        },
+        select() {
+          throw new Error('Unexpected select in replacement test.');
+        }
+      };
+    }
+  } as unknown as FoodPersonalizationSupabaseClient;
 }
 
 describe('food personalization persistence mapping', () => {
@@ -224,5 +281,29 @@ describe('food personalization persistence mapping', () => {
     for (const term of blockedTerms) {
       expect(output).not.toContain(term);
     }
+  });
+
+  it('replaces the active food pattern profile by deactivating before insert', async () => {
+    const calls: Array<{ action: string; payload?: unknown; column?: string; value?: unknown }> = [];
+    const client = createReplacementClient(calls);
+    const source = profile();
+    const inserted = await replaceActiveFoodPatternProfile(client, userId, source);
+
+    expect(calls.map((call) => call.action)).toEqual([
+      'update',
+      'update_eq',
+      'update_eq',
+      'insert',
+      'insert_select',
+      'insert_single'
+    ]);
+    expect(calls[0].payload).toEqual({ is_active: false });
+    expect(calls[1]).toEqual({ action: 'update_eq', column: 'user_id', value: userId });
+    expect(calls[2]).toEqual({ action: 'update_eq', column: 'is_active', value: true });
+    expect(inserted.user_id).toBe(userId);
+    expect(inserted.is_active).toBe(true);
+    expect(inserted.scores).toEqual(source.scores);
+    expect(inserted.reason_codes).toEqual(source.reason_codes);
+    expect(JSON.parse(JSON.stringify(inserted))).toEqual(inserted);
   });
 });
