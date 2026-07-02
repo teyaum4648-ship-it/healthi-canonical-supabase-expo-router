@@ -1,1033 +1,804 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { generateCircadianBriefing } from '../../../src/engines/circadian';
-import { composeDashboardModel, type DashboardModel } from '../../../src/features/dashboard/dashboardComposer';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  AnimatedReadinessRing,
-  BodyClockArc,
-  OrbGlow,
-  ScoreRing,
-  Starfield,
-  StressSpark,
-  ouraColors,
-  ouraGradients,
-  ouraType
-} from '../../../src/features/dashboard/ouraVisuals';
-import { createDefaultSleepNeedEstimate, createDemoSleepSessions } from '../../../src/features/sleepRhythm/rhythmInputs';
-import { fonts } from '../../../src/styles/theme';
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type TextStyle,
+  type ViewStyle
+} from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
+  useSharedValue,
+  withDelay,
+  withTiming
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Path,
+  RadialGradient,
+  Stop,
+  Text as SvgText
+} from 'react-native-svg';
 
-type IconName = keyof typeof Ionicons.glyphMap;
+const T = {
+  void: '#08060D',
+  nebulaTop: '#191024',
+  nebulaMid: '#100A19',
+  gold: '#D9A954',
+  goldBright: '#F3D492',
+  goldDeep: '#7E5B24',
+  lavender: '#B4A3F2',
+  blue: '#8FB2EE',
+  text: '#F4F1EB',
+  sub: '#A79FB4',
+  muted: '#6B6478',
+  card: 'rgba(255,255,255,0.030)',
+  hairline: 'rgba(255,255,255,0.055)',
+  track: 'rgba(255,255,255,0.065)'
+} as const;
 
-const C = {
-  bg: ouraColors.bg,
-  panel: 'rgba(255,255,255,0.025)',
-  panelRaised: 'rgba(255,255,255,0.04)',
-  border: 'rgba(95, 211, 201, 0.20)',
-  borderSoft: 'rgba(255,255,255,0.08)',
-  gold: ouraColors.teal,
-  goldDim: ouraColors.tealDim,
-  violet: ouraColors.blue,
-  lavender: ouraColors.blue,
-  green: ouraColors.green,
-  pink: ouraColors.rose,
-  text: ouraColors.text,
-  textSub: ouraColors.sub,
-  textMuted: ouraColors.muted
-};
+const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }) ?? 'serif';
+const sans = Platform.select({ ios: 'Avenir Next', android: 'sans-serif', default: 'System' }) ?? 'System';
 
-type VitalMetric = {
+const type = {
+  hero: { fontFamily: serif, fontSize: 66, lineHeight: 72, fontWeight: '300' },
+  display: { fontFamily: serif, fontSize: 21, lineHeight: 27, fontWeight: '400' },
+  eyebrow: { fontFamily: sans, fontSize: 10.5, fontWeight: '600', letterSpacing: 3 },
+  body: { fontFamily: sans, fontSize: 13.5, lineHeight: 20, fontWeight: '400' }
+} as const satisfies Record<string, TextStyle>;
+
+const MOCK = {
+  firstName: 'Tiam',
+  dateLabel: 'Wednesday, July 1',
+  readiness: {
+    score: 87,
+    summary: 'Recovery is trending up. Today can absorb a heavy session.'
+  },
+  heroStats: [
+    { label: 'SLEEP', value: '7h 42m' },
+    { label: 'RHYTHM', value: 'Aligned' },
+    { label: 'HRV', value: '58 ms' }
+  ],
+  week: [
+    { day: 'F', score: 78 },
+    { day: 'S', score: 84 },
+    { day: 'S', score: 71 },
+    { day: 'M', score: 88 },
+    { day: 'T', score: 90 },
+    { day: 'T', score: 82 },
+    { day: 'W', score: 87, today: true }
+  ],
+  signals: [
+    { label: 'Sleep', value: '84', pct: 0.84, color: T.lavender },
+    { label: 'Activity', value: '62', pct: 0.62, color: T.blue },
+    { label: 'Stress', value: 'Low', pct: 0.28, color: T.gold }
+  ],
+  contributors: [
+    { label: 'Resting heart rate', value: '54 bpm', status: 'Optimal', pct: 0.92 },
+    { label: 'HRV balance', value: '58 ms', status: 'Good', pct: 0.78 },
+    { label: 'Body temperature', value: '+0.2°', status: 'Steady', pct: 0.7 },
+    { label: 'Recovery index', value: '-', status: 'Good', pct: 0.81 }
+  ],
+  fuel: {
+    calories: { current: 1640, target: 2300 },
+    macros: [
+      { label: 'Protein', current: 142, target: 200, unit: 'g' },
+      { label: 'Net carbs', current: 31, target: 50, unit: 'g' },
+      { label: 'Fat', current: 118, target: 160, unit: 'g' }
+    ],
+    lastMeal: { name: 'Ribeye & eggs', time: '1:20 PM' }
+  },
+  sleepWindow: {
+    start: '10:40 PM',
+    end: '11:20 PM',
+    startT: 0.33,
+    endT: 0.42,
+    caption: "Falling asleep inside this window keeps tomorrow's rhythm aligned."
+  },
+  guidance: {
+    title: 'Load the morning.',
+    body:
+      'Your rhythm peaks before mid-afternoon. Place the hardest work, training or deep focus, inside that window, then let the evening stay quiet.'
+  }
+} as const;
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+function bandLabel(score: number): string {
+  if (score >= 85) return 'Primed';
+  if (score >= 70) return 'Steady';
+  if (score >= 55) return 'Guarded';
+  return 'Recover';
+}
+
+function useGradientId(prefix: string): string {
+  return useMemo(() => `${prefix}_${Math.random().toString(36).slice(2)}`, [prefix]);
+}
+
+function Glow({ size, color, opacity = 1, style }: { size: number; color: string; opacity?: number; style?: ViewStyle }) {
+  const id = useGradientId('healthi_glow');
+  return (
+    <View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size }, style]}>
+      <Svg height={size} width={size}>
+        <Defs>
+          <RadialGradient cx="0.5" cy="0.5" id={id} r="0.5">
+            <Stop offset="0" stopColor={color} stopOpacity={opacity} />
+            <Stop offset="0.75" stopColor={color} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={size / 2} cy={size / 2} fill={`url(#${id})`} r={size / 2} />
+      </Svg>
+    </View>
+  );
+}
+
+function Stars() {
+  const stars = [
+    { top: 42, left: 52, size: 2, opacity: 0.4 },
+    { top: 70, left: 296, size: 1.5, opacity: 0.35 },
+    { top: 118, left: 30, size: 1.5, opacity: 0.3 },
+    { top: 96, left: 338, size: 1, opacity: 0.3 },
+    { top: 176, left: 318, size: 1.5, opacity: 0.28 },
+    { top: 210, left: 46, size: 1, opacity: 0.25 }
+  ];
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {stars.map((star, index) => (
+        <View
+          key={index}
+          style={{
+            position: 'absolute',
+            top: star.top,
+            left: star.left,
+            width: star.size,
+            height: star.size,
+            borderRadius: star.size,
+            backgroundColor: `rgba(244,241,235,${star.opacity})`
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+function Eyebrow({ children, color = T.muted }: { children: ReactNode; color?: string }) {
+  return <Text style={[type.eyebrow, { color, textTransform: 'uppercase' }]}>{children}</Text>;
+}
+
+function ReadinessRing({ score, size = 224, delay = 250 }: { score: number; size?: number; delay?: number }) {
+  const gradId = useGradientId('healthi_gold_ring');
+  const bounded = Math.max(0, Math.min(100, score));
+  const radius = 92;
+  const circumference = 2 * Math.PI * radius;
+  const pct = bounded / 100;
+  const progress = useSharedValue(0);
+  const [displayScore, setDisplayScore] = useState(0);
+
+  useEffect(() => {
+    progress.value = withDelay(delay, withTiming(1, { duration: 1400, easing: Easing.out(Easing.cubic) }));
+  }, [delay, progress]);
+
+  useAnimatedReaction(
+    () => progress.value,
+    (value) => runOnJS(setDisplayScore)(Math.round(bounded * value)),
+    [bounded]
+  );
+
+  const arcProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - pct * progress.value)
+  }));
+
+  const tipProps = useAnimatedProps(() => {
+    const angle = pct * 2 * Math.PI * progress.value;
+    return {
+      cx: 110 + radius * Math.sin(angle),
+      cy: 110 - radius * Math.cos(angle),
+      opacity: progress.value
+    };
+  });
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg height={size} viewBox="0 0 220 220" width={size}>
+        <Defs>
+          <SvgLinearGradient id={gradId} x1="0.15" x2="0.85" y1="0" y2="1">
+            <Stop offset="0" stopColor={T.goldBright} />
+            <Stop offset="0.55" stopColor={T.gold} />
+            <Stop offset="1" stopColor={T.goldDeep} />
+          </SvgLinearGradient>
+        </Defs>
+        <Circle cx={110} cy={110} fill="none" r={radius} stroke={T.track} strokeWidth={5} />
+        <AnimatedCircle
+          animatedProps={arcProps}
+          cx={110}
+          cy={110}
+          fill="none"
+          origin="110, 110"
+          r={radius}
+          rotation={-90}
+          stroke={`url(#${gradId})`}
+          strokeDasharray={circumference}
+          strokeLinecap="round"
+          strokeWidth={5}
+        />
+        <AnimatedCircle animatedProps={tipProps} fill={T.goldBright} opacity={0.5} r={6} />
+        <AnimatedCircle animatedProps={tipProps} fill="#FFF7E3" r={2.5} />
+      </Svg>
+      <View pointerEvents="none" style={{ position: 'absolute', alignItems: 'center' }}>
+        <Eyebrow color={T.goldDeep}>Readiness</Eyebrow>
+        <Text style={[type.hero, { color: T.text, marginTop: 2 }]}>{displayScore}</Text>
+        <Text style={[type.display, { color: T.gold, marginTop: -4 }]}>{bandLabel(bounded)}</Text>
+      </View>
+    </View>
+  );
+}
+
+function Hero() {
+  return (
+    <View style={s.hero}>
+      <LinearGradient colors={[T.nebulaTop, T.nebulaMid, T.void]} style={StyleSheet.absoluteFill} />
+      <Stars />
+      <Glow color={T.lavender} opacity={0.13} size={320} style={{ top: -130, left: -110 }} />
+      <Glow color={T.gold} opacity={0.16} size={380} style={{ bottom: -230, alignSelf: 'center' }} />
+
+      <View style={s.heroHeader}>
+        <View style={{ gap: 6 }}>
+          <Eyebrow>{MOCK.dateLabel}</Eyebrow>
+          <Text style={[type.display, { color: T.text, fontSize: 24 }]}>Good morning, {MOCK.firstName}</Text>
+        </View>
+        <Pressable accessibilityRole="button" style={({ pressed }) => [s.iconButton, pressed && { opacity: 0.6 }]}>
+          <Ionicons color={T.sub} name="notifications-outline" size={18} />
+        </Pressable>
+      </View>
+
+      <View style={{ alignItems: 'center', marginTop: 18 }}>
+        <ReadinessRing score={MOCK.readiness.score} />
+        <Text style={[type.body, s.heroSummary]}>{MOCK.readiness.summary}</Text>
+      </View>
+
+      <View style={s.heroStats}>
+        {MOCK.heroStats.map((stat, index) => (
+          <View key={stat.label} style={s.heroStat}>
+            {index > 0 ? <View style={s.heroStatDivider} /> : null}
+            <View style={{ alignItems: 'center', gap: 5, flex: 1 }}>
+              <Eyebrow>{stat.label}</Eyebrow>
+              <Text style={[type.display, { color: T.text, fontSize: 17 }]}>{stat.value}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function MiniRing({ score, active }: { score: number; active?: boolean }) {
+  const radius = 12.5;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.max(0, Math.min(1, score / 100));
+  const stroke = active ? T.gold : 'rgba(180,163,242,0.38)';
+
+  return (
+    <Svg height={34} viewBox="0 0 34 34" width={34}>
+      <Circle cx={17} cy={17} fill="none" r={radius} stroke={T.track} strokeWidth={2.5} />
+      <Circle
+        cx={17}
+        cy={17}
+        fill="none"
+        origin="17, 17"
+        r={radius}
+        rotation={-90}
+        stroke={stroke}
+        strokeDasharray={`${circumference * pct} ${circumference}`}
+        strokeLinecap="round"
+        strokeWidth={2.5}
+      />
+    </Svg>
+  );
+}
+
+function WeekStrip() {
+  return (
+    <View style={s.weekStrip}>
+      {MOCK.week.map((entry, index) => (
+        <View key={index} style={{ alignItems: 'center', gap: 7 }}>
+          <MiniRing active={'today' in entry && entry.today} score={entry.score} />
+          <Text
+            style={[
+              type.eyebrow,
+              { color: 'today' in entry && entry.today ? T.gold : T.muted, letterSpacing: 1 }
+            ]}
+          >
+            {entry.day}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SignalRing({
+  label,
+  value,
+  pct,
+  color,
+  delay = 0
+}: {
   label: string;
   value: string;
-  sub: string;
+  pct: number;
   color: string;
-  progress: number;
-};
+  delay?: number;
+}) {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const target = Math.max(0, Math.min(1, pct));
+  const numeric = /^\d+$/.test(value);
+  const progress = useSharedValue(0);
+  const [display, setDisplay] = useState(numeric ? '0' : value);
 
-function formatDateLabel(date: string): string {
-  const parsed = new Date(`${date.slice(0, 10)}T12:00:00.000Z`);
-  return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', weekday: 'long', timeZone: 'UTC' });
-}
+  useEffect(() => {
+    progress.value = withDelay(delay, withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }));
+  }, [delay, progress]);
 
-function confidenceLabel(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
+  useAnimatedReaction(
+    () => progress.value,
+    (animated) => {
+      if (numeric) runOnJS(setDisplay)(String(Math.round(Number(value) * animated)));
+    },
+    [numeric, value]
+  );
 
-function readinessArc(score: number): { rotate: string; color: string }[] {
-  const filled = Math.max(1, Math.min(4, Math.round(score / 25)));
-  return [0, 1, 2, 3].map((index) => ({
-    rotate: `${index * 90}deg`,
-    color: index < filled ? C.gold : 'rgba(255,255,255,0.07)'
+  const arcProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - target * progress.value)
   }));
-}
 
-function progressWidth(value: number, max: number): `${number}%` {
-  if (max <= 0) return '32%';
-  return `${Math.max(4, Math.min(100, Math.round((value / max) * 100)))}%`;
-}
-
-function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  return <View style={[s.card, style]}>{children}</View>;
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <Text style={s.label}>{children}</Text>;
-}
-
-function ReadinessHero({ model }: { model: DashboardModel }) {
   return (
-    <View style={s.heroWrap}>
-      <View style={s.heroGlow} />
-      <View style={s.heroRing}>
-        {readinessArc(model.readiness.score).map((arc) => (
-          <View
-            key={arc.rotate}
-            style={[
-              s.arc,
-              {
-                borderTopColor: arc.color,
-                borderRightColor: arc.color,
-                transform: [{ rotate: arc.rotate }]
-              }
-            ]}
+    <View style={{ alignItems: 'center', gap: 10, flex: 1 }}>
+      <View style={{ width: 64, height: 64, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg height={64} viewBox="0 0 64 64" width={64}>
+          <Circle cx={32} cy={32} fill="none" r={radius} stroke={T.track} strokeWidth={4.5} />
+          <AnimatedCircle
+            animatedProps={arcProps}
+            cx={32}
+            cy={32}
+            fill="none"
+            origin="32, 32"
+            r={radius}
+            rotation={-90}
+            stroke={color}
+            strokeDasharray={circumference}
+            strokeLinecap="round"
+            strokeWidth={4.5}
           />
+        </Svg>
+        <View pointerEvents="none" style={{ position: 'absolute' }}>
+          <Text style={[type.display, { color: T.text, fontSize: 17 }]}>{display}</Text>
+        </View>
+      </View>
+      <Text style={[type.body, { color: T.sub, fontSize: 12.5 }]}>{label}</Text>
+    </View>
+  );
+}
+
+function SignalsRow() {
+  return (
+    <View style={s.card}>
+      <View style={{ flexDirection: 'row' }}>
+        {MOCK.signals.map((signal, index) => (
+          <SignalRing key={signal.label} {...signal} delay={450 + index * 140} />
         ))}
-        <View style={s.heroInner}>
-          <Label>TODAY'S READINESS</Label>
-          <Text style={s.score}>{model.readiness.score}</Text>
-          <Text style={s.heroStatus}>{model.readiness.label}</Text>
-          <Text style={s.heroSummary}>{model.readiness.summary}</Text>
-        </View>
-      </View>
-      <View style={s.confidencePill}>
-        <View style={s.goldDot} />
-        <Text style={s.confidenceText}>Confidence: {confidenceLabel(model.readiness.confidence)}</Text>
       </View>
     </View>
   );
 }
 
-function OuraTodayHero({ model }: { model: DashboardModel }) {
+function ContributorRow({ label, value, status, pct }: { label: string; value: string; status: string; pct: number }) {
   return (
-    <View style={s.ouraHero}>
-      <LinearGradient colors={ouraGradients.nebula} style={StyleSheet.absoluteFill} />
-      <OrbGlow color={ouraColors.teal} opacity={0.3} size={300} style={{ right: -80, top: -60 }} />
-      <OrbGlow color="#3A5BD0" opacity={0.22} size={300} style={{ bottom: -90, left: -90 }} />
-      <Starfield />
-      <Text style={s.ouraDate}>{formatDateLabel(model.date).toUpperCase()}</Text>
-      <View style={s.ouraRingWrap}>
-        <AnimatedReadinessRing score={model.readiness.score} />
+    <View style={{ gap: 8 }}>
+      <View style={s.rowBetween}>
+        <Text style={[type.body, { color: T.text }]}>{label}</Text>
+        <Text style={[type.body, { color: T.sub, fontSize: 12.5 }]}>
+          {value === '-' ? status : `${value}  ·  ${status}`}
+        </Text>
       </View>
-      <Text style={s.ouraInsight}>{model.readiness.summary}</Text>
-      <View style={s.heroStats}>
-        <View style={s.heroStat}>
-          <Text style={s.heroStatLabel}>SLEEP</Text>
-          <Text style={s.heroStatValue}>{model.sleepRhythm.duration}</Text>
-        </View>
-        <View style={s.heroDivider} />
-        <View style={s.heroStat}>
-          <Text style={s.heroStatLabel}>RHYTHM</Text>
-          <Text style={s.heroStatValue}>{model.sleepRhythm.rhythmPhase}</Text>
-        </View>
+      <View style={s.barTrack}>
+        <LinearGradient
+          colors={[T.lavender, T.blue]}
+          end={{ x: 1, y: 0 }}
+          start={{ x: 0, y: 0 }}
+          style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 2 }}
+        />
       </View>
     </View>
   );
 }
 
-function ContributorRings() {
+function Contributors() {
   return (
-    <View style={s.scoreRow}>
-      <ScoreRing color={ouraColors.blue} delay={500} label="Sleep" pct={0.82} value="82" />
-      <ScoreRing color={ouraColors.green} delay={640} label="Activity" pct={0.74} value="74" />
-      <ScoreRing color={ouraColors.teal} delay={780} label="Stress" pct={0.3} value="Low" />
+    <View style={[s.card, { gap: 18 }]}>
+      {MOCK.contributors.map((row) => (
+        <ContributorRow key={row.label} {...row} />
+      ))}
     </View>
   );
 }
 
-function CheckInCard() {
-  const pills = ['Good sleep', 'Rest day', 'Hydration', 'Steady meals'];
+function CalorieRing({ remaining, pct, delay = 650 }: { remaining: number; pct: number; delay?: number }) {
+  const gradId = useGradientId('healthi_fuel_ring');
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const target = Math.max(0, Math.min(1, pct));
+  const progress = useSharedValue(0);
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    progress.value = withDelay(delay, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) }));
+  }, [delay, progress]);
+
+  useAnimatedReaction(
+    () => progress.value,
+    (value) => runOnJS(setDisplay)(Math.round(remaining * value)),
+    [remaining]
+  );
+
+  const arcProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - target * progress.value)
+  }));
 
   return (
-    <View style={s.checkCard}>
-      <LinearGradient colors={ouraGradients.check} style={StyleSheet.absoluteFill} />
-      <OrbGlow color={ouraColors.teal} opacity={0.22} size={150} style={{ right: -30, top: -40 }} />
-      <View style={s.checkInner}>
-        <View style={s.checkHead}>
-          <Ionicons color={C.text} name="pricetag-outline" size={16} />
-          <Text style={s.checkTitle}>Check in</Text>
-        </View>
-        <Text style={s.checkPrompt}>Your readiness is higher than usual.</Text>
-        <Text style={s.checkPrompt}>What do you think helped?</Text>
-        <View style={s.pills}>
-          {pills.map((pill) => (
-            <Pressable accessibilityRole="button" key={pill} style={({ pressed }) => [s.pill, pressed && { opacity: 0.7 }]}>
-              <Text style={s.pillText}>{pill}</Text>
-            </Pressable>
+    <View style={{ width: 92, height: 92, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg height={92} viewBox="0 0 92 92" width={92}>
+        <Defs>
+          <SvgLinearGradient id={gradId} x1="0.15" x2="0.85" y1="0" y2="1">
+            <Stop offset="0" stopColor={T.goldBright} />
+            <Stop offset="0.55" stopColor={T.gold} />
+            <Stop offset="1" stopColor={T.goldDeep} />
+          </SvgLinearGradient>
+        </Defs>
+        <Circle cx={46} cy={46} fill="none" r={radius} stroke={T.track} strokeWidth={5} />
+        <AnimatedCircle
+          animatedProps={arcProps}
+          cx={46}
+          cy={46}
+          fill="none"
+          origin="46, 46"
+          r={radius}
+          rotation={-90}
+          stroke={`url(#${gradId})`}
+          strokeDasharray={circumference}
+          strokeLinecap="round"
+          strokeWidth={5}
+        />
+      </Svg>
+      <View pointerEvents="none" style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text style={[type.display, { color: T.text, fontSize: 21 }]}>{display}</Text>
+        <Text style={[type.eyebrow, { color: T.muted, fontSize: 8.5, letterSpacing: 1.5 }]}>KCAL LEFT</Text>
+      </View>
+    </View>
+  );
+}
+
+function MacroBar({
+  label,
+  current,
+  target,
+  unit
+}: {
+  label: string;
+  current: number;
+  target: number;
+  unit: string;
+}) {
+  const pct = Math.max(0, Math.min(1, target > 0 ? current / target : 0));
+
+  return (
+    <View style={{ gap: 7 }}>
+      <View style={s.rowBetween}>
+        <Text style={[type.body, { color: T.text, fontSize: 12.5 }]}>{label}</Text>
+        <Text style={[type.body, { color: T.sub, fontSize: 12 }]}>
+          {current} / {target} {unit}
+        </Text>
+      </View>
+      <View style={s.barTrack}>
+        <LinearGradient
+          colors={[T.lavender, T.blue]}
+          end={{ x: 1, y: 0 }}
+          start={{ x: 0, y: 0 }}
+          style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 2 }}
+        />
+      </View>
+    </View>
+  );
+}
+
+function Fuel() {
+  const { calories, macros, lastMeal } = MOCK.fuel;
+  const remaining = Math.max(0, calories.target - calories.current);
+
+  return (
+    <View style={[s.card, { gap: 18 }]}>
+      <View style={s.rowBetween}>
+        <Text style={[type.display, { color: T.text, fontSize: 19 }]}>Fuel today</Text>
+        <Pressable accessibilityRole="button" style={({ pressed }) => [s.ghostButtonSm, pressed && { opacity: 0.65 }]}>
+          <Ionicons color={T.gold} name="add" size={14} />
+          <Text style={[type.body, { color: T.gold, fontSize: 12.5 }]}>Log meal</Text>
+        </Pressable>
+      </View>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 22 }}>
+        <CalorieRing pct={calories.current / calories.target} remaining={remaining} />
+        <View style={{ flex: 1, gap: 13 }}>
+          {macros.map((macro) => (
+            <MacroBar key={macro.label} {...macro} />
           ))}
         </View>
       </View>
-    </View>
-  );
-}
-
-function BodyClockCard({ model }: { model: DashboardModel }) {
-  return (
-    <View style={s.clockCard}>
-      <LinearGradient colors={ouraGradients.clock} style={StyleSheet.absoluteFill} />
-      <View style={s.clockInner}>
-        <View style={s.clockHead}>
-          <Text style={s.clockTitle}>Body Clock</Text>
-          <Ionicons color={C.textSub} name="arrow-forward" size={18} />
-        </View>
-        <View style={s.clockArcWrap}>
-          <BodyClockArc mid={0.5} />
-        </View>
-        <Text style={s.clockCaption}>
-          {model.focus.tags[1] ?? 'Your rhythm supports focused work before early afternoon.'}
+      <View style={s.fuelFooter}>
+        <Text style={[type.body, { color: T.muted, fontSize: 12.5 }]}>
+          Last logged - {lastMeal.name} - {lastMeal.time}
         </Text>
       </View>
     </View>
   );
 }
 
-function DaytimeStressCard() {
-  return (
-    <View style={s.stressCard}>
-      <View style={s.stressHead}>
-        <View>
-          <Text style={s.stressTitle}>Daytime stress</Text>
-          <Text style={s.stressSub}>Mostly restored - demo signal</Text>
-        </View>
-        <Text style={s.stressLevel}>Low</Text>
-      </View>
-      <View style={s.stressSparkWrap}>
-        <StressSpark />
-      </View>
-    </View>
-  );
+function nightArcPoints(width: number, baseY: number, lift: number, samples = 48) {
+  const x0 = 18;
+  const x1 = width - 18;
+  const cx = (x0 + x1) / 2;
+  const cy = baseY - lift;
+  const points: { x: number; y: number }[] = [];
+  for (let index = 0; index <= samples; index += 1) {
+    const t = index / samples;
+    const mt = 1 - t;
+    points.push({
+      x: mt * mt * x0 + 2 * mt * t * cx + t * t * x1,
+      y: mt * mt * baseY + 2 * mt * t * cy + t * t * baseY
+    });
+  }
+  return points;
 }
 
-function DriverTile({ tile }: { tile: DashboardModel['drivers'][number] }) {
-  const colorById: Record<string, string> = {
-    sleep_quality: C.lavender,
-    recovery: C.pink,
-    training_load: C.violet
-  };
-  const color = colorById[tile.id] ?? C.gold;
-
-  return (
-    <Card style={s.driverCard}>
-      <View style={[s.iconOrb, { borderColor: `${color}66`, backgroundColor: `${color}14` }]}>
-        <Ionicons color={color} name={tile.icon as IconName} size={24} />
-      </View>
-      <View style={s.driverBody}>
-        <Label>{tile.label}</Label>
-        <Text style={s.driverValue}>{tile.value}</Text>
-        <Text style={[s.driverStatus, { color }]}>{tile.status}</Text>
-        <Text style={s.sourceText}>{tile.source} - Confidence: {confidenceLabel(tile.confidence)}</Text>
-      </View>
-    </Card>
-  );
+function pathFrom(points: { x: number; y: number }[]): string {
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+    .join(' ');
 }
 
-function VitalsCard({ model }: { model: DashboardModel }) {
-  const sleepDriver = model.drivers.find((driver) => driver.id === 'sleep_quality');
-  const recoveryDriver = model.drivers.find((driver) => driver.id === 'recovery');
-  const metrics: VitalMetric[] = [
-    {
-      label: 'Sleep',
-      value: sleepDriver?.value ?? model.sleepRhythm.duration,
-      sub: 'Estimated duration',
-      color: C.lavender,
-      progress: 78
-    },
-    {
-      label: 'Recovery',
-      value: recoveryDriver?.value ?? 'Calibrating',
-      sub: recoveryDriver?.source ?? 'Based on available data',
-      color: C.pink,
-      progress: model.readiness.score
-    },
-    {
-      label: 'Rhythm',
-      value: model.sleepRhythm.rhythmPhase,
-      sub: `Confidence: ${confidenceLabel(model.readiness.confidence)}`,
-      color: C.violet,
-      progress: 68
-    },
-    {
-      label: 'Fuel',
-      value: model.demoMode ? '2 / 4' : `${model.nutrition.mealsLogged.current} / ${model.nutrition.mealsLogged.target || '--'}`,
-      sub: model.demoMode ? 'Demo meal signal' : model.nutrition.source,
-      color: C.green,
-      progress: model.demoMode ? 50 : Math.max(24, Number.parseInt(progressWidth(model.nutrition.mealsLogged.current, model.nutrition.mealsLogged.target), 10))
-    }
+function NightArc() {
+  const gradId = useGradientId('healthi_window');
+  const width = 320;
+  const height = 118;
+  const baseY = height - 30;
+  const points = nightArcPoints(width, baseY, 62);
+  const { startT, endT } = MOCK.sleepWindow;
+  const from = Math.round(startT * (points.length - 1));
+  const to = Math.round(endT * (points.length - 1));
+  const windowPoints = points.slice(from, to + 1);
+  const midPoint = windowPoints[Math.floor(windowPoints.length / 2)];
+  const ticks = [
+    { t: 0, label: '8 PM' },
+    { t: 0.5, label: '12 AM' },
+    { t: 1, label: '4 AM' }
   ];
 
   return (
-    <Card style={s.vitalsCard}>
-      <View style={s.cardTopRow}>
-        <Label>VITALS</Label>
-        <Text style={s.sourceText}>{model.demoMode ? 'Demo signals' : 'Based on available data'}</Text>
-      </View>
-      <View style={s.vitalGrid}>
-        {metrics.map((metric) => (
-          <View key={metric.label} style={s.vitalCell}>
-            <Text style={s.vitalLabel}>{metric.label}</Text>
-            <Text style={[s.vitalValue, { color: metric.color }]} numberOfLines={1}>{metric.value}</Text>
-            <Text style={s.vitalSub} numberOfLines={1}>{metric.sub}</Text>
-            <View style={s.vitalTrack}>
-              <View style={[s.vitalFill, { backgroundColor: metric.color, width: `${Math.min(100, metric.progress)}%` as `${number}%` }]} />
-            </View>
-          </View>
-        ))}
-      </View>
-      <View style={s.signalList}>
-        <View style={s.signalLine}>
-          <Ionicons color={C.gold} name="time-outline" size={15} />
-          <Text style={s.signalText}>Best output window comes from your rhythm estimate.</Text>
-        </View>
-        <View style={s.signalLine}>
-          <Ionicons color={C.lavender} name="radio-outline" size={15} />
-          <Text style={s.signalText}>Wearable sync is not active in this demo.</Text>
-        </View>
-      </View>
-    </Card>
+    <Svg viewBox={`0 0 ${width} ${height}`} width="100%">
+      <Defs>
+        <SvgLinearGradient id={gradId} x1="0" x2="1" y1="0" y2="0">
+          <Stop offset="0" stopColor={T.lavender} />
+          <Stop offset="1" stopColor={T.blue} />
+        </SvgLinearGradient>
+      </Defs>
+      <Path
+        d={pathFrom(points)}
+        fill="none"
+        stroke="rgba(180,163,242,0.20)"
+        strokeDasharray="1 6"
+        strokeLinecap="round"
+        strokeWidth={2.5}
+      />
+      <Path d={pathFrom(windowPoints)} fill="none" stroke={`url(#${gradId})`} strokeLinecap="round" strokeWidth={4} />
+      <Circle cx={midPoint.x} cy={midPoint.y} fill={T.lavender} opacity={0.28} r={9} />
+      <Circle cx={midPoint.x} cy={midPoint.y} fill="#F1ECFF" r={3.5} />
+      {ticks.map((tick) => (
+        <SvgText
+          fill={T.muted}
+          fontFamily={sans}
+          fontSize={10.5}
+          key={tick.label}
+          textAnchor={tick.t === 0 ? 'start' : tick.t === 1 ? 'end' : 'middle'}
+          x={18 + tick.t * (width - 36)}
+          y={height - 6}
+        >
+          {tick.label}
+        </SvgText>
+      ))}
+    </Svg>
   );
 }
 
-function FocusCard({ model }: { model: DashboardModel }) {
+function Tonight() {
   return (
-    <Card style={s.focusCard}>
-      <View style={s.focusArt}>
-        <View style={s.focusStar} />
-        <View style={s.focusHorizon} />
+    <View style={[s.card, { gap: 14 }]}>
+      <View style={s.rowBetween}>
+        <Text style={[type.display, { color: T.text, fontSize: 19 }]}>Sleep window</Text>
+        <Text style={[type.body, { color: T.lavender, fontSize: 13 }]}>
+          {MOCK.sleepWindow.start} - {MOCK.sleepWindow.end}
+        </Text>
       </View>
-      <View style={s.focusBody}>
-        <Label>TODAY'S FOCUS</Label>
-        <Text style={s.focusTitle}>{model.focus.title}</Text>
-        <Text style={s.focusCopy}>{model.focus.body}</Text>
-        <View style={s.tagRow}>
-          {model.focus.tags.map((tag) => (
-            <View key={tag} style={s.tag}>
-              <Ionicons color={C.violet} name="sparkles-outline" size={13} />
-              <Text style={s.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      <View style={s.whyPanel}>
-        <Label>WHY THIS?</Label>
-        {model.focus.why.slice(0, 4).map((reason) => (
-          <View key={reason} style={s.reasonRow}>
-            <Ionicons color={C.violet} name="checkmark-circle-outline" size={17} />
-            <Text style={s.reasonText}>{reason}</Text>
-          </View>
-        ))}
-      </View>
-    </Card>
-  );
-}
-
-function ProgressBar({ value, max, color = C.violet }: { value: number; max: number; color?: string }) {
-  const width = progressWidth(value, max);
-  return (
-    <View style={s.progressTrack}>
-      <View style={[s.progressFill, { backgroundColor: color, width: width as `${number}%` }]} />
+      <NightArc />
+      <Text style={[type.body, { color: T.sub }]}>{MOCK.sleepWindow.caption}</Text>
     </View>
   );
 }
 
-function TrainingCard({ model, onPress }: { model: DashboardModel; onPress: () => void }) {
-  const demoFallback = model.demoMode && model.training.title === 'Movement capacity';
-  const weekly = demoFallback ? { completed: 8, target: 16 } : model.training.weeklyProgress;
-
+function Guidance() {
   return (
-    <Card style={s.stackCard}>
-      <View style={s.cardTopRow}>
-        <Label>TRAINING</Label>
-        <View style={s.miniBadge}><Text style={s.miniBadgeText}>{demoFallback ? 'Program Day 3' : model.training.source}</Text></View>
+    <View style={s.guidance}>
+      <LinearGradient colors={['#1B1128', '#0C0814']} style={StyleSheet.absoluteFill} />
+      <Glow color={T.gold} opacity={0.14} size={220} style={{ top: -80, right: -70 }} />
+      <View style={{ gap: 10 }}>
+        <Eyebrow color={T.goldDeep}>Today's guidance</Eyebrow>
+        <Text style={[type.display, { color: T.text, fontSize: 23 }]}>{MOCK.guidance.title}</Text>
+        <Text style={[type.body, { color: T.sub }]}>{MOCK.guidance.body}</Text>
       </View>
-      <Text style={s.cardTitle}>{demoFallback ? 'Upper Pull Focus' : model.training.title}</Text>
-      <Text style={s.cardSub}>{demoFallback ? 'Back - Biceps - Posture' : model.training.subtitle}</Text>
-      <View style={s.divider} />
-      <Text style={s.metricLabel}>THIS WEEK</Text>
-      <Text style={s.metricBig}>{weekly.completed} / {weekly.target || '--'} sets</Text>
-      <ProgressBar value={weekly.completed} max={weekly.target} color={C.gold} />
-      <Pressable accessibilityRole="button" onPress={onPress} style={s.goldButton}>
-        <Text style={s.goldButtonText}>{model.training.cta}</Text>
-        <Ionicons color="#15100A" name="chevron-forward" size={18} />
+      <Pressable accessibilityRole="button" style={({ pressed }) => [s.ghostButton, pressed && { opacity: 0.65 }]}>
+        <Text style={[type.body, { color: T.gold, fontSize: 14 }]}>Plan the morning</Text>
+        <Ionicons color={T.gold} name="arrow-forward" size={15} />
       </Pressable>
-    </Card>
-  );
-}
-
-function MacroProgress({ label, value, color }: { label: string; value: string; color: string }) {
-  const [currentText, targetText] = value.split(' / ');
-  const current = Number.parseInt(currentText.replace(/\D/g, ''), 10);
-  const target = Number.parseInt((targetText ?? '').replace(/\D/g, ''), 10);
-
-  return (
-    <View style={s.macroItem}>
-      <View style={s.macroRow}>
-        <Text style={s.macroLabel}>{label}</Text>
-        <Text style={[s.macroValue, { color }]}>{value}</Text>
-      </View>
-      <View style={s.macroTrack}>
-        <View style={[s.macroFill, { backgroundColor: color, width: progressWidth(Number.isNaN(current) ? 0 : current, Number.isNaN(target) ? 0 : target) }]} />
-      </View>
     </View>
   );
 }
 
-function NutritionCard({ model, onPress }: { model: DashboardModel; onPress: () => void }) {
-  const demoFallback = model.demoMode && model.nutrition.calories.target === 0;
-  const macros = demoFallback
-    ? [
-        { label: 'Calories', value: '1650 / 2300', color: C.gold },
-        { label: 'Protein', value: '112 / 160g', color: C.green },
-        { label: 'Meals', value: '2 / 4', color: C.violet }
-      ]
-    : [
-        { label: 'Calories', value: `${model.nutrition.calories.current} / ${model.nutrition.calories.target || '--'}`, color: C.gold },
-        { label: 'Protein', value: `${model.nutrition.protein.current} / ${model.nutrition.protein.target || '--'}g`, color: C.green },
-        { label: 'Meals', value: `${model.nutrition.mealsLogged.current} / ${model.nutrition.mealsLogged.target || '--'}`, color: C.violet }
-      ];
-  const foodResponse = demoFallback ? 'High-carb yesterday. Watch the early afternoon energy window.' : model.nutrition.foodResponse;
-
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card style={s.stackCard}>
-      <View style={s.cardTopRow}>
-        <Label>NUTRITION</Label>
-        <Text style={s.sourceText}>{demoFallback ? 'Demo response' : model.nutrition.source}</Text>
+    <View style={{ gap: 12 }}>
+      <View style={{ paddingHorizontal: 4 }}>
+        <Eyebrow>{title}</Eyebrow>
       </View>
-      <View style={s.macroList}>
-        {macros.map((macro) => <MacroProgress key={macro.label} {...macro} />)}
-      </View>
-      <View style={s.foodResponse}>
-        <Ionicons color={C.green} name="leaf-outline" size={20} />
-        <Text style={s.foodResponseText}>{foodResponse}</Text>
-      </View>
-      <Pressable accessibilityRole="button" onPress={onPress} style={s.outlineButton}>
-        <Text style={s.outlineButtonText}>{model.nutrition.cta}</Text>
-        <Ionicons color={C.gold} name="add-circle-outline" size={20} />
-      </Pressable>
-    </Card>
-  );
-}
-
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.metricRow}>
-      <Text style={s.metricText}>{label}</Text>
-      <Text style={s.metricValue}>{value}</Text>
+      {children}
     </View>
-  );
-}
-
-function SleepRhythmCard({ model, onPress }: { model: DashboardModel; onPress: () => void }) {
-  return (
-    <Card style={s.stackCard}>
-      <View style={s.cardTopRow}>
-        <Label>SLEEP & RHYTHM</Label>
-        <Text style={s.sourceText}>{model.sleepRhythm.source}</Text>
-      </View>
-      <MetricRow label="Duration" value={model.sleepRhythm.duration} />
-      <MetricRow label="Quality" value={model.sleepRhythm.quality} />
-      <MetricRow label="Sleep Debt" value={model.sleepRhythm.sleepDebt} />
-      <MetricRow label="Rhythm Phase" value={model.sleepRhythm.rhythmPhase} />
-      <View style={s.divider} />
-      <MetricRow label="Bedtime Target" value={model.sleepRhythm.bedtimeTarget} />
-      <MetricRow label="Wind-down Start" value={model.sleepRhythm.windDownStart} />
-      <Pressable accessibilityRole="button" onPress={onPress} style={s.outlineButton}>
-        <Ionicons color={C.gold} name="moon-outline" size={18} />
-        <Text style={s.outlineButtonText}>{model.sleepRhythm.cta}</Text>
-        <Ionicons color={C.gold} name="chevron-forward" size={18} />
-      </Pressable>
-    </Card>
-  );
-}
-
-function QuickAction({ action, onPress }: { action: DashboardModel['quickActions'][number]; onPress: () => void }) {
-  const iconById: Record<string, IconName> = {
-    log_meal: 'restaurant-outline',
-    start_workout: 'walk-outline',
-    log_sleep: 'moon-outline'
-  };
-
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={s.quickAction}>
-      <View style={s.quickIcon}>
-        <Ionicons color={C.text} name={iconById[action.id]} size={22} />
-      </View>
-      <View style={s.quickTextWrap}>
-        <Text style={s.quickLabel}>{action.label}</Text>
-        <Text style={s.quickSub}>{action.subtitle}</Text>
-      </View>
-    </Pressable>
   );
 }
 
 export default function DashboardScreen() {
-  const router = useRouter();
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const model = useMemo(() => {
-    const sessions = createDemoSleepSessions(today);
-    const briefing = generateCircadianBriefing({
-      date: today,
-      timezone: 'UTC',
-      recentSleepSessions: sessions,
-      sleepNeed: createDefaultSleepNeedEstimate(new Date().toISOString()),
-      preferredBedtime: '22:30',
-      now: new Date().toISOString()
-    });
-
-    return composeDashboardModel({
-      date: today,
-      circadianBriefing: briefing,
-      recentSleepSession: sessions[0] ?? null,
-      demoMode: true
-    });
-  }, [today]);
-
-  function go(route: DashboardModel['quickActions'][number]['route']) {
-    router.push(route);
-  }
-
   return (
-    <SafeAreaView style={s.safe}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <View style={s.header}>
-          <View style={s.logoMark}><Text style={s.logoText}>H</Text></View>
-          <Text style={s.brand}>Healthi</Text>
-          <View style={s.headerMeta}>
-            <Text style={s.date}>{formatDateLabel(model.date)}</Text>
-            <Text style={s.demoLabel}>Demo signals</Text>
+    <View style={s.screen}>
+      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          <Hero />
+          <View style={s.body}>
+            <WeekStrip />
+            <Section title="Signals">
+              <SignalsRow />
+            </Section>
+            <Section title="Contributors">
+              <Contributors />
+            </Section>
+            <Section title="Fuel">
+              <Fuel />
+            </Section>
+            <Section title="Tonight">
+              <Tonight />
+            </Section>
+            <Guidance />
           </View>
-          <View style={s.avatar}>
-            <Ionicons color={C.gold} name="person-outline" size={20} />
-          </View>
-        </View>
-
-        <OuraTodayHero model={model} />
-
-        <ContributorRings />
-
-        <CheckInCard />
-
-        <BodyClockCard model={model} />
-
-        <DaytimeStressCard />
-
-        <FocusCard model={model} />
-
-        <View style={s.stackGrid}>
-          <TrainingCard model={model} onPress={() => go('/movement')} />
-          <NutritionCard model={model} onPress={() => go('/food')} />
-          <SleepRhythmCard model={model} onPress={() => go('/rhythm')} />
-        </View>
-
-        <View style={s.quickStrip}>
-          {model.quickActions.map((action) => (
-            <QuickAction key={action.id} action={action} onPress={() => go(action.route)} />
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { backgroundColor: C.bg, flex: 1 },
-  scroll: {
-    gap: 18,
-    paddingBottom: 104,
-    paddingHorizontal: 14,
-    paddingTop: 12
+  screen: { backgroundColor: T.void, flex: 1 },
+  scroll: { paddingBottom: 110 },
+  hero: {
+    borderBottomColor: T.hairline,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    paddingBottom: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10
   },
-  header: {
+  heroHeader: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 10
+    justifyContent: 'space-between'
   },
-  logoMark: {
+  iconButton: {
     alignItems: 'center',
-    borderColor: C.gold,
-    borderRadius: 24,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: 'center',
-    shadowColor: C.gold,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    width: 42
-  },
-  logoText: { color: C.gold, fontFamily: fonts.display, fontSize: 22 },
-  brand: { color: C.gold, flex: 1, fontFamily: fonts.display, fontSize: 28 },
-  headerMeta: { alignItems: 'flex-end', gap: 3 },
-  avatar: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(240,201,106,0.34)',
+    borderColor: T.hairline,
     borderRadius: 20,
     borderWidth: 1,
-    height: 40,
+    height: 38,
     justifyContent: 'center',
-    width: 40
+    width: 38
   },
-  date: { color: C.textSub, fontFamily: fonts.body, fontSize: 12 },
-  demoLabel: { color: C.goldDim, fontFamily: fonts.body, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
-  card: {
-    backgroundColor: C.panel,
-    borderColor: C.border,
-    borderRadius: 22,
-    borderWidth: 1,
-    overflow: 'hidden',
-    padding: 18,
-    shadowColor: C.gold,
-    shadowOpacity: 0.08,
-    shadowRadius: 18
-  },
-  label: {
-    color: C.gold,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase'
-  },
-  ouraHero: {
-    borderRadius: 28,
-    overflow: 'hidden',
-    paddingBottom: 16,
-    paddingTop: 22
-  },
-  ouraDate: {
-    ...ouraType.eyebrow,
-    color: ouraColors.teal,
-    letterSpacing: 2.5,
-    textAlign: 'center'
-  },
-  ouraRingWrap: {
-    alignItems: 'center',
-    marginTop: 4
-  },
-  ouraInsight: {
-    ...ouraType.body,
-    color: ouraColors.sub,
-    fontSize: 13,
-    marginTop: 8,
-    paddingHorizontal: 20,
+  heroSummary: {
+    color: T.sub,
+    marginTop: 14,
+    maxWidth: 270,
     textAlign: 'center'
   },
   heroStats: {
-    borderTopColor: ouraColors.hairline,
-    borderTopWidth: 1,
     flexDirection: 'row',
-    marginHorizontal: 22,
-    marginTop: 18,
-    paddingTop: 13
+    marginTop: 26
   },
-  heroStat: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 4
+  heroStat: { flex: 1, flexDirection: 'row' },
+  heroStatDivider: {
+    alignSelf: 'center',
+    backgroundColor: T.hairline,
+    height: 26,
+    width: StyleSheet.hairlineWidth
   },
-  heroStatLabel: {
-    ...ouraType.caption,
-    color: ouraColors.muted,
-    fontSize: 9.5,
-    fontWeight: '600',
-    letterSpacing: 1.5
-  },
-  heroStatValue: {
-    ...ouraType.serifSm,
-    color: ouraColors.text,
-    textAlign: 'center'
-  },
-  heroDivider: {
-    backgroundColor: ouraColors.hairline,
-    width: 1
-  },
-  scoreRow: {
+  body: { gap: 26, paddingHorizontal: 20, paddingTop: 22 },
+  weekStrip: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 2,
-    marginTop: 2
+    justifyContent: 'space-between',
+    paddingHorizontal: 8
   },
-  checkCard: {
-    borderColor: ouraColors.cardBorder,
-    borderRadius: 22,
+  card: {
+    backgroundColor: T.card,
+    borderColor: T.hairline,
+    borderRadius: 24,
     borderWidth: 1,
-    overflow: 'hidden'
+    padding: 20
   },
-  checkInner: {
-    padding: 22
-  },
-  checkHead: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 7
-  },
-  checkTitle: {
-    ...ouraType.body,
-    color: ouraColors.text,
-    fontSize: 15,
-    fontWeight: '600'
-  },
-  checkPrompt: {
-    ...ouraType.body,
-    color: ouraColors.sub,
-    marginTop: 6
-  },
-  pills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12
-  },
-  pill: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8
-  },
-  pillText: {
-    ...ouraType.caption,
-    color: ouraColors.text,
-    fontSize: 12.5
-  },
-  clockCard: {
-    borderColor: ouraColors.cardBorder,
-    borderRadius: 22,
-    borderWidth: 1,
-    overflow: 'hidden'
-  },
-  clockInner: {
-    padding: 22,
-    paddingBottom: 16
-  },
-  clockHead: {
+  rowBetween: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
-  clockTitle: {
-    ...ouraType.serifSm,
-    color: ouraColors.text
-  },
-  clockArcWrap: {
-    marginTop: 8
-  },
-  clockCaption: {
-    ...ouraType.body,
-    color: ouraColors.sub,
-    fontSize: 13,
-    marginTop: 8
-  },
-  stressCard: {
-    backgroundColor: ouraColors.card,
-    borderColor: ouraColors.cardBorder,
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 22
-  },
-  stressHead: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  stressTitle: {
-    ...ouraType.serifSm,
-    color: ouraColors.text
-  },
-  stressSub: {
-    ...ouraType.caption,
-    color: ouraColors.muted,
-    marginTop: 3
-  },
-  stressLevel: {
-    ...ouraType.display,
-    color: ouraColors.teal,
-    fontSize: 22
-  },
-  stressSparkWrap: {
-    marginTop: 8
-  },
-  heroWrap: { alignItems: 'center', paddingVertical: 4 },
-  heroGlow: {
-    backgroundColor: 'rgba(240,201,106,0.18)',
-    borderRadius: 118,
-    height: 236,
-    position: 'absolute',
-    top: 0,
-    width: 236
-  },
-  heroRing: {
-    alignItems: 'center',
-    borderColor: 'rgba(240,201,106,0.18)',
-    borderRadius: 112,
-    borderWidth: 1,
-    height: 220,
-    justifyContent: 'center',
-    width: 220
-  },
-  arc: {
-    borderColor: 'transparent',
-    borderRadius: 106,
-    borderRightWidth: 5,
-    borderTopWidth: 5,
-    height: 202,
-    position: 'absolute',
-    width: 202
-  },
-  heroInner: { alignItems: 'center', maxWidth: 180 },
-  score: {
-    color: C.gold,
-    fontFamily: fonts.display,
-    fontSize: 78,
-    lineHeight: 86,
-    shadowColor: C.gold,
-    shadowOpacity: 0.45,
-    shadowRadius: 18
-  },
-  heroStatus: { color: C.text, fontFamily: fonts.display, fontSize: 23, fontWeight: '400' },
-  heroSummary: { color: C.textSub, fontFamily: fonts.body, fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: 'center' },
-  confidencePill: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(240,201,106,0.09)',
-    borderColor: C.border,
-    borderRadius: 22,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: -5,
-    paddingHorizontal: 16,
-    paddingVertical: 9
-  },
-  goldDot: { backgroundColor: C.gold, borderRadius: 4, height: 8, width: 8 },
-  confidenceText: { color: C.gold, fontFamily: fonts.body, fontSize: 13 },
-  driverGrid: { gap: 10 },
-  driverCard: { alignItems: 'center', flexDirection: 'row', gap: 12 },
-  iconOrb: {
-    alignItems: 'center',
-    borderRadius: 30,
-    borderWidth: 1,
-    height: 52,
-    justifyContent: 'center',
-    width: 52
-  },
-  driverBody: { flex: 1, gap: 3 },
-  driverValue: { color: C.text, fontFamily: fonts.display, fontSize: 20, fontWeight: '400' },
-  driverStatus: { fontFamily: fonts.body, fontSize: 14, fontWeight: '700' },
-  sourceText: { color: C.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  vitalsCard: { gap: 13 },
-  vitalGrid: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: C.borderSoft,
-    borderRadius: 13,
-    borderWidth: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 1,
-    overflow: 'hidden'
-  },
-  vitalCell: {
-    backgroundColor: 'rgba(18, 20, 30, 0.98)',
-    gap: 3,
-    minHeight: 92,
-    padding: 13,
-    width: '49.7%'
-  },
-  vitalLabel: {
-    color: C.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase'
-  },
-  vitalValue: {
-    fontFamily: fonts.display,
-    fontSize: 21,
-    fontWeight: '400',
-    letterSpacing: 0
-  },
-  vitalSub: {
-    color: C.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 10
-  },
-  vitalTrack: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  barTrack: {
+    backgroundColor: T.track,
     borderRadius: 2,
     height: 3,
-    marginTop: 6,
     overflow: 'hidden'
   },
-  vitalFill: { borderRadius: 2, height: '100%' },
-  signalList: {
-    borderTopColor: C.borderSoft,
-    borderTopWidth: 1,
-    gap: 9,
-    paddingTop: 12
+  guidance: {
+    borderColor: T.hairline,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 18,
+    overflow: 'hidden',
+    padding: 22
   },
-  signalLine: { alignItems: 'center', flexDirection: 'row', gap: 9 },
-  signalText: { color: C.textSub, flex: 1, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
-  focusCard: { gap: 13, padding: 0 },
-  focusArt: { backgroundColor: '#0B0B1E', height: 112, overflow: 'hidden' },
-  focusStar: {
-    backgroundColor: C.gold,
-    borderRadius: 40,
-    height: 44,
-    left: 56,
-    position: 'absolute',
-    shadowColor: C.gold,
-    shadowOpacity: 0.85,
-    shadowRadius: 34,
-    top: 32,
-    width: 44
-  },
-  focusHorizon: {
-    backgroundColor: 'rgba(154,109,255,0.32)',
-    borderRadius: 160,
-    bottom: -72,
-    height: 150,
-    left: 18,
-    position: 'absolute',
-    right: 18
-  },
-  focusBody: { gap: 9, paddingHorizontal: 16 },
-  focusTitle: { color: C.text, fontFamily: fonts.display, fontSize: 25, fontWeight: '400' },
-  focusCopy: { color: C.textSub, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: {
+  ghostButtonSm: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.borderSoft,
-    borderRadius: 8,
+    borderColor: 'rgba(217,169,84,0.35)',
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 8
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6
   },
-  tagText: { color: C.textSub, fontFamily: fonts.body, fontSize: 12 },
-  whyPanel: {
-    borderTopColor: C.borderSoft,
-    borderTopWidth: 1,
-    gap: 10,
-    padding: 16
+  fuelFooter: {
+    borderTopColor: T.hairline,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 13
   },
-  reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 9 },
-  reasonText: { color: C.textSub, flex: 1, fontFamily: fonts.body, fontSize: 14 },
-  stackGrid: { gap: 12 },
-  stackCard: { gap: 12 },
-  cardTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  miniBadge: {
-    backgroundColor: 'rgba(154,109,255,0.12)',
-    borderColor: C.borderSoft,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4
-  },
-  miniBadgeText: { color: C.lavender, fontFamily: fonts.body, fontSize: 12 },
-  cardTitle: { color: C.text, fontFamily: fonts.display, fontSize: 22, fontWeight: '400' },
-  cardSub: { color: C.textSub, fontFamily: fonts.body, fontSize: 15 },
-  divider: { backgroundColor: C.borderSoft, height: 1 },
-  metricLabel: { color: C.gold, fontFamily: fonts.body, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
-  metricBig: { color: C.text, fontFamily: fonts.display, fontSize: 22 },
-  progressTrack: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 5, height: 7, overflow: 'hidden' },
-  progressFill: { borderRadius: 5, height: '100%' },
-  goldButton: {
+  ghostButton: {
     alignItems: 'center',
-    backgroundColor: C.gold,
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 6,
-    paddingVertical: 15
-  },
-  goldButtonText: { color: '#15100A', fontFamily: fonts.body, fontSize: 16, fontWeight: '800' },
-  metricRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  metricText: { color: C.textSub, fontFamily: fonts.body, fontSize: 14 },
-  metricValue: { color: C.text, fontFamily: fonts.display, fontSize: 14, fontWeight: '400' },
-  macroList: { gap: 12 },
-  macroItem: { gap: 6 },
-  macroRow: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' },
-  macroLabel: {
-    color: C.textSub,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase'
-  },
-  macroValue: {
-    fontFamily: fonts.display,
-    fontSize: 14,
-    fontWeight: '400',
-    letterSpacing: 0
-  },
-  macroTrack: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 3,
-    height: 5,
-    overflow: 'hidden'
-  },
-  macroFill: { borderRadius: 3, height: '100%' },
-  foodResponse: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.borderSoft,
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    padding: 12
-  },
-  foodResponseText: { color: C.textSub, flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
-  outlineButton: {
-    alignItems: 'center',
-    borderColor: C.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    paddingVertical: 12
-  },
-  outlineButtonText: { color: C.gold, fontFamily: fonts.body, fontSize: 15, fontWeight: '700' },
-  quickStrip: { flexDirection: 'row', gap: 8 },
-  quickAction: {
-    alignItems: 'center',
-    backgroundColor: C.panelRaised,
-    borderColor: C.border,
-    borderRadius: 14,
-    borderWidth: 1,
-    flex: 1,
-    gap: 8,
-    minHeight: 94,
-    paddingHorizontal: 8,
-    paddingVertical: 10
-  },
-  quickIcon: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignSelf: 'flex-start',
+    borderColor: 'rgba(217,169,84,0.35)',
     borderRadius: 22,
-    height: 44,
-    justifyContent: 'center',
-    width: 44
-  },
-  quickTextWrap: { alignItems: 'center', gap: 2 },
-  quickLabel: { color: C.text, fontFamily: fonts.body, fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  quickSub: { color: C.textMuted, fontFamily: fonts.body, fontSize: 11, textAlign: 'center' }
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10
+  }
 });
