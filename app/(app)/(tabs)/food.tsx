@@ -1,17 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  type TextStyle
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -59,26 +56,33 @@ import {
   type NutritionTargetRow
 } from '../../../src/features/nutrition/persistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
+import {
+  colors,
+  colors as themeColors,
+  fonts as themeFonts,
+  hairlineWidth,
+  palette,
+  type as themeType
+} from '../../../src/styles/theme';
 
 const C = {
-  bg: '#08060D',
-  plum: '#130A21',
-  plum2: '#1A1028',
-  card: 'rgba(255,255,255,0.045)',
-  cardStrong: 'rgba(255,255,255,0.075)',
-  hairline: 'rgba(255,255,255,0.08)',
-  gold: '#D9A954',
-  goldSoft: '#F3D492',
-  lavender: '#B4A3F2',
-  teal: '#7EDDC8',
-  coral: '#E58B8B',
-  ink: '#F4F1EB',
-  sub: '#B8B0C4',
-  muted: '#756D82'
+  bg: themeColors.background,
+  card: themeColors.surface,
+  hairline: themeColors.hairline,
+  gold: themeColors.accent,
+  goldSoft: themeColors.accentMid,
+  lavender: themeColors.accentMid,
+  teal: themeColors.accentSoft,
+  ink: themeColors.text,
+  sub: themeColors.textMuted,
+  muted: themeColors.textFaint
 } as const;
 
-const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }) ?? 'serif';
-const sans = Platform.select({ ios: 'Avenir Next', android: 'sans-serif', default: 'System' }) ?? 'System';
+const serif = themeFonts.display;
+const serifLight = themeFonts.displayLight;
+const serifItalic = themeFonts.displayItalic;
+const sans = themeFonts.body;
+const sansMedium = themeFonts.bodyMedium;
 
 const defaultTargets: NutritionTargets = {
   calories_target: 2300,
@@ -187,33 +191,27 @@ function SectionTitle({ eyebrow, title, body }: { eyebrow: string; title: string
 }
 
 function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  return (
-    <View style={[styles.card, style]}>
-      <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.025)']} style={StyleSheet.absoluteFill} />
-      {children}
-    </View>
-  );
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 
 function Chip({
   label,
   selected,
-  onPress,
-  tone = 'gold'
+  onPress
 }: {
   label: string;
   selected?: boolean;
   onPress: () => void;
+  /** Legacy prop - every tone now resolves to the single jade accent. */
   tone?: 'gold' | 'lavender' | 'teal';
 }) {
-  const activeColor = tone === 'teal' ? C.teal : tone === 'lavender' ? C.lavender : C.gold;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.chip, selected && { borderColor: activeColor, backgroundColor: `${activeColor}1F` }]}
+      style={({ pressed }) => [styles.chip, selected && styles.chipSelected, pressed && styles.pressed]}
     >
-      <Text style={[styles.chipText, selected && { color: activeColor }]}>{label}</Text>
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
     </Pressable>
   );
 }
@@ -224,7 +222,8 @@ function Field({
   onChangeText,
   placeholder,
   keyboardType = 'default',
-  multiline
+  multiline,
+  style
 }: {
   label: string;
   value: string;
@@ -232,16 +231,17 @@ function Field({
   placeholder?: string;
   keyboardType?: 'default' | 'numeric';
   multiline?: boolean;
+  style?: object;
 }) {
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, style]}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
         keyboardType={keyboardType}
         multiline={multiline}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={C.muted}
+        placeholderTextColor={colors.textFaint}
         style={[styles.input, multiline && styles.textarea]}
         value={value}
       />
@@ -261,17 +261,22 @@ function PrimaryButton({
   loading?: boolean;
 }) {
   return (
-    <Pressable accessibilityRole="button" disabled={disabled || loading} onPress={onPress} style={styles.primaryButton}>
-      {loading ? <ActivityIndicator color={C.bg} /> : <Text style={styles.primaryButtonText}>{label}</Text>}
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [styles.primaryButton, (disabled || loading) && styles.disabled, pressed && styles.pressed]}
+    >
+      {loading ? <ActivityIndicator color={colors.textInverse} /> : <Text style={styles.primaryButtonText}>{label}</Text>}
     </Pressable>
   );
 }
 
-function Metric({ label, value, tone = C.ink }: { label: string; value: string; tone?: string }) {
+function Metric({ label, value, tone = colors.text }: { label: string; value: string; tone?: string }) {
   return (
     <View style={styles.metric}>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, { color: tone }]}>{value}</Text>
+      <Text numberOfLines={1} style={[styles.metricValue, { color: tone }]}>{value}</Text>
     </View>
   );
 }
@@ -477,10 +482,10 @@ export default function FoodScreen() {
             Healthi uses logged meals and responses to estimate how food is supporting your day.
           </Text>
           <View style={styles.metricGrid}>
-            <Metric label="Meals" value={`${nutrientSummary.meal_count}`} tone={C.goldSoft} />
-            <Metric label="Calories" value={formatAmount(nutrientSummary.calories)} tone={C.ink} />
-            <Metric label="Protein" value={formatAmount(nutrientSummary.protein_g, 'g')} tone={C.lavender} />
-            <Metric label="Carbs" value={formatAmount(nutrientSummary.carbs_g, 'g')} tone={C.teal} />
+            <Metric label="Meals" value={`${nutrientSummary.meal_count}`} tone={colors.accent} />
+            <Metric label="Calories" value={formatAmount(nutrientSummary.calories)} />
+            <Metric label="Protein" value={formatAmount(nutrientSummary.protein_g, 'g')} />
+            <Metric label="Carbs" value={formatAmount(nutrientSummary.carbs_g, 'g')} />
             <Metric label="Fat" value={formatAmount(nutrientSummary.fat_g, 'g')} />
             <Metric label="Fiber" value={formatAmount(nutrientSummary.fiber_g, 'g')} />
           </View>
@@ -497,10 +502,10 @@ export default function FoodScreen() {
         <Card>
           <Text style={styles.cardTitle}>Current signal</Text>
           <View style={styles.signalGrid}>
-            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={C.goldSoft} />
-            <Metric label="Food response" value={displayLabel(foodResponse.label)} tone={C.lavender} />
-            <Metric label="Readiness support" value={displayLabel(readinessSignal.label)} tone={C.teal} />
-            <Metric label="Source" value={confidenceText(readinessSignal.confidence)} />
+            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={colors.accent} />
+            <Metric label="Food response" value={displayLabel(foodResponse.label)} tone={colors.accentMid} />
+            <Metric label="Readiness support" value={displayLabel(readinessSignal.label)} tone={colors.accentMid} />
+            <Metric label="Source" value={confidenceText(readinessSignal.confidence)} tone={colors.textMuted} />
           </View>
           <Text style={styles.body}>{readinessSignal.summary}</Text>
         </Card>
@@ -508,7 +513,7 @@ export default function FoodScreen() {
         <Card>
           <View style={styles.rowBetween}>
             <Text style={styles.cardTitle}>Next action</Text>
-            <Ionicons color={C.gold} name="sparkles-outline" size={18} />
+            <Ionicons color={colors.accent} name="sparkles-outline" size={16} />
           </View>
           <Text style={styles.body}>
             {nutrientSummary.meal_count === 0
@@ -544,13 +549,13 @@ export default function FoodScreen() {
             ))}
           </View>
           <View style={styles.twoCol}>
-            <Field keyboardType="numeric" label="Calories" onChangeText={(value) => updateMealForm('calories', value)} value={mealForm.calories} />
-            <Field keyboardType="numeric" label="Protein g" onChangeText={(value) => updateMealForm('protein_g', value)} value={mealForm.protein_g} />
-            <Field keyboardType="numeric" label="Carbs g" onChangeText={(value) => updateMealForm('carbs_g', value)} value={mealForm.carbs_g} />
-            <Field keyboardType="numeric" label="Fat g" onChangeText={(value) => updateMealForm('fat_g', value)} value={mealForm.fat_g} />
-            <Field keyboardType="numeric" label="Fiber g" onChangeText={(value) => updateMealForm('fiber_g', value)} value={mealForm.fiber_g} />
-            <Field keyboardType="numeric" label="Sugar g" onChangeText={(value) => updateMealForm('sugar_g', value)} value={mealForm.sugar_g} />
-            <Field keyboardType="numeric" label="Sodium mg" onChangeText={(value) => updateMealForm('sodium_mg', value)} value={mealForm.sodium_mg} />
+            <Field keyboardType="numeric" label="Calories" onChangeText={(value) => updateMealForm('calories', value)} style={styles.fieldHalf} value={mealForm.calories} />
+            <Field keyboardType="numeric" label="Protein g" onChangeText={(value) => updateMealForm('protein_g', value)} style={styles.fieldHalf} value={mealForm.protein_g} />
+            <Field keyboardType="numeric" label="Carbs g" onChangeText={(value) => updateMealForm('carbs_g', value)} style={styles.fieldHalf} value={mealForm.carbs_g} />
+            <Field keyboardType="numeric" label="Fat g" onChangeText={(value) => updateMealForm('fat_g', value)} style={styles.fieldHalf} value={mealForm.fat_g} />
+            <Field keyboardType="numeric" label="Fiber g" onChangeText={(value) => updateMealForm('fiber_g', value)} style={styles.fieldHalf} value={mealForm.fiber_g} />
+            <Field keyboardType="numeric" label="Sugar g" onChangeText={(value) => updateMealForm('sugar_g', value)} style={styles.fieldHalf} value={mealForm.sugar_g} />
+            <Field keyboardType="numeric" label="Sodium mg" onChangeText={(value) => updateMealForm('sodium_mg', value)} style={styles.fieldHalf} value={mealForm.sodium_mg} />
           </View>
           <Text style={styles.fieldLabel}>Quality flags</Text>
           <View style={styles.chipWrap}>
@@ -600,12 +605,14 @@ export default function FoodScreen() {
               keyboardType="numeric"
               label="Overall 1-10"
               onChangeText={(value) => updateResponseForm('overall_score', value)}
+              style={styles.fieldHalf}
               value={responseForm.overall_score}
             />
             <Field
               keyboardType="numeric"
               label="Minutes after meal"
               onChangeText={(value) => updateResponseForm('minutes_after_meal', value)}
+              style={styles.fieldHalf}
               value={responseForm.minutes_after_meal}
             />
           </View>
@@ -676,7 +683,7 @@ export default function FoodScreen() {
                 <Text
                   style={[
                     styles.answerText,
-                    testAnswers[currentQuestion.id] === option.value && { color: C.goldSoft }
+                    testAnswers[currentQuestion.id] === option.value && { color: colors.accent }
                   ]}
                 >
                   {option.label}
@@ -733,10 +740,10 @@ export default function FoodScreen() {
               'Healthi does not have enough food pattern signal yet. Take the Food Pattern Test or log a few meals.'}
           </Text>
           <View style={styles.signalGrid}>
-            <Metric label="Responses" value={`${responses.length}`} tone={C.lavender} />
-            <Metric label="Readiness" value={displayLabel(readinessSignal.label)} tone={C.teal} />
-            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={C.goldSoft} />
-            <Metric label="Source" value={confidenceText(readinessSignal.confidence)} />
+            <Metric label="Responses" value={`${responses.length}`} tone={colors.accent} />
+            <Metric label="Readiness" value={displayLabel(readinessSignal.label)} tone={colors.accentMid} />
+            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={colors.accentMid} />
+            <Metric label="Source" value={confidenceText(readinessSignal.confidence)} tone={colors.textMuted} />
           </View>
         </Card>
         <Card>
@@ -750,18 +757,12 @@ export default function FoodScreen() {
 
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={[C.bg, C.plum, C.bg]} style={StyleSheet.absoluteFill} />
       <SafeAreaView edges={['top']} style={styles.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+        <KeyboardAvoidingView behavior={undefined} style={styles.safe}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <View style={styles.topBar}>
-              <View>
-                <Text style={styles.wordmark}>Healthi</Text>
-                <Text style={styles.topSub}>Food Response V1</Text>
-              </View>
-              <View style={styles.iconBubble}>
-                <Ionicons color={C.goldSoft} name="nutrition-outline" size={22} />
-              </View>
+              <Text style={styles.pageEyebrow}>Food</Text>
+              <Text style={styles.pageTitle}>Fueling</Text>
             </View>
 
             <View style={styles.segmentBar}>
@@ -777,9 +778,11 @@ export default function FoodScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
+              <View style={styles.segmentBaseline} />
             </View>
 
-            <View style={styles.statusBar}>
+            <View style={styles.statusLine}>
+              <View style={styles.statusDot} />
               <Text style={styles.statusText}>{isLoadingRemote ? 'Loading available food data...' : status}</Text>
             </View>
 
@@ -818,11 +821,6 @@ function ChoiceRow({
   );
 }
 
-const type = {
-  eyebrow: { fontFamily: sans, fontSize: 10.5, fontWeight: '700', letterSpacing: 2.5 } as TextStyle,
-  body: { fontFamily: sans, fontSize: 14, lineHeight: 21, fontWeight: '400' } as TextStyle
-};
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -835,27 +833,35 @@ const styles = StyleSheet.create({
     paddingBottom: 118
   },
   topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8
+    paddingHorizontal: 26,
+    paddingTop: 22
+  },
+  pageEyebrow: {
+    ...themeType.eyebrow,
+    color: colors.textFaint
+  },
+  pageTitle: {
+    ...themeType.title,
+    color: colors.text,
+    marginTop: 7
   },
   wordmark: {
     color: C.goldSoft,
     fontFamily: serif,
-    fontSize: 27
+    fontSize: 28,
+    lineHeight: 34
   },
   topSub: {
     color: C.sub,
     fontFamily: sans,
-    fontSize: 12,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
     marginTop: 2
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(217,169,84,0.08)',
-    borderColor: 'rgba(217,169,84,0.28)',
+    backgroundColor: 'rgba(28,84,67,0.08)',
+    borderColor: 'rgba(28,84,67,0.24)',
     borderRadius: 18,
     borderWidth: 1,
     height: 42,
@@ -863,45 +869,48 @@ const styles = StyleSheet.create({
     width: 42
   },
   segmentBar: {
-    marginTop: 18,
-    paddingLeft: 16
+    marginTop: 22
+  },
+  segmentBaseline: {
+    backgroundColor: colors.hairlineSoft,
+    height: hairlineWidth
   },
   segment: {
-    borderColor: C.hairline,
-    borderRadius: 999,
-    borderWidth: 1,
-    marginRight: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 9
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 2,
+    marginLeft: 26,
+    paddingBottom: 12
   },
   segmentActive: {
-    backgroundColor: 'rgba(217,169,84,0.13)',
-    borderColor: 'rgba(217,169,84,0.42)'
+    borderBottomColor: colors.accent
   },
   segmentText: {
     color: C.sub,
-    fontFamily: sans,
-    fontSize: 12,
-    fontWeight: '700'
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
   },
   segmentTextActive: {
-    color: C.goldSoft
+    color: colors.text
   },
-  statusBar: {
-    backgroundColor: 'rgba(255,255,255,0.035)',
-    borderColor: C.hairline,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginHorizontal: 16,
-    marginTop: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10
+  statusLine: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 26,
+    paddingTop: 16
+  },
+  statusDot: {
+    backgroundColor: colors.accent,
+    borderRadius: 3,
+    height: 5,
+    width: 5
   },
   statusText: {
     color: C.sub,
     fontFamily: sans,
-    fontSize: 12,
-    lineHeight: 17
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
   },
   stack: {
     gap: 14,
@@ -920,7 +929,7 @@ const styles = StyleSheet.create({
     padding: 18
   },
   heroCard: {
-    borderColor: 'rgba(217,169,84,0.2)',
+    borderColor: palette.forestPale,
     padding: 20
   },
   rowBetween: {
@@ -934,37 +943,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2
   },
   eyebrow: {
-    ...type.eyebrow,
+    ...themeType.eyebrow,
     color: C.gold,
     textTransform: 'uppercase'
   },
   title: {
+    ...themeType.title,
     color: C.ink,
-    fontFamily: serif,
-    fontSize: 30,
-    lineHeight: 35
+    fontFamily: serif
   },
   heroTitle: {
+    ...themeType.title,
     color: C.ink,
-    fontFamily: serif,
-    fontSize: 34,
-    lineHeight: 39,
+    fontFamily: serifLight,
+    fontSize: 38,
+    lineHeight: 44,
     marginTop: 4
   },
   cardTitle: {
+    ...themeType.heading,
     color: C.ink,
     fontFamily: serif,
-    fontSize: 22,
-    lineHeight: 28,
     marginBottom: 8
   },
   body: {
-    ...type.body,
+    ...themeType.body,
     color: C.sub
   },
   modePill: {
-    backgroundColor: 'rgba(180,163,242,0.12)',
-    borderColor: 'rgba(180,163,242,0.26)',
+    backgroundColor: palette.forestWash,
+    borderColor: palette.forestPale,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 10,
@@ -972,9 +980,9 @@ const styles = StyleSheet.create({
   },
   modeText: {
     color: C.lavender,
-    fontFamily: sans,
-    fontSize: 11,
-    fontWeight: '700'
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight
   },
   metricGrid: {
     flexDirection: 'row',
@@ -990,7 +998,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   metric: {
-    backgroundColor: 'rgba(255,255,255,0.045)',
+    backgroundColor: 'rgba(246,244,238,0.72)',
     borderColor: C.hairline,
     borderRadius: 18,
     borderWidth: 1,
@@ -999,39 +1007,43 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     color: C.muted,
-    fontFamily: sans,
-    fontSize: 10,
-    fontWeight: '700',
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight,
     letterSpacing: 1.3,
     marginBottom: 6,
     textTransform: 'uppercase'
   },
   metricValue: {
+    ...themeType.number,
     color: C.ink,
-    fontFamily: sans,
-    fontSize: 15,
-    fontWeight: '700'
+    fontFamily: sansMedium
   },
   field: {
     marginBottom: 12
   },
+  fieldHalf: {
+    flexBasis: '47%',
+    flexGrow: 1
+  },
   fieldLabel: {
     color: C.sub,
-    fontFamily: sans,
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight,
     letterSpacing: 1.2,
     marginBottom: 8,
     textTransform: 'uppercase'
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.055)',
+    backgroundColor: palette.paper,
     borderColor: C.hairline,
     borderRadius: 16,
     borderWidth: 1,
     color: C.ink,
     fontFamily: sans,
-    fontSize: 15,
+    fontSize: themeType.body.fontSize,
+    lineHeight: themeType.body.lineHeight,
     minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 11
@@ -1053,11 +1065,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9
   },
+  chipSelected: {
+    backgroundColor: colors.accentWash,
+    borderColor: colors.accent
+  },
   chipText: {
     color: C.sub,
-    fontFamily: sans,
-    fontSize: 12,
-    fontWeight: '700'
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  chipTextSelected: {
+    color: colors.accent
   },
   twoCol: {
     columnGap: 10,
@@ -1066,18 +1085,24 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: C.goldSoft,
+    backgroundColor: C.gold,
     borderRadius: 18,
     justifyContent: 'center',
     marginTop: 8,
     minHeight: 52,
     paddingHorizontal: 18
   },
+  pressed: {
+    opacity: 0.75
+  },
+  disabled: {
+    opacity: 0.55
+  },
   primaryButtonText: {
-    color: C.bg,
-    fontFamily: sans,
-    fontSize: 15,
-    fontWeight: '800'
+    color: palette.paper,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
   },
   secondaryButton: {
     alignItems: 'center',
@@ -1090,30 +1115,31 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: C.sub,
-    fontFamily: sans,
-    fontSize: 13,
-    fontWeight: '700'
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
   },
   choiceRow: {
     marginBottom: 8
   },
   progressText: {
     color: C.goldSoft,
-    fontFamily: sans,
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
     letterSpacing: 1.2
   },
   questionText: {
+    ...themeType.heading,
     color: C.ink,
-    fontFamily: serif,
-    fontSize: 25,
+    fontFamily: serifItalic,
+    fontSize: 24,
     lineHeight: 31,
     marginBottom: 16,
     marginTop: 18
   },
   answerButton: {
-    backgroundColor: 'rgba(255,255,255,0.045)',
+    backgroundColor: palette.paper,
     borderColor: C.hairline,
     borderRadius: 18,
     borderWidth: 1,
@@ -1122,14 +1148,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15
   },
   answerButtonSelected: {
-    backgroundColor: 'rgba(217,169,84,0.14)',
-    borderColor: 'rgba(217,169,84,0.5)'
+    backgroundColor: palette.forestWash,
+    borderColor: palette.forestPale
   },
   answerText: {
     color: C.sub,
-    fontFamily: sans,
-    fontSize: 14,
-    fontWeight: '700'
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
   },
   actionRow: {
     flexDirection: 'row',
@@ -1143,8 +1169,8 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   reasonPill: {
-    backgroundColor: 'rgba(126,221,200,0.1)',
-    borderColor: 'rgba(126,221,200,0.25)',
+    backgroundColor: palette.forestWash,
+    borderColor: palette.forestPale,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 10,
@@ -1152,8 +1178,8 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     color: C.teal,
-    fontFamily: sans,
-    fontSize: 11,
-    fontWeight: '700'
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight
   }
 });

@@ -17,7 +17,7 @@ export default function IndexRoute() {
   async function handleStart() {
     if (!isSupabaseConfigured) {
       await signUp('demo@healthi.local', 'demo-password');
-      router.push('/(onboarding)');
+      router.replace('/(app)/(tabs)');
       return;
     }
 

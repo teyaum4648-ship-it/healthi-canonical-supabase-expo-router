@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
-import { colors } from '../../../src/styles/theme';
+import { colors, fonts, hairlineWidth } from '../../../src/styles/theme';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
-function tabIcon(name: TabIconName) {
-  return ({ color, size }: { color: string; size: number }) => (
-    <Ionicons color={color} name={name} size={size} />
+function tabIcon(outline: TabIconName, filled: TabIconName) {
+  return ({ color, focused, size }: { color: string; focused: boolean; size: number }) => (
+    <Ionicons color={color} name={focused ? filled : outline} size={size - 2} />
   );
 }
 
@@ -16,61 +16,64 @@ export default function AppTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: colors.mutedViolet,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textFaint,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600'
+          fontFamily: fonts.bodyMedium,
+          fontSize: 10,
+          fontWeight: '500',
+          letterSpacing: 0.2
         },
         tabBarStyle: {
-          borderTopColor: 'rgba(214, 168, 79, 0.26)',
-          backgroundColor: colors.midnightPlum,
-          height: 66,
-          paddingBottom: 8,
-          paddingTop: 6
+          borderTopColor: colors.hairline,
+          borderTopWidth: hairlineWidth,
+          backgroundColor: colors.background,
+          height: 74,
+          paddingBottom: 12,
+          paddingTop: 10
         }
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: tabIcon('today-outline')
+          title: 'Home',
+          tabBarIcon: tabIcon('home-outline', 'home')
         }}
       />
       <Tabs.Screen
         name="movement"
         options={{
-          title: 'Movement',
-          tabBarIcon: tabIcon('body-outline')
+          title: 'Move',
+          tabBarIcon: tabIcon('body-outline', 'body')
         }}
       />
       <Tabs.Screen
         name="rhythm"
         options={{
-          title: 'Rhythm',
-          tabBarIcon: tabIcon('moon-outline')
+          title: 'Sleep',
+          tabBarIcon: tabIcon('moon-outline', 'moon')
         }}
       />
       <Tabs.Screen
         name="food"
         options={{
-          title: 'Food',
-          tabBarIcon: tabIcon('nutrition-outline')
+          title: 'Diet',
+          tabBarIcon: tabIcon('nutrition-outline', 'nutrition')
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
-          title: 'Progress',
-          tabBarIcon: tabIcon('trending-up-outline')
+          title: 'Trends',
+          tabBarIcon: tabIcon('trending-up-outline', 'trending-up')
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          tabBarIcon: tabIcon('settings-outline')
+          title: 'You',
+          tabBarIcon: tabIcon('person-outline', 'person')
         }}
       />
     </Tabs>

@@ -39,8 +39,8 @@ type HealthiProfile = {
 export function AuthProvider({ children }: PropsWithChildren) {
   const shouldUseLocalDemoAuth = isDemoMode || !isSupabaseConfigured;
   const [demoOnboardingStatus, setDemoOnboardingStatus] =
-    useState<HealthiProfile['onboarding_status']>('in_progress');
-  const [isLocalDemoSignedOut, setIsLocalDemoSignedOut] = useState(!isSupabaseConfigured);
+    useState<HealthiProfile['onboarding_status']>('completed');
+  const [isLocalDemoSignedOut, setIsLocalDemoSignedOut] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<HealthiProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +52,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     AsyncStorage.getItem(demoOnboardingCompletedKey)
       .then((value) => {
-        setDemoOnboardingStatus(value === 'true' ? 'completed' : 'in_progress');
+        setDemoOnboardingStatus(value === 'false' ? 'in_progress' : 'completed');
       })
       .catch(() => {
-        setDemoOnboardingStatus('in_progress');
+        setDemoOnboardingStatus('completed');
       });
   }, [shouldUseLocalDemoAuth]);
 
@@ -89,13 +89,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isLoading: false,
       refreshProfile: refreshDemoProfile,
       signIn: async () => {
-        await AsyncStorage.removeItem(demoOnboardingCompletedKey);
-        setDemoOnboardingStatus('in_progress');
+        await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
+        setDemoOnboardingStatus('completed');
         setIsLocalDemoSignedOut(false);
       },
       signUp: async () => {
-        await AsyncStorage.removeItem(demoOnboardingCompletedKey);
-        setDemoOnboardingStatus('in_progress');
+        await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
+        setDemoOnboardingStatus('completed');
         setIsLocalDemoSignedOut(false);
       },
       signOut: async () => {
