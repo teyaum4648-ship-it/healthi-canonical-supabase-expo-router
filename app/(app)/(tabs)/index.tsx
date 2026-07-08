@@ -4,6 +4,17 @@ import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 
+import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
+import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import {
+  getActiveNutritionTarget,
+  getMealLogsForDate,
+  type MealLogRow,
+  type NutritionSupabaseClient,
+  type NutritionTargetRow
+} from '../../../src/features/nutrition/persistence';
+import { supabase } from '../../../src/lib/supabase';
 import { colors, fonts, hairlineWidth, palette, type } from '../../../src/styles/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -41,6 +52,50 @@ const sleepStages = [
 ] as const;
 
 const foodSegments = Array.from({ length: 10 }, (_, index) => index);
+
+const isUuid = (value: string | undefined): value is string =>
+  Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
+
+function mealRowToMealLog(row: MealLogRow): MealLog {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    logged_at: row.logged_at,
+    meal_type: row.meal_type,
+    name: row.name,
+    source: row.source,
+    source_confidence: row.source_confidence,
+    calories: row.calories,
+    protein_g: row.protein_g,
+    carbs_g: row.carbs_g,
+    fat_g: row.fat_g,
+    fiber_g: row.fiber_g,
+    sugar_g: row.sugar_g,
+    sodium_mg: row.sodium_mg,
+    ingredients: row.ingredients,
+    quality_flags: row.quality_flags,
+    user_response: row.user_response,
+    corrected_by_user: row.corrected_by_user,
+    confirmed_by_user: row.confirmed_by_user,
+    reason_codes: row.reason_codes,
+    created_at: row.created_at
+  };
+}
+
+function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets | null {
+  if (!row) return null;
+
+  return {
+    calories_target: row.calories_target,
+    protein_g_target: row.protein_g_target,
+    carbs_g_target: row.carbs_g_target,
+    fat_g_target: row.fat_g_target,
+    fiber_g_target: row.fiber_g_target,
+    sodium_mg_limit: row.sodium_mg_limit,
+    confidence: row.confidence,
+    basis: row.basis
+  };
+}
 
 /**
  * Signature element: a 64-tick chronometer bezel. Ticks light in jade up to
@@ -194,6 +249,62 @@ function VitalsGrid() {
 }
 
 export default function DashboardScreen() {
+  const { user } = useAuth();
+  const today = new Date().toISOString().slice(0, 10);
+  const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
+  const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
+  const [nutritionSource, setNutritionSource] = useState<'remote' | 'calibrating'>('calibrating');
+
+  useEffect(() => {
+    const userId = user?.id;
+
+    if (!isUuid(userId)) {
+      setNutritionMeals([]);
+      setNutritionTargets(null);
+      setNutritionSource('calibrating');
+      return;
+    }
+
+    let isMounted = true;
+    const client = supabase as unknown as NutritionSupabaseClient;
+
+    Promise.all([
+      getMealLogsForDate(client, userId, today),
+      getActiveNutritionTarget(client, userId)
+    ])
+      .then(([mealRows, targetRow]) => {
+        if (!isMounted) return;
+        setNutritionMeals(mealRows.map(mealRowToMealLog));
+        setNutritionTargets(targetRowToTarget(targetRow));
+        setNutritionSource('remote');
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setNutritionMeals([]);
+        setNutritionTargets(null);
+        setNutritionSource('calibrating');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [today, user?.id]);
+
+  const nutritionSummary = composeDashboardNutritionSummary({
+    date: today,
+    meals: nutritionMeals,
+    targets: nutritionTargets,
+    demoMode: nutritionSource === 'calibrating' && nutritionMeals.some((meal) => meal.source === 'demo')
+  });
+  const activeFoodSegments =
+    nutritionSummary.meal_count === 0
+      ? 0
+      : nutritionSummary.food_quality_label === 'Supportive'
+        ? 8
+        : nutritionSummary.food_quality_label === 'Steady'
+          ? 6
+          : 4;
+
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -231,7 +342,7 @@ export default function DashboardScreen() {
         </Section>
 
         <Section>
-          <SectionHeader title="Food pattern" unit="/ 10" value="8.4" />
+          <SectionHeader title="Food response" value={nutritionSummary.food_quality_label} />
           <View style={styles.foodScoreBar}>
             {foodSegments.map((segment) => (
               <View
@@ -240,14 +351,39 @@ export default function DashboardScreen() {
                   styles.foodScoreSegment,
                   {
                     backgroundColor:
-                      segment < 8 ? palette.forest : segment === 8 ? palette.forestPale : palette.hairline
+                      segment < activeFoodSegments
+                        ? palette.forest
+                        : segment === activeFoodSegments && activeFoodSegments > 0
+                          ? palette.forestPale
+                          : palette.hairline
                   }
                 ]}
               />
             ))}
           </View>
+          <View style={styles.nutritionGrid}>
+            <View style={styles.nutritionCell}>
+              <Text style={styles.nutritionLabel}>Meals</Text>
+              <Text style={styles.nutritionValue}>{nutritionSummary.meal_count}</Text>
+            </View>
+            <View style={styles.nutritionCell}>
+              <Text style={styles.nutritionLabel}>Calories</Text>
+              <Text style={styles.nutritionValue}>{nutritionSummary.calorie_label}</Text>
+            </View>
+            <View style={styles.nutritionCell}>
+              <Text style={styles.nutritionLabel}>Protein</Text>
+              <Text style={styles.nutritionValue}>{nutritionSummary.protein_label}</Text>
+            </View>
+            <View style={styles.nutritionCell}>
+              <Text style={styles.nutritionLabel}>Response</Text>
+              <Text style={styles.nutritionValue}>{nutritionSummary.food_response_label}</Text>
+            </View>
+          </View>
           <Text style={styles.sectionCopy}>
-            Whole-food density on target. One logged item softened the score.
+            {nutritionSummary.readiness_support_label}
+          </Text>
+          <Text style={styles.sourceCopy}>
+            {nutritionSummary.source_label === 'logged' ? 'Based on logged meals.' : nutritionSummary.next_action} Confidence: {nutritionSummary.confidence}.
           </Text>
         </Section>
 
@@ -440,10 +576,38 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4
   },
+  nutritionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14
+  },
+  nutritionCell: {
+    backgroundColor: colors.surfaceInset,
+    borderRadius: 12,
+    flexGrow: 1,
+    minWidth: '46%',
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  nutritionLabel: {
+    ...type.eyebrow,
+    color: colors.textFaint
+  },
+  nutritionValue: {
+    ...type.number,
+    color: colors.text,
+    marginTop: 4
+  },
   sectionCopy: {
     ...type.caption,
     color: colors.textMuted,
     marginTop: 11
+  },
+  sourceCopy: {
+    ...type.caption,
+    color: colors.textFaint,
+    marginTop: 6
   },
   twoColumn: {
     backgroundColor: colors.surface,

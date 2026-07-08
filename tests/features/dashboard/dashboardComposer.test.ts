@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { generateCircadianBriefing, type CircadianBriefing, type RhythmPlan, type SleepDebtSummary, type SleepSession } from '../../../src/engines/circadian';
-import { composeDashboardModel } from '../../../src/features/dashboard/dashboardComposer';
+import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
+import { composeDashboardModel, composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
 import { createDefaultSleepNeedEstimate, createDemoSleepSessions } from '../../../src/features/sleepRhythm/rhythmInputs';
 
 type BriefingOverrides = Partial<Omit<CircadianBriefing, 'rhythm_plan' | 'sleep_debt_7_day'>> & {
@@ -49,6 +50,48 @@ function createSession(overrides: Partial<SleepSession> = {}): SleepSession {
     ...overrides
   };
 }
+
+function createMeal(overrides: Partial<MealLog> = {}): MealLog {
+  return {
+    logged_at: '2026-06-12T12:00:00.000Z',
+    meal_type: 'lunch',
+    name: 'Lunch bowl',
+    source: 'manual',
+    source_confidence: 'medium',
+    calories: 620,
+    protein_g: 42,
+    carbs_g: 58,
+    fat_g: 22,
+    fiber_g: 10,
+    sugar_g: 8,
+    sodium_mg: 640,
+    ingredients: null,
+    quality_flags: ['balanced_meal', 'whole_food_emphasis'],
+    user_response: {
+      digestion: 'good',
+      energy: 'steady',
+      appetite: 'stable',
+      cravings: 'none',
+      notes: null
+    },
+    corrected_by_user: false,
+    confirmed_by_user: true,
+    reason_codes: ['manual_food_log'],
+    created_at: '2026-06-12T12:01:00.000Z',
+    ...overrides
+  };
+}
+
+const nutritionTargets: NutritionTargets = {
+  calories_target: 700,
+  protein_g_target: 45,
+  carbs_g_target: 70,
+  fat_g_target: 28,
+  fiber_g_target: 10,
+  sodium_mg_limit: 2300,
+  confidence: 'medium',
+  basis: ['manual_adjustment']
+};
 
 describe('composeDashboardModel', () => {
   it('produces a serializable dashboard model', () => {
@@ -128,6 +171,62 @@ describe('composeDashboardModel', () => {
     expect(model.quickActions.map((action) => action.id)).toEqual(['log_meal', 'start_workout', 'log_sleep']);
   });
 
+  it('maps real nutrition engine outputs into the dashboard nutrition summary', () => {
+    const summary = composeDashboardNutritionSummary({
+      date: '2026-06-12',
+      meals: [createMeal()],
+      targets: nutritionTargets
+    });
+
+    expect(summary.meal_count).toBe(1);
+    expect(summary.calorie_label).toBe('620 / 700');
+    expect(summary.protein_label).toBe('42g / 45g');
+    expect(summary.food_quality_label).toBe('Supportive');
+    expect(summary.food_response_label).toBe('Steady');
+    expect(summary.readiness_support_label).toBe("Logged meals are supporting today's readiness.");
+    expect(summary.confidence).toBe('medium');
+    expect(summary.source_label).toBe('logged');
+  });
+
+  it('returns a calibrating nutrition state when meal data is missing', () => {
+    const summary = composeDashboardNutritionSummary({
+      date: '2026-06-12',
+      meals: [],
+      targets: nutritionTargets
+    });
+
+    expect(summary.meal_count).toBe(0);
+    expect(summary.calorie_label).toBe('Calibrating');
+    expect(summary.protein_label).toBe('Calibrating');
+    expect(summary.food_quality_label).toBe('Calibrating');
+    expect(summary.food_response_label).toBe('Calibrating');
+    expect(summary.confidence).toBe('low');
+    expect(summary.readiness_adjustment).toBe(0);
+    expect(summary.next_action).toBe('Log a meal to improve today’s fueling signal.');
+  });
+
+  it('keeps missing nutrition data from sharply lowering dashboard readiness', () => {
+    const withoutMeals = composeDashboardModel({
+      date: '2026-06-12',
+      circadianBriefing: createBriefing(),
+      recentSleepSession: createSession(),
+      nutritionMeals: [],
+      nutritionTargets
+    });
+    const withMeals = composeDashboardModel({
+      date: '2026-06-12',
+      circadianBriefing: createBriefing(),
+      recentSleepSession: createSession(),
+      nutritionMeals: [createMeal()],
+      nutritionTargets
+    });
+
+    expect(withoutMeals.nutrition.summary.confidence).toBe('low');
+    expect(withoutMeals.nutrition.summary.readiness_adjustment).toBe(0);
+    expect(withMeals.nutrition.summary.readiness_adjustment).toBeGreaterThanOrEqual(-3);
+    expect(withMeals.nutrition.summary.readiness_adjustment).toBeLessThanOrEqual(2);
+  });
+
   it('does not introduce blocked language in generated dashboard copy', () => {
     const model = composeDashboardModel({
       date: '2026-06-12',
@@ -154,7 +253,16 @@ describe('composeDashboardModel', () => {
       'medical ' + 'decision',
       'dys' + 'regulated',
       'dys' + 'function',
-      'de' + 'tox'
+      'de' + 'tox',
+      'tox' + 'in',
+      'tox' + 'ic',
+      'clean' + 'se',
+      'cheat ' + 'meal',
+      'guilt-' + 'free',
+      'bad ' + 'food',
+      'metabolic ' + 'type',
+      'metabolic ' + 'typing',
+      '4 doc' + 'tors'
     ];
 
     for (const term of blockedTerms) {
