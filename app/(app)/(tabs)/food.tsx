@@ -31,6 +31,7 @@ import {
   replaceActiveFoodPatternProfile,
   savePostMealResponseLog,
   type FoodPersonalizationSupabaseClient,
+  type PostMealResponseLogInput,
   type PostMealResponseLogRow
 } from '../../../src/features/nutrition/foodPersonalizationPersistence';
 import {
@@ -47,6 +48,13 @@ import {
   type ManualMealFormState,
   type ResponseLogFormState
 } from '../../../src/features/nutrition/foodTabForms';
+import {
+  appendLocalDemoMealLog,
+  appendLocalDemoPostMealResponse,
+  getLocalDemoNutritionState,
+  saveLocalDemoFoodPatternProfile,
+  saveLocalDemoMealLogs
+} from '../../../src/features/nutrition/localDemoNutritionStore';
 import {
   getActiveNutritionTarget,
   getMealLogsForDate,
@@ -177,6 +185,46 @@ function profileRowToProfile(row: NonNullable<Awaited<ReturnType<typeof getActiv
     meal_timing_tendency: row.meal_timing_tendency,
     response_tendencies: row.response_tendencies,
     reason_codes: row.reason_codes
+  };
+}
+
+function applyResponseToMealLogs(meals: MealLog[], response: PostMealResponseLogInput): MealLog[] {
+  return meals.map((meal) =>
+    meal.id === response.meal_log_id
+      ? {
+          ...meal,
+          user_response: {
+            digestion: response.digestion,
+            energy: response.energy,
+            appetite: response.appetite,
+            cravings: response.cravings,
+            notes: response.notes
+          }
+        }
+      : meal
+  );
+}
+
+function createLocalDemoResponseRow(response: PostMealResponseLogInput, userId = 'demo-user'): PostMealResponseLogRow {
+  const now = new Date().toISOString();
+
+  return {
+    id: `local-response-${Date.now()}`,
+    user_id: userId,
+    meal_log_id: response.meal_log_id ?? null,
+    responded_at: response.responded_at,
+    minutes_after_meal: response.minutes_after_meal ?? null,
+    overall_score: response.overall_score,
+    digestion: response.digestion ?? null,
+    energy: response.energy ?? null,
+    appetite: response.appetite ?? null,
+    focus: response.focus ?? null,
+    cravings: response.cravings ?? null,
+    notes: response.notes ?? null,
+    confidence: response.confidence,
+    reason_codes: [...response.reason_codes],
+    created_at: now,
+    updated_at: now
   };
 }
 
@@ -354,6 +402,32 @@ export default function FoodScreen() {
     };
   }, [canUseRemote, today, userId]);
 
+  useEffect(() => {
+    if (canUseRemote) return;
+
+    let isMounted = true;
+    setIsLoadingRemote(true);
+
+    getLocalDemoNutritionState()
+      .then((state) => {
+        if (!isMounted) return;
+        setMeals(state.mealLogs);
+        setResponses(state.postMealResponses);
+        setActiveProfile(state.foodPatternProfile);
+        setStatus(state.mealLogs.length > 0 ? 'Loaded local demo food data.' : 'Food response is still calibrating.');
+      })
+      .catch(() => {
+        if (isMounted) setStatus('Local demo food data could not load.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingRemote(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canUseRemote]);
+
   function updateMealForm<K extends keyof ManualMealFormState>(key: K, value: ManualMealFormState[K]) {
     setMealForm((current) => ({ ...current, [key]: value }));
   }
@@ -385,6 +459,7 @@ export default function FoodScreen() {
         setStatus('Meal logged. Today’s fueling signal has been updated.');
       } else {
         const localMeal = { ...meal, id: `local-meal-${Date.now()}` };
+        await appendLocalDemoMealLog(localMeal);
         setMeals((current) => [localMeal, ...current]);
         setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
         setStatus('Meal logged locally. Food response is still calibrating.');
@@ -394,6 +469,9 @@ export default function FoodScreen() {
       setActiveSegment('Today');
     } catch {
       const localMeal = { ...meal, id: `local-meal-${Date.now()}` };
+      if (!canUseRemote) {
+        await appendLocalDemoMealLog(localMeal);
+      }
       setMeals((current) => [localMeal, ...current]);
       setStatus('Meal saved locally. Remote sync can retry later.');
     } finally {
@@ -404,23 +482,9 @@ export default function FoodScreen() {
   async function handleSaveResponse() {
     setIsSaving(true);
     const response = responseLogFormToInput(responseForm);
+    const nextMeals = applyResponseToMealLogs(meals, response);
 
-    setMeals((current) =>
-      current.map((meal) =>
-        meal.id === response.meal_log_id
-          ? {
-              ...meal,
-              user_response: {
-                digestion: response.digestion,
-                energy: response.energy,
-                appetite: response.appetite,
-                cravings: response.cravings,
-                notes: response.notes
-              }
-            }
-          : meal
-      )
-    );
+    setMeals(nextMeals);
 
     try {
       if (canUseRemote && userId) {
@@ -428,12 +492,21 @@ export default function FoodScreen() {
         setResponses((current) => [saved, ...current]);
         setStatus('Response logged. Healthi has one more food response signal.');
       } else {
+        const localResponse = createLocalDemoResponseRow(response);
+        await Promise.all([
+          saveLocalDemoMealLogs(nextMeals),
+          appendLocalDemoPostMealResponse(localResponse)
+        ]);
+        setResponses((current) => [localResponse, ...current]);
         setStatus('Response logged locally. Insights will sharpen as you add more.');
       }
 
       setResponseForm(createEmptyResponseLogForm());
       setActiveSegment('Today');
     } catch {
+      if (!canUseRemote) {
+        await saveLocalDemoMealLogs(nextMeals);
+      }
       setStatus('Response saved locally. Remote sync can retry later.');
     } finally {
       setIsSaving(false);
@@ -454,7 +527,10 @@ export default function FoodScreen() {
     setActiveProfile(profile);
     setStatus('Your Food Pattern Profile is ready.');
 
-    if (!canUseRemote || !userId) return;
+    if (!canUseRemote || !userId) {
+      await saveLocalDemoFoodPatternProfile(profile);
+      return;
+    }
 
     try {
       const saved = await replaceActiveFoodPatternProfile(supabase as unknown as FoodPersonalizationSupabaseClient, userId, profile);

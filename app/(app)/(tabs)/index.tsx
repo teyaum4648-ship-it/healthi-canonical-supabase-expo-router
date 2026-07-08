@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-native-svg';
@@ -7,6 +8,7 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-na
 import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
 import {
   getActiveNutritionTarget,
   getMealLogsForDate,
@@ -253,19 +255,34 @@ export default function DashboardScreen() {
   const today = new Date().toISOString().slice(0, 10);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
-  const [nutritionSource, setNutritionSource] = useState<'remote' | 'calibrating'>('calibrating');
+  const [nutritionSource, setNutritionSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     const userId = user?.id;
+    let isMounted = true;
 
     if (!isUuid(userId)) {
-      setNutritionMeals([]);
-      setNutritionTargets(null);
-      setNutritionSource('calibrating');
-      return;
+      getLocalDemoNutritionState()
+        .then((state) => {
+          if (!isMounted) return;
+          const todayMeals = state.mealLogs.filter((meal) => meal.logged_at.slice(0, 10) === today);
+          setNutritionMeals(todayMeals);
+          setNutritionTargets(null);
+          setNutritionSource(todayMeals.length > 0 ? 'demo' : 'calibrating');
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setNutritionMeals([]);
+          setNutritionTargets(null);
+          setNutritionSource('calibrating');
+        });
+
+      return () => {
+        isMounted = false;
+      };
     }
 
-    let isMounted = true;
     const client = supabase as unknown as NutritionSupabaseClient;
 
     Promise.all([
@@ -288,13 +305,14 @@ export default function DashboardScreen() {
     return () => {
       isMounted = false;
     };
-  }, [today, user?.id]);
+    }, [today, user?.id])
+  );
 
   const nutritionSummary = composeDashboardNutritionSummary({
     date: today,
     meals: nutritionMeals,
     targets: nutritionTargets,
-    demoMode: nutritionSource === 'calibrating' && nutritionMeals.some((meal) => meal.source === 'demo')
+    demoMode: nutritionSource === 'demo'
   });
   const activeFoodSegments =
     nutritionSummary.meal_count === 0
