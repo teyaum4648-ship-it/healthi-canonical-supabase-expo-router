@@ -22,6 +22,14 @@ const config: ExpoConfig = {
       {
         configureAndroidBackup: true
       }
+    ],
+    [
+      'expo-camera',
+      {
+        barcodeScannerEnabled: true,
+        cameraPermission: 'Healthi uses the camera to scan product barcodes. You can also enter a barcode manually.',
+        recordAudioAndroid: false
+      }
     ]
   ]
 };

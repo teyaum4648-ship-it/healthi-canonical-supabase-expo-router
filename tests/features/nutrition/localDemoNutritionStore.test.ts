@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FoodPatternProfile, MealLog } from '../../../src/engines/nutrition';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
 import type { PostMealResponseLogRow } from '../../../src/features/nutrition/foodPersonalizationPersistence';
 import {
+  appendLocalDemoMealLog,
   createEmptyLocalDemoNutritionState,
   deserializeDemoFoodPatternProfile,
   deserializeDemoMealLogs,
@@ -13,6 +14,18 @@ import {
   serializeDemoPostMealResponses,
   toLocalDemoMealLog
 } from '../../../src/features/nutrition/localDemoNutritionStore';
+
+const storage = vi.hoisted(() => new Map<string, string>());
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn((key: string) => Promise.resolve(storage.get(key) ?? null)),
+    setItem: vi.fn((key: string, value: string) => {
+      storage.set(key, value);
+      return Promise.resolve();
+    })
+  }
+}));
 
 function createMeal(overrides: Partial<MealLog> = {}): MealLog {
   return {
@@ -106,6 +119,10 @@ function createProfile(overrides: Partial<FoodPatternProfile> = {}): FoodPattern
 }
 
 describe('local demo nutrition store helpers', () => {
+  beforeEach(() => {
+    storage.clear();
+  });
+
   it('serializes and deserializes meal logs while preserving nested response data', () => {
     const meal = createMeal();
     const roundTrip = deserializeDemoMealLogs(serializeDemoMealLogs([meal]));
@@ -166,6 +183,20 @@ describe('local demo nutrition store helpers', () => {
     expect(summary.protein_label).toBe('44g');
     expect(summary.food_response_label).toBe('Steady');
     expect(summary.source_label).toBe('demo');
+  });
+
+  it('adds a scanned product meal to shared local demo nutrition state', async () => {
+    const scannedMeal = createMeal({
+      id: 'local-scanned-meal-1',
+      name: 'Scanned oats',
+      source: 'barcode_pending',
+      reason_codes: ['barcode_food_logged', 'product_label_data']
+    });
+
+    const next = await appendLocalDemoMealLog(scannedMeal);
+
+    expect(next).toEqual([scannedMeal]);
+    expect(deserializeDemoMealLogs(storage.get('healthi:demo:nutrition:mealLogs') ?? null)).toEqual([scannedMeal]);
   });
 
   it('does not introduce blocked language in local demo nutrition payloads', () => {

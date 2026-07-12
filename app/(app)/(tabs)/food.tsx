@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,6 +23,7 @@ import {
   type FoodPatternProfile,
   type FoodQualityFlag,
   type MealLog,
+  type MealType,
   type NutritionTargets
 } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
@@ -63,6 +65,18 @@ import {
   type NutritionSupabaseClient,
   type NutritionTargetRow
 } from '../../../src/features/nutrition/persistence';
+import {
+  normalizeBarcode,
+  shouldProcessBarcodeScan,
+  type BarcodeScanStamp
+} from '../../../src/features/nutrition/productLookup/barcodeUtils';
+import { lookupOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
+import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
+import type { HealthiProductSnapshot } from '../../../src/features/nutrition/productLookup/productLookupTypes';
+import {
+  normalizeServingQuantity,
+  scannedProductToMealLog
+} from '../../../src/features/nutrition/scannedMealLogMapper';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import {
   colors,
@@ -120,6 +134,12 @@ function displayLabel(value: string): string {
 function formatAmount(value: number | null | undefined, suffix = ''): string {
   if (typeof value !== 'number') return '-';
   return `${Math.round(value)}${suffix}`;
+}
+
+function formatProductAmount(value: number | null | undefined, suffix = ''): string {
+  if (typeof value !== 'number') return '-';
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded}${suffix}`;
 }
 
 function confidenceText(confidence: string): string {
@@ -331,6 +351,7 @@ function Metric({ label, value, tone = colors.text }: { label: string; value: st
 
 export default function FoodScreen() {
   const { session } = useAuth();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [responses, setResponses] = useState<PostMealResponseLogRow[]>([]);
@@ -344,6 +365,17 @@ export default function FoodScreen() {
   const [status, setStatus] = useState('Food response is still calibrating.');
   const [isLoadingRemote, setIsLoadingRemote] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scannerProduct, setScannerProduct] = useState<HealthiProductSnapshot | null>(null);
+  const [scannerMessage, setScannerMessage] = useState('Scan a barcode or enter its numbers below.');
+  const [scannerMealType, setScannerMealType] = useState<MealType>('unknown');
+  const [scannerServingQuantity, setScannerServingQuantity] = useState('1');
+  const [scannerMealName, setScannerMealName] = useState('');
+  const [isLookingUpProduct, setIsLookingUpProduct] = useState(false);
+  const [isSavingScannedMeal, setIsSavingScannedMeal] = useState(false);
+  const lastBarcodeScan = useRef<BarcodeScanStamp | null>(null);
 
   const userId = session?.user.id ?? null;
   const canUseRemote = remoteEnabled(userId);
@@ -367,6 +399,10 @@ export default function FoodScreen() {
   const profileCopy = activeProfile ? getFoodPatternResultCopy(activeProfile) : null;
   const testCopy = testResult ? getFoodPatternResultCopy(testResult) : null;
   const currentQuestion = foodPatternQuestions[questionIndex];
+  const productQuality = useMemo(
+    () => scannerProduct ? calculateProductQuality(scannerProduct) : null,
+    [scannerProduct]
+  );
 
   useEffect(() => {
     if (!canUseRemote || !userId) return;
@@ -443,6 +479,113 @@ export default function FoodScreen() {
         ? mealForm.quality_flags.filter((current) => current !== flag)
         : [...mealForm.quality_flags, flag]
     );
+  }
+
+  function openScanner() {
+    setScannerOpen(true);
+    setCameraOpen(false);
+    setScannerMessage('Scan a barcode or enter its numbers below.');
+  }
+
+  function closeScanner() {
+    setScannerOpen(false);
+    setCameraOpen(false);
+    setIsLookingUpProduct(false);
+  }
+
+  async function handleStartCamera() {
+    if (cameraPermission?.granted) {
+      setScannerMessage('Center the product barcode inside the frame.');
+      setCameraOpen(true);
+      return;
+    }
+
+    const nextPermission = await requestCameraPermission();
+    if (nextPermission.granted) {
+      setScannerMessage('Center the product barcode inside the frame.');
+      setCameraOpen(true);
+    } else {
+      setScannerMessage('Camera access is unavailable. Enter the barcode manually below.');
+      setCameraOpen(false);
+    }
+  }
+
+  async function handleProductLookup(value = barcodeInput) {
+    setIsLookingUpProduct(true);
+    setCameraOpen(false);
+    setScannerProduct(null);
+    setScannerMessage('Looking up available label data...');
+
+    const result = await lookupOpenFoodFactsProduct(value);
+    if (result.status === 'found') {
+      setBarcodeInput(result.product.barcode);
+      setScannerProduct(result.product);
+      setScannerMealName(result.product.name);
+      setScannerServingQuantity('1');
+      setScannerMessage('Product found. Review the available label data before adding it.');
+    } else {
+      setScannerMessage(result.message);
+    }
+
+    setIsLookingUpProduct(false);
+  }
+
+  function handleBarcodeScanned(result: BarcodeScanningResult) {
+    const scannedAt = Date.now();
+    const barcode = normalizeBarcode(result.data);
+    if (!shouldProcessBarcodeScan(lastBarcodeScan.current, barcode, scannedAt)) return;
+
+    lastBarcodeScan.current = { barcode, scannedAt };
+    setBarcodeInput(barcode);
+    void handleProductLookup(barcode);
+  }
+
+  async function handleSaveScannedMeal() {
+    if (!scannerProduct) return;
+
+    const servingQuantity = normalizeServingQuantity(scannerServingQuantity);
+    if (servingQuantity === null) {
+      setScannerMessage('Enter a serving quantity greater than 0 and no more than 20.');
+      return;
+    }
+
+    setIsSavingScannedMeal(true);
+    const now = new Date().toISOString();
+    const meal = scannedProductToMealLog({
+      snapshot: scannerProduct,
+      servingQuantity,
+      loggedAt: now,
+      mealType: scannerMealType,
+      mealNameOverride: scannerMealName
+    });
+
+    try {
+      if (canUseRemote && userId) {
+        const saved = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
+        const nextMeal = mealRowToMealLog(saved);
+        setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: saved.id }));
+        setStatus('Product added. Today’s fueling signal has been updated.');
+      } else {
+        const localMeal = { ...meal, id: `local-scanned-meal-${Date.now()}` };
+        await appendLocalDemoMealLog(localMeal);
+        setMeals((current) => [localMeal, ...current.filter((item) => item.id !== localMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
+        setStatus('Product added locally. Food response is still calibrating.');
+      }
+
+      setScannerProduct(null);
+      setBarcodeInput('');
+      setScannerMealName('');
+      setScannerServingQuantity('1');
+      setScannerMealType('unknown');
+      closeScanner();
+      setActiveSegment('Today');
+    } catch {
+      setScannerMessage('This meal could not be saved. Your product snapshot is still here so you can try again.');
+    } finally {
+      setIsSavingScannedMeal(false);
+    }
   }
 
   async function handleSaveMeal() {
@@ -541,6 +684,174 @@ export default function FoodScreen() {
     }
   }
 
+  function renderScanner() {
+    return (
+      <View style={styles.stack}>
+        <View style={styles.scannerHeading}>
+          <View style={styles.scannerHeadingCopy}>
+            <Text style={styles.eyebrow}>Packaged food</Text>
+            <Text style={styles.title}>Scan Food</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Close scanner"
+            accessibilityRole="button"
+            onPress={closeScanner}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          >
+            <Ionicons color={colors.textMuted} name="close" size={22} />
+          </Pressable>
+        </View>
+
+        <Card>
+          <View style={styles.scannerIntroRow}>
+            <View style={styles.scannerIcon}>
+              <Ionicons color={colors.accent} name="barcode-outline" size={24} />
+            </View>
+            <View style={styles.scannerHeadingCopy}>
+              <Text style={styles.cardTitle}>Barcode scanner</Text>
+              <Text style={styles.body}>
+                Healthi uses the camera to scan product barcodes. You can also enter a barcode manually.
+              </Text>
+            </View>
+          </View>
+
+          {cameraOpen && cameraPermission?.granted ? (
+            <View style={styles.cameraShell}>
+              <CameraView
+                active={cameraOpen}
+                barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'itf14'] }}
+                facing="back"
+                onBarcodeScanned={isLookingUpProduct ? undefined : handleBarcodeScanned}
+                style={StyleSheet.absoluteFill}
+              />
+              <View pointerEvents="none" style={styles.scanFrame} />
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setCameraOpen(false);
+                  setScannerMessage('Camera paused. Enter a barcode or start the camera again.');
+                }}
+                style={({ pressed }) => [styles.cameraCancel, pressed && styles.pressed]}
+              >
+                <Text style={styles.cameraCancelText}>Cancel camera</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <PrimaryButton label="Use camera" onPress={() => void handleStartCamera()} />
+          )}
+
+          <View style={styles.orRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>OR ENTER MANUALLY</Text>
+            <View style={styles.orLine} />
+          </View>
+          <Field
+            keyboardType="numeric"
+            label="Barcode number"
+            onChangeText={setBarcodeInput}
+            placeholder="012345678905"
+            value={barcodeInput}
+          />
+          <PrimaryButton
+            disabled={!barcodeInput.trim()}
+            label="Look up product"
+            loading={isLookingUpProduct}
+            onPress={() => void handleProductLookup()}
+          />
+          <Text style={styles.scannerMessage}>{scannerMessage}</Text>
+        </Card>
+
+        {scannerProduct && productQuality ? (
+          <Card style={styles.productCard}>
+            <View style={styles.productHeader}>
+              <View style={styles.productHeaderCopy}>
+                <Text style={styles.eyebrow}>Product Snapshot</Text>
+                <Text style={styles.productName}>{scannerProduct.name}</Text>
+                <Text style={styles.productMeta}>
+                  {[scannerProduct.brand, scannerProduct.serving_size ?? 'Serving size unavailable'].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+              <View style={styles.qualityScore}>
+                <Text style={styles.qualityScoreValue}>{productQuality.score ?? '-'}</Text>
+                <Text style={styles.qualityScoreLabel}>QUALITY</Text>
+              </View>
+            </View>
+
+            <View style={styles.productMetrics}>
+              <Metric label="Calories" value={formatProductAmount(scannerProduct.calories_per_serving)} tone={colors.accent} />
+              <Metric label="Protein" value={formatProductAmount(scannerProduct.protein_g, 'g')} />
+              <Metric label="Carbs" value={formatProductAmount(scannerProduct.carbs_g, 'g')} />
+              <Metric label="Fat" value={formatProductAmount(scannerProduct.fat_g, 'g')} />
+              <Metric label="Fiber" value={formatProductAmount(scannerProduct.fiber_g, 'g')} />
+              <Metric label="Sugar" value={formatProductAmount(scannerProduct.sugar_g, 'g')} />
+              <Metric label="Sodium" value={formatProductAmount(scannerProduct.sodium_mg, 'mg')} />
+            </View>
+
+            <View style={styles.qualityPanel}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.cardTitle}>Food Quality Signal</Text>
+                <Text style={styles.qualityLabel}>{displayLabel(productQuality.label)}</Text>
+              </View>
+              <Text style={styles.body}>{productQuality.summary}</Text>
+              {[...productQuality.positives, ...productQuality.considerations].slice(0, 5).map((item) => (
+                <View key={item} style={styles.signalReasonRow}>
+                  <View style={styles.signalReasonDot} />
+                  <Text style={styles.signalReasonText}>{item}</Text>
+                </View>
+              ))}
+              <Text style={styles.confidenceLine}>
+                Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {productQuality.confidence}
+              </Text>
+            </View>
+
+            <Text style={styles.fieldLabel}>Why this signal</Text>
+            <View style={styles.reasonList}>
+              {productQuality.reason_codes.slice(0, 5).map((reason) => (
+                <View key={reason} style={styles.reasonPill}>
+                  <Text style={styles.reasonText}>{displayLabel(reason)}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.productFormDivider} />
+            <Text style={styles.cardTitle}>Add to Meal</Text>
+            <View style={styles.twoCol}>
+              <Field
+                keyboardType="numeric"
+                label="Servings"
+                onChangeText={setScannerServingQuantity}
+                style={styles.fieldHalf}
+                value={scannerServingQuantity}
+              />
+              <Field
+                label="Meal name"
+                onChangeText={setScannerMealName}
+                style={styles.fieldHalf}
+                value={scannerMealName}
+              />
+            </View>
+            <Text style={styles.fieldLabel}>Meal type</Text>
+            <View style={styles.chipWrap}>
+              {mealTypes.map((type) => (
+                <Chip
+                  key={type}
+                  label={displayLabel(type)}
+                  onPress={() => setScannerMealType(type)}
+                  selected={scannerMealType === type}
+                />
+              ))}
+            </View>
+            <PrimaryButton
+              label="Add to Meal"
+              loading={isSavingScannedMeal}
+              onPress={() => void handleSaveScannedMeal()}
+            />
+          </Card>
+        ) : null}
+      </View>
+    );
+  }
+
   function renderToday() {
     return (
       <View style={styles.stack}>
@@ -565,6 +876,26 @@ export default function FoodScreen() {
             <Metric label="Fat" value={formatAmount(nutrientSummary.fat_g, 'g')} />
             <Metric label="Fiber" value={formatAmount(nutrientSummary.fiber_g, 'g')} />
           </View>
+        </Card>
+
+        <Card style={styles.scanActionCard}>
+          <View style={styles.scannerIntroRow}>
+            <View style={styles.scannerIcon}>
+              <Ionicons color={colors.accent} name="barcode-outline" size={23} />
+            </View>
+            <View style={styles.scannerHeadingCopy}>
+              <Text style={styles.cardTitle}>Scan packaged food</Text>
+              <Text style={styles.body}>Pull available label data into today’s meal log.</Text>
+            </View>
+          </View>
+          <PrimaryButton label="Scan Food" onPress={openScanner} />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setActiveSegment('Log Meal')}
+            style={({ pressed }) => [styles.inlineTextButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.inlineTextButtonText}>Enter meal manually</Text>
+          </Pressable>
         </Card>
 
         {nutrientSummary.meal_count === 0 ? (
@@ -607,11 +938,20 @@ export default function FoodScreen() {
     return (
       <View style={styles.stack}>
         <SectionTitle
-          body="Manual entry keeps the first version simple. Scanner and photo input can come later."
+          body="Add nutrition facts manually, or scan a packaged food."
           eyebrow="Manual"
           title="Log a meal"
         />
         <Card>
+          <Pressable
+            accessibilityRole="button"
+            onPress={openScanner}
+            style={({ pressed }) => [styles.scannerShortcut, pressed && styles.pressed]}
+          >
+            <Ionicons color={colors.accent} name="barcode-outline" size={20} />
+            <Text style={styles.scannerShortcutText}>Scan Food</Text>
+            <Ionicons color={colors.textFaint} name="chevron-forward" size={18} />
+          </Pressable>
           <Field label="Meal name" onChangeText={(value) => updateMealForm('name', value)} placeholder="Lunch bowl" value={mealForm.name} />
           <Text style={styles.fieldLabel}>Meal type</Text>
           <View style={styles.chipWrap}>
@@ -847,7 +1187,10 @@ export default function FoodScreen() {
                   <Pressable
                     accessibilityRole="button"
                     key={segment}
-                    onPress={() => setActiveSegment(segment)}
+                    onPress={() => {
+                      closeScanner();
+                      setActiveSegment(segment);
+                    }}
                     style={[styles.segment, activeSegment === segment && styles.segmentActive]}
                   >
                     <Text style={[styles.segmentText, activeSegment === segment && styles.segmentTextActive]}>{segment}</Text>
@@ -862,11 +1205,12 @@ export default function FoodScreen() {
               <Text style={styles.statusText}>{isLoadingRemote ? 'Loading available food data...' : status}</Text>
             </View>
 
-            {activeSegment === 'Today' ? renderToday() : null}
-            {activeSegment === 'Log Meal' ? renderLogMeal() : null}
-            {activeSegment === 'Response Log' ? renderResponseLog() : null}
-            {activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
-            {activeSegment === 'Insights' ? renderInsights() : null}
+            {scannerOpen ? renderScanner() : null}
+            {!scannerOpen && activeSegment === 'Today' ? renderToday() : null}
+            {!scannerOpen && activeSegment === 'Log Meal' ? renderLogMeal() : null}
+            {!scannerOpen && activeSegment === 'Response Log' ? renderResponseLog() : null}
+            {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
+            {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -1257,5 +1601,234 @@ const styles = StyleSheet.create({
     fontFamily: sansMedium,
     fontSize: themeType.eyebrow.fontSize,
     lineHeight: themeType.eyebrow.lineHeight
+  },
+  scannerHeading: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2
+  },
+  scannerHeadingCopy: {
+    flex: 1
+  },
+  iconButton: {
+    alignItems: 'center',
+    borderColor: C.hairline,
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44
+  },
+  scannerIntroRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12
+  },
+  scannerIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: 'center',
+    width: 48
+  },
+  cameraShell: {
+    backgroundColor: C.ink,
+    borderRadius: 20,
+    height: 320,
+    marginTop: 16,
+    overflow: 'hidden'
+  },
+  scanFrame: {
+    borderColor: palette.paper,
+    borderRadius: 16,
+    borderWidth: 2,
+    height: 112,
+    left: '12%',
+    opacity: 0.88,
+    position: 'absolute',
+    right: '12%',
+    top: 84
+  },
+  cameraCancel: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(26,33,29,0.78)',
+    borderColor: 'rgba(253,252,249,0.38)',
+    borderRadius: 16,
+    borderWidth: 1,
+    bottom: 18,
+    left: 48,
+    minHeight: 44,
+    position: 'absolute',
+    right: 48,
+    justifyContent: 'center'
+  },
+  cameraCancelText: {
+    color: palette.paper,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  orRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+    marginTop: 20
+  },
+  orLine: {
+    backgroundColor: C.hairline,
+    flex: 1,
+    height: hairlineWidth
+  },
+  orText: {
+    color: C.muted,
+    fontFamily: sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    lineHeight: 13
+  },
+  scannerMessage: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 12,
+    textAlign: 'center'
+  },
+  productCard: {
+    borderColor: palette.forestPale,
+    padding: 20
+  },
+  productHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 14,
+    justifyContent: 'space-between'
+  },
+  productHeaderCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  productName: {
+    ...themeType.heading,
+    color: C.ink,
+    fontFamily: serif,
+    fontSize: 24,
+    lineHeight: 30,
+    marginTop: 7
+  },
+  productMeta: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 5
+  },
+  qualityScore: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 36,
+    borderWidth: 1,
+    height: 72,
+    justifyContent: 'center',
+    width: 72
+  },
+  qualityScoreValue: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: 23,
+    lineHeight: 27
+  },
+  qualityScoreLabel: {
+    color: C.muted,
+    fontFamily: sansMedium,
+    fontSize: 8,
+    letterSpacing: 1,
+    lineHeight: 10
+  },
+  productMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 20
+  },
+  qualityPanel: {
+    backgroundColor: palette.ivory,
+    borderColor: C.hairline,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 18,
+    marginTop: 18,
+    padding: 15
+  },
+  qualityLabel: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  signalReasonRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 10
+  },
+  signalReasonDot: {
+    backgroundColor: colors.accentMid,
+    borderRadius: 3,
+    height: 5,
+    marginTop: 8,
+    width: 5
+  },
+  signalReasonText: {
+    ...themeType.caption,
+    color: C.sub,
+    flex: 1
+  },
+  confidenceLine: {
+    ...themeType.caption,
+    color: C.muted,
+    marginTop: 13
+  },
+  productFormDivider: {
+    backgroundColor: C.hairline,
+    height: hairlineWidth,
+    marginBottom: 18,
+    marginTop: 6
+  },
+  scanActionCard: {
+    borderColor: palette.forestPale
+  },
+  inlineTextButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingTop: 8
+  },
+  inlineTextButtonText: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  scannerShortcut: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 18,
+    minHeight: 50,
+    paddingHorizontal: 14
+  },
+  scannerShortcutText: {
+    color: colors.accent,
+    flex: 1,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
   }
 });
