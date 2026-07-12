@@ -55,7 +55,11 @@ export type DayPlanReasonCode =
   | 'missing_nutrition_data'
   | 'missing_movement_data'
   | 'missing_readiness_data'
-  | 'low_confidence_inputs';
+  | 'low_confidence_inputs'
+  | 'manual_schedule_block'
+  | 'demo_schedule_data'
+  | 'user_fixed_block'
+  | 'user_flexible_block';
 
 export type DayScheduleBlock = {
   id: string;
@@ -142,4 +146,3 @@ export type DayPlanResult = {
   reason_codes: DayPlanReasonCode[];
   missing_data: string[];
 };
-

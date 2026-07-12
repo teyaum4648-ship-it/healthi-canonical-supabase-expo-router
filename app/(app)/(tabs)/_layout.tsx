@@ -42,6 +42,13 @@ export default function AppTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="plan"
+        options={{
+          title: 'Plan',
+          tabBarIcon: tabIcon('calendar-outline', 'calendar')
+        }}
+      />
+      <Tabs.Screen
         name="movement"
         options={{
           title: 'Move',
