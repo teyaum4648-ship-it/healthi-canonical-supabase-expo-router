@@ -6,6 +6,13 @@ export { generateNutritionReadinessSignal } from './generateNutritionReadinessSi
 export { getFoodPatternResultCopy } from './foodPatternResultCopy';
 export { adaptScannedProductToMealLog } from './scannerAdapter';
 export { scoreFoodPatternMealResponse, updateFoodPatternProfileFromResponse } from './updateFoodPatternProfileFromResponse';
+export {
+  detectProductCategory,
+  recommendProductAlternatives,
+  scoreProductLabel,
+  searchScoredProducts,
+  splitIngredientList
+} from './productScoring';
 export type { AdaptScannedProductParams, ScannedProductInput, ScannedProductNutriments } from './scannerAdapter';
 export type {
   FoodPatternAnswers,
@@ -34,3 +41,12 @@ export type {
   NutritionReasonCode,
   NutritionTargets
 } from './types';
+export type {
+  ProductProcessingTier,
+  ProductScoreFactor,
+  ProductScoreLabel,
+  ProductScoringInput,
+  ProductScoringResult,
+  RankedCatalogProduct,
+  ScoredCatalogProduct
+} from './productScoring';

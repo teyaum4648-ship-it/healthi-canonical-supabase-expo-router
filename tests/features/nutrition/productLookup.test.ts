@@ -12,6 +12,9 @@ const completeProduct = {
   serving_size: '30 g',
   serving_quantity: 30,
   ingredients_text: 'Sugar, hazelnuts, cocoa, milk',
+  labels_tags: ['en:vegetarian'],
+  categories_tags: ['en:chocolate-spreads'],
+  packaging_tags: ['en:glass-jar'],
   nova_group: 4,
   additives_n: 1,
   nutriments: {
@@ -41,6 +44,9 @@ describe('product lookup and quality', () => {
       sugar_g: 16.9,
       sodium_mg: 12.9
     });
+    expect(product?.categories_tags).toEqual(['chocolate spreads']);
+    expect(product?.packaging_tags).toEqual(['glass jar']);
+    expect(product?.nutriments_per_100g).toMatchObject({ sugar_g: 56.3, protein_g: 6.3, sodium_mg: 43 });
     expect(product?.quality_flags).toContain('ultra_processed_indicator');
     expect(product?.reason_codes).toContain('product_label_data');
   });
@@ -97,20 +103,23 @@ describe('product lookup and quality', () => {
       }
     })!;
     const supportive = calculateProductQuality(base);
-    const steady = calculateProductQuality({ ...base, protein_g: 9, fiber_g: 3 });
+    const steady = calculateProductQuality({
+      ...base,
+      ingredients_text: 'Oats, cane sugar, seeds',
+      categories_tags: ['cereal']
+    });
     const watch = calculateProductQuality({
       ...base,
-      protein_g: 2,
-      fiber_g: 1,
-      sugar_g: 24,
-      sodium_mg: 850,
-      saturated_fat_g: 8,
+      ingredients_text: 'Corn, artificial colors, artificial flavor, sugar, maltodextrin',
+      categories_tags: ['chips'],
       quality_flags: ['ultra_processed_indicator']
     });
 
     expect(supportive.label).toBe('supportive');
     expect(steady.label).toBe('steady');
     expect(watch.label).toBe('watch');
+    expect(steady.category_score).not.toBeNull();
+    expect(watch.factors?.length).toBeGreaterThan(0);
   });
 
   it('rejects empty and malformed manual barcodes safely', () => {

@@ -13,6 +13,9 @@ export type OpenFoodFactsProduct = {
   serving_size?: unknown;
   serving_quantity?: unknown;
   ingredients_text?: unknown;
+  labels_tags?: unknown;
+  categories_tags?: unknown;
+  packaging_tags?: unknown;
   nova_group?: unknown;
   additives_n?: unknown;
   nutriments?: unknown;
@@ -29,6 +32,14 @@ function finiteNumber(value: unknown): number | null {
 
 function cleanString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function cleanTagList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item !== 'string' || !item.trim()) return [];
+    return [item.trim().replace(/^[a-z]{2}:/i, '').replace(/-/g, ' ')];
+  });
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -81,6 +92,13 @@ function sodiumPerServingMg(nutriments: Record<string, unknown>, grams: number |
 
   const gramsPer100 = finiteNumber(nutriments.sodium_100g);
   return gramsPer100 === null ? null : round(gramsPer100 * ((grams ?? 100) / 100) * 1000);
+}
+
+function sodiumPer100gMg(nutriments: Record<string, unknown>): number | null {
+  const milligrams = finiteNumber(nutriments.sodium_mg_100g);
+  if (milligrams !== null) return round(milligrams);
+  const grams = finiteNumber(nutriments.sodium_100g);
+  return grams === null ? null : round(grams * 1000);
 }
 
 function pushUnique<T>(values: T[], value: T): void {
@@ -196,6 +214,15 @@ export function normalizeOpenFoodFactsProduct(
     sugar_g: sugar,
     sodium_mg: sodium,
     ingredients_text: ingredients,
+    labels: cleanTagList(product.labels_tags),
+    categories_tags: cleanTagList(product.categories_tags),
+    packaging_tags: cleanTagList(product.packaging_tags),
+    nutriments_per_100g: {
+      sugar_g: round(finiteNumber(nutriments.sugars_100g)),
+      protein_g: round(finiteNumber(nutriments.proteins_100g)),
+      fiber_g: round(finiteNumber(nutriments.fiber_100g)),
+      sodium_mg: sodiumPer100gMg(nutriments)
+    },
     quality_flags: signals.flags,
     confidence: productConfidence(coreCount, providedServingGrams !== null, ingredients !== null),
     reason_codes: reasonCodes

@@ -98,7 +98,24 @@ function qualitySnapshotValue(quality: ProductQualitySnapshot): JsonValue {
     positives: [...quality.positives],
     considerations: [...quality.considerations],
     confidence: quality.confidence,
-    reason_codes: [...quality.reason_codes]
+    reason_codes: [...quality.reason_codes],
+    absolute_score: quality.absolute_score ?? null,
+    category_score: quality.category_score ?? null,
+    category_id: quality.category_id ?? null,
+    category_label: quality.category_label ?? null,
+    processing_tier: quality.processing_tier ?? null,
+    processing_tier_label: quality.processing_tier_label ?? null,
+    factors: (quality.factors ?? []).map((factor) => ({
+      id: factor.id,
+      label: factor.label,
+      points: factor.points,
+      rawPoints: factor.rawPoints,
+      severity: factor.severity,
+      matched: [...factor.matched],
+      explanation: factor.explanation
+    })),
+    limiting_factor: quality.limiting_factor ?? null,
+    scoring_reason_codes: [...(quality.scoring_reason_codes ?? [])]
   };
 }
 

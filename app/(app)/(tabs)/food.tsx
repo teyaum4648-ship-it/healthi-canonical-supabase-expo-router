@@ -1126,6 +1126,14 @@ export default function FoodScreen() {
               <Text style={styles.confidenceLine}>
                 Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {productQuality.confidence}
               </Text>
+              {productQuality.category_score !== null && productQuality.category_score !== undefined ? (
+                <Text style={styles.confidenceLine}>
+                  {productQuality.category_label ?? 'Category'} context: {productQuality.category_score}/100
+                  {productQuality.absolute_score !== null && productQuality.absolute_score !== undefined
+                    ? ` · Overall label pattern: ${productQuality.absolute_score}/100`
+                    : ''}
+                </Text>
+              ) : null}
             </View>
 
             <Text style={styles.fieldLabel}>Why this signal</Text>

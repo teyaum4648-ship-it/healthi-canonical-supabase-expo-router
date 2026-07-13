@@ -30,6 +30,9 @@ const productFields = [
   'serving_size',
   'serving_quantity',
   'ingredients_text',
+  'labels_tags',
+  'categories_tags',
+  'packaging_tags',
   'nova_group',
   'additives_n',
   'nutriments'

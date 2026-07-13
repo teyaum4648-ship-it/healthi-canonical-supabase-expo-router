@@ -3,6 +3,10 @@ import type {
   FoodQualityFlag,
   NutritionReasonCode
 } from '../../../engines/nutrition';
+import type {
+  ProductProcessingTier,
+  ProductScoreFactor
+} from '../../../engines/nutrition/productScoring';
 
 export type ProductProvider = 'open_food_facts' | 'manual' | 'demo';
 
@@ -23,6 +27,15 @@ export type HealthiProductSnapshot = {
   sugar_g?: number | null;
   sodium_mg?: number | null;
   ingredients_text?: string | null;
+  labels?: string[];
+  categories_tags?: string[];
+  packaging_tags?: string[];
+  nutriments_per_100g?: {
+    sugar_g?: number | null;
+    protein_g?: number | null;
+    fiber_g?: number | null;
+    sodium_mg?: number | null;
+  };
   quality_flags: FoodQualityFlag[];
   confidence: DataConfidence;
   reason_codes: NutritionReasonCode[];
@@ -36,6 +49,15 @@ export type ProductQualitySnapshot = {
   considerations: string[];
   confidence: DataConfidence;
   reason_codes: NutritionReasonCode[];
+  absolute_score?: number | null;
+  category_score?: number | null;
+  category_id?: string | null;
+  category_label?: string | null;
+  processing_tier?: ProductProcessingTier | null;
+  processing_tier_label?: string | null;
+  factors?: ProductScoreFactor[];
+  limiting_factor?: { rule_id: string; label: string; cap: number } | null;
+  scoring_reason_codes?: string[];
 };
 
 export type ProductLookupResult =

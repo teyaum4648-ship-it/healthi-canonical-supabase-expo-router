@@ -1,4 +1,5 @@
 import type { DataConfidence, NutritionReasonCode } from '../../../engines/nutrition';
+import { scoreProductLabel } from '../../../engines/nutrition/productScoring';
 import type { HealthiProductSnapshot, ProductQualitySnapshot } from './productLookupTypes';
 
 function clampScore(value: number): number {
@@ -14,7 +15,7 @@ function uniqueReasons(reasons: NutritionReasonCode[]): NutritionReasonCode[] {
   return [...new Set(reasons)];
 }
 
-export function calculateProductQuality(snapshot: HealthiProductSnapshot): ProductQualitySnapshot {
+function calculateNutrientFallback(snapshot: HealthiProductSnapshot): ProductQualitySnapshot {
   const knownNutrients = [
     snapshot.calories_per_serving,
     snapshot.protein_g,
@@ -111,5 +112,76 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
     considerations,
     confidence,
     reason_codes: uniqueReasons(reasons)
+  };
+}
+
+function lowerOf(left: DataConfidence, right: DataConfidence): DataConfidence {
+  const order: Record<DataConfidence, number> = { low: 0, medium: 1, high: 2 };
+  return order[left] <= order[right] ? left : right;
+}
+
+function derivedPer100g(snapshot: HealthiProductSnapshot): NonNullable<HealthiProductSnapshot['nutriments_per_100g']> {
+  if (snapshot.nutriments_per_100g) return { ...snapshot.nutriments_per_100g };
+  const grams = snapshot.serving_quantity_g;
+  const multiplier = typeof grams === 'number' && grams > 0 ? 100 / grams : null;
+  const scale = (value: number | null | undefined): number | null => (
+    multiplier !== null && typeof value === 'number'
+      ? Math.round(value * multiplier * 10) / 10
+      : null
+  );
+  return {
+    sugar_g: scale(snapshot.sugar_g),
+    protein_g: scale(snapshot.protein_g),
+    fiber_g: scale(snapshot.fiber_g),
+    sodium_mg: scale(snapshot.sodium_mg)
+  };
+}
+
+export function calculateProductQuality(snapshot: HealthiProductSnapshot): ProductQualitySnapshot {
+  if (!snapshot.ingredients_text?.trim()) return calculateNutrientFallback(snapshot);
+
+  const scored = scoreProductLabel({
+    name: snapshot.name,
+    ingredientsText: snapshot.ingredients_text,
+    labels: snapshot.labels,
+    categoryTags: snapshot.categories_tags,
+    packaging: snapshot.packaging_tags,
+    nutrimentsPer100g: derivedPer100g(snapshot)
+  });
+  if (scored.displayScore === null) return calculateNutrientFallback(snapshot);
+
+  const positives = scored.factors.filter((factor) => factor.points > 0).map((factor) => factor.explanation);
+  const considerations = scored.factors.filter((factor) => factor.points < 0).map((factor) => factor.explanation);
+  if (positives.length === 0 && scored.tier !== null && scored.tier <= 2) {
+    positives.push('The available ingredient list is short and straightforward.');
+  }
+  if (!snapshot.categories_tags?.length && scored.categoryId === null) {
+    considerations.push('Category context is unavailable, so the score uses the overall label pattern.');
+  }
+
+  const reasons: NutritionReasonCode[] = [...snapshot.reason_codes];
+  if (scored.tier !== null && scored.tier >= 3) reasons.push('processing_level_high');
+  if (scored.label === 'supportive') reasons.push('food_quality_supportive');
+  if (scored.label === 'watch') reasons.push('nutrition_signal_watch');
+
+  return {
+    score: scored.displayScore,
+    label: scored.label,
+    summary: scored.summary,
+    positives,
+    considerations,
+    confidence: lowerOf(snapshot.confidence, scored.confidence),
+    reason_codes: uniqueReasons(reasons),
+    absolute_score: scored.absoluteScore,
+    category_score: scored.categoryScore,
+    category_id: scored.categoryId,
+    category_label: scored.categoryLabel,
+    processing_tier: scored.tier,
+    processing_tier_label: scored.tierLabel,
+    factors: scored.factors,
+    limiting_factor: scored.scoreCap
+      ? { rule_id: scored.scoreCap.ruleId, label: scored.scoreCap.label, cap: scored.scoreCap.cap }
+      : null,
+    scoring_reason_codes: [...scored.reasonCodes]
   };
 }
