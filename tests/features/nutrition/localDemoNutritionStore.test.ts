@@ -3,15 +3,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FoodPatternProfile, MealLog } from '../../../src/engines/nutrition';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
 import type { PostMealResponseLogRow } from '../../../src/features/nutrition/foodPersonalizationPersistence';
+import type { MealLogItemRow } from '../../../src/features/nutrition/mealItemPersistence';
+import type { UserFoodProductRow } from '../../../src/features/nutrition/productLibraryPersistence';
 import {
+  appendLocalDemoMealLogItems,
   appendLocalDemoMealLog,
+  cacheLocalDemoUserFoodProduct,
+  getRecentLocalDemoUserFoodProducts,
+  getSavedLocalDemoUserFoodProducts,
   createEmptyLocalDemoNutritionState,
   deserializeDemoFoodPatternProfile,
+  deserializeDemoMealLogItems,
   deserializeDemoMealLogs,
   deserializeDemoPostMealResponses,
+  deserializeDemoUserFoodProducts,
   serializeDemoFoodPatternProfile,
+  serializeDemoMealLogItems,
   serializeDemoMealLogs,
   serializeDemoPostMealResponses,
+  serializeDemoUserFoodProducts,
   toLocalDemoMealLog
 } from '../../../src/features/nutrition/localDemoNutritionStore';
 
@@ -118,6 +128,80 @@ function createProfile(overrides: Partial<FoodPatternProfile> = {}): FoodPattern
   };
 }
 
+function createProduct(overrides: Partial<UserFoodProductRow> = {}): UserFoodProductRow {
+  return {
+    id: 'local-product-1',
+    user_id: 'demo-user',
+    barcode: '012345678905',
+    provider: 'open_food_facts',
+    provider_product_id: '012345678905',
+    name: 'Protein oats',
+    brand: 'Test Foods',
+    serving_size: '50 g',
+    serving_quantity_g: 50,
+    calories_per_serving: 220,
+    protein_g: 14,
+    carbs_g: 31,
+    fat_g: 6,
+    fiber_g: 5,
+    sugar_g: 7,
+    sodium_mg: 180,
+    saturated_fat_g: 1,
+    ingredients_text: 'Oats, seeds, whey',
+    quality_label: 'supportive',
+    quality_score: 82,
+    quality_confidence: 'high',
+    quality_flags: ['balanced_meal'],
+    quality_reason_codes: ['product_label_data', 'fiber_supportive'],
+    quality_snapshot: { label: 'supportive', score: 82 },
+    is_saved: true,
+    last_used_at: '2026-06-12T12:00:00.000Z',
+    last_scanned_at: '2026-06-12T12:00:00.000Z',
+    source: 'scanner',
+    source_confidence: 'high',
+    created_at: '2026-06-12T12:00:00.000Z',
+    updated_at: '2026-06-12T12:00:00.000Z',
+    ...overrides
+  };
+}
+
+function createMealItem(overrides: Partial<MealLogItemRow> = {}): MealLogItemRow {
+  return {
+    id: 'local-item-1',
+    user_id: 'demo-user',
+    meal_log_id: 'local-meal-1',
+    food_product_id: 'local-product-1',
+    logged_at: '2026-06-12T12:00:00.000Z',
+    meal_type: 'lunch',
+    name: 'Protein oats',
+    brand: 'Test Foods',
+    servings: 1,
+    serving_size: '50 g',
+    serving_quantity_g: 50,
+    calories: 220,
+    protein_g: 14,
+    carbs_g: 31,
+    fat_g: 6,
+    fiber_g: 5,
+    sugar_g: 7,
+    sodium_mg: 180,
+    saturated_fat_g: 1,
+    barcode: '012345678905',
+    provider: 'open_food_facts',
+    provider_product_id: '012345678905',
+    quality_label: 'supportive',
+    quality_score: 82,
+    quality_confidence: 'high',
+    source: 'demo',
+    source_confidence: 'high',
+    reason_codes: ['product_label_data'],
+    metadata: { builder_item_id: 'item-1' },
+    created_at: '2026-06-12T12:00:00.000Z',
+    updated_at: '2026-06-12T12:00:00.000Z',
+    ...overrides
+  };
+}
+
 describe('local demo nutrition store helpers', () => {
   beforeEach(() => {
     storage.clear();
@@ -152,10 +236,14 @@ describe('local demo nutrition store helpers', () => {
     expect(deserializeDemoMealLogs('not-json')).toEqual([]);
     expect(deserializeDemoPostMealResponses(JSON.stringify([{ id: 'missing-required-fields' }]))).toEqual([]);
     expect(deserializeDemoFoodPatternProfile(null)).toBeNull();
+    expect(deserializeDemoUserFoodProducts(null)).toEqual([]);
+    expect(deserializeDemoMealLogItems(null)).toEqual([]);
     expect(createEmptyLocalDemoNutritionState()).toEqual({
       mealLogs: [],
       postMealResponses: [],
-      foodPatternProfile: null
+      foodPatternProfile: null,
+      userFoodProducts: [],
+      mealLogItems: []
     });
   });
 
@@ -197,6 +285,26 @@ describe('local demo nutrition store helpers', () => {
 
     expect(next).toEqual([scannedMeal]);
     expect(deserializeDemoMealLogs(storage.get('healthi:demo:nutrition:mealLogs') ?? null)).toEqual([scannedMeal]);
+  });
+
+  it('persists reusable demo products and detailed meal items', async () => {
+    const product = createProduct();
+    const item = createMealItem();
+    const products = await cacheLocalDemoUserFoodProduct(product);
+    const items = await appendLocalDemoMealLogItems([item]);
+
+    expect(products).toEqual([product]);
+    expect(items).toEqual([item]);
+    expect(deserializeDemoUserFoodProducts(serializeDemoUserFoodProducts(products))).toEqual([product]);
+    expect(deserializeDemoMealLogItems(serializeDemoMealLogItems(items))).toEqual([item]);
+  });
+
+  it('returns saved and recent demo foods in a stable order', async () => {
+    await cacheLocalDemoUserFoodProduct(createProduct({ id: 'older', is_saved: false, last_used_at: '2026-06-12T08:00:00.000Z' }));
+    await cacheLocalDemoUserFoodProduct(createProduct({ id: 'newer', barcode: '123456789012', is_saved: true, last_used_at: '2026-06-12T13:00:00.000Z' }));
+
+    await expect(getRecentLocalDemoUserFoodProducts()).resolves.toMatchObject([{ id: 'newer' }, { id: 'older' }]);
+    await expect(getSavedLocalDemoUserFoodProducts()).resolves.toMatchObject([{ id: 'newer' }]);
   });
 
   it('does not introduce blocked language in local demo nutrition payloads', () => {

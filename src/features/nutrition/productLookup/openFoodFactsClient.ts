@@ -1,6 +1,6 @@
 import { validateBarcode } from './barcodeUtils';
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
-import type { ProductLookupResult } from './productLookupTypes';
+import type { HealthiProductSnapshot, ProductLookupResult } from './productLookupTypes';
 
 type FetchResponse = {
   ok: boolean;
@@ -12,6 +12,11 @@ export type ProductLookupFetch = (url: string, init?: { headers?: Record<string,
 export type OpenFoodFactsLookupOptions = {
   fetcher?: ProductLookupFetch;
 };
+
+export type ProductSearchResult =
+  | { status: 'found'; products: HealthiProductSnapshot[] }
+  | { status: 'empty'; products: HealthiProductSnapshot[]; message: string }
+  | { status: 'error'; products: HealthiProductSnapshot[]; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -106,5 +111,46 @@ export async function lookupOpenFoodFactsProduct(
       code: 'network_error',
       message: 'Product lookup could not connect. Check your connection or log the meal manually.'
     };
+  }
+}
+
+export async function searchOpenFoodFactsProducts(
+  query: string,
+  options: OpenFoodFactsLookupOptions = {}
+): Promise<ProductSearchResult> {
+  const searchTerms = query.trim();
+  if (searchTerms.length < 2) {
+    return { status: 'empty', products: [], message: 'Enter at least two letters to search foods.' };
+  }
+
+  const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
+  const url = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=&search_terms=${encodeURIComponent(searchTerms)}&fields=${productFields}&page_size=12`;
+
+  try {
+    const response = await fetcher(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) {
+      return { status: 'error', products: [], message: 'Food search is unavailable right now. You can add the product manually.' };
+    }
+
+    const payload = await response.json();
+    if (!isRecord(payload) || !Array.isArray(payload.products)) {
+      return { status: 'error', products: [], message: 'Food search returned an unreadable result. You can add the product manually.' };
+    }
+
+    const products = payload.products.flatMap((candidate) => {
+      if (!isRecord(candidate)) return [];
+      const barcode = typeof candidate.code === 'string' ? candidate.code.trim() : '';
+      if (!barcode) return [];
+      const normalized = normalizeOpenFoodFactsProduct(barcode, candidate as OpenFoodFactsProduct);
+      return normalized ? [normalized] : [];
+    });
+
+    if (products.length === 0) {
+      return { status: 'empty', products: [], message: 'No readable foods matched that search. You can add one manually.' };
+    }
+
+    return { status: 'found', products };
+  } catch {
+    return { status: 'error', products: [], message: 'Food search could not connect. You can add the product manually.' };
   }
 }

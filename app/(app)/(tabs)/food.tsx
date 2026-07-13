@@ -52,11 +52,35 @@ import {
 } from '../../../src/features/nutrition/foodTabForms';
 import {
   appendLocalDemoMealLog,
+  appendLocalDemoMealLogItems,
   appendLocalDemoPostMealResponse,
+  cacheLocalDemoUserFoodProduct,
   getLocalDemoNutritionState,
   saveLocalDemoFoodPatternProfile,
-  saveLocalDemoMealLogs
+  saveLocalDemoMealLogs,
+  updateLocalDemoUserFoodProduct
 } from '../../../src/features/nutrition/localDemoNutritionStore';
+import {
+  addMealBuilderItem,
+  calculateMealBuilderTotals,
+  createEmptyManualProductForm,
+  createEmptyMealBuilder,
+  mealBuilderItemToPersistenceInput,
+  mealBuilderToAggregateMealLog,
+  removeMealBuilderItem,
+  updateMealBuilderItemServings,
+  userFoodProductRowToSnapshot,
+  validateManualProductForm,
+  type ManualProductFormState,
+  type MealBuilderState
+} from '../../../src/features/nutrition/mealBuilder';
+import {
+  saveMealLogItems,
+  toMealLogItemInsert,
+  getMealLogItemsForDate,
+  type MealItemSupabaseClient,
+  type MealLogItemRow
+} from '../../../src/features/nutrition/mealItemPersistence';
 import {
   getActiveNutritionTarget,
   getMealLogsForDate,
@@ -71,8 +95,18 @@ import {
   type BarcodeScanStamp
 } from '../../../src/features/nutrition/productLookup/barcodeUtils';
 import { lookupOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
+import { searchOpenFoodFactsProducts } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
 import type { HealthiProductSnapshot } from '../../../src/features/nutrition/productLookup/productLookupTypes';
+import {
+  getRecentUserFoodProducts,
+  getSavedUserFoodProducts,
+  markUserFoodProductSaved,
+  upsertUserFoodProductFromSnapshot,
+  updateUserFoodProductLastUsed,
+  type ProductLibrarySupabaseClient,
+  type UserFoodProductRow
+} from '../../../src/features/nutrition/productLibraryPersistence';
 import {
   normalizeServingQuantity,
   scannedProductToMealLog
@@ -117,7 +151,7 @@ const defaultTargets: NutritionTargets = {
   basis: ['default']
 };
 
-const segments = ['Today', 'Log Meal', 'Response Log', 'Food Pattern Test', 'Insights'] as const;
+const segments = ['Today', 'Build Meal', 'Log Meal', 'Response Log', 'Food Pattern Test', 'Insights'] as const;
 type Segment = typeof segments[number];
 
 function dateKey(value: string): string {
@@ -189,6 +223,54 @@ function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets {
     confidence: row.confidence,
     basis: row.basis
   };
+}
+
+function createLocalDemoProductRow(
+  snapshot: HealthiProductSnapshot,
+  source: UserFoodProductRow['source'],
+  isSaved = false
+): UserFoodProductRow {
+  const now = new Date().toISOString();
+  const quality = calculateProductQuality(snapshot);
+
+  return {
+    id: `local-food-product-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    user_id: 'demo-user',
+    barcode: snapshot.barcode.trim() || null,
+    provider: snapshot.provider,
+    provider_product_id: snapshot.provider_product_id ?? null,
+    name: snapshot.name,
+    brand: snapshot.brand ?? null,
+    serving_size: snapshot.serving_size ?? null,
+    serving_quantity_g: snapshot.serving_quantity_g ?? null,
+    calories_per_serving: snapshot.calories_per_serving ?? null,
+    protein_g: snapshot.protein_g ?? null,
+    carbs_g: snapshot.carbs_g ?? null,
+    fat_g: snapshot.fat_g ?? null,
+    fiber_g: snapshot.fiber_g ?? null,
+    sugar_g: snapshot.sugar_g ?? null,
+    sodium_mg: snapshot.sodium_mg ?? null,
+    saturated_fat_g: snapshot.saturated_fat_g ?? null,
+    ingredients_text: snapshot.ingredients_text ?? null,
+    quality_label: quality.label,
+    quality_score: quality.score,
+    quality_confidence: quality.confidence,
+    quality_flags: [...snapshot.quality_flags],
+    quality_reason_codes: [...quality.reason_codes],
+    quality_snapshot: JSON.parse(JSON.stringify(quality)) as UserFoodProductRow['quality_snapshot'],
+    is_saved: isSaved,
+    last_used_at: now,
+    last_scanned_at: source === 'scanner' ? now : null,
+    source,
+    source_confidence: snapshot.confidence,
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function formatMacroProgress(current: number | null | undefined, target: number | null | undefined, suffix = ''): string {
+  if (typeof current !== 'number') return '-';
+  return typeof target === 'number' ? `${Math.round(current)} / ${Math.round(target)}${suffix}` : `${Math.round(current)}${suffix}`;
 }
 
 function profileRowToProfile(row: NonNullable<Awaited<ReturnType<typeof getActiveFoodPatternProfile>>>): FoodPatternProfile {
@@ -349,6 +431,34 @@ function Metric({ label, value, tone = colors.text }: { label: string; value: st
   );
 }
 
+function MacroProgress({
+  label,
+  current,
+  target,
+  suffix = 'g'
+}: {
+  label: string;
+  current: number | null | undefined;
+  target: number | null | undefined;
+  suffix?: string;
+}) {
+  const ratio = typeof current === 'number' && typeof target === 'number' && target > 0
+    ? Math.min(current / target, 1)
+    : 0;
+
+  return (
+    <View style={styles.macroProgressRow}>
+      <View style={styles.rowBetween}>
+        <Text style={styles.macroProgressLabel}>{label}</Text>
+        <Text style={styles.macroProgressValue}>{formatMacroProgress(current, target, suffix)}</Text>
+      </View>
+      <View style={styles.macroTrack}>
+        <View style={[styles.macroFill, { width: `${ratio * 100}%` }]} />
+      </View>
+    </View>
+  );
+}
+
 export default function FoodScreen() {
   const { session } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -375,6 +485,16 @@ export default function FoodScreen() {
   const [scannerMealName, setScannerMealName] = useState('');
   const [isLookingUpProduct, setIsLookingUpProduct] = useState(false);
   const [isSavingScannedMeal, setIsSavingScannedMeal] = useState(false);
+  const [scannerDestination, setScannerDestination] = useState<'log' | 'builder'>('log');
+  const [mealBuilder, setMealBuilder] = useState<MealBuilderState>(() => createEmptyMealBuilder());
+  const [manualProductForm, setManualProductForm] = useState<ManualProductFormState>(() => createEmptyManualProductForm());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<HealthiProductSnapshot[]>([]);
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const [builderMessage, setBuilderMessage] = useState('Add foods to build one meal with clear totals.');
+  const [isSavingBuilder, setIsSavingBuilder] = useState(false);
+  const [productLibrary, setProductLibrary] = useState<UserFoodProductRow[]>([]);
+  const [mealLogItems, setMealLogItems] = useState<MealLogItemRow[]>([]);
   const lastBarcodeScan = useRef<BarcodeScanStamp | null>(null);
 
   const userId = session?.user.id ?? null;
@@ -403,6 +523,8 @@ export default function FoodScreen() {
     () => scannerProduct ? calculateProductQuality(scannerProduct) : null,
     [scannerProduct]
   );
+  const mealBuilderTotals = useMemo(() => calculateMealBuilderTotals(mealBuilder.items), [mealBuilder.items]);
+  const savedProducts = useMemo(() => productLibrary.filter((product) => product.is_saved), [productLibrary]);
 
   useEffect(() => {
     if (!canUseRemote || !userId) return;
@@ -410,6 +532,8 @@ export default function FoodScreen() {
     let isMounted = true;
     const nutritionClient = supabase as unknown as NutritionSupabaseClient;
     const foodClient = supabase as unknown as FoodPersonalizationSupabaseClient;
+    const productClient = supabase as unknown as ProductLibrarySupabaseClient;
+    const itemClient = supabase as unknown as MealItemSupabaseClient;
 
     setIsLoadingRemote(true);
     Promise.all([
@@ -433,6 +557,27 @@ export default function FoodScreen() {
         if (isMounted) setIsLoadingRemote(false);
       });
 
+    // The V2 detail tables can be migrated independently from existing meal logs.
+    // Keep the established Food tab usable when a local Supabase project has not applied 0007 yet.
+    Promise.all([
+      getRecentUserFoodProducts(productClient, userId, 18),
+      getSavedUserFoodProducts(productClient, userId, 30),
+      getMealLogItemsForDate(itemClient, userId, today)
+    ])
+      .then(([recentProducts, savedProducts, savedItems]) => {
+        if (!isMounted) return;
+        const mergedProducts = [...recentProducts, ...savedProducts].filter(
+          (product, index, list) => list.findIndex((candidate) => candidate.id === product.id) === index
+        );
+        setProductLibrary(mergedProducts);
+        setMealLogItems(savedItems);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setProductLibrary([]);
+        setMealLogItems([]);
+      });
+
     return () => {
       isMounted = false;
     };
@@ -450,6 +595,8 @@ export default function FoodScreen() {
         setMeals(state.mealLogs);
         setResponses(state.postMealResponses);
         setActiveProfile(state.foodPatternProfile);
+        setProductLibrary(state.userFoodProducts);
+        setMealLogItems(state.mealLogItems);
         setStatus(state.mealLogs.length > 0 ? 'Loaded local demo food data.' : 'Food response is still calibrating.');
       })
       .catch(() => {
@@ -481,7 +628,183 @@ export default function FoodScreen() {
     );
   }
 
-  function openScanner() {
+  async function cacheProductSnapshot(
+    snapshot: HealthiProductSnapshot,
+    source: UserFoodProductRow['source']
+  ): Promise<UserFoodProductRow | null> {
+    const now = new Date().toISOString();
+    const quality = calculateProductQuality(snapshot);
+
+    try {
+      if (canUseRemote && userId) {
+        const product = await upsertUserFoodProductFromSnapshot(
+          supabase as unknown as ProductLibrarySupabaseClient,
+          userId,
+          {
+            ...snapshot,
+            quality,
+            source,
+            last_used_at: now,
+            last_scanned_at: source === 'scanner' ? now : null
+          }
+        );
+        setProductLibrary((current) => [product, ...current.filter((item) => item.id !== product.id)]);
+        return product;
+      }
+
+      const product = createLocalDemoProductRow(snapshot, source);
+      const nextProducts = await cacheLocalDemoUserFoodProduct(product);
+      setProductLibrary(nextProducts);
+      return nextProducts.find((item) => item.id === product.id) ?? product;
+    } catch {
+      return null;
+    }
+  }
+
+  async function addSnapshotToMealBuilder(
+    snapshot: HealthiProductSnapshot,
+    source: 'manual' | 'scanner' | 'search' | 'saved_food',
+    servings = 1
+  ) {
+    const product = await cacheProductSnapshot(snapshot, source === 'scanner' ? 'scanner' : snapshot.provider);
+    setMealBuilder((current) => addMealBuilderItem(current, {
+      snapshot,
+      productId: product?.id ?? null,
+      source,
+      servings
+    }));
+    setBuilderMessage(product
+      ? `${snapshot.name} is in this meal.`
+      : `${snapshot.name} is in this meal. Product library sync can retry later.`);
+  }
+
+  async function handleSearchProducts() {
+    setIsSearchingProducts(true);
+    const result = await searchOpenFoodFactsProducts(searchQuery);
+    setSearchResults(result.products);
+    setBuilderMessage(result.status === 'found' ? 'Choose a result to add it to this meal.' : result.message);
+    setIsSearchingProducts(false);
+  }
+
+  async function handleAddManualProduct() {
+    const validation = validateManualProductForm(manualProductForm);
+    if (!validation.valid) {
+      setBuilderMessage(validation.message);
+      return;
+    }
+    await addSnapshotToMealBuilder(validation.snapshot, 'manual');
+    setManualProductForm(createEmptyManualProductForm());
+  }
+
+  async function handleToggleSavedProduct(product: UserFoodProductRow) {
+    try {
+      const nextSaved = !product.is_saved;
+      if (canUseRemote && userId) {
+        const saved = await markUserFoodProductSaved(
+          supabase as unknown as ProductLibrarySupabaseClient,
+          userId,
+          product.id,
+          nextSaved
+        );
+        setProductLibrary((current) => current.map((item) => item.id === saved.id ? saved : item));
+      } else {
+        const nextProducts = await updateLocalDemoUserFoodProduct(product.id, { is_saved: nextSaved });
+        setProductLibrary(nextProducts);
+      }
+    } catch {
+      setBuilderMessage('This saved-food change could not sync yet. Your meal is unchanged.');
+    }
+  }
+
+  async function handleSaveBuiltMeal() {
+    if (mealBuilder.items.length === 0) {
+      setBuilderMessage('Add at least one food before saving this meal.');
+      return;
+    }
+
+    setIsSavingBuilder(true);
+    const loggedAt = new Date().toISOString();
+    const meal = mealBuilderToAggregateMealLog(mealBuilder, loggedAt, !canUseRemote);
+
+    try {
+      if (canUseRemote && userId) {
+        const savedMeal = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
+        const nextMeal = mealRowToMealLog(savedMeal);
+        setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: savedMeal.id }));
+
+        try {
+          const savedItems = await saveMealLogItems(
+            supabase as unknown as MealItemSupabaseClient,
+            userId,
+            mealBuilder.items.map((item) => mealBuilderItemToPersistenceInput(item, savedMeal.id, loggedAt, mealBuilder.meal_type))
+          );
+          setMealLogItems((current) => [...savedItems, ...current]);
+          await Promise.all(
+            mealBuilder.items
+              .filter((item) => item.food_product_id)
+              .map((item) => updateUserFoodProductLastUsed(
+                supabase as unknown as ProductLibrarySupabaseClient,
+                userId,
+                item.food_product_id as string,
+                loggedAt
+              ).catch(() => null))
+          );
+          setStatus('Meal saved. Today’s fueling totals have been updated.');
+        } catch {
+          setStatus('Meal saved. Item detail will retry when product storage is available.');
+        }
+      } else {
+        const localMeal = { ...meal, id: `local-built-meal-${Date.now()}` };
+        const localItems = mealBuilder.items.map((item, index) => ({
+          ...toMealLogItemInsert(
+            mealBuilderItemToPersistenceInput(item, localMeal.id ?? null, loggedAt, mealBuilder.meal_type, true),
+            'demo-user'
+          ),
+          id: `local-built-meal-item-${Date.now()}-${index + 1}`,
+          created_at: loggedAt,
+          updated_at: loggedAt
+        }));
+        await Promise.all([
+          appendLocalDemoMealLog(localMeal),
+          appendLocalDemoMealLogItems(localItems)
+        ]);
+        setMeals((current) => [localMeal, ...current.filter((item) => item.id !== localMeal.id)]);
+        setMealLogItems((current) => [...localItems, ...current]);
+        setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
+        setStatus('Meal saved locally. Today’s fueling totals have been updated.');
+      }
+
+      setMealBuilder(createEmptyMealBuilder());
+      setSearchResults([]);
+      setSearchQuery('');
+      setBuilderMessage('Meal saved. Build another meal whenever you are ready.');
+      setActiveSegment('Today');
+    } catch {
+      setBuilderMessage('This meal could not be saved. Your items are still here so you can try again.');
+    } finally {
+      setIsSavingBuilder(false);
+    }
+  }
+
+  async function handleAddScannerProductToBuilder() {
+    if (!scannerProduct) return;
+    const servingQuantity = normalizeServingQuantity(scannerServingQuantity);
+    if (servingQuantity === null) {
+      setScannerMessage('Enter a serving quantity greater than 0 and no more than 20.');
+      return;
+    }
+
+    await addSnapshotToMealBuilder(scannerProduct, 'scanner', servingQuantity);
+    setScannerProduct(null);
+    setBarcodeInput('');
+    setScannerServingQuantity('1');
+    closeScanner();
+    setActiveSegment('Build Meal');
+  }
+
+  function openScanner(destination: 'log' | 'builder' = 'log') {
+    setScannerDestination(destination);
     setScannerOpen(true);
     setCameraOpen(false);
     setScannerMessage('Scan a barcode or enter its numbers below.');
@@ -560,6 +883,7 @@ export default function FoodScreen() {
     });
 
     try {
+      await cacheProductSnapshot(scannerProduct, 'scanner');
       if (canUseRemote && userId) {
         const saved = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
         const nextMeal = mealRowToMealLog(saved);
@@ -842,10 +1166,19 @@ export default function FoodScreen() {
               ))}
             </View>
             <PrimaryButton
-              label="Add to Meal"
+              label={scannerDestination === 'builder' ? 'Add to Meal Builder' : 'Log this food now'}
               loading={isSavingScannedMeal}
-              onPress={() => void handleSaveScannedMeal()}
+              onPress={() => void (scannerDestination === 'builder' ? handleAddScannerProductToBuilder() : handleSaveScannedMeal())}
             />
+            {scannerDestination !== 'builder' ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void handleAddScannerProductToBuilder()}
+                style={({ pressed }) => [styles.inlineTextButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.inlineTextButtonText}>Add to Meal Builder instead</Text>
+              </Pressable>
+            ) : null}
           </Card>
         ) : null}
       </View>
@@ -878,6 +1211,19 @@ export default function FoodScreen() {
           </View>
         </Card>
 
+        <Card>
+          <View style={styles.rowBetween}>
+            <Text style={styles.cardTitle}>Macro Progress</Text>
+            <Text style={styles.qualityLabel}>{targets.confidence === 'low' ? 'Optional targets' : 'Based on your targets'}</Text>
+          </View>
+          <MacroProgress current={nutrientSummary.calories} label="Calories" suffix="" target={targets.calories_target} />
+          <MacroProgress current={nutrientSummary.protein_g} label="Protein" target={targets.protein_g_target} />
+          <MacroProgress current={nutrientSummary.carbs_g} label="Carbs" target={targets.carbs_g_target} />
+          <MacroProgress current={nutrientSummary.fat_g} label="Fat" target={targets.fat_g_target} />
+          <MacroProgress current={nutrientSummary.fiber_g} label="Fiber" target={targets.fiber_g_target} />
+          <Text style={styles.confidenceLine}>Based on logged meals. Macro targets are optional and can be adjusted later.</Text>
+        </Card>
+
         <Card style={styles.scanActionCard}>
           <View style={styles.scannerIntroRow}>
             <View style={styles.scannerIcon}>
@@ -888,7 +1234,14 @@ export default function FoodScreen() {
               <Text style={styles.body}>Pull available label data into today’s meal log.</Text>
             </View>
           </View>
-          <PrimaryButton label="Scan Food" onPress={openScanner} />
+          <PrimaryButton label="Scan Food" onPress={() => openScanner()} />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setActiveSegment('Build Meal')}
+            style={({ pressed }) => [styles.inlineTextButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.inlineTextButtonText}>Build a multi-item meal</Text>
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => setActiveSegment('Log Meal')}
@@ -934,6 +1287,198 @@ export default function FoodScreen() {
     );
   }
 
+  function renderMealBuilder() {
+    const recentProducts = productLibrary
+      .slice()
+      .sort((left, right) => (right.last_used_at ?? right.updated_at).localeCompare(left.last_used_at ?? left.updated_at))
+      .slice(0, 6);
+
+    return (
+      <View style={styles.stack}>
+        <SectionTitle
+          eyebrow="Meal builder"
+          title="Build Meal"
+          body="Add foods, adjust servings, then save one complete meal to today."
+        />
+
+        <Card style={styles.builderCard}>
+          <Field
+            label="Meal name"
+            onChangeText={(value) => setMealBuilder((current) => ({ ...current, name: value }))}
+            placeholder="Lunch bowl"
+            value={mealBuilder.name}
+          />
+          <Text style={styles.fieldLabel}>Meal type</Text>
+          <View style={styles.chipWrap}>
+            {mealTypes.map((type) => (
+              <Chip
+                key={type}
+                label={displayLabel(type)}
+                onPress={() => setMealBuilder((current) => ({ ...current, meal_type: type }))}
+                selected={mealBuilder.meal_type === type}
+              />
+            ))}
+          </View>
+          <Text style={styles.builderMessage}>{builderMessage}</Text>
+        </Card>
+
+        <Card>
+          <View style={styles.rowBetween}>
+            <View>
+              <Text style={styles.cardTitle}>Add Food</Text>
+              <Text style={styles.body}>Scan a package, search label data, or enter nutrition facts.</Text>
+            </View>
+            <View style={styles.scannerIcon}>
+              <Ionicons color={colors.accent} name="add" size={22} />
+            </View>
+          </View>
+          <PrimaryButton label="Scan Food" onPress={() => openScanner('builder')} />
+          <View style={styles.searchRow}>
+            <TextInput
+              onChangeText={setSearchQuery}
+              placeholder="Search packaged foods"
+              placeholderTextColor={colors.textFaint}
+              style={[styles.input, styles.searchInput]}
+              value={searchQuery}
+            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSearchingProducts || searchQuery.trim().length < 2}
+              onPress={() => void handleSearchProducts()}
+              style={({ pressed }) => [styles.searchButton, (isSearchingProducts || searchQuery.trim().length < 2) && styles.disabled, pressed && styles.pressed]}
+            >
+              {isSearchingProducts ? <ActivityIndicator color={palette.paper} /> : <Ionicons color={palette.paper} name="search" size={18} />}
+            </Pressable>
+          </View>
+          {searchResults.map((product) => {
+            const quality = calculateProductQuality(product);
+            return (
+              <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.libraryRow}>
+                <View style={styles.libraryCopy}>
+                  <Text numberOfLines={1} style={styles.libraryName}>{product.name}</Text>
+                  <Text numberOfLines={1} style={styles.libraryMeta}>{[product.brand, product.serving_size].filter(Boolean).join(' · ') || 'Available label data'}</Text>
+                  <Text style={styles.librarySignal}>{displayLabel(quality.label)} · {formatProductAmount(product.calories_per_serving)} cal</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void addSnapshotToMealBuilder(product, 'search')}
+                  style={({ pressed }) => [styles.addIconButton, pressed && styles.pressed]}
+                >
+                  <Ionicons color={colors.accent} name="add" size={20} />
+                </Pressable>
+              </View>
+            );
+          })}
+        </Card>
+
+        {recentProducts.length > 0 || savedProducts.length > 0 ? (
+          <Card>
+            <Text style={styles.cardTitle}>Recent Foods</Text>
+            <Text style={styles.body}>Reuse foods from your recent scans and meal builds.</Text>
+            <View style={styles.libraryList}>
+              {recentProducts.map((product) => {
+                const snapshot = userFoodProductRowToSnapshot(product);
+                return (
+                  <View key={product.id} style={styles.libraryRow}>
+                    <View style={styles.libraryCopy}>
+                      <Text numberOfLines={1} style={styles.libraryName}>{product.name}</Text>
+                      <Text numberOfLines={1} style={styles.libraryMeta}>{[product.brand, product.serving_size].filter(Boolean).join(' · ') || 'Saved nutrition facts'}</Text>
+                      <Text style={styles.librarySignal}>{displayLabel(product.quality_label ?? 'calibrating')} · {formatProductAmount(product.calories_per_serving)} cal</Text>
+                    </View>
+                    <Pressable
+                      accessibilityLabel={product.is_saved ? `Remove ${product.name} from saved foods` : `Save ${product.name}`}
+                      accessibilityRole="button"
+                      onPress={() => void handleToggleSavedProduct(product)}
+                      style={({ pressed }) => [styles.smallIconButton, pressed && styles.pressed]}
+                    >
+                      <Ionicons color={product.is_saved ? colors.accent : colors.textFaint} name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={18} />
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel={`Add ${product.name} to meal`}
+                      accessibilityRole="button"
+                      onPress={() => void addSnapshotToMealBuilder(snapshot, product.is_saved ? 'saved_food' : 'search')}
+                      style={({ pressed }) => [styles.addIconButton, pressed && styles.pressed]}
+                    >
+                      <Ionicons color={colors.accent} name="add" size={20} />
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+            {savedProducts.length > 0 ? <Text style={styles.confidenceLine}>{savedProducts.length} saved food{savedProducts.length === 1 ? '' : 's'} ready to reuse.</Text> : null}
+          </Card>
+        ) : null}
+
+        <Card>
+          <Text style={styles.cardTitle}>Add Manual Food</Text>
+          <Text style={styles.body}>Useful when label data is missing or you are logging a simple food.</Text>
+          <Field
+            label="Food name"
+            onChangeText={(value) => setManualProductForm((current) => ({ ...current, name: value }))}
+            placeholder="Greek yogurt"
+            value={manualProductForm.name}
+          />
+          <View style={styles.twoCol}>
+            <Field label="Brand" onChangeText={(value) => setManualProductForm((current) => ({ ...current, brand: value }))} style={styles.fieldHalf} value={manualProductForm.brand} />
+            <Field label="Serving size" onChangeText={(value) => setManualProductForm((current) => ({ ...current, serving_size: value }))} placeholder="170 g" style={styles.fieldHalf} value={manualProductForm.serving_size} />
+            <Field keyboardType="numeric" label="Calories" onChangeText={(value) => setManualProductForm((current) => ({ ...current, calories: value }))} style={styles.fieldHalf} value={manualProductForm.calories} />
+            <Field keyboardType="numeric" label="Protein g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, protein_g: value }))} style={styles.fieldHalf} value={manualProductForm.protein_g} />
+            <Field keyboardType="numeric" label="Carbs g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, carbs_g: value }))} style={styles.fieldHalf} value={manualProductForm.carbs_g} />
+            <Field keyboardType="numeric" label="Fat g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, fat_g: value }))} style={styles.fieldHalf} value={manualProductForm.fat_g} />
+            <Field keyboardType="numeric" label="Fiber g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, fiber_g: value }))} style={styles.fieldHalf} value={manualProductForm.fiber_g} />
+            <Field keyboardType="numeric" label="Sugar g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, sugar_g: value }))} style={styles.fieldHalf} value={manualProductForm.sugar_g} />
+            <Field keyboardType="numeric" label="Sodium mg" onChangeText={(value) => setManualProductForm((current) => ({ ...current, sodium_mg: value }))} style={styles.fieldHalf} value={manualProductForm.sodium_mg} />
+          </View>
+          <PrimaryButton label="Add to Meal" onPress={() => void handleAddManualProduct()} />
+        </Card>
+
+        <Card style={styles.mealContentsCard}>
+          <View style={styles.rowBetween}>
+            <View>
+              <Text style={styles.cardTitle}>This Meal</Text>
+              <Text style={styles.body}>{mealBuilder.items.length === 0 ? 'No foods added yet.' : `${mealBuilder.items.length} food${mealBuilder.items.length === 1 ? '' : 's'} ready to save.`}</Text>
+            </View>
+            <Text style={styles.qualityLabel}>{mealBuilder.items.length} item{mealBuilder.items.length === 1 ? '' : 's'}</Text>
+          </View>
+          {mealBuilder.items.map((item) => (
+            <View key={item.id} style={styles.builderItemRow}>
+              <View style={styles.builderItemCopy}>
+                <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
+                <Text style={styles.libraryMeta}>{[item.snapshot.brand, item.snapshot.serving_size].filter(Boolean).join(' · ') || 'Nutrition facts added'}</Text>
+                <Text style={styles.librarySignal}>{displayLabel(item.quality.label)} · {formatProductAmount(item.snapshot.calories_per_serving, ' cal')} per serving</Text>
+              </View>
+              <TextInput
+                keyboardType="numeric"
+                onChangeText={(value) => setMealBuilder((current) => updateMealBuilderItemServings(current, item.id, value))}
+                style={styles.servingsInput}
+                value={String(item.servings)}
+              />
+              <Pressable
+                accessibilityLabel={`Remove ${item.snapshot.name} from meal`}
+                accessibilityRole="button"
+                onPress={() => setMealBuilder((current) => removeMealBuilderItem(current, item.id))}
+                style={({ pressed }) => [styles.smallIconButton, pressed && styles.pressed]}
+              >
+                <Ionicons color={colors.textMuted} name="close" size={18} />
+              </Pressable>
+            </View>
+          ))}
+          <View style={styles.productFormDivider} />
+          <View style={styles.metricGrid}>
+            <Metric label="Calories" value={formatProductAmount(mealBuilderTotals.calories)} tone={colors.accent} />
+            <Metric label="Protein" value={formatProductAmount(mealBuilderTotals.protein_g, 'g')} />
+            <Metric label="Carbs" value={formatProductAmount(mealBuilderTotals.carbs_g, 'g')} />
+            <Metric label="Fat" value={formatProductAmount(mealBuilderTotals.fat_g, 'g')} />
+            <Metric label="Fiber" value={formatProductAmount(mealBuilderTotals.fiber_g, 'g')} />
+            <Metric label="Sodium" value={formatProductAmount(mealBuilderTotals.sodium_mg, 'mg')} />
+          </View>
+          <Text style={styles.confidenceLine}>Based on available label data. Macro targets are optional and can be adjusted later.</Text>
+          <PrimaryButton label="Save Meal" loading={isSavingBuilder} onPress={() => void handleSaveBuiltMeal()} />
+        </Card>
+      </View>
+    );
+  }
+
   function renderLogMeal() {
     return (
       <View style={styles.stack}>
@@ -945,7 +1490,7 @@ export default function FoodScreen() {
         <Card>
           <Pressable
             accessibilityRole="button"
-            onPress={openScanner}
+            onPress={() => openScanner()}
             style={({ pressed }) => [styles.scannerShortcut, pressed && styles.pressed]}
           >
             <Ionicons color={colors.accent} name="barcode-outline" size={20} />
@@ -1207,6 +1752,7 @@ export default function FoodScreen() {
 
             {scannerOpen ? renderScanner() : null}
             {!scannerOpen && activeSegment === 'Today' ? renderToday() : null}
+            {!scannerOpen && activeSegment === 'Build Meal' ? renderMealBuilder() : null}
             {!scannerOpen && activeSegment === 'Log Meal' ? renderLogMeal() : null}
             {!scannerOpen && activeSegment === 'Response Log' ? renderResponseLog() : null}
             {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
@@ -1811,6 +2357,140 @@ const styles = StyleSheet.create({
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
+  },
+  builderCard: {
+    borderColor: palette.forestPale
+  },
+  builderMessage: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 2
+  },
+  searchRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16
+  },
+  searchInput: {
+    flex: 1,
+    marginBottom: 0
+  },
+  searchButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: 16,
+    height: 48,
+    justifyContent: 'center',
+    width: 48
+  },
+  libraryList: {
+    marginTop: 12
+  },
+  libraryRow: {
+    alignItems: 'center',
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 72,
+    paddingVertical: 12
+  },
+  libraryCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  libraryName: {
+    color: C.ink,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  libraryMeta: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 3
+  },
+  librarySignal: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
+    marginTop: 3
+  },
+  addIconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40
+  },
+  smallIconButton: {
+    alignItems: 'center',
+    borderColor: C.hairline,
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36
+  },
+  mealContentsCard: {
+    borderColor: palette.forestPale
+  },
+  builderItemRow: {
+    alignItems: 'center',
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 74,
+    paddingVertical: 12
+  },
+  builderItemCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  servingsInput: {
+    backgroundColor: palette.paper,
+    borderColor: C.hairline,
+    borderRadius: 14,
+    borderWidth: 1,
+    color: C.ink,
+    fontFamily: sansMedium,
+    minHeight: 40,
+    paddingHorizontal: 10,
+    textAlign: 'center',
+    width: 52
+  },
+  macroProgressRow: {
+    marginTop: 12
+  },
+  macroProgressLabel: {
+    color: C.sub,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  macroProgressValue: {
+    color: C.ink,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  macroTrack: {
+    backgroundColor: colors.track,
+    borderRadius: 99,
+    height: 5,
+    marginTop: 6,
+    overflow: 'hidden'
+  },
+  macroFill: {
+    backgroundColor: colors.accent,
+    borderRadius: 99,
+    height: '100%'
   },
   scannerShortcut: {
     alignItems: 'center',

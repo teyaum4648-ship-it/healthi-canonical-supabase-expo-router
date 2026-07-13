@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { validateBarcode } from '../../../src/features/nutrition/productLookup/barcodeUtils';
 import { normalizeOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/normalizeProduct';
-import { lookupOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
+import { lookupOpenFoodFactsProduct, searchOpenFoodFactsProducts } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
 
 const completeProduct = {
@@ -53,6 +53,18 @@ describe('product lookup and quality', () => {
       status: 'not_found',
       barcode: '3017620422003',
       message: 'No product was found for this barcode. You can still log it manually.'
+    });
+  });
+
+  it('normalizes searchable product results and handles short searches safely', async () => {
+    const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ products: [completeProduct] }) }));
+    const result = await searchOpenFoodFactsProducts('hazelnut', { fetcher });
+
+    expect(result).toMatchObject({ status: 'found', products: [{ name: 'Hazelnut spread', barcode: '3017620422003' }] });
+    await expect(searchOpenFoodFactsProducts('h', { fetcher })).resolves.toEqual({
+      status: 'empty',
+      products: [],
+      message: 'Enter at least two letters to search foods.'
     });
   });
 

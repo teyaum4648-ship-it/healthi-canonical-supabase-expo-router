@@ -2,21 +2,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { FoodPatternProfile, MealLog } from '../../engines/nutrition';
 import type { PostMealResponseLogRow } from './foodPersonalizationPersistence';
+import type { MealLogItemRow } from './mealItemPersistence';
+import type { UserFoodProductRow } from './productLibraryPersistence';
 
 export const demoNutritionMealLogsKey = 'healthi:demo:nutrition:mealLogs';
 export const demoNutritionPostMealResponsesKey = 'healthi:demo:nutrition:postMealResponses';
 export const demoNutritionFoodPatternProfileKey = 'healthi:demo:nutrition:foodPatternProfile';
+export const demoNutritionUserFoodProductsKey = 'healthi:demo:nutrition:userFoodProducts';
+export const demoNutritionMealLogItemsKey = 'healthi:demo:nutrition:mealLogItems';
 
 export type LocalDemoNutritionState = {
   mealLogs: MealLog[];
   postMealResponses: PostMealResponseLogRow[];
   foodPatternProfile: FoodPatternProfile | null;
+  userFoodProducts: UserFoodProductRow[];
+  mealLogItems: MealLogItemRow[];
 };
 
 const emptyDemoNutritionState: LocalDemoNutritionState = {
   mealLogs: [],
   postMealResponses: [],
-  foodPatternProfile: null
+  foodPatternProfile: null,
+  userFoodProducts: [],
+  mealLogItems: []
 };
 
 function cloneSerializable<T>(value: T): T {
@@ -85,6 +93,41 @@ function isDemoFoodPatternProfile(value: unknown): value is FoodPatternProfile {
   );
 }
 
+function isDemoUserFoodProduct(value: unknown): value is UserFoodProductRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.user_id === 'string' &&
+    typeof value.provider === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.quality_confidence === 'string' &&
+    typeof value.source === 'string' &&
+    typeof value.source_confidence === 'string' &&
+    typeof value.is_saved === 'boolean' &&
+    typeof value.created_at === 'string' &&
+    typeof value.updated_at === 'string' &&
+    isStringArray(value.quality_flags) &&
+    isStringArray(value.quality_reason_codes)
+  );
+}
+
+function isDemoMealLogItem(value: unknown): value is MealLogItemRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.user_id === 'string' &&
+    typeof value.logged_at === 'string' &&
+    typeof value.meal_type === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.servings === 'number' &&
+    typeof value.source === 'string' &&
+    typeof value.source_confidence === 'string' &&
+    typeof value.created_at === 'string' &&
+    typeof value.updated_at === 'string' &&
+    isStringArray(value.reason_codes)
+  );
+}
+
 export function serializeDemoMealLogs(mealLogs: MealLog[]): string {
   return JSON.stringify(mealLogs.map((mealLog) => cloneSerializable(mealLog)));
 }
@@ -118,21 +161,45 @@ export function deserializeDemoFoodPatternProfile(value: string | null): FoodPat
   return cloneSerializable(parsed);
 }
 
+export function serializeDemoUserFoodProducts(products: UserFoodProductRow[]): string {
+  return JSON.stringify(products.map((product) => cloneSerializable(product)));
+}
+
+export function deserializeDemoUserFoodProducts(value: string | null): UserFoodProductRow[] {
+  const parsed = parseJson(value);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isDemoUserFoodProduct).map((product) => cloneSerializable(product));
+}
+
+export function serializeDemoMealLogItems(items: MealLogItemRow[]): string {
+  return JSON.stringify(items.map((item) => cloneSerializable(item)));
+}
+
+export function deserializeDemoMealLogItems(value: string | null): MealLogItemRow[] {
+  const parsed = parseJson(value);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isDemoMealLogItem).map((item) => cloneSerializable(item));
+}
+
 export function toLocalDemoMealLog(mealLog: MealLog): MealLog {
   return cloneSerializable(mealLog);
 }
 
 export async function getLocalDemoNutritionState(): Promise<LocalDemoNutritionState> {
-  const [mealLogs, postMealResponses, foodPatternProfile] = await Promise.all([
+  const [mealLogs, postMealResponses, foodPatternProfile, userFoodProducts, mealLogItems] = await Promise.all([
     AsyncStorage.getItem(demoNutritionMealLogsKey),
     AsyncStorage.getItem(demoNutritionPostMealResponsesKey),
-    AsyncStorage.getItem(demoNutritionFoodPatternProfileKey)
+    AsyncStorage.getItem(demoNutritionFoodPatternProfileKey),
+    AsyncStorage.getItem(demoNutritionUserFoodProductsKey),
+    AsyncStorage.getItem(demoNutritionMealLogItemsKey)
   ]);
 
   return {
     mealLogs: deserializeDemoMealLogs(mealLogs),
     postMealResponses: deserializeDemoPostMealResponses(postMealResponses),
-    foodPatternProfile: deserializeDemoFoodPatternProfile(foodPatternProfile)
+    foodPatternProfile: deserializeDemoFoodPatternProfile(foodPatternProfile),
+    userFoodProducts: deserializeDemoUserFoodProducts(userFoodProducts),
+    mealLogItems: deserializeDemoMealLogItems(mealLogItems)
   };
 }
 
@@ -162,6 +229,66 @@ export async function appendLocalDemoPostMealResponse(response: PostMealResponse
 
 export async function saveLocalDemoFoodPatternProfile(profile: FoodPatternProfile | null): Promise<void> {
   await AsyncStorage.setItem(demoNutritionFoodPatternProfileKey, serializeDemoFoodPatternProfile(profile));
+}
+
+export async function saveLocalDemoUserFoodProducts(products: UserFoodProductRow[]): Promise<void> {
+  await AsyncStorage.setItem(demoNutritionUserFoodProductsKey, serializeDemoUserFoodProducts(products));
+}
+
+export async function cacheLocalDemoUserFoodProduct(product: UserFoodProductRow): Promise<UserFoodProductRow[]> {
+  const current = await getLocalDemoNutritionState();
+  const nextProduct = cloneSerializable(product);
+  const nextProducts = [
+    nextProduct,
+    ...current.userFoodProducts.filter((item) => item.id !== nextProduct.id && (!nextProduct.barcode || item.barcode !== nextProduct.barcode))
+  ];
+  await saveLocalDemoUserFoodProducts(nextProducts);
+  return nextProducts;
+}
+
+export async function updateLocalDemoUserFoodProduct(
+  productId: string,
+  update: Partial<UserFoodProductRow>
+): Promise<UserFoodProductRow[]> {
+  const current = await getLocalDemoNutritionState();
+  const nextProducts = current.userFoodProducts.map((product) =>
+    product.id === productId
+      ? cloneSerializable({ ...product, ...update, id: product.id, user_id: product.user_id, updated_at: new Date().toISOString() })
+      : product
+  );
+  await saveLocalDemoUserFoodProducts(nextProducts);
+  return nextProducts;
+}
+
+export async function getRecentLocalDemoUserFoodProducts(limit = 12): Promise<UserFoodProductRow[]> {
+  const { userFoodProducts } = await getLocalDemoNutritionState();
+  return [...userFoodProducts]
+    .sort((left, right) => (right.last_used_at ?? right.updated_at).localeCompare(left.last_used_at ?? left.updated_at))
+    .slice(0, limit);
+}
+
+export async function getSavedLocalDemoUserFoodProducts(limit = 30): Promise<UserFoodProductRow[]> {
+  const { userFoodProducts } = await getLocalDemoNutritionState();
+  return userFoodProducts.filter((product) => product.is_saved).slice(0, limit);
+}
+
+export async function saveLocalDemoMealLogItems(items: MealLogItemRow[]): Promise<void> {
+  await AsyncStorage.setItem(demoNutritionMealLogItemsKey, serializeDemoMealLogItems(items));
+}
+
+export async function appendLocalDemoMealLogItems(items: MealLogItemRow[]): Promise<MealLogItemRow[]> {
+  const current = await getLocalDemoNutritionState();
+  const ids = new Set(items.map((item) => item.id));
+  const nextItems = [...items.map((item) => cloneSerializable(item)), ...current.mealLogItems.filter((item) => !ids.has(item.id))];
+  await saveLocalDemoMealLogItems(nextItems);
+  return nextItems;
+}
+
+export async function deleteLocalDemoMealLogItem(itemId: string): Promise<MealLogItemRow[]> {
+  const current = await getLocalDemoNutritionState();
+  const nextItems = current.mealLogItems.filter((item) => item.id !== itemId);
+  await saveLocalDemoMealLogItems(nextItems);
+  return nextItems;
 }
 
 export function createEmptyLocalDemoNutritionState(): LocalDemoNutritionState {
