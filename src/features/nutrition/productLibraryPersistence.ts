@@ -99,6 +99,9 @@ function qualitySnapshotValue(quality: ProductQualitySnapshot): JsonValue {
     considerations: [...quality.considerations],
     confidence: quality.confidence,
     reason_codes: [...quality.reason_codes],
+    letter_grade: quality.letter_grade ?? null,
+    grade_band: quality.grade_band ?? 'calibrating',
+    grade_label: quality.grade_label ?? 'Calibrating',
     absolute_score: quality.absolute_score ?? null,
     category_score: quality.category_score ?? null,
     category_id: quality.category_id ?? null,
@@ -112,10 +115,25 @@ function qualitySnapshotValue(quality: ProductQualitySnapshot): JsonValue {
       rawPoints: factor.rawPoints,
       severity: factor.severity,
       matched: [...factor.matched],
-      explanation: factor.explanation
+      explanation: factor.explanation,
+      evidence_refs: [...(factor.evidence_refs ?? [])]
     })),
     limiting_factor: quality.limiting_factor ?? null,
-    scoring_reason_codes: [...(quality.scoring_reason_codes ?? [])]
+    scoring_reason_codes: [...(quality.scoring_reason_codes ?? [])],
+    better_options: (quality.better_options ?? []).map((option) => ({
+      title: option.title,
+      summary: option.summary,
+      criteria: [...option.criteria],
+      reason_codes: [...option.reason_codes]
+    })),
+    evidence_refs: (quality.evidence_refs ?? []).map((reference) => ({
+      id: reference.id,
+      title: reference.title,
+      source: reference.source,
+      year: reference.year ?? null,
+      url: reference.url ?? null,
+      summary: reference.summary
+    }))
   };
 }
 

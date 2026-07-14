@@ -80,7 +80,18 @@ function cloneQuality(quality: ProductQualitySnapshot): ProductQualitySnapshot {
     ...quality,
     positives: [...quality.positives],
     considerations: [...quality.considerations],
-    reason_codes: [...quality.reason_codes]
+    reason_codes: [...quality.reason_codes],
+    factors: quality.factors?.map((factor) => ({
+      ...factor,
+      matched: [...factor.matched],
+      evidence_refs: [...(factor.evidence_refs ?? [])]
+    })),
+    better_options: quality.better_options?.map((option) => ({
+      ...option,
+      criteria: [...option.criteria],
+      reason_codes: [...option.reason_codes]
+    })),
+    evidence_refs: quality.evidence_refs?.map((reference) => ({ ...reference }))
   };
 }
 

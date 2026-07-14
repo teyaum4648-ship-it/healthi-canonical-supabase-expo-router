@@ -109,6 +109,11 @@ describe('product lookup and quality', () => {
     expect(product?.serving_quantity_g).toBe(100);
     expect(product?.reason_codes).toEqual(expect.arrayContaining(['partial_nutrition_data', 'nutrition_calibrating']));
     expect(calculateProductQuality(product!)).toMatchObject({ score: null, label: 'calibrating', confidence: 'low' });
+    expect(calculateProductQuality(product!)).toMatchObject({
+      letter_grade: null,
+      grade_band: 'calibrating',
+      grade_label: 'Calibrating'
+    });
   });
 
   it('returns explainable supportive, steady, and watch labels', () => {
@@ -144,6 +149,11 @@ describe('product lookup and quality', () => {
     expect(watch.label).toBe('watch');
     expect(steady.category_score).not.toBeNull();
     expect(watch.factors?.length).toBeGreaterThan(0);
+    expect(supportive.letter_grade).toBeTruthy();
+    expect(steady.grade_label).toBeTruthy();
+    expect(watch.better_options?.length).toBeGreaterThan(0);
+    expect(watch.evidence_refs?.length).toBeGreaterThan(0);
+    expect(JSON.parse(JSON.stringify(watch))).toEqual(watch);
   });
 
   it('rejects empty and malformed manual barcodes safely', () => {

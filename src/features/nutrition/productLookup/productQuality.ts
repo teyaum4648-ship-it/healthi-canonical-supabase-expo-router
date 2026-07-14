@@ -1,5 +1,13 @@
 import type { DataConfidence, NutritionReasonCode } from '../../../engines/nutrition';
-import { scoreProductLabel } from '../../../engines/nutrition/productScoring';
+import {
+  PRODUCT_EVIDENCE_REFERENCES,
+  detectProductCategory,
+  productBetterOptions,
+  productGradeBand,
+  productGradeLabel,
+  productLetterGrade,
+  scoreProductLabel
+} from '../../../engines/nutrition/productScoring';
 import type { HealthiProductSnapshot, ProductQualitySnapshot } from './productLookupTypes';
 
 function clampScore(value: number): number {
@@ -34,7 +42,12 @@ function calculateNutrientFallback(snapshot: HealthiProductSnapshot): ProductQua
       positives: [],
       considerations: ['Add the available nutrition facts manually for a clearer signal.'],
       confidence: 'low',
-      reason_codes: uniqueReasons([...snapshot.reason_codes, 'partial_nutrition_data', 'nutrition_calibrating'])
+      reason_codes: uniqueReasons([...snapshot.reason_codes, 'partial_nutrition_data', 'nutrition_calibrating']),
+      letter_grade: null,
+      grade_band: 'calibrating',
+      grade_label: 'Calibrating',
+      better_options: [],
+      evidence_refs: []
     };
   }
 
@@ -98,6 +111,9 @@ function calculateNutrientFallback(snapshot: HealthiProductSnapshot): ProductQua
 
   const finalScore = clampScore(score);
   const label = finalScore >= 74 ? 'supportive' : finalScore >= 52 ? 'steady' : 'watch';
+  const letterGrade = productLetterGrade(finalScore);
+  const gradeBand = productGradeBand(letterGrade);
+  const category = detectProductCategory(null, snapshot.name, snapshot.categories_tags);
   const summary = label === 'supportive'
     ? 'Available label data suggests a supportive fueling fit.'
     : label === 'steady'
@@ -111,7 +127,12 @@ function calculateNutrientFallback(snapshot: HealthiProductSnapshot): ProductQua
     positives,
     considerations,
     confidence,
-    reason_codes: uniqueReasons(reasons)
+    reason_codes: uniqueReasons(reasons),
+    letter_grade: letterGrade,
+    grade_band: gradeBand,
+    grade_label: productGradeLabel(gradeBand),
+    better_options: productBetterOptions(finalScore, category?.id ?? null),
+    evidence_refs: [{ ...PRODUCT_EVIDENCE_REFERENCES.fda_daily_values! }]
   };
 }
 
@@ -130,10 +151,12 @@ function derivedPer100g(snapshot: HealthiProductSnapshot): NonNullable<HealthiPr
       : null
   );
   return {
+    calories: scale(snapshot.calories_per_serving),
     sugar_g: scale(snapshot.sugar_g),
     protein_g: scale(snapshot.protein_g),
     fiber_g: scale(snapshot.fiber_g),
-    sodium_mg: scale(snapshot.sodium_mg)
+    sodium_mg: scale(snapshot.sodium_mg),
+    saturated_fat_g: scale(snapshot.saturated_fat_g)
   };
 }
 
@@ -146,15 +169,21 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
     labels: snapshot.labels,
     categoryTags: snapshot.categories_tags,
     packaging: snapshot.packaging_tags,
-    nutrimentsPer100g: derivedPer100g(snapshot)
+    nutrimentsPer100g: derivedPer100g(snapshot),
+    servingNutrients: {
+      calories: snapshot.calories_per_serving,
+      sugar_g: snapshot.sugar_g,
+      protein_g: snapshot.protein_g,
+      fiber_g: snapshot.fiber_g,
+      sodium_mg: snapshot.sodium_mg,
+      saturated_fat_g: snapshot.saturated_fat_g,
+      serving_quantity_g: snapshot.serving_quantity_g
+    }
   });
   if (scored.displayScore === null) return calculateNutrientFallback(snapshot);
 
-  const positives = scored.factors.filter((factor) => factor.points > 0).map((factor) => factor.explanation);
-  const considerations = scored.factors.filter((factor) => factor.points < 0).map((factor) => factor.explanation);
-  if (positives.length === 0 && scored.tier !== null && scored.tier <= 2) {
-    positives.push('The available ingredient list is short and straightforward.');
-  }
+  const positives = [...scored.positives];
+  const considerations = [...scored.considerations];
   if (!snapshot.categories_tags?.length && scored.categoryId === null) {
     considerations.push('Category context is unavailable, so the score uses the overall label pattern.');
   }
@@ -182,6 +211,15 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
     limiting_factor: scored.scoreCap
       ? { rule_id: scored.scoreCap.ruleId, label: scored.scoreCap.label, cap: scored.scoreCap.cap }
       : null,
-    scoring_reason_codes: [...scored.reasonCodes]
+    scoring_reason_codes: [...scored.reasonCodes],
+    letter_grade: scored.letterGrade,
+    grade_band: scored.gradeBand,
+    grade_label: scored.gradeLabel,
+    better_options: scored.better_options.map((option) => ({
+      ...option,
+      criteria: [...option.criteria],
+      reason_codes: [...option.reason_codes]
+    })),
+    evidence_refs: scored.evidence_refs.map((reference) => ({ ...reference }))
   };
 }

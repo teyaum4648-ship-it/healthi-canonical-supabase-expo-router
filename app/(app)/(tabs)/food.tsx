@@ -487,6 +487,8 @@ export default function FoodScreen() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scannerProduct, setScannerProduct] = useState<HealthiProductSnapshot | null>(null);
+  const [showBetterOptions, setShowBetterOptions] = useState(false);
+  const [showProductEvidence, setShowProductEvidence] = useState(false);
   const [scannerMessage, setScannerMessage] = useState('Scan a barcode or enter its numbers below.');
   const [scannerMealType, setScannerMealType] = useState<MealType>('unknown');
   const [scannerServingQuantity, setScannerServingQuantity] = useState('1');
@@ -535,6 +537,11 @@ export default function FoodScreen() {
   );
   const mealBuilderTotals = useMemo(() => calculateMealBuilderTotals(mealBuilder.items), [mealBuilder.items]);
   const savedProducts = useMemo(() => productLibrary.filter((product) => product.is_saved), [productLibrary]);
+
+  useEffect(() => {
+    setShowBetterOptions(false);
+    setShowProductEvidence(false);
+  }, [scannerProduct?.barcode]);
 
   useEffect(() => {
     if (!canUseRemote || !userId) return;
@@ -1155,8 +1162,10 @@ export default function FoodScreen() {
                 </Text>
               </View>
               <View style={styles.qualityScore}>
-                <Text style={styles.qualityScoreValue}>{productQuality.score ?? '-'}</Text>
-                <Text style={styles.qualityScoreLabel}>QUALITY</Text>
+                <Text style={styles.qualityScoreValue}>{productQuality.letter_grade ?? '-'}</Text>
+                <Text style={styles.qualityScoreLabel}>
+                  {productQuality.score === null ? 'CALIBRATING' : `SCORE ${productQuality.score}`}
+                </Text>
               </View>
             </View>
 
@@ -1173,35 +1182,111 @@ export default function FoodScreen() {
             <View style={styles.qualityPanel}>
               <View style={styles.rowBetween}>
                 <Text style={styles.cardTitle}>Food Quality Signal</Text>
-                <Text style={styles.qualityLabel}>{displayLabel(productQuality.label)}</Text>
+                <Text style={styles.qualityLabel}>
+                  {productQuality.letter_grade
+                    ? `${productQuality.letter_grade} · ${productQuality.grade_label ?? displayLabel(productQuality.label)}`
+                    : 'Calibrating'}
+                </Text>
               </View>
               <Text style={styles.body}>{productQuality.summary}</Text>
-              {[...productQuality.positives, ...productQuality.considerations].slice(0, 5).map((item) => (
-                <View key={item} style={styles.signalReasonRow}>
-                  <View style={styles.signalReasonDot} />
-                  <Text style={styles.signalReasonText}>{item}</Text>
+              {productQuality.positives.length > 0 ? (
+                <View style={styles.signalSection}>
+                  <Text style={styles.signalSectionTitle}>WHAT HELPS</Text>
+                  {productQuality.positives.slice(0, 4).map((item) => (
+                    <View key={item} style={styles.signalReasonRow}>
+                      <View style={styles.signalReasonDot} />
+                      <Text style={styles.signalReasonText}>{item}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
+              ) : null}
+              {productQuality.considerations.length > 0 ? (
+                <View style={styles.signalSection}>
+                  <Text style={styles.signalSectionTitle}>WHAT TO CONSIDER</Text>
+                  {productQuality.considerations.slice(0, 5).map((item) => (
+                    <View key={item} style={styles.signalReasonRow}>
+                      <View style={[styles.signalReasonDot, styles.considerationDot]} />
+                      <Text style={styles.signalReasonText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               <Text style={styles.confidenceLine}>
-                Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {productQuality.confidence}
+                Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {displayLabel(productQuality.confidence)}
               </Text>
               {productQuality.category_score !== null && productQuality.category_score !== undefined ? (
                 <Text style={styles.confidenceLine}>
-                  {productQuality.category_label ?? 'Category'} context: {productQuality.category_score}/100
-                  {productQuality.absolute_score !== null && productQuality.absolute_score !== undefined
-                    ? ` · Overall label pattern: ${productQuality.absolute_score}/100`
-                    : ''}
+                  Category comparison: {productQuality.category_score}/100 · The grade above uses the overall score.
                 </Text>
               ) : null}
             </View>
 
-            <Text style={styles.fieldLabel}>Why this signal</Text>
-            <View style={styles.reasonList}>
-              {productQuality.reason_codes.slice(0, 5).map((reason) => (
-                <View key={reason} style={styles.reasonPill}>
-                  <Text style={styles.reasonText}>{displayLabel(reason)}</Text>
-                </View>
-              ))}
+            {(productQuality.better_options?.length ?? 0) > 0 ? (
+              <View style={styles.disclosureBlock}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showBetterOptions }}
+                  onPress={() => setShowBetterOptions((current) => !current)}
+                  style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+                >
+                  <View style={styles.disclosureTitleRow}>
+                    <Ionicons color={colors.accent} name="swap-horizontal-outline" size={18} />
+                    <Text style={styles.disclosureTitle}>Better options</Text>
+                  </View>
+                  <Ionicons
+                    color={C.muted}
+                    name={showBetterOptions ? 'chevron-up-outline' : 'chevron-down-outline'}
+                    size={18}
+                  />
+                </Pressable>
+                {showBetterOptions ? productQuality.better_options?.map((option) => (
+                  <View key={option.title} style={styles.disclosureContent}>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.signalReasonText}>{option.summary}</Text>
+                    {option.criteria.map((criterion) => (
+                      <View key={criterion} style={styles.signalReasonRow}>
+                        <Ionicons color={colors.accentMid} name="checkmark-circle-outline" size={16} />
+                        <Text style={styles.signalReasonText}>{criterion}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )) : null}
+              </View>
+            ) : null}
+
+            {(productQuality.evidence_refs?.length ?? 0) > 0 ? (
+              <View style={styles.disclosureBlock}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showProductEvidence }}
+                  onPress={() => setShowProductEvidence((current) => !current)}
+                  style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+                >
+                  <View style={styles.disclosureTitleRow}>
+                    <Ionicons color={colors.accent} name="information-circle-outline" size={19} />
+                    <Text style={styles.disclosureTitle}>How this is grounded</Text>
+                  </View>
+                  <Ionicons
+                    color={C.muted}
+                    name={showProductEvidence ? 'chevron-up-outline' : 'chevron-down-outline'}
+                    size={18}
+                  />
+                </Pressable>
+                {showProductEvidence ? productQuality.evidence_refs?.map((reference) => (
+                  <View key={reference.id} style={styles.evidenceItem}>
+                    <Text style={styles.optionTitle}>{reference.title}</Text>
+                    <Text style={styles.evidenceSource}>{reference.source}{reference.year ? ` · ${reference.year}` : ''}</Text>
+                    <Text style={styles.signalReasonText}>{reference.summary}</Text>
+                  </View>
+                )) : null}
+              </View>
+            ) : null}
+
+            <View style={styles.personalResponseNote}>
+              <Ionicons color={colors.accentMid} name="pulse-outline" size={18} />
+              <Text style={styles.personalResponseText}>
+                Food quality is only one signal. Your personal food response can change how Healthi recommends this product for you.
+              </Text>
             </View>
 
             <View style={styles.productFormDivider} />
@@ -2349,15 +2434,15 @@ const styles = StyleSheet.create({
   },
   qualityScoreValue: {
     color: colors.accent,
-    fontFamily: sansMedium,
-    fontSize: 23,
-    lineHeight: 27
+    fontFamily: serif,
+    fontSize: 30,
+    lineHeight: 34
   },
   qualityScoreLabel: {
     color: C.muted,
     fontFamily: sansMedium,
-    fontSize: 8,
-    letterSpacing: 1,
+    fontSize: 7,
+    letterSpacing: 0.8,
     lineHeight: 10
   },
   productMetrics: {
@@ -2379,7 +2464,21 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontFamily: sansMedium,
     fontSize: themeType.caption.fontSize,
-    lineHeight: themeType.caption.lineHeight
+    lineHeight: themeType.caption.lineHeight,
+    marginLeft: 12,
+    textAlign: 'right'
+  },
+  signalSection: {
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    marginTop: 14,
+    paddingTop: 12
+  },
+  signalSectionTitle: {
+    ...themeType.eyebrow,
+    color: C.muted,
+    fontSize: 9,
+    lineHeight: 12
   },
   signalReasonRow: {
     alignItems: 'flex-start',
@@ -2394,6 +2493,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     width: 5
   },
+  considerationDot: {
+    backgroundColor: palette.clayDark
+  },
   signalReasonText: {
     ...themeType.caption,
     color: C.sub,
@@ -2403,6 +2505,60 @@ const styles = StyleSheet.create({
     ...themeType.caption,
     color: C.muted,
     marginTop: 13
+  },
+  disclosureBlock: {
+    borderBottomColor: C.hairline,
+    borderBottomWidth: hairlineWidth
+  },
+  disclosureHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    paddingVertical: 9
+  },
+  disclosureTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9
+  },
+  disclosureTitle: {
+    ...themeType.label,
+    color: C.ink
+  },
+  disclosureContent: {
+    paddingBottom: 16,
+    paddingLeft: 27
+  },
+  optionTitle: {
+    ...themeType.label,
+    color: C.ink,
+    marginBottom: 4
+  },
+  evidenceItem: {
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    paddingVertical: 13,
+    paddingLeft: 27
+  },
+  evidenceSource: {
+    ...themeType.caption,
+    color: colors.accent,
+    marginBottom: 5
+  },
+  personalResponseNote: {
+    alignItems: 'flex-start',
+    backgroundColor: colors.accentWash,
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    padding: 13
+  },
+  personalResponseText: {
+    ...themeType.caption,
+    color: C.sub,
+    flex: 1
   },
   productFormDivider: {
     backgroundColor: C.hairline,

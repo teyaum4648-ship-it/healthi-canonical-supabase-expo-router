@@ -51,7 +51,14 @@ describe('product library persistence mapping', () => {
       quality_confidence: quality.confidence,
       quality_reason_codes: quality.reason_codes
     });
-    expect(payload.quality_snapshot).toMatchObject({ label: quality.label, summary: quality.summary });
+    expect(payload.quality_snapshot).toMatchObject({
+      label: quality.label,
+      summary: quality.summary,
+      letter_grade: quality.letter_grade,
+      grade_band: quality.grade_band,
+      evidence_refs: quality.evidence_refs,
+      better_options: quality.better_options
+    });
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
   });
 

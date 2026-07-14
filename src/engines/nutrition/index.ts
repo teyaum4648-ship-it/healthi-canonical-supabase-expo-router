@@ -8,6 +8,10 @@ export { adaptScannedProductToMealLog } from './scannerAdapter';
 export { scoreFoodPatternMealResponse, updateFoodPatternProfileFromResponse } from './updateFoodPatternProfileFromResponse';
 export {
   detectProductCategory,
+  productBetterOptions,
+  productGradeBand,
+  productGradeLabel,
+  productLetterGrade,
   recommendProductAlternatives,
   scoreProductLabel,
   searchScoredProducts,
@@ -43,6 +47,11 @@ export type {
 } from './types';
 export type {
   ProductProcessingTier,
+  ProductBetterOption,
+  ProductEvidenceRef,
+  ProductGradeBand,
+  ProductLetterGrade,
+  ProductNutrients,
   ProductScoreFactor,
   ProductScoreLabel,
   ProductScoringInput,

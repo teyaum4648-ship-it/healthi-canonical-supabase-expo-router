@@ -4,6 +4,10 @@ import type {
   NutritionReasonCode
 } from '../../../engines/nutrition';
 import type {
+  ProductBetterOption,
+  ProductEvidenceRef,
+  ProductGradeBand,
+  ProductLetterGrade,
   ProductProcessingTier,
   ProductScoreFactor
 } from '../../../engines/nutrition/productScoring';
@@ -31,10 +35,12 @@ export type HealthiProductSnapshot = {
   categories_tags?: string[];
   packaging_tags?: string[];
   nutriments_per_100g?: {
+    calories?: number | null;
     sugar_g?: number | null;
     protein_g?: number | null;
     fiber_g?: number | null;
     sodium_mg?: number | null;
+    saturated_fat_g?: number | null;
   };
   quality_flags: FoodQualityFlag[];
   confidence: DataConfidence;
@@ -58,6 +64,11 @@ export type ProductQualitySnapshot = {
   factors?: ProductScoreFactor[];
   limiting_factor?: { rule_id: string; label: string; cap: number } | null;
   scoring_reason_codes?: string[];
+  letter_grade?: ProductLetterGrade | null;
+  grade_band?: ProductGradeBand;
+  grade_label?: string;
+  better_options?: ProductBetterOption[];
+  evidence_refs?: ProductEvidenceRef[];
 };
 
 export type ProductLookupResult =

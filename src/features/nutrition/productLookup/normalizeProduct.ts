@@ -218,10 +218,12 @@ export function normalizeOpenFoodFactsProduct(
     categories_tags: cleanTagList(product.categories_tags),
     packaging_tags: cleanTagList(product.packaging_tags),
     nutriments_per_100g: {
+      calories: round(finiteNumber(nutriments['energy-kcal_100g']) ?? finiteNumber(nutriments.energy_kcal_100g)),
       sugar_g: round(finiteNumber(nutriments.sugars_100g)),
       protein_g: round(finiteNumber(nutriments.proteins_100g)),
       fiber_g: round(finiteNumber(nutriments.fiber_100g)),
-      sodium_mg: sodiumPer100gMg(nutriments)
+      sodium_mg: sodiumPer100gMg(nutriments),
+      saturated_fat_g: round(finiteNumber(nutriments['saturated-fat_100g']))
     },
     quality_flags: signals.flags,
     confidence: productConfidence(coreCount, providedServingGrams !== null, ingredients !== null),
