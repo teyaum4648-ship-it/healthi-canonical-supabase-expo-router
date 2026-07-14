@@ -3,6 +3,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Pressable,
   ScrollView,
@@ -90,6 +91,7 @@ import {
   type NutritionTargetRow
 } from '../../../src/features/nutrition/persistence';
 import {
+  barcodeLookupCandidates,
   normalizeBarcode,
   shouldProcessBarcodeScan,
   type BarcodeScanStamp
@@ -373,6 +375,8 @@ function Field({
   placeholder,
   keyboardType = 'default',
   multiline,
+  onSubmitEditing,
+  returnKeyType,
   style
 }: {
   label: string;
@@ -381,6 +385,8 @@ function Field({
   placeholder?: string;
   keyboardType?: 'default' | 'numeric';
   multiline?: boolean;
+  onSubmitEditing?: () => void;
+  returnKeyType?: 'done' | 'next' | 'search';
   style?: object;
 }) {
   return (
@@ -390,8 +396,10 @@ function Field({
         keyboardType={keyboardType}
         multiline={multiline}
         onChangeText={onChangeText}
+        onSubmitEditing={onSubmitEditing}
         placeholder={placeholder}
         placeholderTextColor={colors.textFaint}
+        returnKeyType={returnKeyType}
         style={[styles.input, multiline && styles.textarea]}
         value={value}
       />
@@ -496,6 +504,8 @@ export default function FoodScreen() {
   const [productLibrary, setProductLibrary] = useState<UserFoodProductRow[]>([]);
   const [mealLogItems, setMealLogItems] = useState<MealLogItemRow[]>([]);
   const lastBarcodeScan = useRef<BarcodeScanStamp | null>(null);
+  const lookupInFlight = useRef(false);
+  const lookupRequestId = useRef(0);
 
   const userId = session?.user.id ?? null;
   const canUseRemote = remoteEnabled(userId);
@@ -811,49 +821,91 @@ export default function FoodScreen() {
   }
 
   function closeScanner() {
+    lookupRequestId.current += 1;
+    lookupInFlight.current = false;
     setScannerOpen(false);
     setCameraOpen(false);
     setIsLookingUpProduct(false);
   }
 
   async function handleStartCamera() {
-    if (cameraPermission?.granted) {
-      setScannerMessage('Center the product barcode inside the frame.');
-      setCameraOpen(true);
-      return;
-    }
+    try {
+      const cameraAvailable = await CameraView.isAvailableAsync();
+      if (!cameraAvailable) {
+        setScannerMessage('A camera is not available here. Enter the barcode manually below.');
+        setCameraOpen(false);
+        return;
+      }
 
-    const nextPermission = await requestCameraPermission();
-    if (nextPermission.granted) {
-      setScannerMessage('Center the product barcode inside the frame.');
-      setCameraOpen(true);
-    } else {
-      setScannerMessage('Camera access is unavailable. Enter the barcode manually below.');
+      if (cameraPermission?.granted) {
+        setScannerMessage('Starting camera...');
+        setCameraOpen(true);
+        return;
+      }
+
+      const nextPermission = await requestCameraPermission();
+      if (nextPermission.granted) {
+        setScannerMessage('Starting camera...');
+        setCameraOpen(true);
+      } else {
+        setScannerMessage('Camera access is unavailable. Enter the barcode manually below.');
+        setCameraOpen(false);
+      }
+    } catch {
+      setScannerMessage('The camera could not start here. Enter the barcode manually below.');
       setCameraOpen(false);
     }
   }
 
   async function handleProductLookup(value = barcodeInput) {
+    if (lookupInFlight.current) return;
+    Keyboard.dismiss();
+    lookupInFlight.current = true;
+    const requestId = lookupRequestId.current + 1;
+    lookupRequestId.current = requestId;
     setIsLookingUpProduct(true);
     setCameraOpen(false);
     setScannerProduct(null);
     setScannerMessage('Looking up available label data...');
 
-    const result = await lookupOpenFoodFactsProduct(value);
-    if (result.status === 'found') {
-      setBarcodeInput(result.product.barcode);
-      setScannerProduct(result.product);
-      setScannerMealName(result.product.name);
-      setScannerServingQuantity('1');
-      setScannerMessage('Product found. Review the available label data before adding it.');
-    } else {
-      setScannerMessage(result.message);
-    }
+    try {
+      const candidates = barcodeLookupCandidates(value);
+      const cached = productLibrary.find((product) => product.barcode && candidates.includes(product.barcode));
+      if (cached) {
+        const snapshot = userFoodProductRowToSnapshot(cached);
+        setBarcodeInput(snapshot.barcode);
+        setScannerProduct(snapshot);
+        setScannerMealName(snapshot.name);
+        setScannerServingQuantity('1');
+        setScannerMessage('Saved product found. Review the label data before adding it.');
+        return;
+      }
 
-    setIsLookingUpProduct(false);
+      const result = await lookupOpenFoodFactsProduct(value);
+      if (lookupRequestId.current !== requestId) return;
+      if (result.status === 'found') {
+        setBarcodeInput(result.product.barcode);
+        setScannerProduct(result.product);
+        setScannerMealName(result.product.name);
+        setScannerServingQuantity('1');
+        setScannerMessage('Product found. Review the available label data before adding it.');
+      } else {
+        setScannerMessage(result.message);
+      }
+    } catch {
+      if (lookupRequestId.current === requestId) {
+        setScannerMessage('Product lookup could not finish. Try again or enter the food manually.');
+      }
+    } finally {
+      if (lookupRequestId.current === requestId) {
+        lookupInFlight.current = false;
+        setIsLookingUpProduct(false);
+      }
+    }
   }
 
   function handleBarcodeScanned(result: BarcodeScanningResult) {
+    if (lookupInFlight.current) return;
     const scannedAt = Date.now();
     const barcode = normalizeBarcode(result.data);
     if (!shouldProcessBarcodeScan(lastBarcodeScan.current, barcode, scannedAt)) return;
@@ -1046,6 +1098,11 @@ export default function FoodScreen() {
                 barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'itf14'] }}
                 facing="back"
                 onBarcodeScanned={isLookingUpProduct ? undefined : handleBarcodeScanned}
+                onCameraReady={() => setScannerMessage('Center the product barcode inside the frame.')}
+                onMountError={() => {
+                  setCameraOpen(false);
+                  setScannerMessage('The camera could not start here. Enter the barcode manually below.');
+                }}
                 style={StyleSheet.absoluteFill}
               />
               <View pointerEvents="none" style={styles.scanFrame} />
@@ -1072,8 +1129,10 @@ export default function FoodScreen() {
           <Field
             keyboardType="numeric"
             label="Barcode number"
-            onChangeText={setBarcodeInput}
-            placeholder="012345678905"
+            onChangeText={(value) => setBarcodeInput(normalizeBarcode(value))}
+            onSubmitEditing={() => void handleProductLookup()}
+            placeholder="3017620422003"
+            returnKeyType="search"
             value={barcodeInput}
           />
           <PrimaryButton

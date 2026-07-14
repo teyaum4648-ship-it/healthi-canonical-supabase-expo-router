@@ -62,6 +62,30 @@ describe('product lookup and quality', () => {
     });
   });
 
+  it('retries a UPC-A barcode as its EAN-13 equivalent', async () => {
+    const fetcher = vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => url.includes('/0123456789012.json') ? { status: 1, product: completeProduct } : { status: 0 }
+    }));
+    const result = await lookupOpenFoodFactsProduct('123456789012', { fetcher });
+
+    expect(result).toMatchObject({ status: 'found', product: { barcode: '123456789012' } });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends an app identifier and abort signal with provider requests', async () => {
+    const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ status: 1, product: completeProduct }) }));
+    await lookupOpenFoodFactsProduct('3017620422003', { fetcher });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining('/3017620422003.json'),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Accept: 'application/json', 'X-User-Agent': 'Healthi/0.1' }),
+        signal: expect.anything()
+      })
+    );
+  });
+
   it('normalizes searchable product results and handles short searches safely', async () => {
     const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ products: [completeProduct] }) }));
     const result = await searchOpenFoodFactsProducts('hazelnut', { fetcher });

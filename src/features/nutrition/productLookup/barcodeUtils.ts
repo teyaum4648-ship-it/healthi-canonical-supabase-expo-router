@@ -11,6 +11,16 @@ export function normalizeBarcode(value: string): string {
   return value.trim().replace(/[\s-]+/g, '');
 }
 
+export function barcodeLookupCandidates(value: string): string[] {
+  const barcode = normalizeBarcode(value);
+  if (!barcode) return [];
+
+  const candidates = [barcode];
+  if (barcode.length === 12) candidates.push(`0${barcode}`);
+  if (barcode.length === 13 && barcode.startsWith('0')) candidates.push(barcode.slice(1));
+  return [...new Set(candidates)];
+}
+
 export function validateBarcode(value: string): BarcodeValidation {
   const barcode = normalizeBarcode(value);
 
