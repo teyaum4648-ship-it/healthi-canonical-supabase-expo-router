@@ -102,4 +102,22 @@ describe('schedule block form helpers', () => {
     expect(result.protected_blocks.map((block) => block.label)).toContain('Work');
     expect(JSON.parse(JSON.stringify(result))).toEqual(result);
   });
+
+  it('passes unified readiness mode, confidence, and reasons into Day Plan', () => {
+    const input = buildDayPlanInput({
+      date: '2026-07-12',
+      scheduleBlocks: [],
+      readinessScore: 61,
+      readinessMode: 'correct',
+      readinessConfidence: 'medium',
+      readinessReasonCodes: ['readiness_conserve', 'primary_focus_recovery_rhythm']
+    });
+
+    expect(input.readiness).toEqual({
+      score: 61,
+      mode: 'correct',
+      confidence: 'medium',
+      reason_codes: ['readiness_conserve', 'primary_focus_recovery_rhythm']
+    });
+  });
 });

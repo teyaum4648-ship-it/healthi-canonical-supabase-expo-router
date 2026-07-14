@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateDayPlan, type DayPlanRecommendation } from '../../../src/engines/dayPlan';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
+import { generateDailyReadiness } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import {
   addDemoScheduleBlock,
@@ -40,6 +41,7 @@ import {
 } from '../../../src/features/dayPlan/scheduleBlockPersistence';
 import { getLocalDemoMovementState } from '../../../src/features/movement/localDemoMovementStore';
 import { movementSignalToDayPlanInput } from '../../../src/features/movement/movementIntegration';
+import { readinessToDayPlanInput } from '../../../src/features/morningBriefing';
 import {
   getWorkoutExerciseEntriesForSession,
   getWorkoutSessionsForRange,
@@ -87,8 +89,10 @@ function sortedBlocks(blocks: DayScheduleBlockRow[]): DayScheduleBlockRow[] {
   return [...blocks].sort((a, b) => a.start_at.localeCompare(b.start_at) || a.id.localeCompare(b.id));
 }
 
-function sourceLabel(mode: 'remote' | 'demo'): string {
-  return mode === 'remote' ? 'Synced schedule' : 'Local demo schedule';
+function sourceLabel(mode: 'remote' | 'demo' | 'calibrating'): string {
+  if (mode === 'remote') return 'Synced schedule';
+  if (mode === 'demo') return 'Local demo schedule';
+  return 'Schedule sync calibrating';
 }
 
 function priorityTone(priority: DayPlanRecommendation['priority']): string {
@@ -152,7 +156,7 @@ export default function PlanScreen() {
   const [blocks, setBlocks] = useState<DayScheduleBlockRow[]>([]);
   const [form, setForm] = useState<ScheduleBlockFormState>(() => createEmptyScheduleBlockForm(today));
   const [status, setStatus] = useState('Schedule blocks help Healthi find useful openings.');
-  const [dataMode, setDataMode] = useState<'remote' | 'demo'>('demo');
+  const [dataMode, setDataMode] = useState<'remote' | 'demo' | 'calibrating'>('demo');
   const [movementInput, setMovementInput] = useState<ReturnType<typeof movementSignalToDayPlanInput> | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -183,8 +187,9 @@ export default function PlanScreen() {
           setStatus(rows.length > 0 ? 'Local demo schedule loaded.' : 'Add schedule blocks so Healthi can find useful openings.');
         } catch {
           if (!isMounted) return;
-          setStatus('Schedule data could not load. You can still use local demo blocks.');
-          setDataMode('demo');
+          setBlocks([]);
+          setStatus('Schedule data could not load. The plan will stay in a calibrating state.');
+          setDataMode('calibrating');
         } finally {
           if (isMounted) setIsLoading(false);
         }
@@ -228,14 +233,8 @@ export default function PlanScreen() {
           });
           setMovementInput(movementSignalToDayPlanInput(generateMovementReadinessSignal({ summary })));
         } catch {
-          const state = await getLocalDemoMovementState().catch(() => null);
-          if (!isMounted || !state) return;
-          const summary = calculateMovementSummary({
-            date: today,
-            sessions: state.workoutSessions.map(workoutSessionRowToEngineSession),
-            exerciseEntries: state.workoutExerciseEntries.map(workoutExerciseEntryRowToEngineEntry)
-          });
-          setMovementInput(movementSignalToDayPlanInput(generateMovementReadinessSignal({ summary })));
+          if (!isMounted) return;
+          setMovementInput(undefined);
         }
       }
 
@@ -246,7 +245,7 @@ export default function PlanScreen() {
     }, [canUseRemote, today, userId])
   );
 
-  const dayPlan = useMemo(
+  const preliminaryDayPlan = useMemo(
     () =>
       generateDayPlan(
         buildDayPlanInput({
@@ -256,6 +255,39 @@ export default function PlanScreen() {
         })
       ),
     [blocks, movementInput, today]
+  );
+  const unifiedReadiness = useMemo(() => generateDailyReadiness({
+    date: today,
+    movement: movementInput
+      ? {
+          readiness_label: movementInput.training_readiness,
+          confidence: movementInput.training_readiness ? 'medium' : 'low',
+          reason_codes: [...(movementInput.reason_codes ?? [])]
+        }
+      : undefined,
+    schedule: {
+      block_count: blocks.length,
+      open_window_count: preliminaryDayPlan.open_windows.length,
+      next_protected_block: preliminaryDayPlan.protected_blocks[0]?.start ?? null,
+      confidence: blocks.length > 0 ? 'medium' : 'low',
+      reason_codes: [...preliminaryDayPlan.reason_codes]
+    }
+  }), [blocks.length, movementInput, preliminaryDayPlan, today]);
+  const readinessInput = useMemo(
+    () => readinessToDayPlanInput(unifiedReadiness),
+    [unifiedReadiness]
+  );
+  const dayPlan = useMemo(
+    () => generateDayPlan(buildDayPlanInput({
+      date: today,
+      scheduleBlocks: blocks,
+      movement: movementInput,
+      readinessScore: readinessInput.score ?? undefined,
+      readinessMode: readinessInput.mode,
+      readinessConfidence: readinessInput.confidence,
+      readinessReasonCodes: readinessInput.reason_codes
+    })),
+    [blocks, movementInput, readinessInput, today]
   );
 
   function updateForm<K extends keyof ScheduleBlockFormState>(key: K, value: ScheduleBlockFormState[K]) {

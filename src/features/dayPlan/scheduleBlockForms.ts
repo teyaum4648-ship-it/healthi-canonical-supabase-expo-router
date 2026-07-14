@@ -1,4 +1,5 @@
 import type {
+  DataConfidence,
   DayPlanMode,
   DayScheduleBlockType,
   GenerateDayPlanInput
@@ -201,6 +202,8 @@ export function buildDayPlanInput(params: {
   target_bedtime?: string;
   readinessScore?: number;
   readinessMode?: DayPlanMode;
+  readinessConfidence?: DataConfidence;
+  readinessReasonCodes?: string[];
   nutritionMealCount?: number;
   movement?: GenerateDayPlanInput['movement'];
 }): GenerateDayPlanInput {
@@ -217,8 +220,8 @@ export function buildDayPlanInput(params: {
     readiness: {
       score: params.readinessScore ?? 72,
       mode: params.readinessMode ?? 'maintain',
-      confidence: 'low',
-      reason_codes: ['low_confidence_inputs']
+      confidence: params.readinessConfidence ?? 'low',
+      reason_codes: params.readinessReasonCodes ? [...params.readinessReasonCodes] : ['low_confidence_inputs']
     },
     nutrition:
       typeof params.nutritionMealCount === 'number'

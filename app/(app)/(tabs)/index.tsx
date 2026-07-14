@@ -1,16 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Circle, G, Line } from 'react-native-svg';
 
+import { generateCircadianBriefing, type SleepNeedEstimate, type SleepSession } from '../../../src/engines/circadian';
+import { generateDayPlan } from '../../../src/engines/dayPlan';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import { getDemoScheduleBlocksForDate } from '../../../src/features/dayPlan/localDemoScheduleStore';
+import { buildDayPlanInput } from '../../../src/features/dayPlan/scheduleBlockForms';
+import {
+  getScheduleBlocksForDate,
+  type DayScheduleBlockRow,
+  type DayScheduleBlockSupabaseClient
+} from '../../../src/features/dayPlan/scheduleBlockPersistence';
 import { getLocalDemoMovementState } from '../../../src/features/movement/localDemoMovementStore';
 import { composeDashboardMovementSummary } from '../../../src/features/movement/movementIntegration';
+import { movementSignalToDayPlanInput } from '../../../src/features/movement/movementIntegration';
 import {
   getWorkoutExerciseEntriesForSession,
   getWorkoutSessionsForRange,
@@ -28,42 +38,23 @@ import {
   type NutritionSupabaseClient,
   type NutritionTargetRow
 } from '../../../src/features/nutrition/persistence';
+import {
+  composeMorningBriefing,
+  morningBriefingToDashboardHero
+} from '../../../src/features/morningBriefing';
+import {
+  getActiveSleepNeedEstimate,
+  getRecentSleepSessions,
+  type SleepRhythmSupabaseClient
+} from '../../../src/features/sleepRhythm/persistence';
+import {
+  createDefaultSleepNeedEstimate,
+  createDemoSleepSessions
+} from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { colors, fonts, hairlineWidth, palette, type } from '../../../src/styles/theme';
+import { colors, hairlineWidth, palette, type } from '../../../src/styles/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-const readiness = {
-  score: 82,
-  label: 'Primed',
-  note: 'A hard session is earned today.',
-  date: 'Thursday · July 2',
-  firstName: 'Tiam'
-};
-
-const vitals = [
-  {
-    label: 'HRV',
-    value: '68',
-    unit: 'ms',
-    delta: '+4',
-    points: '2,13 21,11 40,14 59,9 78,10 97,6 116,4'
-  },
-  {
-    label: 'Resting HR',
-    value: '54',
-    unit: 'bpm',
-    delta: '−2',
-    points: '2,5 21,7 40,6 59,10 78,9 97,12 116,13'
-  }
-];
-
-const sleepStages = [
-  { label: 'Deep', value: '1:28', width: '19%', color: palette.forest },
-  { label: 'REM', value: '1:41', width: '22%', color: palette.forestMid },
-  { label: 'Light', value: '4:02', width: '52%', color: palette.forestPale },
-  { label: 'Awake', value: '0:31', width: '7%', color: 'rgba(216, 178, 133, 0.55)' }
-] as const;
 
 const foodSegments = Array.from({ length: 10 }, (_, index) => index);
 
@@ -76,6 +67,23 @@ function movementRangeStart(date: string): string {
 
 function titleCase(value: string): string {
   return value.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+}
+
+function displayDate(value: string): string {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    .format(new Date(`${value}T12:00:00`));
+}
+
+function sleepDurationLabel(session: SleepSession | null): string {
+  if (typeof session?.duration_minutes !== 'number') return 'Calibrating';
+  return `${Math.floor(session.duration_minutes / 60)}h ${session.duration_minutes % 60}m`;
+}
+
+function readinessIcon(domain: string): keyof typeof Ionicons.glyphMap {
+  if (domain === 'recovery_rhythm') return 'moon-outline';
+  if (domain === 'nourishment') return 'nutrition-outline';
+  if (domain === 'movement_capacity') return 'walk-outline';
+  return 'calendar-outline';
 }
 
 function mealRowToMealLog(row: MealLogRow): MealLog {
@@ -208,32 +216,6 @@ function ReadinessRing({ score }: { score: number }) {
   );
 }
 
-/** Sparkline with a gradient area fill — chart-library defaults kill the instrument read. */
-function Sparkline({ points, id }: { points: string; id: string }) {
-  const pairs = points
-    .trim()
-    .split(/\s+/)
-    .map((pair) => pair.split(',').map(Number) as [number, number]);
-  const last = pairs[pairs.length - 1];
-  const line = `M ${pairs.map(([x, y]) => `${x} ${y}`).join(' L ')}`;
-  const area = `${line} L ${last[0]} 20 L ${pairs[0][0]} 20 Z`;
-
-  return (
-    <Svg height={22} viewBox="0 0 120 22" width="100%">
-      <Defs>
-        <LinearGradient id={`fade-${id}`} x1="0" x2="0" y1="0" y2="1">
-          <Stop offset="0" stopColor={palette.forest} stopOpacity={0.22} />
-          <Stop offset="1" stopColor={palette.forest} stopOpacity={0} />
-        </LinearGradient>
-      </Defs>
-      <Path d={area} fill={`url(#fade-${id})`} />
-      <Path d={line} fill="none" stroke={palette.forestMid} strokeLinecap="round" strokeWidth={1.4} />
-      <Circle cx={last[0]} cy={last[1]} fill={palette.forest} fillOpacity={0.18} r={5} />
-      <Circle cx={last[0]} cy={last[1]} fill={palette.forest} r={2.2} />
-    </Svg>
-  );
-}
-
 function Section({ children }: { children: React.ReactNode }) {
   return <View style={styles.section}>{children}</View>;
 }
@@ -252,24 +234,6 @@ function SectionHeader({ title, value, unit }: { title: string; value?: string; 
   );
 }
 
-function VitalsGrid() {
-  return (
-    <View style={styles.vitalsGrid}>
-      {vitals.map((item, index) => (
-        <View key={item.label} style={[styles.vitalCell, index === 0 ? styles.vitalDivider : null]}>
-          <Text style={styles.instrumentLabel}>{item.label}</Text>
-          <View style={styles.vitalReadout}>
-            <Text style={styles.vitalValue}>{item.value}</Text>
-            <Text style={styles.unit}>{item.unit}</Text>
-            <Text style={styles.delta}>{item.delta}</Text>
-          </View>
-          <Sparkline id={item.label} points={item.points} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
 export default function DashboardScreen() {
   const { user } = useAuth();
   const today = new Date().toISOString().slice(0, 10);
@@ -279,6 +243,11 @@ export default function DashboardScreen() {
   const [movementSessions, setMovementSessions] = useState<WorkoutSessionRow[]>([]);
   const [movementEntries, setMovementEntries] = useState<WorkoutExerciseEntryRow[]>([]);
   const [movementSource, setMovementSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
+  const [sleepSessions, setSleepSessions] = useState<SleepSession[]>([]);
+  const [sleepNeed, setSleepNeed] = useState<SleepNeedEstimate>(() => createDefaultSleepNeedEstimate());
+  const [rhythmSource, setRhythmSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
+  const [scheduleBlocks, setScheduleBlocks] = useState<DayScheduleBlockRow[]>([]);
+  const [scheduleSource, setScheduleSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
 
   useFocusEffect(
     useCallback(() => {
@@ -337,6 +306,85 @@ export default function DashboardScreen() {
       let isMounted = true;
 
       if (!isUuid(userId)) {
+        const demoSessions = createDemoSleepSessions(today);
+        setSleepSessions(demoSessions);
+        setSleepNeed(createDefaultSleepNeedEstimate());
+        setRhythmSource('demo');
+        return () => {
+          isMounted = false;
+        };
+      }
+
+      const client = supabase as unknown as SleepRhythmSupabaseClient;
+      Promise.all([
+        getRecentSleepSessions(client, userId, 14),
+        getActiveSleepNeedEstimate(client, userId)
+      ])
+        .then(([sessions, estimate]) => {
+          if (!isMounted) return;
+          setSleepSessions(sessions);
+          setSleepNeed(
+            estimate
+              ? {
+                  minutes: estimate.minutes,
+                  confidence: estimate.confidence,
+                  basis: [...estimate.basis],
+                  updated_at: estimate.updated_at
+                }
+              : createDefaultSleepNeedEstimate()
+          );
+          setRhythmSource(sessions.length > 0 ? 'remote' : 'calibrating');
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setSleepSessions([]);
+          setSleepNeed(createDefaultSleepNeedEstimate());
+          setRhythmSource('calibrating');
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }, [today, user?.id])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const userId = user?.id;
+      let isMounted = true;
+
+      const load = isUuid(userId)
+        ? getScheduleBlocksForDate(
+            supabase as unknown as DayScheduleBlockSupabaseClient,
+            userId,
+            today
+          ).then((blocks) => ({ blocks, source: 'remote' as const }))
+        : getDemoScheduleBlocksForDate(today).then((blocks) => ({ blocks, source: 'demo' as const }));
+
+      load
+        .then(({ blocks, source }) => {
+          if (!isMounted) return;
+          setScheduleBlocks(blocks);
+          setScheduleSource(blocks.length > 0 ? source : 'calibrating');
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setScheduleBlocks([]);
+          setScheduleSource('calibrating');
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }, [today, user?.id])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const userId = user?.id;
+      let isMounted = true;
+
+      if (!isUuid(userId)) {
         getLocalDemoMovementState()
           .then((state) => {
             if (!isMounted) return;
@@ -370,12 +418,10 @@ export default function DashboardScreen() {
           setMovementSource('remote');
         })
         .catch(() => {
-          return getLocalDemoMovementState().then((state) => {
-            if (!isMounted) return;
-            setMovementSessions(state.workoutSessions);
-            setMovementEntries(state.workoutExerciseEntries);
-            setMovementSource(state.workoutSessions.length > 0 ? 'demo' : 'calibrating');
-          });
+          if (!isMounted) return;
+          setMovementSessions([]);
+          setMovementEntries([]);
+          setMovementSource('calibrating');
         });
 
       return () => {
@@ -404,50 +450,126 @@ export default function DashboardScreen() {
     exerciseEntries: movementEntries.map(workoutExerciseEntryRowToEngineEntry)
   });
   const movementSignal = generateMovementReadinessSignal({
-    summary: movementSummary,
-    readiness_mode: 'build',
-    readiness_score: readiness.score
+    summary: movementSummary
   });
   const movementCard = composeDashboardMovementSummary({
     summary: movementSummary,
     signal: movementSignal,
     demoMode: movementSource === 'demo'
   });
+  const latestSleepSession = sleepSessions[0] ?? null;
+  const circadianBriefing = useMemo(
+    () =>
+      generateCircadianBriefing({
+        date: today,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        recentSleepSessions: sleepSessions,
+        sleepNeed,
+        now: new Date().toISOString()
+      }),
+    [sleepNeed, sleepSessions, today]
+  );
+  const preliminaryDayPlan = useMemo(
+    () =>
+      generateDayPlan(
+        buildDayPlanInput({
+          date: today,
+          scheduleBlocks,
+          wake_time: circadianBriefing.wake_time ?? undefined,
+          target_bedtime: circadianBriefing.target_bedtime ?? undefined,
+          nutritionMealCount: nutritionSummary.meal_count,
+          movement: movementSignalToDayPlanInput(movementSignal)
+        })
+      ),
+    [circadianBriefing.target_bedtime, circadianBriefing.wake_time, movementSignal, nutritionSummary.meal_count, scheduleBlocks, today]
+  );
+  const morningBriefing = useMemo(
+    () =>
+      composeMorningBriefing({
+        date: today,
+        rhythm: {
+          briefing: circadianBriefing,
+          recent_sleep_session: latestSleepSession
+        },
+        nutrition: nutritionSummary,
+        movement: {
+          summary: movementSummary,
+          signal: movementSignal
+        },
+        schedule: {
+          block_count: scheduleBlocks.length,
+          day_plan: preliminaryDayPlan
+        },
+        sources: {
+          rhythm: rhythmSource === 'remote' ? 'logged' : rhythmSource,
+          nutrition: nutritionSource === 'remote' ? 'logged' : nutritionSource,
+          movement: movementSource === 'remote' ? 'logged' : movementSource,
+          schedule: scheduleSource === 'remote' ? 'logged' : scheduleSource
+        }
+      }),
+    [
+      circadianBriefing,
+      latestSleepSession,
+      movementSignal,
+      movementSource,
+      movementSummary,
+      nutritionSource,
+      nutritionSummary,
+      preliminaryDayPlan,
+      rhythmSource,
+      scheduleBlocks.length,
+      scheduleSource,
+      today
+    ]
+  );
+  const dashboardHero = morningBriefingToDashboardHero(morningBriefing);
+  const rhythmDriver = morningBriefing.driver_cards.find((driver) => driver.domain === 'recovery_rhythm');
+  const firstName = typeof user?.user_metadata?.first_name === 'string' ? user.user_metadata.first_name : 'there';
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.date}>{readiness.date}</Text>
-          <Text style={styles.greeting}>Good morning, {readiness.firstName}</Text>
+          <Text style={styles.date}>{displayDate(today)}</Text>
+          <Text style={styles.greeting}>Good morning, {firstName}</Text>
         </View>
 
-        <ReadinessRing score={readiness.score} />
+        <ReadinessRing score={dashboardHero.score} />
         <Text style={styles.readinessNote}>
-          {readiness.label} — {readiness.note}
+          {dashboardHero.label} · {dashboardHero.top_action}
+        </Text>
+        <Text style={styles.briefingMeta}>
+          {dashboardHero.source_label === 'logged'
+            ? 'Based on available data'
+            : dashboardHero.source_label === 'demo'
+              ? 'Demo signals'
+              : 'Still calibrating'} · Confidence: {dashboardHero.confidence}
         </Text>
 
         <Section>
-          <VitalsGrid />
-        </Section>
-
-        <Section>
-          <SectionHeader title="Sleep architecture" unit="hrs" value="7:42" />
-          <View style={styles.sleepBar}>
-            {sleepStages.map((stage) => (
-              <View key={stage.label} style={[styles.sleepSegment, { width: stage.width, backgroundColor: stage.color }]} />
-            ))}
-          </View>
-          <View style={styles.legendRow}>
-            {sleepStages.slice(0, 3).map((stage) => (
-              <View key={stage.label} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: stage.color }]} />
-                <Text style={styles.legendText}>
-                  {stage.label} {stage.value}
-                </Text>
+          <SectionHeader title="System drivers" value={titleCase(morningBriefing.readiness.mode)} />
+          <View style={styles.driverGrid}>
+            {morningBriefing.driver_cards.map((driver) => (
+              <View key={driver.domain} style={styles.driverCell}>
+                <View style={styles.driverHeader}>
+                  <Ionicons color={colors.accent} name={readinessIcon(driver.domain)} size={16} />
+                  <Text style={styles.driverLabel}>{driver.label}</Text>
+                </View>
+                <Text style={styles.driverStatus}>{driver.status}</Text>
+                <Text style={styles.driverDetail}>{driver.detail}</Text>
               </View>
             ))}
           </View>
+        </Section>
+
+        <Section>
+          <SectionHeader title="Sleep + rhythm" value={sleepDurationLabel(latestSleepSession)} />
+          <Text style={styles.sectionCopy}>{rhythmDriver?.detail ?? 'Sleep timing is still calibrating.'}</Text>
+          <Text style={styles.sourceCopy}>
+            {circadianBriefing.current_phase === 'unknown'
+              ? 'Rhythm phase calibrating'
+              : `Current phase: ${titleCase(circadianBriefing.current_phase)}`} · {titleCase(rhythmSource)} · Confidence: {circadianBriefing.confidence}
+          </Text>
         </Section>
 
         <Section>
@@ -509,20 +631,19 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.compactPanel}>
             <View style={styles.compactIcon}>
-              <Ionicons color={colors.accent} name="leaf-outline" size={17} />
+              <Ionicons color={colors.accent} name="calendar-outline" size={17} />
             </View>
-            <Text style={styles.compactLabel}>Stress</Text>
-            <Text style={styles.compactValue}>Low</Text>
-            <Text style={styles.compactCopy}>Keep the evening quiet</Text>
+            <Text style={styles.compactLabel}>Schedule</Text>
+            <Text style={styles.compactValue}>{scheduleBlocks.length} blocks</Text>
+            <Text style={styles.compactCopy}>{preliminaryDayPlan.open_windows.length} open windows found</Text>
+            <Text style={styles.compactSource}>Confidence: {preliminaryDayPlan.confidence} · {titleCase(scheduleSource)}</Text>
           </View>
         </View>
 
         <Section>
           <SectionHeader title="Today's focus" />
-          <Text style={styles.focusTitle}>Load the morning.</Text>
-          <Text style={styles.sectionCopy}>
-            Your rhythm supports focused work and harder training before early afternoon.
-          </Text>
+          <Text style={styles.focusTitle}>{dashboardHero.focus}</Text>
+          <Text style={styles.sectionCopy}>{dashboardHero.summary}</Text>
         </Section>
       </ScrollView>
     </SafeAreaView>
@@ -581,10 +702,18 @@ const styles = StyleSheet.create({
   readinessNote: {
     ...type.voice,
     color: colors.accent,
-    paddingBottom: 26,
     paddingHorizontal: 30,
     paddingTop: 18,
     textAlign: 'center'
+  },
+  briefingMeta: {
+    ...type.caption,
+    color: colors.textFaint,
+    paddingBottom: 26,
+    paddingHorizontal: 30,
+    paddingTop: 8,
+    textAlign: 'center',
+    textTransform: 'capitalize'
   },
   section: {
     backgroundColor: colors.surface,
@@ -610,72 +739,39 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.textFaint
   },
-  vitalsGrid: {
-    flexDirection: 'row'
-  },
-  vitalCell: {
-    flex: 1,
-    paddingVertical: 12
-  },
-  vitalDivider: {
-    borderRightColor: colors.hairlineSoft,
-    borderRightWidth: hairlineWidth,
-    marginRight: 16,
-    paddingRight: 16
-  },
-  instrumentLabel: {
-    ...type.eyebrow,
-    color: colors.textFaint
-  },
-  vitalReadout: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    gap: 5,
-    marginBottom: 8,
-    marginTop: 6
-  },
-  vitalValue: {
-    ...type.numberLg,
-    color: colors.text
-  },
-  delta: {
-    ...type.caption,
-    color: colors.accent,
-    fontFamily: fonts.bodyMedium,
-    fontWeight: '500',
-    marginLeft: 'auto'
-  },
-  sleepBar: {
-    borderRadius: 3,
-    flexDirection: 'row',
-    gap: 3,
-    height: 9,
-    marginTop: 14,
-    overflow: 'hidden'
-  },
-  sleepSegment: {
-    borderRadius: 2,
-    height: 9
-  },
-  legendRow: {
+  driverGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
-    marginTop: 12
+    gap: 10,
+    marginTop: 14
   },
-  legendItem: {
+  driverCell: {
+    backgroundColor: colors.surfaceInset,
+    borderRadius: 12,
+    minWidth: '46%',
+    padding: 12,
+    width: '48%'
+  },
+  driverHeader: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 6
+    gap: 7
   },
-  legendDot: {
-    borderRadius: 3,
-    height: 6,
-    width: 6
+  driverLabel: {
+    ...type.eyebrow,
+    color: colors.textFaint,
+    flex: 1
   },
-  legendText: {
+  driverStatus: {
+    ...type.label,
+    color: colors.text,
+    marginTop: 9,
+    textTransform: 'capitalize'
+  },
+  driverDetail: {
     ...type.caption,
-    color: colors.textMuted
+    color: colors.textMuted,
+    marginTop: 4
   },
   foodScoreBar: {
     flexDirection: 'row',
