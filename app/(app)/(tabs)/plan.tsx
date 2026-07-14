@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateDayPlan, type DayPlanRecommendation } from '../../../src/engines/dayPlan';
+import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import {
   addDemoScheduleBlock,
@@ -37,6 +38,15 @@ import {
   type DayScheduleBlockRow,
   type DayScheduleBlockSupabaseClient
 } from '../../../src/features/dayPlan/scheduleBlockPersistence';
+import { getLocalDemoMovementState } from '../../../src/features/movement/localDemoMovementStore';
+import { movementSignalToDayPlanInput } from '../../../src/features/movement/movementIntegration';
+import {
+  getWorkoutExerciseEntriesForSession,
+  getWorkoutSessionsForRange,
+  type MovementSupabaseClient,
+  workoutExerciseEntryRowToEngineEntry,
+  workoutSessionRowToEngineSession
+} from '../../../src/features/movement/movementPersistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, hairlineWidth, palette, spacing, type } from '../../../src/styles/theme';
 
@@ -46,6 +56,10 @@ const segments: Segment[] = ['Plan', 'Schedule', 'Add Block'];
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
+
+function movementRangeStart(date: string): string {
+  return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
 function formatTime(value: string | undefined): string {
   if (!value) return '';
@@ -139,6 +153,7 @@ export default function PlanScreen() {
   const [form, setForm] = useState<ScheduleBlockFormState>(() => createEmptyScheduleBlockForm(today));
   const [status, setStatus] = useState('Schedule blocks help Healthi find useful openings.');
   const [dataMode, setDataMode] = useState<'remote' | 'demo'>('demo');
+  const [movementInput, setMovementInput] = useState<ReturnType<typeof movementSignalToDayPlanInput> | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -182,15 +197,65 @@ export default function PlanScreen() {
     }, [canUseRemote, today, userId])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      async function loadMovementInput() {
+        try {
+          if (canUseRemote && userId) {
+            const client = supabase as unknown as MovementSupabaseClient;
+            const sessions = await getWorkoutSessionsForRange(client, userId, movementRangeStart(today), today);
+            const entries = (await Promise.all(
+              sessions.map((session) => getWorkoutExerciseEntriesForSession(client, userId, session.id))
+            )).flat();
+            if (!isMounted) return;
+            const summary = calculateMovementSummary({
+              date: today,
+              sessions: sessions.map(workoutSessionRowToEngineSession),
+              exerciseEntries: entries.map(workoutExerciseEntryRowToEngineEntry)
+            });
+            setMovementInput(movementSignalToDayPlanInput(generateMovementReadinessSignal({ summary })));
+            return;
+          }
+
+          const state = await getLocalDemoMovementState();
+          if (!isMounted) return;
+          const summary = calculateMovementSummary({
+            date: today,
+            sessions: state.workoutSessions.map(workoutSessionRowToEngineSession),
+            exerciseEntries: state.workoutExerciseEntries.map(workoutExerciseEntryRowToEngineEntry)
+          });
+          setMovementInput(movementSignalToDayPlanInput(generateMovementReadinessSignal({ summary })));
+        } catch {
+          const state = await getLocalDemoMovementState().catch(() => null);
+          if (!isMounted || !state) return;
+          const summary = calculateMovementSummary({
+            date: today,
+            sessions: state.workoutSessions.map(workoutSessionRowToEngineSession),
+            exerciseEntries: state.workoutExerciseEntries.map(workoutExerciseEntryRowToEngineEntry)
+          });
+          setMovementInput(movementSignalToDayPlanInput(generateMovementReadinessSignal({ summary })));
+        }
+      }
+
+      void loadMovementInput();
+      return () => {
+        isMounted = false;
+      };
+    }, [canUseRemote, today, userId])
+  );
+
   const dayPlan = useMemo(
     () =>
       generateDayPlan(
         buildDayPlanInput({
           date: today,
-          scheduleBlocks: blocks
+          scheduleBlocks: blocks,
+          movement: movementInput
         })
       ),
-    [blocks, today]
+    [blocks, movementInput, today]
   );
 
   function updateForm<K extends keyof ScheduleBlockFormState>(key: K, value: ScheduleBlockFormState[K]) {

@@ -202,6 +202,7 @@ export function buildDayPlanInput(params: {
   readinessScore?: number;
   readinessMode?: DayPlanMode;
   nutritionMealCount?: number;
+  movement?: GenerateDayPlanInput['movement'];
 }): GenerateDayPlanInput {
   const date = params.date.slice(0, 10);
   const wakeTime = params.wake_time ?? `${date}T06:30:00.000Z`;
@@ -229,10 +230,6 @@ export function buildDayPlanInput(params: {
             reason_codes: params.nutritionMealCount > 0 ? ['food_response_logged'] : ['nutrition_calibrating']
           }
         : undefined,
-    movement: {
-      training_readiness: 'medium',
-      preferred_training_time: null,
-      reason_codes: ['movement_window_matched']
-    }
+    movement: params.movement
   };
 }

@@ -5,9 +5,21 @@ import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 
+import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import { getLocalDemoMovementState } from '../../../src/features/movement/localDemoMovementStore';
+import { composeDashboardMovementSummary } from '../../../src/features/movement/movementIntegration';
+import {
+  getWorkoutExerciseEntriesForSession,
+  getWorkoutSessionsForRange,
+  type MovementSupabaseClient,
+  type WorkoutExerciseEntryRow,
+  type WorkoutSessionRow,
+  workoutExerciseEntryRowToEngineEntry,
+  workoutSessionRowToEngineSession
+} from '../../../src/features/movement/movementPersistence';
 import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
 import {
   getActiveNutritionTarget,
@@ -57,6 +69,14 @@ const foodSegments = Array.from({ length: 10 }, (_, index) => index);
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
+
+function movementRangeStart(date: string): string {
+  return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function titleCase(value: string): string {
+  return value.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+}
 
 function mealRowToMealLog(row: MealLogRow): MealLog {
   return {
@@ -256,6 +276,9 @@ export default function DashboardScreen() {
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
   const [nutritionSource, setNutritionSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
+  const [movementSessions, setMovementSessions] = useState<WorkoutSessionRow[]>([]);
+  const [movementEntries, setMovementEntries] = useState<WorkoutExerciseEntryRow[]>([]);
+  const [movementSource, setMovementSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
 
   useFocusEffect(
     useCallback(() => {
@@ -308,6 +331,59 @@ export default function DashboardScreen() {
     }, [today, user?.id])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      const userId = user?.id;
+      let isMounted = true;
+
+      if (!isUuid(userId)) {
+        getLocalDemoMovementState()
+          .then((state) => {
+            if (!isMounted) return;
+            setMovementSessions(state.workoutSessions);
+            setMovementEntries(state.workoutExerciseEntries);
+            setMovementSource(state.workoutSessions.length > 0 ? 'demo' : 'calibrating');
+          })
+          .catch(() => {
+            if (!isMounted) return;
+            setMovementSessions([]);
+            setMovementEntries([]);
+            setMovementSource('calibrating');
+          });
+        return () => {
+          isMounted = false;
+        };
+      }
+
+      const client = supabase as unknown as MovementSupabaseClient;
+      getWorkoutSessionsForRange(client, userId, movementRangeStart(today), today)
+        .then(async (sessions) => ({
+          sessions,
+          entries: (await Promise.all(
+            sessions.map((session) => getWorkoutExerciseEntriesForSession(client, userId, session.id))
+          )).flat()
+        }))
+        .then(({ sessions, entries }) => {
+          if (!isMounted) return;
+          setMovementSessions(sessions);
+          setMovementEntries(entries);
+          setMovementSource('remote');
+        })
+        .catch(() => {
+          return getLocalDemoMovementState().then((state) => {
+            if (!isMounted) return;
+            setMovementSessions(state.workoutSessions);
+            setMovementEntries(state.workoutExerciseEntries);
+            setMovementSource(state.workoutSessions.length > 0 ? 'demo' : 'calibrating');
+          });
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }, [today, user?.id])
+  );
+
   const nutritionSummary = composeDashboardNutritionSummary({
     date: today,
     meals: nutritionMeals,
@@ -322,6 +398,21 @@ export default function DashboardScreen() {
         : nutritionSummary.food_quality_label === 'Steady'
           ? 6
           : 4;
+  const movementSummary = calculateMovementSummary({
+    date: today,
+    sessions: movementSessions.map(workoutSessionRowToEngineSession),
+    exerciseEntries: movementEntries.map(workoutExerciseEntryRowToEngineEntry)
+  });
+  const movementSignal = generateMovementReadinessSignal({
+    summary: movementSummary,
+    readiness_mode: 'build',
+    readiness_score: readiness.score
+  });
+  const movementCard = composeDashboardMovementSummary({
+    summary: movementSummary,
+    signal: movementSignal,
+    demoMode: movementSource === 'demo'
+  });
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -410,9 +501,11 @@ export default function DashboardScreen() {
             <View style={styles.compactIcon}>
               <Ionicons color={colors.accent} name="walk-outline" size={17} />
             </View>
-            <Text style={styles.compactLabel}>Activity</Text>
-            <Text style={styles.compactValue}>Light</Text>
-            <Text style={styles.compactCopy}>Best window: late morning</Text>
+            <Text style={styles.compactLabel}>Movement</Text>
+            <Text style={styles.compactValue}>{movementCard.label}</Text>
+            <Text style={styles.compactCopy}>{movementCard.workout_count} workouts · {movementCard.total_minutes} min</Text>
+            <Text style={styles.compactCopy}>{movementCard.suggested_next_action}</Text>
+            <Text style={styles.compactSource}>Confidence: {movementCard.confidence} · {titleCase(movementCard.source_label)}</Text>
           </View>
           <View style={styles.compactPanel}>
             <View style={styles.compactIcon}>
@@ -665,6 +758,13 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.textMuted,
     marginTop: 4
+  },
+  compactSource: {
+    ...type.caption,
+    color: colors.textFaint,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 8
   },
   focusTitle: {
     ...type.title,
