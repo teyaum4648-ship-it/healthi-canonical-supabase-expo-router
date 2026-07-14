@@ -162,7 +162,7 @@ function scheduleCard(entries: TrendScheduleEntry[]): TrendsDomainCard {
   const averageBlocks = average(entries.map((entry) => entry.block_count)) ?? 0;
   const averageOpen = average(entries.map((entry) => entry.open_window_count));
   const protectedCount = entries.reduce((sum, entry) => sum + (entry.protected_block_count ?? 0), 0);
-  const crowded = averageBlocks >= 5 && (averageOpen === null || averageOpen < 1);
+  const crowded = averageOpen !== null && averageBlocks >= 5 && averageOpen < 1;
   const status: TrendsStatus = crowded ? 'watch' : averageOpen !== null && averageOpen >= 1 ? 'supportive' : 'steady';
   return {
     domain: 'mind_life_load',

@@ -84,6 +84,17 @@ describe('generateTrendsSummary', () => {
     expect(result.next_focus.domain).toBe('mind_life_load');
   });
 
+  it('does not infer schedule pressure when open-window data is unavailable', () => {
+    const result = generateTrendsSummary({
+      today,
+      scheduleHistory: dates(4).map((date) => ({ date, block_count: 6, confidence: 'medium' }))
+    });
+    const card = result.domain_cards.find((item) => item.domain === 'mind_life_load');
+
+    expect(card?.status).toBe('steady');
+    expect(card?.reason_codes).not.toContain('schedule_density_watch');
+  });
+
   it('returns a serializable output with reason codes', () => {
     const result = generateTrendsSummary({ today, rhythmHistory: dates(3).map((date) => ({ date, sleep_duration_hours: 7 })) });
 
