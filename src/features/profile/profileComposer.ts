@@ -8,8 +8,9 @@ import { getWorkoutSessionsForRange, type MovementSupabaseClient } from '../move
 import { getLocalDemoNutritionState } from '../nutrition/localDemoNutritionStore';
 import { getActiveFoodPatternProfile, type FoodPersonalizationSupabaseClient } from '../nutrition/foodPersonalizationPersistence';
 import { getRecentMealLogs, type NutritionSupabaseClient } from '../nutrition/persistence';
-import { createDemoSleepSessions } from '../sleepRhythm/rhythmInputs';
-import { getRecentSleepSessions, type SleepRhythmSupabaseClient } from '../sleepRhythm/persistence';
+import { createDefaultSleepNeedEstimate, createDemoSleepSessions } from '../sleepRhythm/rhythmInputs';
+import { getActiveSleepNeedEstimate, getRecentSleepSessions, type SleepRhythmSupabaseClient } from '../sleepRhythm/persistence';
+import { buildPersonalBlueprint } from './personalBlueprint';
 import type {
   BaselineProfileRecord,
   ProfileComposerData,
@@ -74,6 +75,8 @@ function baselineFromUnknown(value: unknown): BaselineProfileRecord | null {
     training_capacity: training
       ? { experience: asString(training.experience), weekly_training_days: asString(training.weekly_training_days) }
       : null,
+    movement_flags: asStringArray(value.movement_flags),
+    posture_flags: asStringArray(value.posture_flags),
     primary_goal: asString(value.primary_goal),
     calibration_status: asString(value.calibration_status),
     generated_at: asString(value.generated_at)
@@ -121,7 +124,22 @@ export function composeProfileScreenModel(input: ProfileComposerData, loadError 
       rhythm_confidence: input.rhythm_confidence
     }
   });
-  return { account: accountLabel(input), baseline, load_error: loadError };
+  return {
+    account: accountLabel(input),
+    baseline,
+    blueprint: buildPersonalBlueprint({
+      today: new Date().toISOString().slice(0, 10),
+      foodPattern: input.food_pattern,
+      meals: input.recent_meals,
+      sleepSessions: input.sleep_sessions,
+      sleepNeed: input.sleep_need ?? createDefaultSleepNeedEstimate(),
+      preferredBedtime: input.preferred_bedtime ?? input.onboarding?.baseline_profile?.preferred_bedtime,
+      movementSessions: input.movement_sessions,
+      movementFlags: input.movement_flags ?? input.onboarding?.baseline_profile?.movement_flags,
+      postureFlags: input.posture_flags ?? input.onboarding?.baseline_profile?.posture_flags
+    }),
+    load_error: loadError
+  };
 }
 
 async function getLatestBaselineProfile(client: BaselineProfileSupabaseClient, userId: string): Promise<BaselineProfileRecord | null> {
@@ -148,6 +166,7 @@ async function loadDemoModel(input: ProfileComposerInput): Promise<ProfileScreen
   const record = isRecord(parsed) ? parsed : null;
   const baseline = baselineFromUnknown(record?.baselineProfile);
   const latestMovement = [...movement.workoutSessions].sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0];
+  const sleepSessions = createDemoSleepSessions(today);
   return composeProfileScreenModel({
     profile: input.profile ? { display_name: input.profile.display_name, goal: input.profile.primary_goal ?? baseline?.primary_goal } : null,
     onboarding: {
@@ -157,9 +176,17 @@ async function loadDemoModel(input: ProfileComposerInput): Promise<ProfileScreen
     email: input.email,
     source_label: 'demo',
     nutrition_dates: nutrition.mealLogs.map((meal) => meal.logged_at),
+    recent_meals: nutrition.mealLogs,
+    food_pattern: nutrition.foodPatternProfile,
     movement_dates: movement.workoutSessions.map((session) => session.session_date),
+    movement_sessions: movement.workoutSessions,
     schedule_dates: schedule.map((block) => block.block_date),
-    sleep_dates: createDemoSleepSessions(today).map((session) => session.date),
+    sleep_dates: sleepSessions.map((session) => session.date),
+    sleep_sessions: sleepSessions,
+    sleep_need: createDefaultSleepNeedEstimate(),
+    preferred_bedtime: baseline?.preferred_bedtime,
+    movement_flags: baseline?.movement_flags,
+    posture_flags: baseline?.posture_flags,
     food_pattern_label: nutrition.foodPatternProfile?.pattern_label,
     movement_readiness_label: latestMovement?.readiness_before,
     rhythm_confidence: 'medium'
@@ -180,12 +207,13 @@ async function loadRemoteModel(input: ProfileComposerInput): Promise<ProfileScre
   const today = new Date().toISOString().slice(0, 10);
   const start = rangeStart(today);
   const client = input.supabase_client;
-  const [baseline, meals, movement, schedule, sleep, foodPattern] = await Promise.all([
+  const [baseline, meals, movement, schedule, sleep, sleepNeed, foodPattern] = await Promise.all([
     getLatestBaselineProfile(client as BaselineProfileSupabaseClient, userId),
     getRecentMealLogs(client as NutritionSupabaseClient, userId, 100),
     getWorkoutSessionsForRange(client as MovementSupabaseClient, userId, start, today, 100),
     getScheduleBlocksForRange(client as DayScheduleBlockSupabaseClient, userId, `${start}T00:00:00.000Z`, `${today}T23:59:59.999Z`, 200),
     getRecentSleepSessions(client as SleepRhythmSupabaseClient, userId, 30),
+    getActiveSleepNeedEstimate(client as SleepRhythmSupabaseClient, userId),
     getActiveFoodPatternProfile(client as FoodPersonalizationSupabaseClient, userId)
   ]);
   const latestMovement = [...movement].sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0];
@@ -195,9 +223,19 @@ async function loadRemoteModel(input: ProfileComposerInput): Promise<ProfileScre
     email: input.email,
     source_label: 'logged',
     nutrition_dates: meals.map((meal) => meal.logged_at),
+    recent_meals: meals,
+    food_pattern: foodPattern,
     movement_dates: movement.map((session) => session.session_date),
+    movement_sessions: movement,
     schedule_dates: schedule.map((block) => block.block_date),
     sleep_dates: sleep.map((session) => session.date),
+    sleep_sessions: sleep,
+    sleep_need: sleepNeed
+      ? { minutes: sleepNeed.minutes, confidence: sleepNeed.confidence, basis: sleepNeed.basis, updated_at: sleepNeed.updated_at }
+      : createDefaultSleepNeedEstimate(),
+    preferred_bedtime: baseline?.preferred_bedtime,
+    movement_flags: baseline?.movement_flags,
+    posture_flags: baseline?.posture_flags,
     food_pattern_label: foodPattern?.pattern_label,
     movement_readiness_label: latestMovement?.readiness_before,
     rhythm_confidence: sleep.length ? sleep[0]?.source_confidence : undefined

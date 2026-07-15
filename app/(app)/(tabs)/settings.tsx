@@ -1,6 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 
 import { Button } from '../../../src/components/Button';
 import { Card } from '../../../src/components/Card';
@@ -14,6 +15,49 @@ import { colors, fonts, spacing } from '../../../src/styles/theme';
 
 function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
   return value === 'ready' ? 'Ready' : value === 'partial' ? 'Early pattern' : 'Calibrating';
+}
+
+const macroColors = [colors.accent, colors.accentMid, colors.accentSoft];
+
+function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint']['nourishment']['macro_tendency'] }) {
+  const size = 108;
+  const strokeWidth = 13;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  return (
+    <View style={styles.donutWrap}>
+      <Svg height={size} width={size}>
+        <Circle cx={size / 2} cy={size / 2} fill="none" r={radius} stroke={colors.track} strokeWidth={strokeWidth} />
+        {slices.map((slice, index) => {
+          const dash = (slice.weight / 100) * circumference;
+          const segment = (
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              fill="none"
+              key={slice.nutrient}
+              r={radius}
+              rotation="-90"
+              stroke={macroColors[index]}
+              strokeDasharray={`${dash} ${circumference - dash}`}
+              strokeDashoffset={-offset}
+              strokeLinecap="round"
+              strokeWidth={strokeWidth}
+              origin={`${size / 2}, ${size / 2}`}
+            />
+          );
+          offset += dash;
+          return segment;
+        })}
+      </Svg>
+      <View style={styles.donutCenter} pointerEvents="none">
+        <Text style={styles.donutLabel}>Macro</Text>
+        <Text style={styles.donutSubLabel}>tendency</Text>
+      </View>
+    </View>
+  );
 }
 
 export default function SettingsScreen() {
@@ -103,6 +147,75 @@ export default function SettingsScreen() {
             </Card>
           )}
 
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Your personal blueprint</Text>
+            <Text style={styles.sectionCaption}>What shapes your plan</Text>
+          </View>
+
+          <Card style={styles.blueprintCard}>
+            <Text style={styles.cardEyebrow}>NOURISHMENT PREFERENCES</Text>
+            <Text style={styles.blueprintTitle}>{model.blueprint.nourishment.pattern_label}</Text>
+            <Text style={styles.detail}>{model.blueprint.nourishment.detail}</Text>
+            <View style={styles.nourishmentRow}>
+              <MacroTendencyDonut slices={model.blueprint.nourishment.macro_tendency} />
+              <View style={styles.macroLegend}>
+                {model.blueprint.nourishment.macro_tendency.map((slice, index) => (
+                  <View key={slice.nutrient} style={styles.macroLegendRow}>
+                    <View style={[styles.macroDot, { backgroundColor: macroColors[index] }]} />
+                    <Text style={styles.macroLabel}>{slice.nutrient}</Text>
+                    <Text style={styles.macroValue}>{slice.tendency}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <Text style={styles.miniHeading}>Often logged meals</Text>
+            <Text style={styles.detail}>{model.blueprint.nourishment.often_logged_meals.length ? model.blueprint.nourishment.often_logged_meals.join(' · ') : 'Log a few meals to show the meals you return to most often.'}</Text>
+            <Text style={styles.miniHeading}>Meal rhythm</Text>
+            {model.blueprint.nourishment.meal_timing.map((item) => <Text key={item} style={styles.bulletCopy}>• {item}</Text>)}
+            <Text style={styles.readinessNote}>{model.blueprint.nourishment.readiness_note}</Text>
+          </Card>
+
+          <Card style={styles.blueprintCard}>
+            <Text style={styles.cardEyebrow}>SLEEP RHYTHM</Text>
+            <Text style={styles.blueprintTitle}>Your sleep context</Text>
+            <Text style={styles.miniHeading}>Biggest friction</Text>
+            {model.blueprint.sleep.biggest_friction.map((item) => <Text key={item} style={styles.bulletCopy}>• {item}</Text>)}
+            <Text style={styles.miniHeading}>Strongest supporters</Text>
+            {model.blueprint.sleep.biggest_supporters.map((item) => <Text key={item} style={styles.bulletCopy}>• {item}</Text>)}
+            <Text style={styles.miniHeading}>Rhythm cues</Text>
+            {model.blueprint.sleep.rhythm_tips.map((tip) => (
+              <View key={tip.title} style={styles.tipRow}>
+                <Text style={styles.tipTitle}>{tip.title}</Text>
+                <Text style={styles.detail}>{tip.detail}</Text>
+              </View>
+            ))}
+            <Text style={styles.readinessNote}>{model.blueprint.sleep.readiness_note}</Text>
+          </Card>
+
+          <Card style={styles.blueprintCard}>
+            <Text style={styles.cardEyebrow}>MOVEMENT SUMMARY</Text>
+            <Text style={styles.blueprintTitle}>Your training context</Text>
+            <View style={styles.movementMetrics}>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricValue}>{model.blueprint.movement.total_minutes}</Text>
+                <Text style={styles.metricLabel}>Minutes this week</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricValue}>{model.blueprint.movement.average_effort ?? '—'}</Text>
+                <Text style={styles.metricLabel}>Average effort</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricValue}>{model.blueprint.movement.mobility_recovery_sessions}</Text>
+                <Text style={styles.metricLabel}>Mobility / recovery</Text>
+              </View>
+            </View>
+            <Text style={styles.detail}>Training pattern: {model.blueprint.movement.consistency_label}</Text>
+            <Text style={styles.miniHeading}>Movement context</Text>
+            {model.blueprint.movement.movement_notes.map((item) => <Text key={item} style={styles.bulletCopy}>• {item}</Text>)}
+            <Text style={styles.detail}>{model.blueprint.movement.mobility_note}</Text>
+            <Text style={styles.readinessNote}>{model.blueprint.movement.readiness_note}</Text>
+          </Card>
+
           <Card style={styles.calibrationCard}>
             <Text style={styles.cardEyebrow}>CALIBRATION</Text>
             <Text style={styles.calibrationTitle}>{baseline.calibration.completion_label}</Text>
@@ -171,6 +284,27 @@ const styles = StyleSheet.create({
   profileCard: { gap: spacing.xs },
   profileTitle: { color: colors.textMuted, fontFamily: fonts.bodyMedium, fontSize: 13 },
   profileValue: { color: colors.text, fontFamily: fonts.display, fontSize: 23, lineHeight: 29 },
+  blueprintCard: { gap: spacing.sm },
+  blueprintTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 24, lineHeight: 30 },
+  nourishmentRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
+  donutWrap: { alignItems: 'center', height: 108, justifyContent: 'center', width: 108 },
+  donutCenter: { alignItems: 'center', justifyContent: 'center', position: 'absolute' },
+  donutLabel: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 12 },
+  donutSubLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 10 },
+  macroLegend: { flex: 1, gap: spacing.sm },
+  macroLegendRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
+  macroDot: { borderRadius: 4, height: 8, width: 8 },
+  macroLabel: { color: colors.text, flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13 },
+  macroValue: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12, textTransform: 'capitalize' },
+  miniHeading: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 13, marginTop: spacing.xs },
+  bulletCopy: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20 },
+  readinessNote: { borderTopColor: colors.hairlineSoft, borderTopWidth: 1, color: colors.accent, fontFamily: fonts.body, fontSize: 12, lineHeight: 18, marginTop: spacing.xs, paddingTop: spacing.sm },
+  tipRow: { gap: 2, paddingVertical: 2 },
+  tipTitle: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 13 },
+  movementMetrics: { flexDirection: 'row', gap: spacing.sm },
+  metricItem: { backgroundColor: colors.surfaceInset, flex: 1, gap: 2, padding: spacing.sm },
+  metricValue: { color: colors.text, fontFamily: fonts.display, fontSize: 22, lineHeight: 27 },
+  metricLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 10, lineHeight: 14 },
   calibrationCard: { gap: spacing.sm },
   calibrationTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 24, lineHeight: 30 },
   domainList: { borderTopColor: colors.hairline, borderTopWidth: 1, marginTop: spacing.xs },

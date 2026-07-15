@@ -26,6 +26,8 @@ export type BaselineOnboardingInput = {
     hydration_target_ml?: number | null;
     food_constraints?: string[] | null;
     training_capacity?: { experience?: string | null; weekly_training_days?: string | null } | null;
+    movement_flags?: string[] | null;
+    posture_flags?: string[] | null;
     primary_goal?: string | null;
     calibration_status?: string | null;
   } | null;

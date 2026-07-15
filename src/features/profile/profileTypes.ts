@@ -1,4 +1,8 @@
 import type { BaselineOnboardingInput, BaselineProfileInput, BaselineSummary } from '../../engines/baseline';
+import type { FoodPatternProfile, MealLog } from '../../engines/nutrition';
+import type { SleepNeedEstimate, SleepSession } from '../../engines/circadian';
+import type { WorkoutSessionRow } from '../movement/movementPersistence';
+import type { PersonalBlueprint } from './personalBlueprint';
 
 export type HealthiProfileRecord = {
   id?: string | null;
@@ -14,6 +18,7 @@ export type ProfileScreenModel = {
     source_label: 'logged' | 'demo' | 'calibrating';
   };
   baseline: BaselineSummary;
+  blueprint: PersonalBlueprint;
   load_error: boolean;
 };
 
@@ -38,6 +43,14 @@ export type ProfileComposerData = {
   schedule_dates?: string[];
   sleep_dates?: string[];
   food_pattern_label?: string | null;
+  food_pattern?: FoodPatternProfile | null;
+  recent_meals?: MealLog[];
+  sleep_sessions?: SleepSession[];
+  sleep_need?: SleepNeedEstimate;
+  preferred_bedtime?: string | null;
+  movement_sessions?: WorkoutSessionRow[];
+  movement_flags?: string[] | null;
+  posture_flags?: string[] | null;
   movement_readiness_label?: string | null;
   rhythm_confidence?: 'low' | 'medium' | 'high';
 };
