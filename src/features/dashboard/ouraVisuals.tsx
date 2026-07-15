@@ -191,13 +191,12 @@ export function AnimatedReadinessRing({
           cx={100}
           cy={100}
           fill="none"
-          origin="100, 100"
           r={radius}
-          rotation={-90}
           stroke="url(#healthi_readiness)"
           strokeDasharray={circumference}
           strokeLinecap="round"
           strokeWidth={6}
+          transform="rotate(-90 100 100)"
         />
         <AnimatedCircle animatedProps={tipProps} fill="#CFF6F1" r={5} />
         <AnimatedCircle animatedProps={tipProps} fill="#FFFFFF" r={2} />
@@ -326,13 +325,12 @@ export function ScoreRing({
             cx={30}
             cy={30}
             fill="none"
-            origin="30, 30"
             r={radius}
-            rotation={-90}
             stroke={color}
             strokeDasharray={circumference}
             strokeLinecap="round"
             strokeWidth={5}
+            transform="rotate(-90 30 30)"
           />
         </Svg>
         <View pointerEvents="none" style={{ position: 'absolute' }}>

@@ -172,7 +172,7 @@ function ReadinessRing({ score }: { score: number }) {
   return (
     <View style={styles.ringShell}>
       <Svg height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
-        <G origin={`${c}, ${c}`} rotation="-90">
+        <G transform={`rotate(-90 ${c} ${c})`}>
           {Array.from({ length: tickCount }, (_, tick) => {
             const angle = (tick / tickCount) * Math.PI * 2;
             const isMajor = tick % 8 === 0;

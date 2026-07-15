@@ -39,13 +39,12 @@ function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint'
               fill="none"
               key={slice.nutrient}
               r={radius}
-              rotation="-90"
               stroke={macroColors[index]}
               strokeDasharray={`${dash} ${circumference - dash}`}
               strokeDashoffset={-offset}
               strokeLinecap="round"
               strokeWidth={strokeWidth}
-              origin={`${size / 2}, ${size / 2}`}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
             />
           );
           offset += dash;
