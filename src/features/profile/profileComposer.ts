@@ -97,7 +97,7 @@ function accountLabel(input: ProfileComposerData): ProfileScreenModel['account']
     return { label: 'Local demo preview', detail: 'Your changes stay on this device. Remote sync is not active.', source_label: 'demo' };
   }
   if (input.profile) {
-    return { label: input.email ?? input.profile.display_name ?? 'Signed in', detail: 'Your profile and logged data are available on this account.', source_label: source === 'logged' ? 'logged' : 'calibrating' };
+    return { label: input.email ?? input.profile.display_name ?? 'Signed in', detail: 'Your profile is available on this account. Logged data appears as you add it.', source_label: source === 'logged' ? 'logged' : 'calibrating' };
   }
   return { label: 'Not signed in', detail: 'Complete setup or sign in to save a personal baseline.', source_label: 'calibrating' };
 }

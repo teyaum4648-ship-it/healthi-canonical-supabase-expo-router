@@ -39,6 +39,7 @@ describe('profile composer', () => {
 
     expect(model.baseline.status).toBe('calibrating');
     expect(model.baseline.missing_data).toContain('movement_capacity');
+    expect(model.account.detail).toContain('Logged data appears as you add it.');
     expect(JSON.parse(JSON.stringify(model))).toEqual(model);
   });
 });
