@@ -28,6 +28,8 @@ export type BaselineOnboardingInput = {
     training_capacity?: { experience?: string | null; weekly_training_days?: string | null } | null;
     movement_flags?: string[] | null;
     posture_flags?: string[] | null;
+    baseline_mode?: BaselineMode | null;
+    primary_focus?: string | null;
     primary_goal?: string | null;
     calibration_status?: string | null;
   } | null;

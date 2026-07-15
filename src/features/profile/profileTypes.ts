@@ -31,6 +31,7 @@ export type ProfileComposerInput = {
 
 export type BaselineProfileRecord = NonNullable<BaselineOnboardingInput['baseline_profile']> & {
   generated_at?: string | null;
+  initial_foundation_scores?: unknown;
 };
 
 export type ProfileComposerData = {
@@ -51,6 +52,8 @@ export type ProfileComposerData = {
   movement_sessions?: WorkoutSessionRow[];
   movement_flags?: string[] | null;
   posture_flags?: string[] | null;
+  baseline_mode?: BaselineProfileInput['baseline_mode'];
+  primary_focus?: string | null;
   movement_readiness_label?: string | null;
   rhythm_confidence?: 'low' | 'medium' | 'high';
 };

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +12,8 @@ import { calculateMovementSummary, generateMovementReadinessSignal } from '../..
 import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import { readOnboardingV2Setup } from '../../../src/features/onboarding/onboardingV2Model';
+import type { OnboardingV2BaselineSetup } from '../../../src/features/onboarding/onboardingV2Types';
 import { getDemoScheduleBlocksForDate } from '../../../src/features/dayPlan/localDemoScheduleStore';
 import { buildDayPlanInput } from '../../../src/features/dayPlan/scheduleBlockForms';
 import {
@@ -57,6 +60,7 @@ import { colors, hairlineWidth, palette, type } from '../../../src/styles/theme'
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const foodSegments = Array.from({ length: 10 }, (_, index) => index);
+const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -126,6 +130,21 @@ function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets | n
     basis: row.basis
   };
 }
+
+type DashboardBaselineClient = {
+  from(table: 'baseline_profiles'): {
+    select(columns: 'initial_foundation_scores'): {
+      eq(column: 'user_id', value: string): {
+        order(column: 'generated_at', options: { ascending: boolean }): {
+          limit(count: number): Promise<{
+            data: Array<{ initial_foundation_scores?: unknown }> | null;
+            error: { message?: string } | null;
+          }>;
+        };
+      };
+    };
+  };
+};
 
 /**
  * Signature element: a 64-tick chronometer bezel. Ticks light in jade up to
@@ -248,6 +267,47 @@ export default function DashboardScreen() {
   const [rhythmSource, setRhythmSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
   const [scheduleBlocks, setScheduleBlocks] = useState<DayScheduleBlockRow[]>([]);
   const [scheduleSource, setScheduleSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
+  const [baselineSetup, setBaselineSetup] = useState<OnboardingV2BaselineSetup | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const userId = user?.id;
+      let isMounted = true;
+
+      if (!isUuid(userId)) {
+        AsyncStorage.getItem(demoOnboardingResultKey)
+          .then((value) => {
+            if (!isMounted) return;
+            const parsed = value ? JSON.parse(value) as { baselineProfile?: { initial_foundation_scores?: unknown } } : null;
+            setBaselineSetup(readOnboardingV2Setup(parsed?.baselineProfile?.initial_foundation_scores));
+          })
+          .catch(() => {
+            if (isMounted) setBaselineSetup(null);
+          });
+        return () => {
+          isMounted = false;
+        };
+      }
+
+      (supabase as unknown as DashboardBaselineClient)
+        .from('baseline_profiles')
+        .select('initial_foundation_scores')
+        .eq('user_id', userId)
+        .order('generated_at', { ascending: false })
+        .limit(1)
+        .then(({ data, error }) => {
+          if (!isMounted) return;
+          setBaselineSetup(error ? null : readOnboardingV2Setup(data?.[0]?.initial_foundation_scores));
+        })
+        .catch(() => {
+          if (isMounted) setBaselineSetup(null);
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }, [user?.id])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -505,10 +565,12 @@ export default function DashboardScreen() {
           nutrition: nutritionSource === 'remote' ? 'logged' : nutritionSource,
           movement: movementSource === 'remote' ? 'logged' : movementSource,
           schedule: scheduleSource === 'remote' ? 'logged' : scheduleSource
-        }
+        },
+        baseline_mode: baselineSetup?.baseline_mode
       }),
     [
       circadianBriefing,
+      baselineSetup?.baseline_mode,
       latestSleepSession,
       movementSignal,
       movementSource,

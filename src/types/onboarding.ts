@@ -90,6 +90,14 @@ export type BaselineProfileDraft = {
     mind_life_load: BaselineDomainScore;
     plan_signals: BaselinePlanSignals;
     protocol_biases: string[];
+    setup_v2?: {
+      version: 2;
+      baseline_mode: 'build' | 'maintain' | 'correct' | 'restore' | 'professional_guidance';
+      primary_focus: FoundationDomain;
+      confidence: DataConfidence;
+      reason_codes: string[];
+      missing_data: string[];
+    };
   };
   calibration_status: 'calibrating';
 };

@@ -6,7 +6,7 @@ import type {
   OnboardingAnswerValue,
   OnboardingAnswers
 } from '../../types/onboarding';
-import { generateLifestylePlan } from './generateLifestylePlan';
+import { generateOnboardingV2Result, onboardingV2SetupFromResult } from './onboardingV2Model';
 
 function asString(value: OnboardingAnswerValue | undefined): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
@@ -31,21 +31,9 @@ function scoreDomain(score: number, limitingFactors: string[]): BaselineDomainSc
   };
 }
 
-function calculateSleepNeedMinutes(answers: OnboardingAnswers) {
-  const planResult = generateLifestylePlan(answers);
-
-  if (
-    planResult.tags.includes('hpaFatigue') ||
-    planResult.tags.includes('poorSleep') ||
-    planResult.tags.includes('overtraining')
-  ) {
-    return 540;
-  }
-
-  if (planResult.scores.sleepScore >= 40) {
-    return 510;
-  }
-
+function calculateSleepNeedMinutes(baselineMode: string, primaryFocus: string) {
+  if (baselineMode === 'restore') return 510;
+  if (primaryFocus === 'recovery_rhythm') return 500;
   return 480;
 }
 
@@ -64,17 +52,17 @@ function calculateHydrationTargetMl(answers: OnboardingAnswers) {
   return 2600;
 }
 
-function buildPlanSignals(answers: OnboardingAnswers): BaselinePlanSignals {
-  const result = generateLifestylePlan(answers);
-
+function buildPlanSignals(result: ReturnType<typeof generateOnboardingV2Result>): BaselinePlanSignals {
+  const priorityFor = (domain: 'recovery_rhythm' | 'nourishment' | 'movement_capacity' | 'mind_life_load') =>
+    result.calibration_hints.find((hint) => hint.domain === domain)?.priority ?? 0;
   return {
-    sleep_circadian_repair: result.scores.sleepScore,
-    stress_rhythm_support: result.scores.stressScore,
-    food_quality_foundation: result.scores.dietScore,
-    metabolic_stability: result.tags.includes('bloodSugarDysregulation') ? 85 : 25,
-    digestion_support: result.scores.digestiveScore,
-    movement_reactivation: result.tags.includes('sedentary') ? 85 : result.scores.activityScore,
-    performance_recovery: result.tags.includes('overtraining') ? 90 : result.scores.activityScore
+    sleep_circadian_repair: priorityFor('recovery_rhythm'),
+    stress_rhythm_support: priorityFor('mind_life_load'),
+    food_quality_foundation: priorityFor('nourishment'),
+    metabolic_stability: priorityFor('nourishment'),
+    digestion_support: priorityFor('nourishment'),
+    movement_reactivation: priorityFor('movement_capacity'),
+    performance_recovery: priorityFor('movement_capacity')
   };
 }
 
@@ -111,8 +99,8 @@ export function generateBaselineProfile({
   userId,
   answers
 }: BaselineProfileInput): BaselineProfileDraft {
-  const planResult = generateLifestylePlan(answers);
-  const planSignals = buildPlanSignals(answers);
+  const onboardingV2 = generateOnboardingV2Result({ answers });
+  const planSignals = buildPlanSignals(onboardingV2);
   const protocolBiases = buildProtocolBiases(planSignals);
   const recoveryLimiters = limitersFromSignals(planSignals, [
     'sleep_circadian_repair',
@@ -132,7 +120,7 @@ export function generateBaselineProfile({
 
   return {
     user_id: userId,
-    sleep_need_minutes_estimate: calculateSleepNeedMinutes(answers),
+    sleep_need_minutes_estimate: calculateSleepNeedMinutes(onboardingV2.baseline_mode, onboardingV2.primary_focus),
     preferred_bedtime: asString(answers.bedtime),
     preferred_waketime: asString(answers.wake_time),
     hydration_target_ml: calculateHydrationTargetMl(answers),
@@ -142,7 +130,7 @@ export function generateBaselineProfile({
       weekly_training_days: asString(answers.weekly_training_days),
       equipment: asStringArray(answers.training_types)
     },
-    movement_flags: planResult.tags.includes('sedentary') ? ['sedentary_start'] : [],
+    movement_flags: asString(answers.weekly_training_days) === '0' ? ['movement_starting_point'] : [],
     posture_flags: [],
     stress_tendencies: asStringArray(answers.stress_sources),
     digestion_tendencies: buildDigestionTendencies(answers),
@@ -153,7 +141,8 @@ export function generateBaselineProfile({
       movement_capacity: scoreDomain(100 - planSignals.movement_reactivation, movementLimiters),
       mind_life_load: scoreDomain(100 - planSignals.stress_rhythm_support, mindLimiters),
       plan_signals: planSignals,
-      protocol_biases: protocolBiases
+      protocol_biases: protocolBiases,
+      setup_v2: onboardingV2SetupFromResult(onboardingV2)
     },
     calibration_status: 'calibrating'
   };

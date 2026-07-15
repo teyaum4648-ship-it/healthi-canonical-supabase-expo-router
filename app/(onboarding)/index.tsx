@@ -13,6 +13,9 @@ import { generateBaselineProfile } from '../../src/features/onboarding/generateB
 import { generateBiweeklyFocusProfile } from '../../src/features/onboarding/generateBiweeklyFocusProfile';
 import { generateLifestylePlan } from '../../src/features/onboarding/generateLifestylePlan';
 import { onboardingQuestions } from '../../src/features/onboarding/onboardingQuestions';
+import { onboardingV2FocusLabels, onboardingV2Welcome } from '../../src/features/onboarding/onboardingV2Copy';
+import { generateOnboardingV2Result } from '../../src/features/onboarding/onboardingV2Model';
+import type { OnboardingV2Result } from '../../src/features/onboarding/onboardingV2Types';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
 import { colors, fonts, radii, spacing } from '../../src/styles/theme';
 import type {
@@ -38,6 +41,13 @@ function getAnswerText(value: OnboardingAnswerValue | undefined) {
   return typeof value === 'string' ? value : '';
 }
 
+function isValidTime(value: OnboardingAnswerValue | undefined): boolean {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  return Number(match[1]) <= 23 && Number(match[2]) <= 59;
+}
+
 function isAnswered(question: OnboardingQuestion, value: OnboardingAnswerValue | undefined) {
   if (question.optional) {
     return true;
@@ -49,6 +59,10 @@ function isAnswered(question: OnboardingQuestion, value: OnboardingAnswerValue |
 
   if (question.type === 'scale') {
     return typeof value === 'number';
+  }
+
+  if (question.type === 'time') {
+    return isValidTime(value);
   }
 
   return typeof value === 'string' && value.trim().length > 0;
@@ -93,6 +107,14 @@ const focusSummaries: Record<FoundationDomain, string> = {
     'Your answers suggest Mind + Life Load should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward lower friction, decompression, and consistency that fits your current life load.',
   balanced:
     'Your answers suggest a balanced first calibration. For the next 2 weeks, Healthi will keep your plan steady while it learns which levers matter most for you.'
+};
+
+const baselineModeLabels: Record<OnboardingV2Result['baseline_mode'], string> = {
+  build: 'Build',
+  maintain: 'Maintain',
+  correct: 'Steady reset',
+  restore: 'Restore',
+  professional_guidance: 'Guided'
 };
 
 const trainingBiasLabels: Record<BiweeklyFocusProfile['training_bias'], string> = {
@@ -260,6 +282,7 @@ export default function OnboardingScreen() {
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [focusProfile, setFocusProfile] = useState<BiweeklyFocusProfile | null>(null);
+  const [setupResult, setSetupResult] = useState<OnboardingV2Result | null>(null);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const question = onboardingQuestions[currentIndex];
@@ -267,6 +290,7 @@ export default function OnboardingScreen() {
   const draftKey = user ? `healthi:onboarding:${user.id}` : null;
   const progressPercent = ((currentIndex + 1) / onboardingQuestions.length) * 100;
   const canContinue = isAnswered(question, answer);
+  const timeEntryNeedsFormat = question.type === 'time' && getAnswerText(answer).length > 0 && !isValidTime(answer);
   const isLastQuestion = currentIndex === onboardingQuestions.length - 1;
 
   useEffect(() => {
@@ -330,7 +354,7 @@ export default function OnboardingScreen() {
   }, [profile?.onboarding_status, user?.id]);
 
   const sectionLabel = useMemo(
-    () => `${question.section} ${currentIndex + 1}/${onboardingQuestions.length}`,
+    () => `${question.section} · ${currentIndex + 1} of ${onboardingQuestions.length}`,
     [currentIndex, question.section]
   );
 
@@ -371,6 +395,7 @@ export default function OnboardingScreen() {
         userId: user.id,
         answers
       });
+      const onboardingV2Result = generateOnboardingV2Result({ answers });
       const lifestylePlanResult = generateLifestylePlan(answers);
       const biweeklyFocusProfile = generateBiweeklyFocusProfile({
         userId: user.id,
@@ -383,12 +408,14 @@ export default function OnboardingScreen() {
           JSON.stringify({
             answers,
             baselineProfile,
+            onboardingV2Result,
             lifestylePlanResult,
             biweeklyFocusProfile
           })
         );
         await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
         await AsyncStorage.removeItem(draftKey);
+        setSetupResult(onboardingV2Result);
         setFocusProfile(biweeklyFocusProfile);
         return;
       }
@@ -441,6 +468,7 @@ export default function OnboardingScreen() {
         plan: lifestylePlanResult.plan,
         raw_result: {
           ...lifestylePlanResult,
+          onboarding_v2: onboardingV2Result,
           biweekly_focus_profile: biweeklyFocusProfile
         }
       });
@@ -484,6 +512,7 @@ export default function OnboardingScreen() {
       }
 
       await AsyncStorage.removeItem(draftKey);
+      setSetupResult(onboardingV2Result);
       setFocusProfile(biweeklyFocusProfile);
     } catch (error) {
       const message =
@@ -538,6 +567,7 @@ export default function OnboardingScreen() {
       return (
         <TextInput
           autoCapitalize="sentences"
+          keyboardType={question.type === 'time' ? 'numbers-and-punctuation' : 'default'}
           label={question.type === 'time' ? 'Time' : 'Answer'}
           onChangeText={setAnswer}
           placeholder={question.type === 'time' ? '07:00' : 'Add a note'}
@@ -590,7 +620,7 @@ export default function OnboardingScreen() {
     );
   }
 
-  if (focusProfile) {
+  if (focusProfile && !setupResult) {
     const topReasons =
       focusProfile.top_limiting_factors.length > 0
         ? focusProfile.top_limiting_factors
@@ -662,6 +692,61 @@ export default function OnboardingScreen() {
     );
   }
 
+  if (setupResult) {
+    return (
+      <Screen contentStyle={styles.resultScreen}>
+        <View style={styles.focusHeader}>
+          <Text style={styles.focusHeaderEyebrow}>Baseline setup complete</Text>
+          <Text style={styles.focusHeaderTitle}>Your starting point</Text>
+          <Text style={styles.focusHeaderBody}>{setupResult.summary}</Text>
+        </View>
+
+        <Card style={styles.focusCard}>
+          <Text style={styles.focusLabel}>Suggested Healthi mode</Text>
+          <Text style={styles.focusTitle}>{baselineModeLabels[setupResult.baseline_mode]}</Text>
+          <Text style={styles.focusSecondary}>
+            First focus: {onboardingV2FocusLabels[setupResult.primary_focus]}
+          </Text>
+        </Card>
+
+        <Card style={styles.resultPanel}>
+          <Text style={styles.cardTitle}>What Healthi is watching first</Text>
+          {setupResult.calibration_hints.map((hint) => (
+            <View key={hint.domain} style={styles.setupHintRow}>
+              <View style={[styles.reasonDot, hint.priority >= 45 ? styles.reasonDotHigh : null]} />
+              <View style={styles.rankTextWrap}>
+                <Text style={styles.rankDomain}>{hint.label}</Text>
+                <Text style={styles.rankExplanation}>{hint.detail}</Text>
+              </View>
+            </View>
+          ))}
+        </Card>
+
+        <Card style={styles.resultPanel}>
+          <Text style={styles.cardTitle}>Your first next steps</Text>
+          {setupResult.next_steps.map((step) => (
+            <View key={step.id} style={styles.setupHintRow}>
+              <View style={styles.reasonDot} />
+              <View style={styles.rankTextWrap}>
+                <Text style={styles.rankDomain}>{step.title}</Text>
+                <Text style={styles.rankExplanation}>{step.detail}</Text>
+              </View>
+            </View>
+          ))}
+        </Card>
+
+        <Card style={styles.resultPanel}>
+          <Text style={styles.confidenceText}>{formatConfidence(setupResult.confidence)}</Text>
+          <Text style={styles.reassessmentText}>
+            You can change these details later. Healthi will keep calibrating from your logged data.
+          </Text>
+        </Card>
+
+        <Button label="Continue to Healthi" onPress={handleContinueFromFocus} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View style={styles.progressTrack}>
@@ -673,11 +758,12 @@ export default function OnboardingScreen() {
       <Card>
         {currentIndex === 0 ? (
           <Text style={styles.helper}>
-            The more you tell us now, the more specific your first plan can be.
+            {onboardingV2Welcome}
           </Text>
         ) : null}
         {question.helper ? <Text style={styles.helper}>{question.helper}</Text> : null}
         {renderAnswerControl()}
+        {timeEntryNeedsFormat ? <Text style={styles.timeHint}>Use a 24-hour time such as 22:45.</Text> : null}
       </Card>
 
       <View style={styles.actions}>
@@ -691,7 +777,7 @@ export default function OnboardingScreen() {
         <Button
           disabled={!canContinue}
           isLoading={isSubmitting}
-          label={isLastQuestion ? 'Finish setup' : 'Next'}
+          label={isLastQuestion ? 'Review your baseline' : 'Next'}
           onPress={handleNext}
           style={styles.actionButton}
         />
@@ -717,6 +803,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 14,
     lineHeight: 22
+  },
+  timeHint: {
+    color: colors.signalAmber,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18
   },
   options: {
     gap: spacing.sm
@@ -1114,6 +1206,15 @@ const styles = StyleSheet.create({
     marginTop: 7,
     borderRadius: 4,
     backgroundColor: colors.primary
+  },
+  reasonDotHigh: {
+    backgroundColor: colors.signalAmber
+  },
+  setupHintRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs
   },
   reasonText: {
     flex: 1,

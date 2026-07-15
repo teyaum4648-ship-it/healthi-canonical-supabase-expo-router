@@ -10,6 +10,7 @@ import { getActiveFoodPatternProfile, type FoodPersonalizationSupabaseClient } f
 import { getRecentMealLogs, type NutritionSupabaseClient } from '../nutrition/persistence';
 import { createDefaultSleepNeedEstimate, createDemoSleepSessions } from '../sleepRhythm/rhythmInputs';
 import { getActiveSleepNeedEstimate, getRecentSleepSessions, type SleepRhythmSupabaseClient } from '../sleepRhythm/persistence';
+import { readOnboardingV2Setup } from '../onboarding/onboardingV2Model';
 import { buildPersonalBlueprint } from './personalBlueprint';
 import type {
   BaselineProfileRecord,
@@ -67,6 +68,7 @@ function asStringArray(value: unknown): string[] {
 function baselineFromUnknown(value: unknown): BaselineProfileRecord | null {
   if (!isRecord(value)) return null;
   const training = isRecord(value.training_capacity) ? value.training_capacity : null;
+  const setup = readOnboardingV2Setup(value.initial_foundation_scores);
   return {
     preferred_bedtime: asString(value.preferred_bedtime),
     preferred_waketime: asString(value.preferred_waketime),
@@ -77,9 +79,12 @@ function baselineFromUnknown(value: unknown): BaselineProfileRecord | null {
       : null,
     movement_flags: asStringArray(value.movement_flags),
     posture_flags: asStringArray(value.posture_flags),
+    baseline_mode: setup?.baseline_mode ?? null,
+    primary_focus: setup?.primary_focus ?? null,
     primary_goal: asString(value.primary_goal),
     calibration_status: asString(value.calibration_status),
-    generated_at: asString(value.generated_at)
+    generated_at: asString(value.generated_at),
+    initial_foundation_scores: value.initial_foundation_scores
   };
 }
 
@@ -119,6 +124,7 @@ export function composeProfileScreenModel(input: ProfileComposerData, loadError 
       readiness_days: 0
     },
     currentSignals: {
+      primary_focus: input.primary_focus ?? input.onboarding?.baseline_profile?.primary_focus,
       food_pattern_label: input.food_pattern_label,
       movement_readiness_label: input.movement_readiness_label,
       rhythm_confidence: input.rhythm_confidence
@@ -150,7 +156,7 @@ async function getLatestBaselineProfile(client: BaselineProfileSupabaseClient, u
     .order('generated_at', { ascending: false })
     .limit(1);
   if (error) throw new Error(error.message ?? 'Baseline profile request failed.');
-  return data?.[0] ?? null;
+  return data?.[0] ? baselineFromUnknown(data[0]) : null;
 }
 
 async function loadDemoModel(input: ProfileComposerInput): Promise<ProfileScreenModel> {
@@ -168,7 +174,7 @@ async function loadDemoModel(input: ProfileComposerInput): Promise<ProfileScreen
   const latestMovement = [...movement.workoutSessions].sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0];
   const sleepSessions = createDemoSleepSessions(today);
   return composeProfileScreenModel({
-    profile: input.profile ? { display_name: input.profile.display_name, goal: input.profile.primary_goal ?? baseline?.primary_goal } : null,
+    profile: input.profile ? { display_name: input.profile.display_name, goal: input.profile.primary_goal ?? baseline?.primary_goal, baseline_mode: baseline?.baseline_mode } : null,
     onboarding: {
       ...onboardingFromProfile(input.profile, baseline),
       completed: input.profile?.onboarding_status === 'completed' || Boolean(baseline)
@@ -187,6 +193,8 @@ async function loadDemoModel(input: ProfileComposerInput): Promise<ProfileScreen
     preferred_bedtime: baseline?.preferred_bedtime,
     movement_flags: baseline?.movement_flags,
     posture_flags: baseline?.posture_flags,
+    baseline_mode: baseline?.baseline_mode,
+    primary_focus: baseline?.primary_focus,
     food_pattern_label: nutrition.foodPatternProfile?.pattern_label,
     movement_readiness_label: latestMovement?.readiness_before,
     rhythm_confidence: 'medium'
@@ -218,7 +226,7 @@ async function loadRemoteModel(input: ProfileComposerInput): Promise<ProfileScre
   ]);
   const latestMovement = [...movement].sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0];
   return composeProfileScreenModel({
-    profile: { display_name: profile.display_name, goal: profile.primary_goal ?? baseline?.primary_goal },
+    profile: { display_name: profile.display_name, goal: profile.primary_goal ?? baseline?.primary_goal, baseline_mode: baseline?.baseline_mode },
     onboarding: onboardingFromProfile(profile, baseline),
     email: input.email,
     source_label: 'logged',
@@ -236,6 +244,8 @@ async function loadRemoteModel(input: ProfileComposerInput): Promise<ProfileScre
     preferred_bedtime: baseline?.preferred_bedtime,
     movement_flags: baseline?.movement_flags,
     posture_flags: baseline?.posture_flags,
+    baseline_mode: baseline?.baseline_mode,
+    primary_focus: baseline?.primary_focus,
     food_pattern_label: foodPattern?.pattern_label,
     movement_readiness_label: latestMovement?.readiness_before,
     rhythm_confidence: sleep.length ? sleep[0]?.source_confidence : undefined
