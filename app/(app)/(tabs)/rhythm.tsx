@@ -7,17 +7,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
+import { TimeField, parse24Hour } from '../../../src/components/TimeField';
 import {
   calculateSleepDuration,
   generateCircadianBriefing,
+  getRecommendedActivityAt,
   type CircadianBriefing,
-  type CircadianEnergyPoint,
+  type EnergyZoneLevel,
   type SleepNeedEstimate,
   type SleepSession,
   type TimeWindow
@@ -108,6 +109,13 @@ function getLatestSleepDuration(session: SleepSession | undefined): number | nul
   return calculateSleepDuration(session.sleep_start_at, session.sleep_end_at);
 }
 
+/** Format a 24-hour "HH:MM" value as a standard-time label like "10:30 PM". */
+function formatClockLabel(value: string): string {
+  const parsed = parse24Hour(value);
+  if (!parsed) return value;
+  return `${parsed.hour12}:${String(parsed.minute).padStart(2, '0')} ${parsed.meridiem}`;
+}
+
 function isValidTimeInput(value: string): boolean {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
   if (!match) return false;
@@ -136,22 +144,49 @@ function buildCurvePath(points: Array<{ x: number; y: number }>): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+// Vertical energy zones: green = high, amber = steady, red = low.
+const ZONE_FILL: Record<EnergyZoneLevel, string> = {
+  high: 'rgba(62, 158, 110, 0.18)',
+  moderate: 'rgba(184, 145, 69, 0.16)',
+  low: 'rgba(138, 75, 60, 0.15)'
+};
+const ZONE_SWATCH: Record<EnergyZoneLevel, string> = {
+  high: '#3E9E6E',
+  moderate: '#B89145',
+  low: palette.clayDark
+};
+const ZONE_LEGEND: Array<{ level: EnergyZoneLevel; label: string }> = [
+  { level: 'high', label: 'Energy high' },
+  { level: 'moderate', label: 'Steady' },
+  { level: 'low', label: 'Energy low' }
+];
+
 /**
- * The screen's signature: today's energy as a single drawn line, with a
- * luminous marker sitting exactly where you are in the day right now.
+ * The screen's signature: today's energy as a single drawn line over green /
+ * amber / red energy zones, with peak/low markers, a "now" marker, and a
+ * press-and-drag scrubber that reports the time and recommended activity.
  */
-function EnergyCurve({ points, now }: { points: CircadianEnergyPoint[]; now: string }) {
+function EnergyCurve({ briefing, now }: { briefing: CircadianBriefing; now: string }) {
+  const points = briefing.energy_curve;
   const [width, setWidth] = useState(0);
-  const height = 132;
-  const padTop = 14;
+  const [scrubX, setScrubX] = useState<number | null>(null);
+  const height = 172;
+  const padTop = 16;
   const padBottom = 30;
   const plotHeight = height - padTop - padBottom;
 
+  const yForEnergy = (energy: number) => padTop + (1 - Math.min(Math.max(energy, 0), 100) / 100) * plotHeight;
+
   const plotted = useMemo(() => {
     if (width === 0 || points.length < 2) return null;
+    const t0 = new Date(points[0].time).getTime();
+    const tN = new Date(points[points.length - 1].time).getTime();
+    const span = Math.max(1, tN - t0);
+    const xForTime = (iso: string) => ((new Date(iso).getTime() - t0) / span) * width;
+
     const coords = points.map((point, index) => ({
       x: (index / (points.length - 1)) * width,
-      y: padTop + (1 - Math.min(Math.max(point.estimated_energy, 0), 100) / 100) * plotHeight,
+      y: yForEnergy(point.estimated_energy),
       time: point.time
     }));
 
@@ -174,54 +209,158 @@ function EnergyCurve({ points, now }: { points: CircadianEnergyPoint[]; now: str
       .slice(0, 4)
       .map((coord) => ({ x: coord.x, text: formatTime(coord.time) }));
 
-    return { coords, line, area, nowPoint: coords[nowIndex], labels };
-  }, [height, now, padBottom, padTop, plotHeight, points, width]);
+    const zones = briefing.energy_zones.map((zone) => ({
+      x: xForTime(zone.start_at),
+      w: Math.max(0, xForTime(zone.end_at) - xForTime(zone.start_at)),
+      level: zone.level
+    }));
+    const extrema = briefing.energy_extrema.map((extreme) => ({
+      x: xForTime(extreme.time),
+      y: yForEnergy(extreme.energy),
+      type: extreme.type,
+      text: `${extreme.type === 'peak' ? 'Energy peak' : 'Energy low'} · ${formatTime(extreme.time)}`
+    }));
+
+    return { coords, line, area, nowPoint: coords[nowIndex], labels, zones, extrema, t0, span };
+  }, [briefing.energy_extrema, briefing.energy_zones, height, now, padBottom, padTop, plotHeight, points, width]);
+
+  const scrub = useMemo(() => {
+    if (!plotted || scrubX === null || width === 0) return null;
+    const clampedX = Math.max(0, Math.min(width, scrubX));
+    const timeIso = new Date(plotted.t0 + (clampedX / width) * plotted.span).toISOString();
+    const recommendation = getRecommendedActivityAt(briefing, timeIso);
+    return {
+      x: clampedX,
+      y: yForEnergy(recommendation.energy),
+      time: formatTime(timeIso),
+      recommendation
+    };
+  }, [briefing, plotted, scrubX, width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={styles.curveShell}>
-      {plotted ? (
-        <>
-          <Svg height={height} width={width}>
-            <Defs>
-              <LinearGradient id="energy-fade" x1="0" x2="0" y1="0" y2="1">
-                <Stop offset="0" stopColor={palette.forest} stopOpacity={0.20} />
-                <Stop offset="1" stopColor={palette.forest} stopOpacity={0} />
-              </LinearGradient>
-            </Defs>
-            <Line
-              stroke={palette.hairlineSoft}
-              strokeWidth={1}
-              x1={0}
-              x2={width}
-              y1={height - padBottom}
-              y2={height - padBottom}
-            />
-            <Path d={plotted.area} fill="url(#energy-fade)" />
-            <Path d={plotted.line} fill="none" stroke={palette.forestMid} strokeLinecap="round" strokeWidth={1.6} />
-            <Line
-              stroke={palette.hairline}
-              strokeDasharray="1 4"
-              strokeLinecap="round"
-              strokeWidth={1}
-              x1={plotted.nowPoint.x}
-              x2={plotted.nowPoint.x}
-              y1={padTop - 4}
-              y2={height - padBottom}
-            />
-            <Circle cx={plotted.nowPoint.x} cy={plotted.nowPoint.y} fill={palette.forest} fillOpacity={0.16} r={8} />
-            <Circle cx={plotted.nowPoint.x} cy={plotted.nowPoint.y} fill={palette.forest} r={3} />
-          </Svg>
-          <View style={styles.curveLabels}>
-            {plotted.labels.map((label) => (
-              <Text key={`${label.x}`} style={styles.curveLabelText}>
-                {label.text}
-              </Text>
-            ))}
+    <View style={styles.curveShell}>
+      <View
+        onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+        onResponderGrant={(event) => setScrubX(event.nativeEvent.locationX)}
+        onResponderMove={(event) => setScrubX(event.nativeEvent.locationX)}
+        onResponderRelease={() => setScrubX(null)}
+        onResponderTerminate={() => setScrubX(null)}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+      >
+        {plotted ? (
+          <>
+            {scrub ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.scrubCallout,
+                  { left: Math.max(0, Math.min(width - 148, scrub.x - 74)) }
+                ]}
+              >
+                <Text style={styles.scrubTime}>{scrub.time}</Text>
+                <Text style={styles.scrubActivity}>{scrub.recommendation.label}</Text>
+                <Text style={styles.scrubEnergy}>{scrub.recommendation.energy}% energy</Text>
+              </View>
+            ) : null}
+            <Svg height={height} width={width}>
+              <Defs>
+                <LinearGradient id="energy-fade" x1="0" x2="0" y1="0" y2="1">
+                  <Stop offset="0" stopColor={palette.forest} stopOpacity={0.16} />
+                  <Stop offset="1" stopColor={palette.forest} stopOpacity={0} />
+                </LinearGradient>
+              </Defs>
+              {plotted.zones.map((zone, index) => (
+                <Rect
+                  key={`zone-${index}`}
+                  fill={ZONE_FILL[zone.level]}
+                  height={plotHeight + padTop}
+                  width={zone.w}
+                  x={zone.x}
+                  y={0}
+                />
+              ))}
+              <Line
+                stroke={palette.hairlineSoft}
+                strokeWidth={1}
+                x1={0}
+                x2={width}
+                y1={height - padBottom}
+                y2={height - padBottom}
+              />
+              <Path d={plotted.area} fill="url(#energy-fade)" />
+              <Path d={plotted.line} fill="none" stroke={palette.forestMid} strokeLinecap="round" strokeWidth={1.8} />
+              {plotted.extrema.map((extreme, index) => (
+                <Circle
+                  key={`extreme-${index}`}
+                  cx={extreme.x}
+                  cy={extreme.y}
+                  fill={extreme.type === 'peak' ? ZONE_SWATCH.high : ZONE_SWATCH.low}
+                  r={3.5}
+                  stroke={palette.paper}
+                  strokeWidth={1.5}
+                />
+              ))}
+              {scrub ? (
+                <>
+                  <Line
+                    stroke={palette.forest}
+                    strokeLinecap="round"
+                    strokeWidth={1.4}
+                    x1={scrub.x}
+                    x2={scrub.x}
+                    y1={padTop - 4}
+                    y2={height - padBottom}
+                  />
+                  <Circle cx={scrub.x} cy={scrub.y} fill={palette.forest} r={4} stroke={palette.paper} strokeWidth={1.5} />
+                </>
+              ) : (
+                <>
+                  <Line
+                    stroke={palette.hairline}
+                    strokeDasharray="1 4"
+                    strokeLinecap="round"
+                    strokeWidth={1}
+                    x1={plotted.nowPoint.x}
+                    x2={plotted.nowPoint.x}
+                    y1={padTop - 4}
+                    y2={height - padBottom}
+                  />
+                  <Circle cx={plotted.nowPoint.x} cy={plotted.nowPoint.y} fill={palette.forest} fillOpacity={0.16} r={8} />
+                  <Circle cx={plotted.nowPoint.x} cy={plotted.nowPoint.y} fill={palette.forest} r={3} />
+                </>
+              )}
+            </Svg>
+            <View style={styles.curveLabels}>
+              {plotted.labels.map((label) => (
+                <Text key={`${label.x}`} style={styles.curveLabelText}>
+                  {label.text}
+                </Text>
+              ))}
+            </View>
+            {plotted.extrema.length > 0 ? (
+              <View style={styles.extremaRow}>
+                {plotted.extrema.map((extreme, index) => (
+                  <Text key={`extreme-label-${index}`} style={styles.extremaText}>
+                    {extreme.text}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <View style={{ height }} />
+        )}
+      </View>
+      <View style={styles.legendRow}>
+        {ZONE_LEGEND.map((item) => (
+          <View key={item.level} style={styles.legendItem}>
+            <View style={[styles.legendSwatch, { backgroundColor: ZONE_SWATCH[item.level] }]} />
+            <Text style={styles.legendText}>{item.label}</Text>
           </View>
-        </>
-      ) : (
-        <View style={{ height }} />
-      )}
+        ))}
+        <Text style={styles.legendHint}>Press &amp; drag the graph</Text>
+      </View>
     </View>
   );
 }
@@ -278,6 +417,7 @@ export default function RhythmScreen() {
   const [sleepStartTime, setSleepStartTime] = useState('22:45');
   const [wakeTime, setWakeTime] = useState('06:45');
   const [sleepQuality, setSleepQuality] = useState('4');
+  const [inputsTouched, setInputsTouched] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -331,20 +471,44 @@ export default function RhythmScreen() {
     return () => { isMounted = false; };
   }, [now, today, user?.id]);
 
+  // Live preview: once the user edits the manual inputs, reflect them in the
+  // graph + timing immediately (if valid) so quality/times recalculate the rhythm.
+  const previewSession = useMemo(() => {
+    if (!inputsTouched) return null;
+    if (!isValidTimeInput(sleepStartTime) || !isValidTimeInput(wakeTime)) return null;
+    const qualityNumber = sleepQuality ? Number(sleepQuality) : null;
+    const boundedQuality =
+      qualityNumber !== null && Number.isFinite(qualityNumber)
+        ? Math.max(1, Math.min(5, Math.round(qualityNumber)))
+        : null;
+    return createManualSleepSession({
+      date: today,
+      sleepStartTime,
+      wakeTime,
+      sleepQuality: boundedQuality,
+      createdAt: new Date().toISOString()
+    });
+  }, [inputsTouched, sleepQuality, sleepStartTime, today, wakeTime]);
+
+  const briefingSessions = useMemo(
+    () => (previewSession ? [previewSession, ...sleepSessions.filter((session) => session.date !== today)] : sleepSessions),
+    [previewSession, sleepSessions, today]
+  );
+
   const briefing: CircadianBriefing = useMemo(
     () =>
       generateCircadianBriefing({
         date: today,
         timezone: 'UTC',
-        recentSleepSessions: sleepSessions,
+        recentSleepSessions: briefingSessions,
         sleepNeed,
         preferredBedtime: '22:30',
         now
       }),
-    [now, sleepNeed, sleepSessions, today]
+    [briefingSessions, now, sleepNeed, today]
   );
 
-  const latestSession = sleepSessions[0];
+  const latestSession = briefingSessions[0];
   const sleepDuration = getLatestSleepDuration(latestSession);
   const sourceLabel = getSleepSourceLabel(briefing.source_summary.sleep_source);
   const confidenceLabel = getConfidenceLabel(briefing.confidence);
@@ -361,7 +525,7 @@ export default function RhythmScreen() {
     const normalizedWakeTime = wakeTime.trim();
 
     if (!isValidTimeInput(normalizedSleepStartTime) || !isValidTimeInput(normalizedWakeTime)) {
-      Alert.alert('Check sleep window', 'Use 24-hour time like 22:45 and 06:45.');
+      Alert.alert('Check sleep window', 'Enter a valid sleep and wake time.');
       return;
     }
 
@@ -422,7 +586,7 @@ export default function RhythmScreen() {
               </View>
             )}
           </View>
-          <EnergyCurve now={now} points={briefing.energy_curve} />
+          <EnergyCurve briefing={briefing} now={now} />
           <Text style={styles.leadText}>{rhythmLead}</Text>
           <Text style={styles.leadSubcopy}>
             {confidenceLabel}. {dataModeCopy}
@@ -507,41 +671,34 @@ export default function RhythmScreen() {
             Add last night's sleep and wake time to regenerate today's rhythm estimate.
           </Text>
           <View style={styles.inputGrid}>
-            <View style={styles.inputShell}>
-              <Text style={styles.inputLabel}>Sleep start</Text>
-              <TextInput
-                accessibilityLabel="Sleep start time"
-                autoCapitalize="none"
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                onChangeText={setSleepStartTime}
-                placeholder="22:45"
-                placeholderTextColor={colors.textFaint}
-                style={styles.inputField}
-                value={sleepStartTime}
-              />
-            </View>
-            <View style={styles.inputShell}>
-              <Text style={styles.inputLabel}>Wake time</Text>
-              <TextInput
-                accessibilityLabel="Wake time"
-                autoCapitalize="none"
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                onChangeText={setWakeTime}
-                placeholder="06:45"
-                placeholderTextColor={colors.textFaint}
-                style={styles.inputField}
-                value={wakeTime}
-              />
-            </View>
+            <TimeField
+              accessibilityLabel="Sleep start time"
+              label="Sleep start"
+              onChange={(value) => {
+                setInputsTouched(true);
+                setSleepStartTime(value);
+              }}
+              value={sleepStartTime}
+            />
+            <TimeField
+              accessibilityLabel="Wake time"
+              label="Wake time"
+              onChange={(value) => {
+                setInputsTouched(true);
+                setWakeTime(value);
+              }}
+              value={wakeTime}
+            />
           </View>
           <View style={styles.inputShell}>
             <Text style={styles.inputLabel}>Quality</Text>
             <View style={styles.qualityRow}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setSleepQuality('')}
+                onPress={() => {
+                  setInputsTouched(true);
+                  setSleepQuality('');
+                }}
                 style={[styles.qualityUnset, sleepQuality === '' ? styles.qualityItemActive : null]}
               >
                 <Text style={[styles.qualityText, sleepQuality === '' ? styles.qualityTextActive : null]}>
@@ -552,7 +709,10 @@ export default function RhythmScreen() {
                 <Pressable
                   key={value}
                   accessibilityRole="button"
-                  onPress={() => setSleepQuality(String(value))}
+                  onPress={() => {
+                    setInputsTouched(true);
+                    setSleepQuality(String(value));
+                  }}
                   style={[styles.qualityDot, sleepQuality === String(value) ? styles.qualityItemActive : null]}
                 >
                   <Text style={[styles.qualityText, sleepQuality === String(value) ? styles.qualityTextActive : null]}>
@@ -572,12 +732,13 @@ export default function RhythmScreen() {
                 key={`${start}-${wake}`}
                 accessibilityRole="button"
                 onPress={() => {
+                  setInputsTouched(true);
                   setSleepStartTime(start);
                   setWakeTime(wake);
                 }}
                 style={styles.quickTime}
               >
-                <Text style={styles.quickTimeText}>{start} – {wake}</Text>
+                <Text style={styles.quickTimeText}>{formatClockLabel(start)} – {formatClockLabel(wake)}</Text>
               </Pressable>
             ))}
           </View>
@@ -676,7 +837,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2
   },
   curveShell: {
-    marginTop: 18
+    marginTop: 18,
+    position: 'relative'
   },
   curveLabels: {
     flexDirection: 'row',
@@ -687,6 +849,70 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.textFaint,
     fontVariant: ['tabular-nums']
+  },
+  scrubCallout: {
+    backgroundColor: colors.surface,
+    borderColor: colors.hairline,
+    borderRadius: 12,
+    borderWidth: hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    position: 'absolute',
+    top: 0,
+    width: 148,
+    zIndex: 5
+  },
+  scrubTime: {
+    ...type.number,
+    color: colors.text,
+    fontSize: 14
+  },
+  scrubActivity: {
+    ...type.label,
+    color: colors.accent,
+    marginTop: 2
+  },
+  scrubEnergy: {
+    ...type.caption,
+    color: colors.textFaint,
+    marginTop: 1
+  },
+  extremaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8
+  },
+  extremaText: {
+    ...type.caption,
+    color: colors.textMuted,
+    fontVariant: ['tabular-nums']
+  },
+  legendRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 12
+  },
+  legendItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6
+  },
+  legendSwatch: {
+    borderRadius: 3,
+    height: 9,
+    width: 9
+  },
+  legendText: {
+    ...type.caption,
+    color: colors.textMuted
+  },
+  legendHint: {
+    ...type.caption,
+    color: colors.textFaint,
+    marginLeft: 'auto'
   },
   leadText: {
     ...type.voice,

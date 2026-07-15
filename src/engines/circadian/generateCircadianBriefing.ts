@@ -1,4 +1,11 @@
 import { calculateSleepDebt } from './calculateSleepDebt';
+import {
+  circadianEnergyAt,
+  computeRestorationFactor,
+  deriveEnergyExtrema,
+  deriveEnergyZones
+} from './energyModel';
+import { calculateSleepDuration } from './calculateSleepDuration';
 import type {
   CircadianBriefing,
   CircadianEnergyPoint,
@@ -114,26 +121,6 @@ function getTargetBedtime(wakeTime: Date, preferredBedtime: string | null | unde
   return preferred;
 }
 
-function getDebtPenalty(nightlyAverageDebt: number | null): number {
-  if (nightlyAverageDebt === null) {
-    return 4;
-  }
-
-  if (nightlyAverageDebt > 180) {
-    return 22;
-  }
-
-  if (nightlyAverageDebt >= 60) {
-    return 12;
-  }
-
-  return 0;
-}
-
-function clampEnergy(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
 function getPhase(hoursSinceWake: number, minutesUntilBed: number): CircadianPhase {
   if (minutesUntilBed <= 0) {
     return 'sleep_window';
@@ -166,34 +153,21 @@ function getPhase(hoursSinceWake: number, minutesUntilBed: number): CircadianPha
   return 'rising';
 }
 
-function energyForPhase(phase: CircadianPhase, debtPenalty: number): number {
-  const baseByPhase: Record<CircadianPhase, number> = {
-    wake_grogginess: 44,
-    rising: 64,
-    morning_peak: 84,
-    afternoon_dip: 52,
-    second_peak: 76,
-    wind_down: 38,
-    sleep_window: 24,
-    unknown: 0
-  };
+const ENERGY_SAMPLE_STEP_MINUTES = 20;
 
-  const penalty = phase === 'sleep_window' || phase === 'wind_down' ? debtPenalty * 0.5 : debtPenalty;
-
-  return clampEnergy(baseByPhase[phase] - penalty);
-}
-
-function generateEnergyCurve(wakeTime: Date, targetBedtime: Date, debtPenalty: number): CircadianEnergyPoint[] {
+function generateEnergyCurve(wakeTime: Date, targetBedtime: Date, restorationFactor: number): CircadianEnergyPoint[] {
   const points: CircadianEnergyPoint[] = [];
+  const stepMs = ENERGY_SAMPLE_STEP_MINUTES * MINUTE_MS;
+  const endMs = targetBedtime.getTime();
 
-  for (let cursor = wakeTime; cursor.getTime() <= targetBedtime.getTime(); cursor = addHours(cursor, 1)) {
-    const hoursSinceWake = (cursor.getTime() - wakeTime.getTime()) / HOUR_MS;
-    const minutesUntilBed = (targetBedtime.getTime() - cursor.getTime()) / MINUTE_MS;
-    const phase = getPhase(hoursSinceWake, minutesUntilBed);
+  for (let cursorMs = wakeTime.getTime(); cursorMs <= endMs; cursorMs += stepMs) {
+    const minutesSinceWake = (cursorMs - wakeTime.getTime()) / MINUTE_MS;
+    const minutesUntilBed = (endMs - cursorMs) / MINUTE_MS;
+    const phase = getPhase(minutesSinceWake / 60, minutesUntilBed);
 
     points.push({
-      time: toIso(cursor),
-      estimated_energy: energyForPhase(phase, debtPenalty),
+      time: toIso(new Date(cursorMs)),
+      estimated_energy: circadianEnergyAt(minutesSinceWake, minutesUntilBed, restorationFactor),
       label: phase
     });
   }
@@ -310,6 +284,8 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
       target_bedtime: null,
       current_phase: 'unknown',
       energy_curve: [],
+      energy_zones: [],
+      energy_extrema: [],
       rhythm_plan: createEmptyRhythmPlan(),
       sleep_debt_7_day: sleepDebt7Day,
       sleep_debt_14_day: sleepDebt14Day,
@@ -323,8 +299,16 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
   }
 
   const targetBedtime = getTargetBedtime(wakeTime, params.preferredBedtime, params.date);
-  const debtPenalty = getDebtPenalty(sleepDebt7Day.nightly_average_debt_minutes);
-  const energyCurve = generateEnergyCurve(wakeTime, targetBedtime, debtPenalty);
+  const restorationFactor = computeRestorationFactor({
+    quality: session?.sleep_quality ?? null,
+    durationMinutes:
+      session?.duration_minutes ?? calculateSleepDuration(session?.sleep_start_at ?? null, session?.sleep_end_at ?? null),
+    sleepNeedMinutes: params.sleepNeed.minutes,
+    avgDebtMinutes: sleepDebt7Day.nightly_average_debt_minutes
+  });
+  const energyCurve = generateEnergyCurve(wakeTime, targetBedtime, restorationFactor);
+  const energyZones = deriveEnergyZones(energyCurve);
+  const energyExtrema = deriveEnergyExtrema(energyCurve);
   const rhythmPlan = createRhythmPlan(wakeTime, targetBedtime, sleepDebt7Day.nightly_average_debt_minutes);
   const confidence = combineConfidence(sourceConfidence, params.sleepNeed.confidence, sleepDebt7Day.confidence);
   const reasonCodes = [
@@ -346,6 +330,8 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     target_bedtime: toIso(targetBedtime),
     current_phase: getCurrentPhase(params.now, wakeTime, targetBedtime),
     energy_curve: energyCurve,
+    energy_zones: energyZones,
+    energy_extrema: energyExtrema,
     rhythm_plan: rhythmPlan,
     sleep_debt_7_day: sleepDebt7Day,
     sleep_debt_14_day: sleepDebt14Day,

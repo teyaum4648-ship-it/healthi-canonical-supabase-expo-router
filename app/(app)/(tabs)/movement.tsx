@@ -13,8 +13,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { generateCircadianBriefing } from '../../../src/engines/circadian';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import {
+  deriveNutritionMoveSignal,
+  deriveSleepMoveSignal,
+  mealLogRowToMealLog,
+  type MoveNutritionSignal,
+  type MoveSleepSignal
+} from '../../../src/features/movement/contextSignals';
+import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
+import {
+  getMealLogsForDate,
+  type NutritionSupabaseClient
+} from '../../../src/features/nutrition/persistence';
+import {
+  getActiveSleepNeedEstimate,
+  getRecentSleepSessions,
+  type SleepRhythmSupabaseClient
+} from '../../../src/features/sleepRhythm/persistence';
+import {
+  createDefaultSleepNeedEstimate,
+  createDemoSleepSessions
+} from '../../../src/features/sleepRhythm/rhythmInputs';
 import {
   addDemoWorkoutExerciseEntries,
   addDemoWorkoutSession,
@@ -51,9 +73,9 @@ import {
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, hairlineWidth, radii, spacing, type } from '../../../src/styles/theme';
 
-type Segment = 'Today' | 'Log Workout' | 'Templates' | 'History' | 'Movement Signal';
+type Segment = 'Today' | 'Log Workout' | 'Templates' | 'History';
 
-const segments: Segment[] = ['Today', 'Log Workout', 'Templates', 'History', 'Movement Signal'];
+const segments: Segment[] = ['Today', 'Log Workout', 'Templates', 'History'];
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
@@ -131,7 +153,16 @@ function Metric({ label, value }: { label: string; value: string }) {
 export default function MovementScreen() {
   const { user } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const now = useMemo(() => new Date().toISOString(), []);
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
+  const [sleepSignal, setSleepSignal] = useState<{ signal: MoveSleepSignal; summary: string }>({
+    signal: 'unknown',
+    summary: 'Sleep is still calibrating for today.'
+  });
+  const [nutritionSignal, setNutritionSignal] = useState<{ signal: MoveNutritionSignal; summary: string }>({
+    signal: 'unknown',
+    summary: 'Fueling is still calibrating from logged meals.'
+  });
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [entries, setEntries] = useState<WorkoutExerciseEntryRow[]>([]);
   const [library, setLibrary] = useState<ExerciseLibraryItemRow[]>(() => starterExerciseRows());
@@ -193,13 +224,73 @@ export default function MovementScreen() {
     }, [loadMovement])
   );
 
+  // Sleep and diet also shape today's movement readiness, so pull both here.
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      async function loadContextSignals() {
+        try {
+          const sleepClient = supabase as unknown as SleepRhythmSupabaseClient;
+          const [recentSessions, activeNeed] =
+            canUseRemote && userId
+              ? await Promise.all([
+                  getRecentSleepSessions(sleepClient, userId, 14),
+                  getActiveSleepNeedEstimate(sleepClient, userId)
+                ])
+              : [[], null];
+          const sleepSessions = recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today);
+          const sleepNeed = activeNeed
+            ? { minutes: activeNeed.minutes, confidence: activeNeed.confidence, basis: activeNeed.basis, updated_at: activeNeed.updated_at }
+            : createDefaultSleepNeedEstimate(now);
+          const briefing = generateCircadianBriefing({
+            date: today,
+            timezone: 'UTC',
+            recentSleepSessions: sleepSessions,
+            sleepNeed,
+            preferredBedtime: '22:30',
+            now
+          });
+          if (isMounted) setSleepSignal(deriveSleepMoveSignal(briefing));
+        } catch {
+          if (isMounted) setSleepSignal({ signal: 'unknown', summary: 'Sleep is still calibrating for today.' });
+        }
+
+        try {
+          const meals =
+            canUseRemote && userId
+              ? (await getMealLogsForDate(supabase as unknown as NutritionSupabaseClient, userId, today)).map(
+                  mealLogRowToMealLog
+                )
+              : (await getLocalDemoNutritionState()).mealLogs;
+          if (isMounted) setNutritionSignal(deriveNutritionMoveSignal(today, meals));
+        } catch {
+          if (isMounted) setNutritionSignal({ signal: 'unknown', summary: 'Fueling is still calibrating from logged meals.' });
+        }
+      }
+
+      void loadContextSignals();
+      return () => {
+        isMounted = false;
+      };
+    }, [canUseRemote, now, today, userId])
+  );
+
   const engineSessions = useMemo(() => sessions.map(workoutSessionRowToEngineSession), [sessions]);
   const engineEntries = useMemo(() => entries.map(workoutExerciseEntryRowToEngineEntry), [entries]);
   const summary = useMemo(
     () => calculateMovementSummary({ date: today, sessions: engineSessions, exerciseEntries: engineEntries }),
     [engineEntries, engineSessions, today]
   );
-  const signal = useMemo(() => generateMovementReadinessSignal({ summary }), [summary]);
+  const signal = useMemo(
+    () =>
+      generateMovementReadinessSignal({
+        summary,
+        sleep_signal: sleepSignal.signal,
+        nutrition_signal: nutritionSignal.signal
+      }),
+    [nutritionSignal.signal, sleepSignal.signal, summary]
+  );
 
   function updateDraft<K extends keyof WorkoutDraft>(key: K, value: WorkoutDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -287,9 +378,11 @@ export default function MovementScreen() {
             <Metric label="Minutes" value={String(summary.total_minutes)} />
             <Metric label="Load" value={summary.estimated_training_load > 0 ? String(summary.estimated_training_load) : '—'} />
           </View>
+          <View style={styles.signalScale}><View style={[styles.signalFill, { width: `${signal.score}%` }]} /></View>
+          <View style={styles.rowBetween}><Text style={styles.meta}>Score {signal.score}</Text><Text style={styles.meta}>Confidence: {signal.confidence}</Text></View>
           <View style={styles.rule} />
           <Text style={styles.nextAction}>{signal.suggested_next_action}</Text>
-          <Text style={styles.meta}>Confidence: {signal.confidence} · {dataMode === 'remote' ? 'Synced logs' : 'Local demo logs'}</Text>
+          <Text style={styles.meta}>{dataMode === 'remote' ? 'Synced logs' : 'Local demo logs'}</Text>
         </View>
 
         <Pressable onPress={() => setActiveSegment('Log Workout')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
@@ -304,6 +397,24 @@ export default function MovementScreen() {
             <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.cardio_session_count}</Text><Text style={styles.meta}>Cardio</Text></View>
             <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.mobility_recovery_session_count}</Text><Text style={styles.meta}>Reset</Text></View>
             <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.recent_high_effort_count}</Text><Text style={styles.meta}>High effort</Text></View>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>What shapes this</Text>
+          <Text style={styles.body}>
+            Workout frequency, duration, and effort, plus how your recent sleep and fueling look today.
+          </Text>
+          <View style={styles.influenceRow}>
+            <Ionicons color={colors.accent} name="moon-outline" size={16} />
+            <Text style={styles.influenceText}>{sleepSignal.summary}</Text>
+          </View>
+          <View style={styles.influenceRow}>
+            <Ionicons color={colors.accent} name="nutrition-outline" size={16} />
+            <Text style={styles.influenceText}>{nutritionSignal.summary}</Text>
+          </View>
+          <View style={styles.reasonWrap}>
+            {signal.reason_codes.map((reason) => <View key={reason} style={styles.reasonPill}><Text style={styles.reasonText}>{titleCase(reason)}</Text></View>)}
           </View>
         </View>
       </View>
@@ -435,32 +546,6 @@ export default function MovementScreen() {
     );
   }
 
-  function renderSignal() {
-    return (
-      <View style={styles.stack}>
-        <View style={styles.card}>
-          <Text style={styles.eyebrow}>Current signal</Text>
-          <Text style={styles.heroTitle}>{titleCase(signal.label)}</Text>
-          <Text style={styles.body}>{signal.summary}</Text>
-          <View style={styles.signalScale}><View style={[styles.signalFill, { width: `${signal.score}%` }]} /></View>
-          <View style={styles.rowBetween}><Text style={styles.meta}>Score {signal.score}</Text><Text style={styles.meta}>Confidence: {signal.confidence}</Text></View>
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>What shapes this</Text>
-          <Text style={styles.body}>Workout frequency, duration, effort, recent high-effort sessions, and available readiness signals. Missing logs lower confidence rather than counting against you.</Text>
-          <View style={styles.reasonWrap}>
-            {signal.reason_codes.map((reason) => <View key={reason} style={styles.reasonPill}><Text style={styles.reasonText}>{titleCase(reason)}</Text></View>)}
-          </View>
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Suggested next step</Text>
-          <Text style={styles.body}>{signal.suggested_next_action}</Text>
-          <Text style={styles.footnote}>General wellness guidance based on available data.</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -488,7 +573,6 @@ export default function MovementScreen() {
         {!isLoading && activeSegment === 'Log Workout' ? renderLogWorkout() : null}
         {!isLoading && activeSegment === 'Templates' ? renderTemplates() : null}
         {!isLoading && activeSegment === 'History' ? renderHistory() : null}
-        {!isLoading && activeSegment === 'Movement Signal' ? renderSignal() : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -556,6 +640,8 @@ const styles = StyleSheet.create({
   historyTitleWrap: { flex: 1, paddingRight: 10 },
   historyMetrics: { borderTopColor: colors.hairlineSoft, borderTopWidth: hairlineWidth, flexDirection: 'row', gap: 14, marginTop: 16, paddingTop: 14 },
   historyMetric: { ...type.caption, color: colors.textMuted },
+  influenceRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginTop: 12 },
+  influenceText: { ...type.caption, color: colors.textMuted, flex: 1 },
   signalScale: { backgroundColor: colors.track, borderRadius: radii.full, height: 6, marginBottom: 10, marginTop: 22, overflow: 'hidden' },
   signalFill: { backgroundColor: colors.accent, borderRadius: radii.full, height: 6 },
   reasonWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 18 },

@@ -72,6 +72,20 @@ export type CircadianEnergyPoint = {
   label: string;
 };
 
+export type EnergyZoneLevel = 'high' | 'moderate' | 'low';
+
+export type EnergyZone = {
+  start_at: string;
+  end_at: string;
+  level: EnergyZoneLevel;
+};
+
+export type EnergyExtreme = {
+  type: 'peak' | 'low';
+  time: string;
+  energy: number;
+};
+
 export type TimeWindow = {
   start_at: string;
   end_at: string;
@@ -97,6 +111,8 @@ export type CircadianBriefing = {
   target_bedtime: string | null;
   current_phase: CircadianPhase;
   energy_curve: CircadianEnergyPoint[];
+  energy_zones: EnergyZone[];
+  energy_extrema: EnergyExtreme[];
   rhythm_plan: RhythmPlan;
   sleep_debt_7_day: SleepDebtSummary;
   sleep_debt_14_day: SleepDebtSummary;

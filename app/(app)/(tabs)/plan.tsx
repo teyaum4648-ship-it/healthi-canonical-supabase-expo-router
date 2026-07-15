@@ -13,10 +13,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { generateDayPlan, type DayPlanRecommendation } from '../../../src/engines/dayPlan';
+import { TimeField } from '../../../src/components/TimeField';
+import {
+  generateCircadianBriefing,
+  type CircadianBriefing,
+  type TimeWindow
+} from '../../../src/engines/circadian';
+import {
+  generateDayPlan,
+  type DayPlanRecommendation,
+  type DayScheduleBlockType,
+  type GenerateDayPlanInput
+} from '../../../src/engines/dayPlan';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import { generateDailyReadiness } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import {
+  getActiveSleepNeedEstimate,
+  getRecentSleepSessions,
+  type SleepRhythmSupabaseClient
+} from '../../../src/features/sleepRhythm/persistence';
+import {
+  createDefaultSleepNeedEstimate,
+  createDemoSleepSessions
+} from '../../../src/features/sleepRhythm/rhythmInputs';
 import {
   addDemoScheduleBlock,
   deleteDemoScheduleBlock,
@@ -63,13 +83,119 @@ function movementRangeStart(date: string): string {
   return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
 function formatTime(value: string | undefined): string {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   const hours = date.getUTCHours();
   const minutes = date.getUTCMinutes();
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  const hour12 = hours % 12 || 12;
+  const suffix = hours >= 12 ? 'PM' : 'AM';
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+}
+
+function formatHourLabel(ms: number): string {
+  const hours = new Date(ms).getUTCHours();
+  const hour12 = hours % 12 || 12;
+  return `${hour12} ${hours >= 12 ? 'PM' : 'AM'}`;
+}
+
+// ─── Calendar sections (sleep-derived recommendation bands) ───────────────────
+
+type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
+
+const SECTION_TINT: Record<CalendarSection, string> = {
+  deep_work: 'rgba(28, 84, 67, 0.10)',
+  exercise: 'rgba(184, 145, 69, 0.14)',
+  light_movement: 'rgba(78, 133, 113, 0.14)',
+  wind_down: 'rgba(138, 75, 60, 0.11)',
+  meal: 'rgba(163, 166, 158, 0.12)',
+  sleep: 'rgba(26, 33, 29, 0.06)',
+  neutral: 'rgba(163, 166, 158, 0.08)'
+};
+
+const SECTION_ACCENT: Record<CalendarSection, string> = {
+  deep_work: palette.forest,
+  exercise: '#B89145',
+  light_movement: palette.forestMid,
+  wind_down: palette.clayDark,
+  meal: palette.faint,
+  sleep: palette.inkSoft,
+  neutral: palette.faint
+};
+
+const SECTION_LABEL: Record<CalendarSection, string> = {
+  deep_work: 'Deep work',
+  exercise: 'Exercise',
+  light_movement: 'Light movement',
+  wind_down: 'Wind-down',
+  meal: 'Meal',
+  sleep: 'Sleep',
+  neutral: 'Open'
+};
+
+// Which recommended section each block type best correlates to.
+const BLOCK_TYPE_SECTION: Record<DayScheduleBlockType, CalendarSection> = {
+  work: 'deep_work',
+  class: 'deep_work',
+  commute: 'light_movement',
+  exercise: 'exercise',
+  meal: 'meal',
+  free_time: 'light_movement',
+  recovery: 'wind_down',
+  social: 'light_movement',
+  appointment: 'light_movement',
+  sleep: 'sleep',
+  other: 'neutral'
+};
+
+type CalendarBand = { section: CalendarSection; startMs: number; endMs: number; label: string };
+
+function buildRecommendationBands(briefing: CircadianBriefing | null): CalendarBand[] {
+  if (!briefing || !briefing.wake_time) return [];
+  const bands: CalendarBand[] = [];
+  const push = (section: CalendarSection, window: TimeWindow | undefined) => {
+    if (!window) return;
+    bands.push({
+      section,
+      startMs: new Date(window.start_at).getTime(),
+      endMs: new Date(window.end_at).getTime(),
+      label: SECTION_LABEL[section]
+    });
+  };
+  briefing.rhythm_plan.deep_work_windows.forEach((window) => push('deep_work', window));
+  briefing.rhythm_plan.best_exercise_windows.forEach((window) => push('exercise', window));
+  briefing.rhythm_plan.best_walk_windows.forEach((window) => push('light_movement', window));
+  if (briefing.rhythm_plan.wind_down_start && briefing.target_bedtime) {
+    bands.push({
+      section: 'wind_down',
+      startMs: new Date(briefing.rhythm_plan.wind_down_start).getTime(),
+      endMs: new Date(briefing.target_bedtime).getTime(),
+      label: SECTION_LABEL.wind_down
+    });
+  }
+  return bands;
+}
+
+function briefingToDayPlanRhythm(briefing: CircadianBriefing | null): GenerateDayPlanInput['rhythm'] {
+  if (!briefing || !briefing.wake_time) return undefined;
+  const plan = briefing.rhythm_plan;
+  const deepWork = plan.deep_work_windows[0];
+  const exercise = plan.best_exercise_windows[0];
+  return {
+    energy_windows: plan.deep_work_windows.map((window) => ({
+      start: window.start_at,
+      end: window.end_at,
+      label: window.label,
+      intensity: 'high' as const
+    })),
+    deep_work_window: deepWork ? { start: deepWork.start_at, end: deepWork.end_at } : null,
+    exercise_window: exercise ? { start: exercise.start_at, end: exercise.end_at } : null,
+    caffeine_cutoff: plan.caffeine_cutoff,
+    wind_down_start: plan.wind_down_start
+  };
 }
 
 function formatWindow(start?: string, end?: string): string {
@@ -149,11 +275,104 @@ function Chip({
   );
 }
 
+const TIMELINE_HOUR_HEIGHT = 60;
+
+function DayTimeline({
+  briefing,
+  blocks,
+  onDeleteBlock
+}: {
+  briefing: CircadianBriefing | null;
+  blocks: DayScheduleBlockRow[];
+  onDeleteBlock: (id: string, title: string) => void;
+}) {
+  if (!briefing || !briefing.wake_time || !briefing.target_bedtime) {
+    return (
+      <Text style={styles.body}>
+        Add a sleep window in the Sleep tab so Healthi can shade the day with recommended sections.
+      </Text>
+    );
+  }
+
+  const bands = buildRecommendationBands(briefing);
+  const wakeMs = new Date(briefing.wake_time).getTime();
+  const bedMs = new Date(briefing.target_bedtime).getTime();
+  const rangeStart = Math.floor(wakeMs / HOUR_MS) * HOUR_MS;
+  const rangeEnd = Math.ceil(bedMs / HOUR_MS) * HOUR_MS;
+  const totalMs = Math.max(HOUR_MS, rangeEnd - rangeStart);
+  const height = (totalMs / HOUR_MS) * TIMELINE_HOUR_HEIGHT;
+  const clampMs = (ms: number) => Math.max(rangeStart, Math.min(rangeEnd, ms));
+  const yFor = (ms: number) => ((clampMs(ms) - rangeStart) / HOUR_MS) * TIMELINE_HOUR_HEIGHT;
+  const hourCount = Math.round(totalMs / HOUR_MS);
+  const hours = Array.from({ length: hourCount + 1 }, (_, index) => rangeStart + index * HOUR_MS);
+  const visibleBlocks = blocks.filter((block) => {
+    const start = new Date(block.start_at).getTime();
+    const end = new Date(block.end_at).getTime();
+    return end > rangeStart && start < rangeEnd;
+  });
+
+  return (
+    <View>
+      <View style={[styles.timeline, { height }]}>
+        {hours.map((ms, index) => (
+          <View key={ms} pointerEvents="none" style={[styles.hourRow, { top: index * TIMELINE_HOUR_HEIGHT }]}>
+            <Text style={styles.hourLabel}>{formatHourLabel(ms)}</Text>
+            <View style={styles.hourLine} />
+          </View>
+        ))}
+        {bands.map((band, index) => {
+          const top = yFor(band.startMs);
+          const bandHeight = Math.max(10, yFor(band.endMs) - top);
+          return (
+            <View
+              key={`band-${index}`}
+              pointerEvents="none"
+              style={[styles.band, { top, height: bandHeight, backgroundColor: SECTION_TINT[band.section] }]}
+            >
+              <Text style={[styles.bandLabel, { color: SECTION_ACCENT[band.section] }]}>{band.label}</Text>
+            </View>
+          );
+        })}
+        {visibleBlocks.map((block) => {
+          const top = yFor(new Date(block.start_at).getTime());
+          const blockHeight = Math.max(24, yFor(new Date(block.end_at).getTime()) - top);
+          const section = BLOCK_TYPE_SECTION[block.block_type] ?? 'neutral';
+          const title = block.title ?? defaultScheduleBlockTitle(block.block_type);
+          return (
+            <Pressable
+              key={block.id}
+              accessibilityRole="button"
+              onPress={() => onDeleteBlock(block.id, title)}
+              style={[styles.timelineBlock, { top, height: blockHeight, borderLeftColor: SECTION_ACCENT[section] }]}
+            >
+              <Text numberOfLines={1} style={styles.timelineBlockTitle}>{title}</Text>
+              {blockHeight > 34 ? (
+                <Text numberOfLines={1} style={styles.timelineBlockTime}>{formatWindow(block.start_at, block.end_at)}</Text>
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.calLegend}>
+        {(['deep_work', 'exercise', 'light_movement', 'wind_down'] as CalendarSection[]).map((section) => (
+          <View key={section} style={styles.calLegendItem}>
+            <View style={[styles.calSwatch, { backgroundColor: SECTION_ACCENT[section] }]} />
+            <Text style={styles.calLegendText}>{SECTION_LABEL[section]}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.metaText}>Tap a block to remove it.</Text>
+    </View>
+  );
+}
+
 export default function PlanScreen() {
   const { user } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const now = useMemo(() => new Date().toISOString(), []);
   const [activeSegment, setActiveSegment] = useState<Segment>('Plan');
   const [blocks, setBlocks] = useState<DayScheduleBlockRow[]>([]);
+  const [sleepBriefing, setSleepBriefing] = useState<CircadianBriefing | null>(null);
   const [form, setForm] = useState<ScheduleBlockFormState>(() => createEmptyScheduleBlockForm(today));
   const [status, setStatus] = useState('Schedule blocks help Healthi find useful openings.');
   const [dataMode, setDataMode] = useState<'remote' | 'demo' | 'calibrating'>('demo');
@@ -202,6 +421,46 @@ export default function PlanScreen() {
     }, [canUseRemote, today, userId])
   );
 
+  // Sleep rhythm drives the calendar's recommended sections and the day plan.
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      async function loadSleepBriefing() {
+        try {
+          const client = supabase as unknown as SleepRhythmSupabaseClient;
+          const [recentSessions, activeNeed] =
+            canUseRemote && userId
+              ? await Promise.all([
+                  getRecentSleepSessions(client, userId, 14),
+                  getActiveSleepNeedEstimate(client, userId)
+                ])
+              : [[], null];
+          const sleepSessions = recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today);
+          const sleepNeed = activeNeed
+            ? { minutes: activeNeed.minutes, confidence: activeNeed.confidence, basis: activeNeed.basis, updated_at: activeNeed.updated_at }
+            : createDefaultSleepNeedEstimate(now);
+          const briefing = generateCircadianBriefing({
+            date: today,
+            timezone: 'UTC',
+            recentSleepSessions: sleepSessions,
+            sleepNeed,
+            preferredBedtime: '22:30',
+            now
+          });
+          if (isMounted) setSleepBriefing(briefing);
+        } catch {
+          if (isMounted) setSleepBriefing(null);
+        }
+      }
+
+      void loadSleepBriefing();
+      return () => {
+        isMounted = false;
+      };
+    }, [canUseRemote, now, today, userId])
+  );
+
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
@@ -245,16 +504,23 @@ export default function PlanScreen() {
     }, [canUseRemote, today, userId])
   );
 
+  const rhythmInput = useMemo(() => briefingToDayPlanRhythm(sleepBriefing), [sleepBriefing]);
+  const sleepWakeTime = sleepBriefing?.wake_time ?? undefined;
+  const sleepBedtime = sleepBriefing?.target_bedtime ?? undefined;
+
   const preliminaryDayPlan = useMemo(
     () =>
       generateDayPlan(
         buildDayPlanInput({
           date: today,
           scheduleBlocks: blocks,
-          movement: movementInput
+          movement: movementInput,
+          rhythm: rhythmInput,
+          wake_time: sleepWakeTime,
+          target_bedtime: sleepBedtime
         })
       ),
-    [blocks, movementInput, today]
+    [blocks, movementInput, rhythmInput, sleepBedtime, sleepWakeTime, today]
   );
   const unifiedReadiness = useMemo(() => generateDailyReadiness({
     date: today,
@@ -282,12 +548,15 @@ export default function PlanScreen() {
       date: today,
       scheduleBlocks: blocks,
       movement: movementInput,
+      rhythm: rhythmInput,
+      wake_time: sleepWakeTime,
+      target_bedtime: sleepBedtime,
       readinessScore: readinessInput.score ?? undefined,
       readinessMode: readinessInput.mode,
       readinessConfidence: readinessInput.confidence,
       readinessReasonCodes: readinessInput.reason_codes
     })),
-    [blocks, movementInput, readinessInput, today]
+    [blocks, movementInput, readinessInput, rhythmInput, sleepBedtime, sleepWakeTime, today]
   );
 
   function updateForm<K extends keyof ScheduleBlockFormState>(key: K, value: ScheduleBlockFormState[K]) {
@@ -335,6 +604,13 @@ export default function PlanScreen() {
     } catch {
       Alert.alert('Unable to remove block', 'The schedule block could not be removed right now.');
     }
+  }
+
+  function requestDeleteBlock(blockId: string, title: string) {
+    Alert.alert('Remove block', `Remove “${title}” from today’s schedule?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => void handleDeleteBlock(blockId) }
+    ]);
   }
 
   function renderPlan() {
@@ -419,6 +695,16 @@ export default function PlanScreen() {
   function renderSchedule() {
     return (
       <View style={styles.stack}>
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.cardTitle}>Your day</Text>
+            <Text style={styles.metaText}>Shaded by sleep rhythm</Text>
+          </View>
+          <Text style={styles.body}>
+            Recommended sections come from your sleep pattern. Add blocks to fit them into the day.
+          </Text>
+          <DayTimeline blocks={blocks} briefing={sleepBriefing} onDeleteBlock={requestDeleteBlock} />
+        </View>
         {blocks.length > 0 ? (
           blocks.map((block) => (
             <View key={block.id} style={styles.card}>
@@ -463,20 +749,42 @@ export default function PlanScreen() {
           <Field label="Title" onChangeText={(value) => updateForm('title', value)} placeholder="Work block" value={form.title} />
           <Field label="Date" onChangeText={(value) => updateForm('date', value)} placeholder="2026-07-12" value={form.date} />
           <View style={styles.twoCol}>
-            <Field label="Start" onChangeText={(value) => updateForm('start_time', value)} placeholder="09:00" value={form.start_time} />
-            <Field label="End" onChangeText={(value) => updateForm('end_time', value)} placeholder="17:30" value={form.end_time} />
+            <TimeField
+              accessibilityLabel="Start time"
+              label="Start"
+              onChange={(value) => updateForm('start_time', value)}
+              value={form.start_time}
+            />
+            <TimeField
+              accessibilityLabel="End time"
+              label="End"
+              onChange={(value) => updateForm('end_time', value)}
+              value={form.end_time}
+            />
           </View>
 
           <Text style={styles.fieldLabel}>Block type</Text>
+          <Text style={styles.metaText}>Colors show where each type best fits your day.</Text>
           <View style={styles.chipWrap}>
-            {scheduleBlockTypes.map((type) => (
-              <Chip
-                key={type}
-                label={titleCase(type)}
-                onPress={() => updateForm('block_type', type)}
-                selected={form.block_type === type}
-              />
-            ))}
+            {scheduleBlockTypes.map((blockType) => {
+              const section = BLOCK_TYPE_SECTION[blockType] ?? 'neutral';
+              const selected = form.block_type === blockType;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  key={blockType}
+                  onPress={() => updateForm('block_type', blockType)}
+                  style={({ pressed }) => [
+                    styles.typeChip,
+                    selected ? { backgroundColor: SECTION_TINT[section], borderColor: SECTION_ACCENT[section] } : null,
+                    pressed && styles.pressed
+                  ]}
+                >
+                  <View style={[styles.typeDot, { backgroundColor: SECTION_ACCENT[section] }]} />
+                  <Text style={[styles.chipText, selected && styles.chipTextActive]}>{titleCase(blockType)}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Text style={styles.fieldLabel}>Flexibility</Text>
@@ -807,6 +1115,100 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.accent
+  },
+  typeChip: {
+    alignItems: 'center',
+    borderColor: colors.hairline,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  typeDot: {
+    borderRadius: 4,
+    height: 8,
+    width: 8
+  },
+  timeline: {
+    marginTop: 14,
+    position: 'relative'
+  },
+  hourRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    left: 0,
+    position: 'absolute',
+    right: 0
+  },
+  hourLabel: {
+    ...type.caption,
+    color: colors.textFaint,
+    fontVariant: ['tabular-nums'],
+    width: 44
+  },
+  hourLine: {
+    backgroundColor: colors.hairlineSoft,
+    flex: 1,
+    height: hairlineWidth
+  },
+  band: {
+    borderRadius: 8,
+    justifyContent: 'flex-start',
+    left: 52,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    position: 'absolute',
+    right: 4
+  },
+  bandLabel: {
+    ...type.caption,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11
+  },
+  timelineBlock: {
+    backgroundColor: colors.surface,
+    borderColor: colors.hairline,
+    borderLeftWidth: 3,
+    borderRadius: 10,
+    borderWidth: hairlineWidth,
+    justifyContent: 'center',
+    left: 96,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    position: 'absolute',
+    right: 8
+  },
+  timelineBlockTitle: {
+    ...type.label,
+    color: colors.text
+  },
+  timelineBlockTime: {
+    ...type.caption,
+    color: colors.textFaint,
+    fontVariant: ['tabular-nums']
+  },
+  calLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    marginTop: 16
+  },
+  calLegendItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6
+  },
+  calSwatch: {
+    borderRadius: 3,
+    height: 9,
+    width: 9
+  },
+  calLegendText: {
+    ...type.caption,
+    color: colors.textMuted
   },
   toggle: {
     alignItems: 'center',

@@ -206,6 +206,7 @@ export function buildDayPlanInput(params: {
   readinessReasonCodes?: string[];
   nutritionMealCount?: number;
   movement?: GenerateDayPlanInput['movement'];
+  rhythm?: GenerateDayPlanInput['rhythm'];
 }): GenerateDayPlanInput {
   const date = params.date.slice(0, 10);
   const wakeTime = params.wake_time ?? `${date}T06:30:00.000Z`;
@@ -216,7 +217,7 @@ export function buildDayPlanInput(params: {
     wake_time: wakeTime,
     target_bedtime: targetBedtime,
     schedule_blocks: params.scheduleBlocks.map(dayScheduleBlockRowToEngineBlock),
-    rhythm: createFallbackRhythmInput(date, wakeTime, targetBedtime),
+    rhythm: params.rhythm ?? createFallbackRhythmInput(date, wakeTime, targetBedtime),
     readiness: {
       score: params.readinessScore ?? 72,
       mode: params.readinessMode ?? 'maintain',

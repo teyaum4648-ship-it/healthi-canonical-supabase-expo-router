@@ -37,6 +37,9 @@ export type MovementReasonCode =
   | 'readiness_suggests_lighter_day'
   | 'restore_mode_active'
   | 'sleep_signal_limited'
+  | 'sleep_signal_supportive'
+  | 'nutrition_signal_supportive'
+  | 'nutrition_signal_watch'
   | 'exercise_entries_available'
   | 'movement_data_calibrating'
   | 'demo_movement_data'
@@ -88,6 +91,7 @@ export type MovementReadinessInput = {
   readiness_mode?: 'build' | 'maintain' | 'correct' | 'restore';
   readiness_score?: number | null;
   sleep_signal?: 'supportive' | 'limited' | 'unknown';
+  nutrition_signal?: 'supportive' | 'watch' | 'unknown';
 };
 
 export type MovementReadinessSignal = {

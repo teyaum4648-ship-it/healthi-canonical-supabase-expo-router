@@ -78,6 +78,17 @@ export function generateMovementReadinessSignal(input: MovementReadinessInput): 
   if (input.sleep_signal === 'limited') {
     score = Math.min(score, 48);
     reasons.push('sleep_signal_limited');
+  } else if (input.sleep_signal === 'supportive') {
+    score += 4;
+    reasons.push('sleep_signal_supportive');
+  }
+
+  if (input.nutrition_signal === 'supportive') {
+    score += 3;
+    reasons.push('nutrition_signal_supportive');
+  } else if (input.nutrition_signal === 'watch') {
+    score -= 4;
+    reasons.push('nutrition_signal_watch');
   }
 
   score = clamp(score);

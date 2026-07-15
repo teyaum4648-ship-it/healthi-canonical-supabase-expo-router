@@ -43,11 +43,13 @@ describe('generateCircadianBriefing', () => {
     });
 
     expect(briefing.current_phase).toBe('morning_peak');
-    expect(briefing.energy_curve[0]).toEqual({
-      time: '2026-06-10T06:00:00.000Z',
-      estimated_energy: 44,
-      label: 'wake_grogginess'
-    });
+    const first = briefing.energy_curve[0];
+    expect(first.time).toBe('2026-06-10T06:00:00.000Z');
+    expect(first.label).toBe('wake_grogginess');
+    expect(first.estimated_energy).toBeGreaterThanOrEqual(0);
+    expect(first.estimated_energy).toBeLessThanOrEqual(100);
+    // Curve is sampled every 20 minutes for smooth scrubbing.
+    expect(briefing.energy_curve[1]?.time).toBe('2026-06-10T06:20:00.000Z');
     expect(briefing.rhythm_plan.deep_work_windows[0]?.start_at).toBe('2026-06-10T08:00:00.000Z');
   });
 
@@ -72,6 +74,38 @@ describe('generateCircadianBriefing', () => {
 
     expect(highDebtPeak).toBeLessThan(restedPeak);
     expect(highDebt.sleep_debt_7_day.reason_codes).toContain('sleep_debt_high');
+  });
+
+  it('exposes contiguous energy zones covering the whole curve', () => {
+    const briefing = generateCircadianBriefing({
+      date: '2026-06-10',
+      timezone: 'UTC',
+      recentSleepSessions: recentSessions(480),
+      sleepNeed,
+      preferredBedtime: '22:00'
+    });
+
+    expect(briefing.energy_zones.length).toBeGreaterThan(0);
+    expect(briefing.energy_zones[0].start_at).toBe(briefing.energy_curve[0].time);
+    expect(briefing.energy_zones[briefing.energy_zones.length - 1].end_at).toBe(
+      briefing.energy_curve[briefing.energy_curve.length - 1].time
+    );
+    for (let i = 1; i < briefing.energy_zones.length; i++) {
+      expect(briefing.energy_zones[i].start_at).toBe(briefing.energy_zones[i - 1].end_at);
+    }
+  });
+
+  it('surfaces a morning peak and an afternoon low as energy extrema', () => {
+    const briefing = generateCircadianBriefing({
+      date: '2026-06-10',
+      timezone: 'UTC',
+      recentSleepSessions: recentSessions(480),
+      sleepNeed,
+      preferredBedtime: '22:00'
+    });
+
+    expect(briefing.energy_extrema.some((point) => point.type === 'peak')).toBe(true);
+    expect(briefing.energy_extrema.some((point) => point.type === 'low')).toBe(true);
   });
 
   it('sets caffeine cutoff eight hours before target bedtime', () => {
