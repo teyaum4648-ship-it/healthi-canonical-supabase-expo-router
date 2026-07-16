@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line } from 'react-native-svg';
 
@@ -45,6 +45,15 @@ import {
   composeMorningBriefing,
   morningBriefingToDashboardHero
 } from '../../../src/features/morningBriefing';
+import {
+  composeDailyProtocol,
+  dayModeLabel,
+  focusLabel,
+  persistReconciledProtocol,
+  protocolScope,
+  safetyStatusLabel,
+  shouldSurfaceSafety
+} from '../../../src/features/dailyProtocol';
 import {
   getActiveSleepNeedEstimate,
   getRecentSleepSessions,
@@ -588,6 +597,36 @@ export default function DashboardScreen() {
   const rhythmDriver = morningBriefing.driver_cards.find((driver) => driver.domain === 'recovery_rhythm');
   const firstName = typeof user?.user_metadata?.first_name === 'string' ? user.user_metadata.first_name : 'there';
 
+  const protocolModel = useMemo(
+    () =>
+      composeDailyProtocol({
+        date: today,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        readiness: morningBriefing.readiness,
+        circadian: circadianBriefing,
+        nutrition: nutritionSummary,
+        movement: { signal: movementSignal },
+        dayPlan: preliminaryDayPlan,
+        baseline: baselineSetup
+          ? {
+              baseline_mode: baselineSetup.baseline_mode,
+              primary_focus: baselineSetup.primary_focus,
+              confidence: baselineSetup.confidence
+            }
+          : null,
+        source: morningBriefing.source_label
+      }),
+    [baselineSetup, circadianBriefing, morningBriefing, movementSignal, nutritionSummary, preliminaryDayPlan, today]
+  );
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  useEffect(() => {
+    // Home is the generator/writer of the active daily protocol; reconcile keeps
+    // any action states the user set (done/skipped/deferred) across regenerations.
+    void persistReconciledProtocol(protocolScopeValue, protocolModel.protocol);
+  }, [protocolModel, protocolScopeValue]);
+  const protocol = protocolModel.protocol;
+  const protocolActions = protocol.actions.slice(0, 3);
+
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -607,6 +646,37 @@ export default function DashboardScreen() {
               ? 'Demo signals'
               : 'Still calibrating'} · Confidence: {dashboardHero.confidence}
         </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/protocol')}
+          style={({ pressed }) => [styles.protocolCard, pressed && styles.protocolCardPressed]}
+        >
+          <View style={styles.protocolTop}>
+            <Text style={styles.protocolEyebrow}>Today's protocol</Text>
+            <Ionicons color={colors.accent} name="chevron-forward" size={18} />
+          </View>
+          <View style={styles.protocolTags}>
+            <View style={styles.protocolTag}><Text style={styles.protocolTagText}>{dayModeLabel(protocol.day_mode)}</Text></View>
+            <View style={styles.protocolTag}><Text style={styles.protocolTagText}>{focusLabel(protocol.primary_focus)}</Text></View>
+          </View>
+          <Text style={styles.protocolHeadline}>{protocol.headline}</Text>
+          <View style={styles.protocolActions}>
+            {protocolActions.map((action) => (
+              <View key={action.id} style={styles.protocolActionRow}>
+                <View style={styles.protocolDot} />
+                <Text numberOfLines={1} style={styles.protocolActionText}>{action.title}</Text>
+              </View>
+            ))}
+          </View>
+          {shouldSurfaceSafety(protocol.safety.status) ? (
+            <View style={styles.protocolSafety}>
+              <Ionicons color={colors.accentMid} name="shield-checkmark-outline" size={14} />
+              <Text style={styles.protocolSafetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
+            </View>
+          ) : null}
+          <Text style={styles.protocolFooter}>Confidence: {protocol.confidence} · Tap to follow</Text>
+        </Pressable>
 
         <Section>
           <SectionHeader title="System drivers" value={titleCase(morningBriefing.readiness.mode)} />
@@ -776,6 +846,84 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     textAlign: 'center',
     textTransform: 'capitalize'
+  },
+  protocolCard: {
+    backgroundColor: colors.surface,
+    borderColor: palette.forestPale,
+    borderRadius: 22,
+    borderWidth: hairlineWidth,
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    padding: 20
+  },
+  protocolCardPressed: {
+    opacity: 0.9
+  },
+  protocolTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  protocolEyebrow: {
+    ...type.eyebrow,
+    color: colors.accent
+  },
+  protocolTags: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  protocolTag: {
+    backgroundColor: colors.accentWash,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4
+  },
+  protocolTagText: {
+    ...type.eyebrow,
+    color: colors.accent
+  },
+  protocolHeadline: {
+    ...type.heading,
+    color: colors.text
+  },
+  protocolActions: {
+    gap: 8,
+    marginTop: 2
+  },
+  protocolActionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10
+  },
+  protocolDot: {
+    backgroundColor: colors.accentMid,
+    borderRadius: 3,
+    height: 6,
+    width: 6
+  },
+  protocolActionText: {
+    ...type.body,
+    color: colors.textMuted,
+    flex: 1
+  },
+  protocolSafety: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8
+  },
+  protocolSafetyText: {
+    ...type.caption,
+    color: colors.textMuted,
+    flex: 1
+  },
+  protocolFooter: {
+    ...type.caption,
+    color: colors.textFaint
   },
   section: {
     backgroundColor: colors.surface,

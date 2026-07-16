@@ -24,6 +24,7 @@ import {
   type TimeWindow
 } from '../../../src/engines/circadian';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
   getActiveSleepNeedEstimate,
   getRecentSleepSessions,
@@ -409,6 +410,11 @@ export default function RhythmScreen() {
   const { user } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
+  const protocolHasRhythmActions = Boolean(
+    activeProtocol?.actions.some((action) => action.kind === 'wind_down' || action.kind === 'caffeine_cutoff')
+  );
   const [sleepSessions, setSleepSessions] = useState<SleepSession[]>(() => createDemoSleepSessions(today));
   const [sleepNeed, setSleepNeed] = useState<SleepNeedEstimate>(() => createDefaultSleepNeedEstimate(now));
   const [dataMode, setDataMode] = useState<RhythmDataMode>('demo');
@@ -610,7 +616,7 @@ export default function RhythmScreen() {
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Text style={styles.panelTitle}>Organize your day</Text>
-            <Text style={styles.panelHint}>Timing only</Text>
+            <Text style={styles.panelHint}>{protocolHasRhythmActions ? 'In today’s protocol' : 'Timing only'}</Text>
           </View>
           <View>
             <TimingRow

@@ -28,6 +28,7 @@ import {
   type NutritionTargets
 } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
   getActiveFoodPatternProfile,
   getRecentPostMealResponseLogs,
@@ -512,6 +513,9 @@ export default function FoodScreen() {
   const userId = session?.user.id ?? null;
   const canUseRemote = remoteEnabled(userId);
   const today = dateKey(new Date().toISOString());
+  const protocolScopeValue = useMemo(() => protocolScope(userId), [userId]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
+  const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
   const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
   const todayMeals = useMemo(() => meals.filter((meal) => dateKey(meal.logged_at) === today), [meals, today]);
 
@@ -1340,6 +1344,14 @@ export default function FoodScreen() {
   function renderToday() {
     return (
       <View style={styles.stack}>
+        {protocolNourishment.length > 0 ? (
+          <Card>
+            <Text style={styles.eyebrow}>From today’s protocol</Text>
+            {protocolNourishment.map((action) => (
+              <Text key={action.id} style={styles.body}>• {action.title}</Text>
+            ))}
+          </Card>
+        ) : null}
         <Card style={styles.heroCard}>
           <View style={styles.rowBetween}>
             <View>

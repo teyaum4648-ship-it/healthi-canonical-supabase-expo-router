@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -8,6 +8,7 @@ import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import { loadProfileScreenModel } from '../../../src/features/profile/profileComposer';
 import type { ProfileScreenModel } from '../../../src/features/profile/profileTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
@@ -63,6 +64,10 @@ export default function SettingsScreen() {
   const { signOut, user, profile } = useAuth();
   const [model, setModel] = useState<ProfileScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
+  const protocolDone = activeProtocol?.actions.filter((action) => action.status === 'done').length ?? 0;
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -128,6 +133,16 @@ export default function SettingsScreen() {
             <Text style={styles.baselineDetail}>{baseline.detail}</Text>
             <Text style={styles.meta}>Confidence: {baseline.confidence}</Text>
           </Card>
+
+          {activeProtocol ? (
+            <Card>
+              <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
+              <Text style={styles.baselineTitle}>{activeProtocol.headline}</Text>
+              <Text style={styles.meta}>
+                {dayModeLabel(activeProtocol.day_mode)} · {protocolDone}/{activeProtocol.actions.length} done · Confidence: {activeProtocol.confidence}
+              </Text>
+            </Card>
+          ) : null}
 
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Your profile</Text>

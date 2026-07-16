@@ -28,6 +28,7 @@ import {
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import { generateDailyReadiness } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
   getActiveSleepNeedEstimate,
   getRecentSleepSessions,
@@ -370,6 +371,8 @@ export default function PlanScreen() {
   const { user } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const [activeSegment, setActiveSegment] = useState<Segment>('Plan');
   const [blocks, setBlocks] = useState<DayScheduleBlockRow[]>([]);
   const [sleepBriefing, setSleepBriefing] = useState<CircadianBriefing | null>(null);
@@ -638,6 +641,25 @@ export default function PlanScreen() {
             <Text style={styles.body}>
               Missing: {dayPlan.missing_data.map(titleCase).join(', ')}. Based on available data.
             </Text>
+          </View>
+        ) : null}
+
+        {activeProtocol && activeProtocol.actions.length > 0 ? (
+          <View style={styles.card}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.cardTitle}>Today's protocol</Text>
+              <Text style={styles.metaText}>{titleCase(activeProtocol.day_mode)}</Text>
+            </View>
+            <View style={styles.list}>
+              {activeProtocol.actions.map((action) => (
+                <View key={action.id} style={styles.windowRow}>
+                  <Ionicons color={colors.accent} name="ellipse" size={8} />
+                  <Text style={styles.windowText}>
+                    {action.title}{action.time_hint ? ` · ${action.time_hint}` : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         ) : null}
 

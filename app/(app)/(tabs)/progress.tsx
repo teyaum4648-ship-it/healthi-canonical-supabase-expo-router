@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -8,6 +8,7 @@ import {
   type TrendsRangeDays
 } from '../../../src/engines/trends';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
 import { Card } from '../../../src/components/Card';
@@ -33,6 +34,10 @@ export default function ProgressScreen() {
   const [rangeDays, setRangeDays] = useState<TrendsRangeDays>(7);
   const [model, setModel] = useState<TrendsScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
+  const protocolDone = activeProtocol?.actions.filter((action) => action.status === 'done').length ?? 0;
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -92,6 +97,14 @@ export default function ProgressScreen() {
             <Text style={styles.overviewDetail}>{summary.overview.detail}</Text>
             <Text style={styles.confidenceText}>{confidenceLabel(summary.confidence)}</Text>
           </Card>
+
+          {activeProtocol && activeProtocol.actions.length > 0 ? (
+            <Card style={styles.overviewCard}>
+              <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
+              <Text style={styles.overviewTitle}>{protocolDone}/{activeProtocol.actions.length} actions done</Text>
+              <Text style={styles.confidenceText}>Follow-through builds your trends over time.</Text>
+            </Card>
+          ) : null}
 
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Your signals</Text>

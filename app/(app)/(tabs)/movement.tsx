@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
   deriveNutritionMoveSignal,
   deriveSleepMoveSignal,
@@ -154,6 +155,9 @@ export default function MovementScreen() {
   const { user } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
+  const trainingLimited = Boolean(activeProtocol && !activeProtocol.safety.training_allowed);
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
   const [sleepSignal, setSleepSignal] = useState<{ signal: MoveSleepSignal; summary: string }>({
     signal: 'unknown',
@@ -366,6 +370,14 @@ export default function MovementScreen() {
   function renderToday() {
     return (
       <View style={styles.stack}>
+        {trainingLimited ? (
+          <View style={styles.protocolNote}>
+            <Ionicons color={colors.accentMid} name="shield-checkmark-outline" size={16} />
+            <Text style={styles.protocolNoteText}>
+              Today's protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
+            </Text>
+          </View>
+        ) : null}
         <View style={[styles.card, styles.heroCard]}>
           <View style={styles.signalIcon}>
             <Ionicons color={colors.accent} name="body-outline" size={24} />
@@ -596,6 +608,8 @@ const styles = StyleSheet.create({
   stack: { gap: 14, paddingHorizontal: 16 },
   card: { backgroundColor: colors.surface, borderColor: colors.hairline, borderRadius: radii.md, borderWidth: hairlineWidth, padding: 20 },
   heroCard: { paddingTop: 24 },
+  protocolNote: { alignItems: 'flex-start', backgroundColor: colors.accentWash, borderRadius: radii.md, flexDirection: 'row', gap: 8, padding: 14 },
+  protocolNoteText: { ...type.caption, color: colors.textMuted, flex: 1 },
   signalIcon: { alignItems: 'center', backgroundColor: colors.accentWash, borderRadius: 24, height: 46, justifyContent: 'center', marginBottom: 18, width: 46 },
   heroTitle: { ...type.heading, color: colors.text, marginTop: 7 },
   body: { ...type.body, color: colors.textMuted, marginTop: 8 },
