@@ -1,0 +1,524 @@
+================================================================================
+HEALTHI — SYNOPTIC CODEBASE AUDIT
+Read-only review. No files were modified to produce this document.
+Generated: 2026-07-15
+Repo: healthi-canonical-supabase-expo-router
+Stack: Expo 55 / React 19.2 / React Native 0.83.6 / Expo Router / Supabase
+       (@supabase/supabase-js) / AsyncStorage (offline "demo mode") / TypeScript
+       / Vitest (46 test files, all passing as of last run)
+================================================================================
+
+
+HOW TO READ THIS DOCUMENT
+--------------------------------------------------------------------------------
+The founders' own architecture doc (src/engines/README.md) states the intended
+engine folders are: readiness, circadian, training, food, safety — each meant
+to be "deterministic, typed, unit tested, serializable, explainable with reason
+codes, safe by default." This audit is organized around what's ACTUALLY built
+against that intent, tab by tab and engine by engine, then closes with a gap
+analysis (docs/specs vs. shipped code, DB schema vs. code that uses it, and the
+fully-stubbed areas).
+
+Status key used throughout:
+  [BUILT]     - implemented, tested, wired into a UI screen
+  [PARTIAL]   - implemented but incomplete, or built with no UI attached
+  [STUB]      - only a README/type/spec exists; no working logic
+
+
+================================================================================
+1. APP STRUCTURE & NAVIGATION                                          [BUILT]
+================================================================================
+File-based routing via Expo Router.
+
+  /                        Marketing/welcome screen -> routes to signup or
+                           onboarding depending on auth state
+  /(auth)/login            Email + password sign-in (Supabase Auth)
+  /(auth)/signup           Email + password sign-up (8+ char password)
+  /(onboarding)            18-question intake flow (see Section 2)
+  /(app)/_layout            Auth + onboarding-status guard: redirects
+                           unauthenticated users to login, incomplete
+                           onboarding to the onboarding flow
+  /(app)/(tabs)             7-tab bottom nav:
+    Home        (index.tsx)      Morning briefing / dashboard
+    Plan        (plan.tsx)       Day-timeline calendar + recommendations
+    Move        (movement.tsx)   Workout logging + readiness signal
+    Sleep       (rhythm.tsx)     Circadian energy graph + sleep entry
+    Diet        (food.tsx)       Meal logging, scanner, food pattern test
+    Trends      (progress.tsx)   7/14/30-day rollups
+    You         (settings.tsx)   Profile / personal blueprint / sign out
+
+Auth: Supabase Auth (email/password) with a full "demo mode" fallback
+(EXPO_PUBLIC_DEMO_MODE=true, or whenever Supabase isn't configured) that
+auto-logs-in a "demo-user" with onboarding already marked complete — this is
+what makes the whole app explorable without a backend. Session + profile
+(profiles table: display_name, primary_goal, training_experience,
+onboarding_status) are exposed app-wide via AuthProvider (React context).
+
+Gap noted: email-confirmation handling and profile row creation-on-signup
+are not visible in AuthProvider itself (likely handled during onboarding
+submission, not confirmed by this audit).
+
+
+================================================================================
+2. ONBOARDING                                                          [BUILT]
+================================================================================
+WHAT IT DOES
+A one-question-per-screen intake (18 questions across 4 domains: recovery
+rhythm, nourishment, movement capacity, mind & life load) that produces a
+"baseline" for every other engine to key off of.
+
+QUESTIONS ASKED (18)
+  Primary goal (7 options) · blocking factors (multi-select) · result
+  timeline · bedtime/wake time · morning restedness (1-10) · overnight
+  waking frequency · meal cadence · diet quality (1-10) · water intake ·
+  post-meal energy · weekly training days · training types (multi-select)
+  · recovery between sessions · non-fitness activity level · daily stress
+  (1-10) · daily schedule shape (9-5 / shift / student / flexible)
+
+WHAT IT COMPUTES (three layered outputs)
+  generateOnboardingV2Result()   -> baseline_mode (build/maintain/correct/
+                                     restore), primary_focus, calibration
+                                     hints, next steps
+  generateBaselineProfile()      -> sleep need (480-510 min), hydration
+                                     target, training capacity, initial
+                                     per-domain foundation scores
+  generateBiweeklyFocusProfile() -> 14-day focus cycle: primary/secondary
+                                     focus domain + training/lifestyle/
+                                     nourishment/recovery biases
+  generateLifestylePlan()        -> archetype tag (6 types: energy
+                                     optimizer, body recomposition, sleep
+                                     rebuilder, stress recovery, gut
+                                     healer, performance athlete), macro
+                                     ratios, meal/sleep/exercise/
+                                     supplement/stress protocols
+
+DATA: writes to Supabase `baseline_profiles`; demo mode via AsyncStorage.
+
+GAP: several fields consumed by generateBiweeklyFocusProfile() /
+generateLifestylePlan() (caffeine dependence, bowel regularity, stress
+sources, daytime energy crashes, processed-food frequency, vegetable
+frequency, breakfast skipping, sweet-food response, protein/fat/carb meal
+response, post-exercise cravings) are NOT collected by the current 18-
+question UI. The scoring functions reference them defensively, but the
+richer archetype/metabolic-typing logic is effectively running on partial
+input today.
+
+
+================================================================================
+3. SLEEP TAB — CIRCADIAN ENGINE                          [BUILT] (recent rework)
+================================================================================
+WHAT IT DOES
+Produces a full-day "circadian briefing": wake time, target bedtime,
+current phase, a continuous 0-100 energy curve sampled every 20 minutes,
+color-coded energy zones, peak/low markers, recommended-activity windows
+(deep work, exercise, walk, breathing, nap, caffeine cutoff, wind-down),
+and 7/14-day sleep-debt summaries.
+
+SCIENTIFIC GROUNDING (cited directly in code comments)
+  - Borbély two-process model of sleep regulation (1982) — energy at any
+    moment = circadian arousal (Process C) minus homeostatic sleep
+    pressure (Process S), scaled by how restorative the prior night was.
+  - Modeled features, each a literature-backed shape: sleep inertia dip
+    (first 30-60 min after waking, worse when under-rested), morning
+    peak (~3-4h post-wake), post-lunch dip (~7h post-wake, deeper with
+    sleep debt), evening "wake-maintenance zone" / second wind (~3-4h
+    before bed), wind-down decline near bedtime.
+  - Caffeine cutoff fixed at 8 hours before target bedtime (caffeine
+    half-life). Wind-down fixed at 90 minutes before bed (sleep-hygiene
+    convention).
+
+KEY FUNCTIONS
+  generateCircadianBriefing()   Full daily briefing (see above)
+  circadianEnergyAt()           Core 0-100 energy value at a time-of-day
+  computeRestorationFactor()    0-1 score from sleep quality (40%),
+                                 duration-vs-need (35%), 7-day debt (25%)
+  deriveEnergyZones()           Contiguous high/moderate/low bands
+  deriveEnergyExtrema()         Meaningful peaks/lows (min. prominence
+                                 filter so flat stretches don't register)
+  getRecommendedActivityAt()    Time -> suggested activity string
+  calculateSleepDebt()          Rolling 7/14-day debt, recent nights
+                                 weighted more, 50% credit for over-sleep
+  calculateSleepDuration()      Parses HH:MM or ISO, handles midnight
+                                 crossing
+  getMissingDailySignals()      Decides which subjective check-ins
+                                 (stress, soreness, digestion, hydration)
+                                 to prompt for next
+
+SLEEP TAB UI
+  - Interactive SVG energy graph: press-and-drag scrubber shows time +
+    recommended activity + energy % at any point; green/amber/red
+    vertical energy-zone shading; peak/low dots with labels; "now"
+    marker when not scrubbing.
+  - Metrics grid: source, confidence, last sleep window, duration,
+    7-day debt, target bedtime.
+  - "Organize your day" list: deep work / exercise / walk / breathing /
+    nap (if debt >= 60 min) / caffeine cutoff / wind-down, each with a
+    computed time window.
+  - Manual sleep entry: 12-hour AM/PM time fields for sleep start & wake,
+    a 1-5 quality picker, quick presets. Editing any of these LIVE-
+    recalculates the graph and timing before saving (a recent addition).
+
+DATA: Supabase `sleep_sessions`, `sleep_need_estimates`; demo mode via
+AsyncStorage 14-day synthetic sleep history.
+
+GAP: no wearable/HealthKit/Health Connect integration yet (explicitly
+labeled "coming later" in the UI); sleep-debt model doesn't account for
+multi-week chronic debt, only a rolling 7/14-day window.
+
+
+================================================================================
+4. PLAN TAB — DAY-PLAN ENGINE                                          [BUILT]
+================================================================================
+WHAT IT DOES
+Turns schedule blocks + sleep rhythm + readiness + nutrition + movement
+signal into a single recommended "mode" for the day (build / maintain /
+correct / restore) and fits prioritized activities into the open gaps in
+the user's schedule.
+
+KEY FUNCTIONS
+  generateDayPlan()   Mode, confidence, summary, ranked recommendations
+                       (deep work / movement / walk / recovery / meal
+                       timing / caffeine cutoff / wind-down / sleep /
+                       schedule adjustment), protected blocks, open
+                       windows (>=10 min gaps), missing-data flags
+  Mode thresholds: readiness >=75 build, 55-74 maintain, 35-54 correct,
+                   <35 restore
+
+PLAN TAB UI
+  - Plan segment: mode hero card + a vertical day-timeline calendar
+    (hour-by-hour grid) with sleep-derived recommendation bands (deep
+    work / exercise / light movement / wind-down, each color-coded) laid
+    behind the user's actual schedule blocks; recommendation cards below.
+  - Schedule segment: list/compact view of the day's blocks, quick
+    delete.
+  - Add Block segment: form for title/type/date/AM-PM start-end time/
+    flexibility (fixed/flexible/movable)/protected toggle/description/
+    location — block-type buttons are color-coded to the section of the
+    day they best fit (recent addition, matching the Sleep-driven bands).
+
+DATA: Supabase `day_schedule_blocks`; demo mode via AsyncStorage.
+
+GAP: no recurring-block support (every day is entered independently); no
+native-calendar import despite a 'calendar_import' source being defined
+in the type system; overlap detection exists but doesn't yet reflow
+recommendations around conflicts.
+
+
+================================================================================
+5. MOVE TAB — MOVEMENT ENGINE                                          [BUILT]
+================================================================================
+WHAT IT DOES
+Scores today's readiness for exercise (0-100) from a 6-day rolling
+workout history (frequency, duration, effort, consistency), THEN adjusts
+that score using cross-domain signals: sleep debt (from the circadian
+briefing) and today's fueling status (from logged meals) — this
+cross-engine wiring was added recently.
+
+KEY FUNCTIONS
+  generateMovementReadinessSignal()  Label (ready_to_build / steady_
+                                       maintenance / lighter_day /
+                                       recovery_support / calibrating),
+                                       score, training_readiness,
+                                       suggested next action
+  calculateMovementSummary()          6-day rolling stats: workout count,
+                                       minutes, load (duration x effort),
+                                       recent high-effort count,
+                                       consistency label
+  deriveSleepMoveSignal()             Sleep debt >=60min -> "limited";
+                                       <=30min -> "supportive"
+  deriveNutritionMoveSignal()         Reuses the nutrition-readiness
+                                       label to feed movement scoring
+
+MOVE TAB UI — now ONE merged landing tab (a recent simplification;
+"Today" and the old separate "Movement Signal" tab were combined):
+  - Today: readiness hero, score bar, week breakdown (strength/cardio/
+    reset/high-effort counts), "what shapes this" explanation including
+    the sleep + diet influence lines.
+  - Log Workout: title/type/date/duration/effort form + per-exercise
+    entries (sets/reps/weight/distance/effort/notes) with a small
+    starter exercise library.
+  - Templates: 4 pre-built quick-start workouts.
+  - History: last-30-days list, expandable, deletable.
+
+DATA: Supabase `workout_sessions`, `workout_exercise_entries`,
+`exercise_library_items`; demo mode via AsyncStorage.
+
+GAP: pre-workout self-reported readiness is captured but not yet folded
+into the score; no periodization / deload-week logic, only a 6-day
+window; no wearable HR/power data (effort is entirely 1-10 self-report).
+
+
+================================================================================
+6. DIET TAB — NUTRITION ENGINE & PRODUCT SCANNER                       [BUILT]
+================================================================================
+WHAT IT DOES
+Two related but distinct systems under one tab:
+  (a) Daily nutrition tracking — logging meals, comparing against
+      targets, tracking how the user's body responds after eating, and
+      building an adaptive "food pattern profile."
+  (b) Packaged-food barcode scoring — looks a product up on Open Food
+      Facts and grades it A-F using an ingredient-rules engine.
+
+(a) CORE NUTRITION ENGINE
+  calculateNutrientSummary()        Daily totals vs. targets
+  calculateFoodQuality()             0-100 meal-quality score/label
+  calculateFoodResponse()            Aggregates post-meal self-reports
+                                      (digestion/energy/appetite/cravings)
+  calculateFoodPatternProfile()      16-question test -> one of 5 meal-
+                                      style labels (steady_balanced,
+                                      protein_forward, carb_supported,
+                                      lighter_frequent, evening_sensitive)
+                                      + macro/timing tendencies
+  generateNutritionReadinessSignal() Combines the above into one signal
+                                      consumed by Movement, Plan, and the
+                                      Home dashboard
+  updateFoodPatternProfileFromResponse()  Adaptively nudges the profile
+                                      as new post-meal responses come in
+
+(b) PRODUCT SCORING ENGINE (src/engines/nutrition/productScoring)
+  Ingredient-rules engine over an Open Food Facts lookup:
+  - 4 processing tiers (whole-food -> highly formulated) set score
+    floor/ceiling.
+  - 15 "consideration" (deduction) rules, e.g. hydrogenated oil (-20,
+    capped at 30 max score), artificial color (-18, capped at 38),
+    added sugar, refined oil blend, artificial flavor, emulsifiers,
+    non-sugar sweeteners, sugar alcohols, nitrites/nitrates.
+  - 6 positive rules, e.g. whole grain (+4), traditional oil (+5),
+    prebiotic fiber (+6), fermented food, organic label (bonus capped
+    at +12 total so positives can't offset severe deductions).
+  - Nutrition-fact adjustments layered on top (sugar density, sodium,
+    fiber, protein, per-100g and per-serving).
+  - Letter grade mapping A/A- (92+/85-91) through F (<35); grade bands
+    strong/solid/mixed/cautious/avoid/calibrating for user-facing copy.
+  - Cited evidence (embedded, shown in an in-app "grounding" disclosure):
+      FDA - High-intensity sweeteners overview
+      WHO (2023) - Non-sugar sweeteners guideline (advises against
+                    relying on them for weight control)
+      FDA - Daily Values on Nutrition Facts labels
+      BMJ (2024) - Ultra-processed food exposure and health outcomes
+                    (umbrella review)
+      FDA (2021) - Sugar alcohols on food labels
+  - "Better options" (recommend.ts): if a product scores below ~70, the
+    engine surfaces category-specific improvement copy (e.g. "lower
+    added sugar," "simpler crunchy option," "steadier bar, higher
+    protein/fiber"). NOTE: this is currently generic copy per category,
+    not a named specific alternative product — a "point to a concrete
+    better product" version (e.g., iodized salt -> pink Himalayan) was
+    attempted in this session and fully reverted at the user's request;
+    the shipped behavior today is the original category-level copy.
+
+BARCODE SCAN FLOW
+  Expo Camera reads EAN-13/EAN-8/UPC-A/UPC-E/Code128/ITF-14 -> 2s
+  debounce -> lookupOpenFoodFactsProduct() tries barcode variants against
+  Open Food Facts' v2 API -> normalizeOpenFoodFactsProduct() extracts
+  name/brand/serving/nutriments/labels/categories/NOVA group ->
+  calculateProductQuality() combines the snapshot with the scoring engine
+  -> result card shows grade, score, "what helps"/"what to consider"
+  bullets, better-options disclosure, evidence-grounding disclosure, and
+  an add-to-meal / add-to-builder form.
+
+DIET TAB SEGMENTS: Today, Build Meal, Log Meal, Response Log, Food
+Pattern Test, Insights — plus the Scan Food modal described above.
+
+DATA: Supabase `meal_logs`, `meal_log_items`, `nutrition_targets`,
+`user_food_products`, `food_pattern_profiles`, `post_meal_response_logs`;
+full AsyncStorage demo-mode parity for all of the above.
+
+GAP: none structural — this is the most complete domain in the app.
+Worth flagging naming: the intended architecture doc names this engine
+folder "food" (src/engines/food/README.md, a stub), but the working
+implementation actually lives in src/engines/nutrition/ — a naming/
+location drift between the original spec and what got built.
+
+
+================================================================================
+7. HOME TAB — MORNING BRIEFING & DASHBOARD                             [BUILT]
+================================================================================
+Composes a single 0-100 "daily readiness" score (see Section 9) plus
+per-domain driver cards into the Home tab hero: headline ("Primed for
+stronger output" / "A steady day" / "Protect your capacity" / "Recovery
+leads today" / "Calibrating"), top 3-4 recommended actions, and quick
+links into Log Meal / Start Workout / Log Sleep. Also renders weekly
+training progress and nutrition/sleep summary tiles.
+
+DATA: reads from every other engine's output (circadian briefing, meal
+logs, movement summary, schedule); no separate persistence of its own.
+
+GAP: some composed fields (focus tags, individual driver-signal tiles)
+are present in the data model but their exact on-screen rendering wasn't
+fully confirmed in this pass — likely a minor display gap, not a logic
+gap.
+
+
+================================================================================
+8. TRENDS TAB                                                          [BUILT]
+================================================================================
+Rolling 7/14/30-day view. Produces per-domain cards (recovery rhythm,
+nourishment, movement, schedule) each with a status (supportive/steady/
+watch/calibrating) and trend direction, an overall headline, a short
+list of insights, and one recommended "next focus" domain.
+
+DATA: derived from the same Supabase tables as the tabs above (no new
+tables); confidence scales with how many days of history exist (low <3,
+medium 3-6, high 7+).
+
+GAP: the "schedule" trend card's logic is thinner than the other three;
+a "readiness" history dimension is defined in the types but no function
+currently populates it, so long-run readiness trending isn't yet shown.
+
+
+================================================================================
+9. CROSS-CUTTING: READINESS ENGINE                                     [BUILT]
+================================================================================
+The single number that ties Sleep, Diet, Move, and Plan together each
+morning. Takes up to four optional domain signals and blends them with
+capped contribution ranges so no one domain can dominate:
+  Recovery/rhythm  contributes -25 to +15
+  Nourishment      contributes -10 to +8
+  Movement         contributes -15 to +12
+  Schedule         contributes -10 to +6
+Label bands: >=75 primed, 50-74 steady, 25-49 conserve, <25 restore
+(falls back to "calibrating" whenever a required signal is missing).
+Also determines the "primary focus" domain (whichever contributed most)
+and feeds directly into the Plan engine's build/maintain/correct/restore
+mode.
+
+
+================================================================================
+10. THE SCIENTIFIC/EVIDENCE FOOTPRINT (across the whole app)
+================================================================================
+  - Sleep/circadian: Borbély two-process model (1982) + wake-maintenance-
+    zone and post-lunch-dip literature, cited directly in code comments
+    in src/engines/circadian/energyModel.ts.
+  - Product scoring: 5 named references (FDA x3, WHO 2023, BMJ 2024) —
+    listed in full in Section 6 above, surfaced to the user in-app via
+    a "How this is grounded" disclosure on every scanned product.
+  - All other engines (movement load, training consistency thresholds,
+    readiness contribution weights, meal-timing/macro heuristics) are
+    domain-heuristic / rule-of-thumb based, not citing specific external
+    literature in-code.
+
+
+================================================================================
+11. WHAT'S SCAFFOLDED BUT NOT BUILT                              [STUB / GAP]
+================================================================================
+These are real gaps between the founders' documented intent (docs/, and
+src/engines/README.md) and what runs today. Nothing below is wired to a
+UI screen or has working logic — each is either a README of intentions,
+a orphaned TypeScript type file, or a database table with no code path.
+
+  TRAINING ENGINE            [STUB]
+    src/engines/training/ contains only a README (progression gating,
+    "One More" progression targets, adaptive workouts, restore sessions,
+    outcome classification) and an acceptance-test markdown file with
+    example scenarios (e.g. "recovered bench -> one progression target,"
+    "under-recovered -> no PR attempt"). Zero implementation code, zero
+    automated tests. This is DISTINCT from the working Movement engine
+    (Section 5) — Movement tracks/logs workouts and scores readiness;
+    Training (per the founder's intent) was meant to actively PRESCRIBE
+    progressive workout targets. That prescriptive layer doesn't exist.
+
+  SAFETY ENGINE               [STUB]
+    src/engines/safety/ contains only a README: red-flag detection,
+    stopping unsafe training guidance, escalation to professional
+    guidance, protections for eating-disorder/injury/pregnancy/mental-
+    health risk. No implementation. Given the founder notes explicitly
+    say "safety overrides optimization," this is a meaningful gap if the
+    app is meant to give increasingly assertive coaching guidance.
+
+  AI / CHAT LAYER             [STUB]
+    src/types/ai.ts defines types for an AI chat/context layer; Supabase
+    migrations already define ai_chat_sessions, ai_messages,
+    ai_context_snapshots, and ai_safety_events tables. None of these
+    types or tables are referenced anywhere in src/ or app/ outside the
+    type file and the SQL migration. No chat UI exists.
+
+  WEARABLES                   [STUB]
+    wearable_connections and wearable_data_logs tables exist in the
+    schema; no code references them. Sleep/Move UIs explicitly say
+    "wearable sync is coming later."
+
+  SHOPPING LISTS / MEAL PLANS / RECIPES   [STUB]
+    Tables exist (meal_plans, meal_plan_items, recipes, shopping_lists,
+    shopping_list_items, pantry_items) and src/types/shopping.ts defines
+    matching types, per the founder's stated intent ("Costco list uses
+    high-response foods and avoids low-response foods"). No engine or
+    UI touches any of this yet.
+
+  ASSESSMENTS (posture/movement/breathing)   [STUB]
+    assessment_sessions, assessment_answers, movement_assessments,
+    movement_screen_results, posture_assessments, breathing_assessments
+    tables exist; the onboarding flow only asks self-report questions,
+    it doesn't run any structured assessment matching these tables.
+
+  PRIVACY / CONSENT / SUBSCRIPTION           [STUB]
+    user_consents, privacy_events, data_export_requests, data_deletion_
+    requests, subscription_status tables exist with no code path (docs/
+    PRIVACY_CONSENT.md documents intent). Reasonable to leave for later
+    (pre-launch/legal concern, not a product-feature gap), but worth
+    knowing before any real user data collection begins.
+
+
+================================================================================
+12. DATABASE SCHEMA VS. ACTUAL USE (important scale note)
+================================================================================
+9 Supabase migrations (0001-0009) define roughly 65 tables in total.
+Of those, only 13 tables are actually read/written by any working
+persistence code today:
+  sleep_sessions, sleep_need_estimates, meal_logs, nutrition_targets,
+  baseline_profiles, day_schedule_blocks, user_food_products,
+  meal_log_items, exercise_library_items, workout_sessions,
+  workout_exercise_entries, food_pattern_profiles,
+  post_meal_response_logs
+
+The remaining ~52 tables (training plans/sessions, exercise sets,
+progression targets, session outcomes, rebalancing sessions, food items/
+logs (legacy?), assessments, AI chat, wearables, shopping/meal-planning,
+privacy/consent, foundation/allostatic-load scores, hydration/stress/
+daily-checkin logs, etc.) were provisioned ahead of feature work per the
+founders' phased build plan (docs/BUILD_PHASES.md) but have no code
+reading or writing them yet. This is normal for a schema built ahead of
+schedule, but it means roughly 4/5 of the database as currently migrated
+is inert — worth knowing so no one assumes "the table exists" implies
+"the feature works."
+
+
+================================================================================
+13. TEST COVERAGE SNAPSHOT
+================================================================================
+46 automated test files (Vitest), all passing as of the last full run.
+Rough distribution:
+  Engines:  circadian (5) · nutrition (9) · movement (2) · dayPlan (1) ·
+            baseline (1) · readiness (1) · trends (1) · training (0 —
+            only a markdown acceptance-test spec, no executable tests)
+            · food (0 test files in this specific folder — nutrition's
+            9 cover the working food logic instead)
+  Features: nutrition (10) · dayPlan (3) · movement (3) · onboarding (3)
+            · profile (2) · sleepRhythm (2) · dashboard (1) ·
+            morningBriefing (1) · trends (1)
+
+Circadian and nutrition/food are the most heavily tested domains, which
+matches Section 6 & 3's finding that those are also the most complete.
+
+
+================================================================================
+14. ONE-PARAGRAPH TAKEAWAY
+================================================================================
+Healthi's actually-working core is five interconnected engines — sleep/
+circadian rhythm, day planning, movement/workout tracking, nutrition +
+barcode food scoring, and a unifying daily-readiness score — all fully
+wired into seven polished tab screens, backed by both live Supabase
+persistence and a complete offline "demo mode," with real (if uneven)
+scientific grounding cited in-app for sleep timing and product scoring.
+The database schema and product-requirements docs describe a much larger
+eventual product (prescriptive training progression, a safety/red-flag
+layer, AI chat, wearables, meal-planning/shopping, structured movement
+assessments, privacy/consent tooling) — none of that outer layer has
+been built yet; it exists only as SQL tables, TypeScript types, and
+planning documents. The gap between "what's shipped" and "what the
+schema/docs anticipate" is the single most important thing for a
+colleague reviewing this repo to understand.
+
+================================================================================
+END OF AUDIT
+================================================================================
