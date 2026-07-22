@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { validateBarcode } from '../../../src/features/nutrition/productLookup/barcodeUtils';
+import { barcodeLookupCandidates, canonicalBarcodeIdentity, validateBarcode } from '../../../src/features/nutrition/productLookup/barcodeUtils';
 import { normalizeOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/normalizeProduct';
 import { lookupOpenFoodFactsProduct, searchOpenFoodFactsProducts } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
+import { resolveIngredientEvidence } from '../../../src/features/nutrition/productLookup/ingredientEvidenceResolver';
 
 const completeProduct = {
   code: '3017620422003',
@@ -51,6 +52,16 @@ describe('product lookup and quality', () => {
     expect(product?.reason_codes).toContain('product_label_data');
   });
 
+  it('uses direct sodium first, converts salt once, and ignores impossible nutrient values', () => {
+    const fromSalt = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Salt reference',
+      serving_size: '5 g',
+      nutriments: { salt_100g: 80, sodium_100g: -1 }
+    });
+    expect(fromSalt?.sodium_mg).toBe(1600);
+    expect(fromSalt?.nutriments_per_100g?.sodium_mg).toBe(32000);
+  });
+
   it('returns a safe not-found result', async () => {
     const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ status: 0 }) }));
     const result = await lookupOpenFoodFactsProduct('3017620422003', { fetcher });
@@ -71,6 +82,15 @@ describe('product lookup and quality', () => {
 
     expect(result).toMatchObject({ status: 'found', product: { barcode: '123456789012' } });
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses one stable identity for UPC-A and zero-prefixed EAN/GTIN forms', () => {
+    expect(canonicalBarcodeIdentity('123456789012')).toBe('123456789012');
+    expect(canonicalBarcodeIdentity('0123456789012')).toBe('123456789012');
+    expect(canonicalBarcodeIdentity('00123456789012')).toBe('123456789012');
+    expect(barcodeLookupCandidates('0123456789012')).toEqual(expect.arrayContaining([
+      '123456789012', '0123456789012', '00123456789012'
+    ]));
   });
 
   it('sends an app identifier and abort signal with provider requests', async () => {
@@ -105,20 +125,156 @@ describe('product lookup and quality', () => {
     });
 
     expect(product?.confidence).toBe('low');
-    expect(product?.serving_size).toBe('100 g reference');
-    expect(product?.serving_quantity_g).toBe(100);
+    expect(product?.serving_size).toBeNull();
+    expect(product?.serving_quantity_g).toBeNull();
+    expect(product?.protein_g).toBeNull();
+    expect(product?.nutriments_per_100g?.protein_g).toBe(5);
+    expect(product?.evidence_confidence?.serving).toBe('low');
     expect(product?.reason_codes).toEqual(expect.arrayContaining(['partial_nutrition_data', 'nutrition_calibrating']));
     expect(calculateProductQuality(product!)).toMatchObject({ score: null, label: 'calibrating', confidence: 'low' });
     expect(calculateProductQuality(product!)).toMatchObject({
       letter_grade: null,
       grade_band: 'calibrating',
-      grade_label: 'Calibrating'
+      grade_label: 'More data needed',
+      result_state: 'more_data_needed',
+      nutrient_basis: { type: 'per_100g', source: 'fallback' }
     });
   });
 
-  it('returns explainable supportive, steady, and watch labels', () => {
+  it('maps complete, partial, and unresolved evidence to calm public result states', () => {
+    const finalProduct = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Simple oat cereal', categories_tags: ['en:cereals'], ingredients_text_en: 'whole oats, cinnamon, sea salt',
+      serving_size: '40 g', serving_quantity: 40,
+      nutriments: { 'energy-kcal_serving': 150, proteins_serving: 5, fiber_serving: 4, sugars_serving: 1, sodium_serving: 0.12 }
+    })!;
+    const estimatedProduct = normalizeOpenFoodFactsProduct('12345679', {
+      product_name: 'Oat cereal', categories_tags: ['en:cereals'],
+      serving_size: '40 g', serving_quantity: 40,
+      nutriments: { 'energy-kcal_serving': 150, proteins_serving: 8, fiber_serving: 5, sugars_serving: 2, sodium_serving: 0.12 }
+    })!;
+    const unresolvedProduct = normalizeOpenFoodFactsProduct('12345670', {
+      product_name: 'Pantry product', nutriments: { 'energy-kcal_100g': 200 }
+    })!;
+    const final = calculateProductQuality(finalProduct);
+    const estimated = calculateProductQuality(estimatedProduct);
+    const unresolved = calculateProductQuality(unresolvedProduct);
+    expect(final).toMatchObject({ result_state: 'final', score: expect.any(Number), letter_grade: expect.any(String) });
+    expect(estimated).toMatchObject({ result_state: 'estimated', score: null, grade_label: 'Estimated grade' });
+    expect(estimated.letter_grade).not.toBe('A');
+    expect(estimated.estimated_grade_range).not.toBeNull();
+    expect(estimated.missing_evidence).toContain('Complete package ingredient details are unavailable.');
+    expect(unresolved).toMatchObject({ result_state: 'more_data_needed', score: null, letter_grade: null, grade_label: 'More data needed' });
+    expect(JSON.stringify(unresolved)).not.toContain('Calibrating');
+    expect(unresolved.considerations).toContain('There is not enough reliable category information to assign a grade yet.');
+    expect(unresolved.considerations.join(' ').toLowerCase()).not.toMatch(/uses the overall label pattern|the score uses/);
+  });
+
+  it('resolves localized ingredient text without discarding alternate provider fields', () => {
+    const requested = resolveIngredientEvidence({
+      lang: 'fr',
+      ingredients_text_es: 'avena, almendras, sal',
+      ingredients_text_en: 'oats, almonds, salt',
+      ingredients_text: 'avoine, amandes, sel'
+    }, 'es');
+    expect(requested).toMatchObject({
+      resolved_text: 'avena, almendras, sal',
+      source_field: 'ingredients_text_es',
+      language: 'es',
+      reconstructed: false
+    });
+    expect(requested.localized_texts).toEqual(expect.arrayContaining([
+      { source_field: 'ingredients_text_es', language: 'es', text: 'avena, almendras, sal' },
+      { source_field: 'ingredients_text_en', language: 'en', text: 'oats, almonds, salt' },
+      { source_field: 'ingredients_text', language: 'fr', text: 'avoine, amandes, sel' }
+    ]));
+    expect(requested.conflicts).toEqual([]);
+    expect(requested.confidence).toBe('high');
+
+    const blankPreferred = resolveIngredientEvidence({ ingredients_text_en: ' ', ingredients_text_fr: 'avoine, sel' }, 'en');
+    expect(blankPreferred).toMatchObject({ resolved_text: 'avoine, sel', source_field: 'ingredients_text_fr' });
+  });
+
+  it('uses structured ingredients only as a lower-confidence ordered fallback', () => {
+    const evidence = resolveIngredientEvidence({
+      lang: 'en',
+      ingredients: [
+        { id: 'en:oats', text: 'oats' },
+        { id: 'en:nut-blend', text: 'nut blend', ingredients: [{ id: 'en:almonds', text: 'almonds' }, { id: 'en:cashews', text: 'cashews' }] }
+      ]
+    });
+    expect(evidence).toMatchObject({
+      resolved_text: 'oats, nut blend (almonds, cashews)',
+      source_field: 'ingredients',
+      status: 'reconstructed',
+      confidence: 'medium',
+      reconstructed: true
+    });
+    expect(evidence.structured_ingredients[1]).toMatchObject({ id: 'en:nut-blend', ingredients: [{ id: 'en:almonds' }, { id: 'en:cashews' }] });
+  });
+
+  it('prefers raw label text over structured reconstruction without treating translations as conflicts', () => {
+    const evidence = resolveIngredientEvidence({
+      lang: 'fr',
+      ingredients_text_en: 'oats, almonds, salt',
+      ingredients_text_fr: 'avoine, sucre, sel',
+      ingredients: [{ id: 'en:oats', text: 'oats' }]
+    });
+    expect(evidence).toMatchObject({ raw_text: 'oats, almonds, salt', reconstructed: false, confidence: 'high' });
+    expect(evidence.conflicts).toEqual([]);
+  });
+
+  it('flags materially different raw ingredient fields only when they represent the same language', () => {
+    const evidence = resolveIngredientEvidence({
+      lang: 'en',
+      ingredients_text_en: 'oats, almonds, salt',
+      ingredients_text: 'oats, sugar, salt'
+    });
+    expect(evidence.conflicts).toEqual(['Provider ingredient text fields for the same language materially disagree.']);
+    expect(evidence.confidence).toBe('medium');
+  });
+
+  it('uses only ingredient-specific quality tags to classify a populated ingredient label', () => {
+    for (const unrelatedTag of [
+      'en:packaging-data-missing',
+      'en:environmental-score-packaging-data-missing',
+      'en:environmental-score-origins-of-ingredients-origins-are-100-percent-unknown',
+      'en:nutrition-data-incomplete',
+      'en:categories-missing'
+    ]) {
+      expect(resolveIngredientEvidence({
+        ingredients_text_en: 'oats, almonds, salt',
+        ingredients_n: 3,
+        data_quality_tags: ['en:ingredients-en-completed', unrelatedTag]
+      })).toMatchObject({ status: 'complete', confidence: 'high' });
+    }
+
+    expect(resolveIngredientEvidence({
+      ingredients_text_en: 'oats, almonds, salt',
+      data_quality_tags: ['en:ingredients-incomplete']
+    })).toMatchObject({ status: 'partial', confidence: 'medium' });
+
+    expect(resolveIngredientEvidence({
+      data_quality_tags: ['en:packaging-data-missing']
+    })).toMatchObject({ status: 'absent', confidence: 'low' });
+  });
+
+  it('keeps complete ingredient evidence usable without serving or nutrition data', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Simple pantry food',
+      categories_tags: ['en:snacks'],
+      ingredients_text_en: 'whole oats, almonds, sea salt'
+    });
+    expect(product).toMatchObject({
+      ingredients_text: 'whole oats, almonds, sea salt',
+      serving_quantity_g: null,
+      evidence_confidence: { ingredients: 'high', nutrition: 'low', serving: 'low' }
+    });
+  });
+
+  it('returns explainable, serializable V2 quality output', () => {
     const base = normalizeOpenFoodFactsProduct('12345678', {
-      product_name: 'Base product',
+      product_name: 'Whole oat cereal',
+      categories_tags: ['cereal'],
       serving_size: '100 g',
       ingredients_text: 'Oats, seeds, berries',
       nutriments: {
@@ -145,15 +301,44 @@ describe('product lookup and quality', () => {
     });
 
     expect(supportive.label).toBe('supportive');
-    expect(steady.label).toBe('steady');
     expect(watch.label).toBe('watch');
-    expect(steady.category_score).not.toBeNull();
+    expect(supportive.score!).toBeGreaterThan(steady.score!);
+    expect(steady.score!).toBeGreaterThan(watch.score!);
+    expect(steady.category_comparison_available).toBe(false);
+    expect(steady.category_score).toBeNull();
+    expect(steady.source_confidence).toBeTruthy();
+    expect(steady.interpretation_confidence).toBeTruthy();
+    expect(steady.macro_context?.summary).toContain('do not automatically');
     expect(watch.factors?.length).toBeGreaterThan(0);
     expect(supportive.letter_grade).toBeTruthy();
     expect(steady.grade_label).toBeTruthy();
     expect(watch.better_options?.length).toBeGreaterThan(0);
     expect(watch.evidence_refs?.length).toBeGreaterThan(0);
+    expect(steady.nutrient_basis).toMatchObject({ type: 'provider_serving', source: 'provided' });
     expect(JSON.parse(JSON.stringify(watch))).toEqual(watch);
+  });
+
+  it('does not leak legacy meal-level penalties into Scanner V2 output', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Sea salt tortilla chips',
+      categories_tags: ['chips'],
+      serving_size: '28 g',
+      ingredients_text: 'Corn, avocado oil, sea salt',
+      nutriments: {
+        'energy-kcal_serving': 260,
+        proteins_serving: 2,
+        carbohydrates_serving: 30,
+        fat_serving: 8,
+        fiber_serving: 1,
+        sugars_serving: 0,
+        sodium_serving: 0.18
+      }
+    })!;
+    expect(product.reason_codes).toEqual(expect.arrayContaining(['protein_low', 'fiber_low']));
+    const scannerReasons = calculateProductQuality(product).reason_codes;
+    for (const legacyReason of ['protein_low', 'fiber_low', 'added_sugar_high', 'sodium_high', 'processing_level_high'] as const) {
+      expect(scannerReasons).not.toContain(legacyReason);
+    }
   });
 
   it('rejects empty and malformed manual barcodes safely', () => {
@@ -174,5 +359,29 @@ describe('product lookup and quality', () => {
     ];
 
     for (const term of blockedTerms) expect(output).not.toContain(term);
+  });
+
+  it('keeps internal score mechanics out of user-facing product output', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Organic almond milk',
+      categories_tags: ['plant milks'],
+      serving_size: '240 ml',
+      ingredients_text: 'water, almonds, sea salt, organic, natural flavors',
+      nutriments: {
+        'energy-kcal_serving': 40,
+        proteins_serving: 1,
+        carbohydrates_serving: 1,
+        fat_serving: 3,
+        fiber_serving: 1,
+        sugars_serving: 0,
+        sodium_serving: 0.15
+      }
+    })!;
+    const quality = calculateProductQuality(product);
+    expect(quality).toMatchObject({ score: 89, letter_grade: 'B' });
+    const output = JSON.stringify(quality).toLowerCase();
+    for (const internalTerm of ['raw score', 'eligibility', 'dimensions', 'gate', 'ledger', 'policy']) {
+      expect(output).not.toContain(internalTerm);
+    }
   });
 });

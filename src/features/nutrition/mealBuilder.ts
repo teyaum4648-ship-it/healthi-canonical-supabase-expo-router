@@ -3,6 +3,8 @@ import { calculateProductQuality } from './productLookup/productQuality';
 import type { HealthiProductSnapshot, ProductQualitySnapshot } from './productLookup/productLookupTypes';
 import type { MealItemSource, MealLogItemPersistenceInput } from './mealItemPersistence';
 import type { UserFoodProductRow } from './productLibraryPersistence';
+import type { JsonValue } from './persistence';
+import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
 
 export type MealBuilderItem = {
   id: string;
@@ -70,6 +72,16 @@ function numericValue(value: string): number | null {
 function cloneSnapshot(snapshot: HealthiProductSnapshot): HealthiProductSnapshot {
   return {
     ...snapshot,
+    ingredient_evidence: snapshot.ingredient_evidence ? JSON.parse(JSON.stringify(snapshot.ingredient_evidence)) : undefined,
+    evidence_confidence: snapshot.evidence_confidence ? { ...snapshot.evidence_confidence } : undefined,
+    provider_quality_tags: snapshot.provider_quality_tags ? [...snapshot.provider_quality_tags] : undefined,
+    field_provenance: snapshot.field_provenance ? JSON.parse(JSON.stringify(snapshot.field_provenance)) : undefined,
+    provider_conflicts: snapshot.provider_conflicts ? [...snapshot.provider_conflicts] : undefined,
+    lab_evidence: snapshot.lab_evidence ? JSON.parse(JSON.stringify(snapshot.lab_evidence)) : undefined,
+    labels: snapshot.labels ? [...snapshot.labels] : undefined,
+    categories_tags: snapshot.categories_tags ? [...snapshot.categories_tags] : undefined,
+    packaging_tags: snapshot.packaging_tags ? [...snapshot.packaging_tags] : undefined,
+    nutriments_per_100g: snapshot.nutriments_per_100g ? { ...snapshot.nutriments_per_100g } : undefined,
     quality_flags: [...snapshot.quality_flags],
     reason_codes: [...snapshot.reason_codes]
   };
@@ -81,7 +93,20 @@ function cloneQuality(quality: ProductQualitySnapshot): ProductQualitySnapshot {
     positives: [...quality.positives],
     considerations: [...quality.considerations],
     reason_codes: [...quality.reason_codes],
+    estimated_grade_range: quality.estimated_grade_range ? [...quality.estimated_grade_range] : null,
+    missing_evidence: quality.missing_evidence ? [...quality.missing_evidence] : undefined,
+    evidence_confidence: quality.evidence_confidence ? { ...quality.evidence_confidence } : undefined,
+    nutrient_basis: quality.nutrient_basis ? { ...quality.nutrient_basis } : undefined,
+    macro_context: quality.macro_context ? {
+      summary: quality.macro_context.summary,
+      highlights: [...quality.macro_context.highlights]
+    } : undefined,
     factors: quality.factors?.map((factor) => ({
+      ...factor,
+      matched: [...factor.matched],
+      evidence_refs: [...(factor.evidence_refs ?? [])]
+    })),
+    top_drivers: quality.top_drivers?.map((factor) => ({
       ...factor,
       matched: [...factor.matched],
       evidence_refs: [...(factor.evidence_refs ?? [])]
@@ -260,12 +285,24 @@ export function mealBuilderItemToPersistenceInput(
 }
 
 export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiProductSnapshot {
+  const envelope = row.quality_snapshot && typeof row.quality_snapshot === 'object' && !Array.isArray(row.quality_snapshot)
+    ? row.quality_snapshot as Record<string, JsonValue>
+    : {};
+  const evidence = envelope.product_evidence && typeof envelope.product_evidence === 'object' && !Array.isArray(envelope.product_evidence)
+    ? envelope.product_evidence as Record<string, JsonValue>
+    : {};
+  const stringList = (value: JsonValue | undefined): string[] | undefined => Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : undefined;
   return {
     barcode: row.barcode ?? '',
+    canonical_barcode: typeof evidence.canonical_barcode === 'string' ? evidence.canonical_barcode : canonicalBarcodeIdentity(row.barcode ?? ''),
     provider: row.provider,
     provider_product_id: row.provider_product_id,
     name: row.name,
     brand: row.brand,
+    variant: typeof evidence.variant === 'string' ? evidence.variant : null,
+    quantity: typeof evidence.quantity === 'string' ? evidence.quantity : null,
     serving_size: row.serving_size,
     serving_quantity_g: row.serving_quantity_g,
     calories_per_serving: row.calories_per_serving,
@@ -277,6 +314,23 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     sugar_g: row.sugar_g,
     sodium_mg: row.sodium_mg,
     ingredients_text: row.ingredients_text,
+    ingredient_evidence: evidence.ingredient_evidence && typeof evidence.ingredient_evidence === 'object'
+      ? evidence.ingredient_evidence as unknown as HealthiProductSnapshot['ingredient_evidence'] : undefined,
+    evidence_confidence: evidence.evidence_confidence && typeof evidence.evidence_confidence === 'object'
+      ? evidence.evidence_confidence as unknown as HealthiProductSnapshot['evidence_confidence'] : undefined,
+    provider_updated_at: typeof evidence.provider_updated_at === 'string' ? evidence.provider_updated_at : null,
+    provider_completeness: typeof evidence.provider_completeness === 'number' ? evidence.provider_completeness : null,
+    provider_quality_tags: stringList(evidence.provider_quality_tags),
+    field_provenance: evidence.field_provenance && typeof evidence.field_provenance === 'object'
+      ? evidence.field_provenance as unknown as HealthiProductSnapshot['field_provenance'] : undefined,
+    provider_conflicts: stringList(evidence.provider_conflicts),
+    lab_evidence: Array.isArray(evidence.lab_evidence)
+      ? evidence.lab_evidence as unknown as HealthiProductSnapshot['lab_evidence'] : undefined,
+    labels: stringList(evidence.labels),
+    categories_tags: stringList(evidence.categories_tags),
+    packaging_tags: stringList(evidence.packaging_tags),
+    nutriments_per_100g: evidence.nutriments_per_100g && typeof evidence.nutriments_per_100g === 'object'
+      ? evidence.nutriments_per_100g as HealthiProductSnapshot['nutriments_per_100g'] : undefined,
     quality_flags: [...row.quality_flags],
     confidence: row.source_confidence,
     reason_codes: [...row.quality_reason_codes]

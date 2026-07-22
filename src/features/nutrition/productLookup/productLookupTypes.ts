@@ -8,18 +8,38 @@ import type {
   ProductEvidenceRef,
   ProductGradeBand,
   ProductLetterGrade,
+  ProductMacroContext,
+  ProductNutrientBasis,
+  ProductForm,
   ProductProcessingTier,
   ProductScoreFactor
 } from '../../../engines/nutrition/productScoring';
+import type { IngredientEvidence } from './ingredientEvidenceResolver';
+import type { ProductEvidenceField, ProductFieldProvenance } from './productDataProvider';
+import type { LabEvidenceRecord } from '../labEvidence/labEvidenceTypes';
 
 export type ProductProvider = 'open_food_facts' | 'manual' | 'demo';
+
+export type ProductEvidenceConfidence = {
+  identity: DataConfidence;
+  ingredients: DataConfidence;
+  nutrition: DataConfidence;
+  serving: DataConfidence;
+  category: DataConfidence;
+  product_form: DataConfidence;
+  provider: DataConfidence;
+  overall: DataConfidence;
+};
 
 export type HealthiProductSnapshot = {
   barcode: string;
   provider: ProductProvider;
   provider_product_id?: string | null;
+  canonical_barcode?: string;
   name: string;
   brand?: string | null;
+  variant?: string | null;
+  quantity?: string | null;
   serving_size?: string | null;
   serving_quantity_g?: number | null;
   calories_per_serving?: number | null;
@@ -31,6 +51,14 @@ export type HealthiProductSnapshot = {
   sugar_g?: number | null;
   sodium_mg?: number | null;
   ingredients_text?: string | null;
+  ingredient_evidence?: IngredientEvidence;
+  evidence_confidence?: ProductEvidenceConfidence;
+  provider_updated_at?: string | null;
+  provider_completeness?: number | null;
+  provider_quality_tags?: string[];
+  field_provenance?: Partial<Record<ProductEvidenceField, ProductFieldProvenance[]>>;
+  provider_conflicts?: string[];
+  lab_evidence?: LabEvidenceRecord[];
   labels?: string[];
   categories_tags?: string[];
   packaging_tags?: string[];
@@ -59,6 +87,14 @@ export type ProductQualitySnapshot = {
   category_score?: number | null;
   category_id?: string | null;
   category_label?: string | null;
+  category_comparison_available?: boolean;
+  product_form?: ProductForm | null;
+  prepared_use?: string | null;
+  nutrient_basis?: Omit<ProductNutrientBasis, 'nutrients'>;
+  macro_context?: ProductMacroContext;
+  top_drivers?: ProductScoreFactor[];
+  source_confidence?: DataConfidence;
+  interpretation_confidence?: DataConfidence;
   processing_tier?: ProductProcessingTier | null;
   processing_tier_label?: string | null;
   factors?: ProductScoreFactor[];
@@ -69,6 +105,10 @@ export type ProductQualitySnapshot = {
   grade_label?: string;
   better_options?: ProductBetterOption[];
   evidence_refs?: ProductEvidenceRef[];
+  result_state?: 'final' | 'estimated' | 'more_data_needed';
+  estimated_grade_range?: [ProductLetterGrade, ProductLetterGrade] | null;
+  missing_evidence?: string[];
+  evidence_confidence?: ProductEvidenceConfidence;
 };
 
 export type ProductLookupResult =

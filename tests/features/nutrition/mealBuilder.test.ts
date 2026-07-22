@@ -30,6 +30,11 @@ const oats: HealthiProductSnapshot = {
   sugar_g: 7,
   sodium_mg: 180,
   ingredients_text: 'Oats, seeds, whey',
+  categories_tags: ['protein cereal'],
+  ingredient_evidence: {
+    resolved_text: 'Oats, seeds, whey', raw_text: 'Oats, seeds, whey', source_field: 'ingredients_text', language: 'en',
+    structured_ingredients: [], status: 'complete', confidence: 'high', reconstructed: false, conflicts: []
+  },
   quality_flags: ['balanced_meal'],
   confidence: 'high',
   reason_codes: ['product_label_data', 'fiber_supportive']
@@ -49,6 +54,8 @@ const yogurt: HealthiProductSnapshot = {
   sugar_g: 6,
   sodium_mg: 65,
   ingredients_text: null,
+  ingredient_evidence: undefined,
+  categories_tags: undefined,
   quality_flags: [],
   confidence: 'medium',
   reason_codes: ['manual_food_log']
@@ -70,6 +77,8 @@ describe('meal builder helpers', () => {
       sodium_mg: 400,
       saturated_fat_g: 3.5
     });
+    expect(adjusted.items[0]?.quality.result_state).toBe('final');
+    expect(adjusted.items[1]?.quality.result_state).toBe('estimated');
   });
 
   it('removes a builder item without changing the source snapshot', () => {

@@ -1,4 +1,4 @@
-import { detectProductCategory } from './categories';
+import { resolveProductCategory } from './categoryResolution';
 import { scoreProductLabel, type ProductScoringInput, type ProductScoringResult } from './engine';
 
 export type ScoredCatalogProduct = ProductScoringInput & { id: string };
@@ -10,6 +10,16 @@ function rank(products: ScoredCatalogProduct[]): RankedCatalogProduct[] {
     .sort((left, right) => (right.result.displayScore ?? -1) - (left.result.displayScore ?? -1));
 }
 
+function categoryId(product: ProductScoringInput): string | null {
+  return resolveProductCategory({
+    name: product.name,
+    explicitCategory: product.category,
+    categoryTags: product.categoryTags,
+    ingredientsText: product.ingredientsText,
+    servingNutrients: product.servingNutrients
+  }).selectedCategoryId;
+}
+
 export function searchScoredProducts(
   query: string,
   catalog: ScoredCatalogProduct[],
@@ -17,10 +27,10 @@ export function searchScoredProducts(
 ): RankedCatalogProduct[] {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return [];
-  const queryCategory = detectProductCategory(normalizedQuery, normalizedQuery);
+  const queryCategory = resolveProductCategory({ name: normalizedQuery, explicitCategory: normalizedQuery }).selectedCategoryId;
   const matches = catalog.filter((product) => {
-    const category = detectProductCategory(product.category, product.name, product.categoryTags);
-    return product.name.toLowerCase().includes(normalizedQuery) || Boolean(queryCategory && category?.id === queryCategory.id);
+    const category = categoryId(product);
+    return product.name.toLowerCase().includes(normalizedQuery) || Boolean(queryCategory && category === queryCategory);
   });
   return rank(matches).slice(0, limit);
 }
@@ -31,12 +41,12 @@ export function recommendProductAlternatives(
   options: { minimumDifference?: number; limit?: number } = {}
 ): { scanned: ProductScoringResult; alternatives: RankedCatalogProduct[] } {
   const scannedResult = scoreProductLabel(scanned);
-  const scannedCategory = detectProductCategory(scanned.category, scanned.name, scanned.categoryTags);
+  const scannedCategory = categoryId(scanned);
   if (!scannedCategory || scannedResult.displayScore === null) return { scanned: scannedResult, alternatives: [] };
   const minimumDifference = options.minimumDifference ?? 8;
   const alternatives = rank(catalog.filter((product) => {
     if (product.id === scanned.id) return false;
-    return detectProductCategory(product.category, product.name, product.categoryTags)?.id === scannedCategory.id;
+    return categoryId(product) === scannedCategory;
   })).filter((candidate) => (
     candidate.result.displayScore !== null &&
     candidate.result.displayScore >= scannedResult.displayScore! + minimumDifference

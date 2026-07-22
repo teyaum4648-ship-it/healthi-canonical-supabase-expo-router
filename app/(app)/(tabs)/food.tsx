@@ -28,6 +28,7 @@ import {
   type NutritionTargets
 } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { formatLabAnalyte, matchLabEvidence, visibleLabAnalytes } from '../../../src/features/nutrition/labEvidence/labEvidenceMatcher';
 import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
   getActiveFoodPatternProfile,
@@ -100,12 +101,15 @@ import {
 import { lookupOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { searchOpenFoodFactsProducts } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
+import { mergeProductSnapshots } from '../../../src/features/nutrition/productLookup/mergeProductEvidence';
 import type { HealthiProductSnapshot } from '../../../src/features/nutrition/productLookup/productLookupTypes';
 import {
   getRecentUserFoodProducts,
   getSavedUserFoodProducts,
   markUserFoodProductSaved,
   upsertUserFoodProductFromSnapshot,
+  productSnapshotValue,
+  shouldRefreshCachedProduct,
   updateUserFoodProductLastUsed,
   type ProductLibrarySupabaseClient,
   type UserFoodProductRow
@@ -260,7 +264,7 @@ function createLocalDemoProductRow(
     quality_confidence: quality.confidence,
     quality_flags: [...snapshot.quality_flags],
     quality_reason_codes: [...quality.reason_codes],
-    quality_snapshot: JSON.parse(JSON.stringify(quality)) as UserFoodProductRow['quality_snapshot'],
+    quality_snapshot: productSnapshotValue(snapshot, quality),
     is_saved: isSaved,
     last_used_at: now,
     last_scanned_at: source === 'scanner' ? now : null,
@@ -490,6 +494,7 @@ export default function FoodScreen() {
   const [scannerProduct, setScannerProduct] = useState<HealthiProductSnapshot | null>(null);
   const [showBetterOptions, setShowBetterOptions] = useState(false);
   const [showProductEvidence, setShowProductEvidence] = useState(false);
+  const [showLabEvidence, setShowLabEvidence] = useState(false);
   const [scannerMessage, setScannerMessage] = useState('Scan a barcode or enter its numbers below.');
   const [scannerMealType, setScannerMealType] = useState<MealType>('unknown');
   const [scannerServingQuantity, setScannerServingQuantity] = useState('1');
@@ -539,12 +544,17 @@ export default function FoodScreen() {
     () => scannerProduct ? calculateProductQuality(scannerProduct) : null,
     [scannerProduct]
   );
+  const matchedLabEvidence = useMemo(
+    () => scannerProduct ? matchLabEvidence(scannerProduct, scannerProduct.lab_evidence ?? []) : [],
+    [scannerProduct]
+  );
   const mealBuilderTotals = useMemo(() => calculateMealBuilderTotals(mealBuilder.items), [mealBuilder.items]);
   const savedProducts = useMemo(() => productLibrary.filter((product) => product.is_saved), [productLibrary]);
 
   useEffect(() => {
     setShowBetterOptions(false);
     setShowProductEvidence(false);
+    setShowLabEvidence(false);
   }, [scannerProduct?.barcode]);
 
   useEffect(() => {
@@ -882,7 +892,7 @@ export default function FoodScreen() {
     try {
       const candidates = barcodeLookupCandidates(value);
       const cached = productLibrary.find((product) => product.barcode && candidates.includes(product.barcode));
-      if (cached) {
+      if (cached && !shouldRefreshCachedProduct(cached)) {
         const snapshot = userFoodProductRowToSnapshot(cached);
         setBarcodeInput(snapshot.barcode);
         setScannerProduct(snapshot);
@@ -895,13 +905,23 @@ export default function FoodScreen() {
       const result = await lookupOpenFoodFactsProduct(value);
       if (lookupRequestId.current !== requestId) return;
       if (result.status === 'found') {
-        setBarcodeInput(result.product.barcode);
-        setScannerProduct(result.product);
-        setScannerMealName(result.product.name);
+        const refreshedProduct = cached
+          ? mergeProductSnapshots(userFoodProductRowToSnapshot(cached), result.product).snapshot
+          : result.product;
+        setBarcodeInput(refreshedProduct.barcode);
+        setScannerProduct(refreshedProduct);
+        setScannerMealName(refreshedProduct.name);
         setScannerServingQuantity('1');
         setScannerMessage('Product found. Review the available label data before adding it.');
       } else {
-        setScannerMessage(result.message);
+        if (cached) {
+          const snapshot = userFoodProductRowToSnapshot(cached);
+          setBarcodeInput(snapshot.barcode);
+          setScannerProduct(snapshot);
+          setScannerMealName(snapshot.name);
+          setScannerServingQuantity('1');
+          setScannerMessage('Using saved label data because refreshed provider data is unavailable.');
+        } else setScannerMessage(result.message);
       }
     } catch {
       if (lookupRequestId.current === requestId) {
@@ -1164,11 +1184,24 @@ export default function FoodScreen() {
                 <Text style={styles.productMeta}>
                   {[scannerProduct.brand, scannerProduct.serving_size ?? 'Serving size unavailable'].filter(Boolean).join(' · ')}
                 </Text>
+                {matchedLabEvidence.some((item) => item.badgeEligible) ? (
+                  <Text style={styles.evidenceSource}>Third-party tested</Text>
+                ) : null}
               </View>
               <View style={styles.qualityScore}>
-                <Text style={styles.qualityScoreValue}>{productQuality.letter_grade ?? '-'}</Text>
+                <Text style={styles.qualityScoreValue}>
+                  {productQuality.result_state === 'estimated' && productQuality.estimated_grade_range
+                    ? productQuality.estimated_grade_range[0] === productQuality.estimated_grade_range[1]
+                      ? productQuality.estimated_grade_range[0]
+                      : productQuality.estimated_grade_range.join('–')
+                    : productQuality.letter_grade ?? '—'}
+                </Text>
                 <Text style={styles.qualityScoreLabel}>
-                  {productQuality.score === null ? 'CALIBRATING' : `SCORE ${productQuality.score}`}
+                  {productQuality.result_state === 'final' && productQuality.score !== null
+                    ? `SCORE ${productQuality.score}`
+                    : productQuality.result_state === 'estimated'
+                      ? 'ESTIMATED'
+                      : 'MORE DATA NEEDED'}
                 </Text>
               </View>
             </View>
@@ -1187,9 +1220,13 @@ export default function FoodScreen() {
               <View style={styles.rowBetween}>
                 <Text style={styles.cardTitle}>Food Quality Signal</Text>
                 <Text style={styles.qualityLabel}>
-                  {productQuality.letter_grade
+                  {productQuality.result_state === 'estimated'
+                    ? `Estimated · Confidence: ${displayLabel(productQuality.confidence)}`
+                    : productQuality.result_state === 'more_data_needed'
+                      ? 'More data needed'
+                      : productQuality.letter_grade
                     ? `${productQuality.letter_grade} · ${productQuality.grade_label ?? displayLabel(productQuality.label)}`
-                    : 'Calibrating'}
+                    : 'More data needed'}
                 </Text>
               </View>
               <Text style={styles.body}>{productQuality.summary}</Text>
@@ -1215,14 +1252,20 @@ export default function FoodScreen() {
                   ))}
                 </View>
               ) : null}
+              {(productQuality.missing_evidence?.length ?? 0) > 0 && productQuality.result_state !== 'final' ? (
+                <View style={styles.signalSection}>
+                  <Text style={styles.signalSectionTitle}>AVAILABLE DATA NOTE</Text>
+                  {productQuality.missing_evidence?.slice(0, 3).map((item) => (
+                    <Text key={item} style={styles.signalReasonText}>{item}</Text>
+                  ))}
+                </View>
+              ) : null}
               <Text style={styles.confidenceLine}>
                 Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {displayLabel(productQuality.confidence)}
+                {productQuality.evidence_confidence
+                  ? ` · Ingredients: ${displayLabel(productQuality.evidence_confidence.ingredients)}`
+                  : ''}
               </Text>
-              {productQuality.category_score !== null && productQuality.category_score !== undefined ? (
-                <Text style={styles.confidenceLine}>
-                  Category comparison: {productQuality.category_score}/100 · The grade above uses the overall score.
-                </Text>
-              ) : null}
             </View>
 
             {(productQuality.better_options?.length ?? 0) > 0 ? (
@@ -1235,7 +1278,7 @@ export default function FoodScreen() {
                 >
                   <View style={styles.disclosureTitleRow}>
                     <Ionicons color={colors.accent} name="swap-horizontal-outline" size={18} />
-                    <Text style={styles.disclosureTitle}>Better options</Text>
+                    <Text style={styles.disclosureTitle}>{productQuality.better_options?.[0]?.title ?? 'What to Compare'}</Text>
                   </View>
                   <Ionicons
                     color={C.muted}
@@ -1281,6 +1324,53 @@ export default function FoodScreen() {
                     <Text style={styles.optionTitle}>{reference.title}</Text>
                     <Text style={styles.evidenceSource}>{reference.source}{reference.year ? ` · ${reference.year}` : ''}</Text>
                     <Text style={styles.signalReasonText}>{reference.summary}</Text>
+                  </View>
+                )) : null}
+              </View>
+            ) : null}
+
+            {matchedLabEvidence.length > 0 ? (
+              <View style={styles.disclosureBlock}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showLabEvidence }}
+                  onPress={() => setShowLabEvidence((current) => !current)}
+                  style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+                >
+                  <View style={styles.disclosureTitleRow}>
+                    <Ionicons color={colors.accent} name="flask-outline" size={19} />
+                    <View>
+                      <Text style={styles.disclosureTitle}>Lab Evidence</Text>
+                      <Text style={styles.evidenceSource}>
+                        {matchedLabEvidence[0]?.record.sourceName} · {matchedLabEvidence[0]?.matchLabel} · Confidence: {displayLabel(matchedLabEvidence[0]?.record.evidenceConfidence ?? 'low')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons color={C.muted} name={showLabEvidence ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+                </Pressable>
+                {showLabEvidence ? matchedLabEvidence.map(({ record, matchLabel }) => (
+                  <View key={record.id} style={styles.disclosureContent}>
+                    <Text style={styles.optionTitle}>{record.sourceName}</Text>
+                    <Text style={styles.evidenceSource}>
+                      {[matchLabel, record.sampleDate ? `Sampled ${record.sampleDate}` : null, record.publicationDate ? `Published ${record.publicationDate}` : null].filter(Boolean).join(' · ')}
+                    </Text>
+                    {record.laboratory ? <Text style={styles.signalReasonText}>Laboratory: {record.laboratory}</Text> : null}
+                    {record.laboratoryAccreditation ? <Text style={styles.signalReasonText}>Accreditation: {record.laboratoryAccreditation}</Text> : null}
+                    {record.testingMethod ? <Text style={styles.signalReasonText}>Method: {record.testingMethod}</Text> : null}
+                    <Text style={styles.signalReasonText}>Source type: {displayLabel(record.sourceType)}</Text>
+                    {record.sampleAcquisition ? <Text style={styles.signalReasonText}>Sample: {displayLabel(record.sampleAcquisition)}</Text> : null}
+                    {visibleLabAnalytes(record).map((analyte) => (
+                      <View key={`${record.id}-${analyte.analyte}`} style={styles.evidenceItem}>
+                        <Text style={styles.optionTitle}>{analyte.analyte}</Text>
+                        <Text style={styles.signalReasonText}>{formatLabAnalyte(analyte)}</Text>
+                        {typeof analyte.comparisonThreshold === 'number' ? (
+                          <Text style={styles.evidenceSource}>
+                            Comparison: {analyte.comparisonThreshold}{analyte.thresholdUnit ? ` ${analyte.thresholdUnit}` : ''}{analyte.thresholdAuthority ? ` · ${analyte.thresholdAuthority}` : ''}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ))}
+                    {record.sourceReference ? <Text style={styles.evidenceSource}>Source reference: {record.sourceReference}</Text> : null}
                   </View>
                 )) : null}
               </View>

@@ -1,139 +1,23 @@
 import type { DataConfidence, NutritionReasonCode } from '../../../engines/nutrition';
-import {
-  PRODUCT_EVIDENCE_REFERENCES,
-  detectProductCategory,
-  productBetterOptions,
-  productGradeBand,
-  productGradeLabel,
-  productLetterGrade,
-  scoreProductLabel
-} from '../../../engines/nutrition/productScoring';
+import { productGradeBand, scoreProductLabel } from '../../../engines/nutrition/productScoring';
 import type { HealthiProductSnapshot, ProductQualitySnapshot } from './productLookupTypes';
-
-function clampScore(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function lowerConfidence(confidence: DataConfidence): DataConfidence {
-  if (confidence === 'high') return 'medium';
-  return confidence === 'medium' ? 'low' : 'low';
-}
 
 function uniqueReasons(reasons: NutritionReasonCode[]): NutritionReasonCode[] {
   return [...new Set(reasons)];
 }
 
-function calculateNutrientFallback(snapshot: HealthiProductSnapshot): ProductQualitySnapshot {
-  const knownNutrients = [
-    snapshot.calories_per_serving,
-    snapshot.protein_g,
-    snapshot.carbs_g,
-    snapshot.fat_g,
-    snapshot.fiber_g,
-    snapshot.sugar_g,
-    snapshot.sodium_mg
-  ].filter((value) => typeof value === 'number').length;
+const LEGACY_MEAL_REASON_CODES = new Set<NutritionReasonCode>([
+  'protein_low',
+  'fiber_low',
+  'added_sugar_high',
+  'sodium_high',
+  'processing_level_high',
+  'balanced_meal',
+  'whole_food_emphasis'
+]);
 
-  if (knownNutrients < 2) {
-    return {
-      score: null,
-      label: 'calibrating',
-      summary: 'Label data is limited, so the food quality signal is still calibrating.',
-      positives: [],
-      considerations: ['Add the available nutrition facts manually for a clearer signal.'],
-      confidence: 'low',
-      reason_codes: uniqueReasons([...snapshot.reason_codes, 'partial_nutrition_data', 'nutrition_calibrating']),
-      letter_grade: null,
-      grade_band: 'calibrating',
-      grade_label: 'Calibrating',
-      better_options: [],
-      evidence_refs: []
-    };
-  }
-
-  let score = 60;
-  const positives: string[] = [];
-  const considerations: string[] = [];
-  const reasons = [...snapshot.reason_codes];
-
-  if ((snapshot.protein_g ?? 0) >= 15) {
-    score += 10;
-    positives.push('Protein is supportive for this serving.');
-  } else if ((snapshot.calories_per_serving ?? 0) >= 200 && (snapshot.protein_g ?? 0) < 6) {
-    score -= 6;
-    considerations.push('Protein is modest for this serving.');
-  }
-
-  if ((snapshot.fiber_g ?? 0) >= 5) {
-    score += 12;
-    positives.push('Higher fiber supports a steadier fueling signal.');
-  } else if ((snapshot.fiber_g ?? 0) >= 3) {
-    score += 6;
-    positives.push('This serving provides a useful fiber signal.');
-  } else if ((snapshot.carbs_g ?? 0) >= 20) {
-    score -= 5;
-    considerations.push('Fiber is modest relative to the carbohydrate amount.');
-  }
-
-  if ((snapshot.sugar_g ?? 0) >= 20) {
-    score -= 15;
-    considerations.push('Sugar is higher for one serving.');
-  } else if ((snapshot.sugar_g ?? 0) >= 10) {
-    score -= 8;
-    considerations.push('Sugar is worth considering alongside the rest of your day.');
-  }
-
-  if ((snapshot.sodium_mg ?? 0) >= 700) {
-    score -= 14;
-    considerations.push('Sodium is higher than typical for one serving.');
-  } else if ((snapshot.sodium_mg ?? 0) >= 400) {
-    score -= 7;
-    considerations.push('Sodium is moderate for this serving.');
-  }
-
-  if ((snapshot.saturated_fat_g ?? 0) >= 7) {
-    score -= 6;
-    considerations.push('Saturated fat is higher for one serving.');
-  }
-
-  if (snapshot.quality_flags.includes('ultra_processed_indicator')) {
-    score -= 12;
-    considerations.push('The ingredient pattern suggests more processing.');
-  }
-  if (snapshot.quality_flags.includes('whole_food_emphasis')) score += 8;
-  if (snapshot.quality_flags.includes('balanced_meal')) score += 6;
-
-  let confidence = snapshot.confidence;
-  if (!snapshot.ingredients_text) {
-    confidence = lowerConfidence(confidence);
-    considerations.push('Ingredient data is incomplete, so confidence is lower.');
-  }
-
-  const finalScore = clampScore(score);
-  const label = finalScore >= 74 ? 'supportive' : finalScore >= 52 ? 'steady' : 'watch';
-  const letterGrade = productLetterGrade(finalScore);
-  const gradeBand = productGradeBand(letterGrade);
-  const category = detectProductCategory(null, snapshot.name, snapshot.categories_tags);
-  const summary = label === 'supportive'
-    ? 'Available label data suggests a supportive fueling fit.'
-    : label === 'steady'
-      ? 'Available label data suggests a steady fit with a few context signals.'
-      : 'Available label data suggests a few signals worth balancing across the day.';
-
-  return {
-    score: finalScore,
-    label,
-    summary,
-    positives,
-    considerations,
-    confidence,
-    reason_codes: uniqueReasons(reasons),
-    letter_grade: letterGrade,
-    grade_band: gradeBand,
-    grade_label: productGradeLabel(gradeBand),
-    better_options: productBetterOptions(finalScore, category?.id ?? null),
-    evidence_refs: [{ ...PRODUCT_EVIDENCE_REFERENCES.fda_daily_values! }]
-  };
+function scannerReasonCodes(snapshot: HealthiProductSnapshot): NutritionReasonCode[] {
+  return snapshot.reason_codes.filter((reason) => !LEGACY_MEAL_REASON_CODES.has(reason));
 }
 
 function lowerOf(left: DataConfidence, right: DataConfidence): DataConfidence {
@@ -160,51 +44,106 @@ function derivedPer100g(snapshot: HealthiProductSnapshot): NonNullable<HealthiPr
   };
 }
 
-export function calculateProductQuality(snapshot: HealthiProductSnapshot): ProductQualitySnapshot {
-  if (!snapshot.ingredients_text?.trim()) return calculateNutrientFallback(snapshot);
+function estimatedRange(score: number, status: NonNullable<HealthiProductSnapshot['ingredient_evidence']>['status']): [NonNullable<ProductQualitySnapshot['letter_grade']>, NonNullable<ProductQualitySnapshot['letter_grade']>] {
+  const uncertainty = status === 'partial' ? 6 : status === 'reconstructed' ? 8 : 12;
+  const high = Math.min(89, score + uncertainty);
+  const low = Math.max(0, score - uncertainty);
+  const grade = (value: number) => value >= 90 ? 'A' as const : value >= 80 ? 'B' as const : value >= 70 ? 'C' as const : value >= 60 ? 'D' as const : 'F' as const;
+  return [grade(high), grade(low)];
+}
 
+function resultState(snapshot: HealthiProductSnapshot, interpretation: DataConfidence): 'final' | 'estimated' | 'more_data_needed' {
+  const identity = snapshot.evidence_confidence?.identity ?? (snapshot.name.trim() ? 'medium' : 'low');
+  const ingredientStatus = snapshot.ingredient_evidence?.status ?? (snapshot.ingredients_text?.trim() ? 'partial' : 'absent');
+  if (identity === 'low' || interpretation === 'low' || (snapshot.provider_conflicts?.length ?? 0) > 0) return 'more_data_needed';
+  return ingredientStatus === 'complete' ? 'final' : 'estimated';
+}
+
+export function calculateProductQuality(snapshot: HealthiProductSnapshot): ProductQualitySnapshot {
+  const hasProviderServing = Boolean(snapshot.serving_size?.trim()) || (
+    typeof snapshot.serving_quantity_g === 'number' && snapshot.serving_quantity_g > 0
+  );
   const scored = scoreProductLabel({
     name: snapshot.name,
     ingredientsText: snapshot.ingredients_text,
     labels: snapshot.labels,
     categoryTags: snapshot.categories_tags,
     packaging: snapshot.packaging_tags,
+    sourceConfidence: snapshot.evidence_confidence?.ingredients ?? snapshot.confidence,
+    ingredientEvidenceStatus: snapshot.ingredient_evidence?.status ?? (snapshot.ingredients_text ? 'partial' : 'absent'),
     nutrimentsPer100g: derivedPer100g(snapshot),
-    servingNutrients: {
+    servingNutrients: hasProviderServing ? {
       calories: snapshot.calories_per_serving,
       sugar_g: snapshot.sugar_g,
+      carbs_g: snapshot.carbs_g,
       protein_g: snapshot.protein_g,
+      fat_g: snapshot.fat_g,
       fiber_g: snapshot.fiber_g,
       sodium_mg: snapshot.sodium_mg,
       saturated_fat_g: snapshot.saturated_fat_g,
       serving_quantity_g: snapshot.serving_quantity_g
-    }
+    } : undefined
   });
-  if (scored.displayScore === null) return calculateNutrientFallback(snapshot);
 
   const positives = [...scored.positives];
   const considerations = [...scored.considerations];
   if (!snapshot.categories_tags?.length && scored.categoryId === null) {
-    considerations.push('Category context is unavailable, so the score uses the overall label pattern.');
+    considerations.push('There is not enough reliable category information to assign a grade yet.');
   }
 
-  const reasons: NutritionReasonCode[] = [...snapshot.reason_codes];
-  if (scored.tier !== null && scored.tier >= 3) reasons.push('processing_level_high');
+  const reasons: NutritionReasonCode[] = scannerReasonCodes(snapshot);
   if (scored.label === 'supportive') reasons.push('food_quality_supportive');
   if (scored.label === 'watch') reasons.push('nutrition_signal_watch');
+  if (scored.label === 'calibrating') reasons.push('nutrition_calibrating', 'partial_nutrition_data');
+
+  const state = resultState(snapshot, scored.interpretationConfidence);
+  const ingredientStatus = snapshot.ingredient_evidence?.status ?? (snapshot.ingredients_text ? 'partial' : 'absent');
+  const range = state === 'estimated' && scored.displayScore !== null ? estimatedRange(scored.displayScore, ingredientStatus) : null;
+  const missingEvidence = [
+    ...(ingredientStatus === 'complete' ? [] : ['Complete package ingredient details are unavailable.']),
+    ...(snapshot.evidence_confidence?.serving === 'low' ? ['Provider-supplied serving details are unavailable.'] : []),
+    ...(snapshot.evidence_confidence?.nutrition === 'low' ? ['Nutrition details are incomplete.'] : []),
+    ...((snapshot.provider_conflicts?.length ?? 0) > 0 ? ['Available provider records materially disagree.'] : [])
+  ];
+  const publicScore = state === 'final' ? scored.displayScore : null;
+  const publicGrade = state === 'more_data_needed' ? null : scored.letterGrade === 'A' && state === 'estimated' ? 'B' : scored.letterGrade;
+  const publicSummary = state === 'final'
+    ? scored.summary
+    : state === 'estimated'
+      ? 'This is an estimated grade based on partial label evidence. Ingredient details could change the result.'
+      : 'More label data is needed before assigning a responsible Product Quality grade.';
 
   return {
-    score: scored.displayScore,
+    score: publicScore,
     label: scored.label,
-    summary: scored.summary,
+    summary: publicSummary,
     positives,
     considerations,
     confidence: lowerOf(snapshot.confidence, scored.confidence),
     reason_codes: uniqueReasons(reasons),
-    absolute_score: scored.absoluteScore,
+    absolute_score: publicScore,
     category_score: scored.categoryScore,
     category_id: scored.categoryId,
     category_label: scored.categoryLabel,
+    category_comparison_available: scored.categoryComparisonAvailable,
+    product_form: scored.productForm,
+    prepared_use: scored.preparedUse,
+    nutrient_basis: {
+      type: scored.nutrientBasis.type,
+      source: scored.nutrientBasis.source,
+      confidence: scored.nutrientBasis.confidence
+    },
+    macro_context: {
+      summary: scored.macroContext.summary,
+      highlights: [...scored.macroContext.highlights]
+    },
+    top_drivers: scored.topDrivers.map((factor) => ({
+      ...factor,
+      matched: [...factor.matched],
+      evidence_refs: [...(factor.evidence_refs ?? [])]
+    })),
+    source_confidence: scored.sourceConfidence,
+    interpretation_confidence: scored.interpretationConfidence,
     processing_tier: scored.tier,
     processing_tier_label: scored.tierLabel,
     factors: scored.factors,
@@ -212,14 +151,18 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
       ? { rule_id: scored.scoreCap.ruleId, label: scored.scoreCap.label, cap: scored.scoreCap.cap }
       : null,
     scoring_reason_codes: [...scored.reasonCodes],
-    letter_grade: scored.letterGrade,
-    grade_band: scored.gradeBand,
-    grade_label: scored.gradeLabel,
+    letter_grade: publicGrade,
+    grade_band: publicGrade ? productGradeBand(publicGrade) : 'calibrating',
+    grade_label: state === 'final' ? scored.gradeLabel : state === 'estimated' ? 'Estimated grade' : 'More data needed',
     better_options: scored.better_options.map((option) => ({
       ...option,
       criteria: [...option.criteria],
       reason_codes: [...option.reason_codes]
     })),
-    evidence_refs: scored.evidence_refs.map((reference) => ({ ...reference }))
+    evidence_refs: scored.evidence_refs.map((reference) => ({ ...reference })),
+    result_state: state,
+    estimated_grade_range: range,
+    missing_evidence: missingEvidence,
+    evidence_confidence: snapshot.evidence_confidence ? { ...snapshot.evidence_confidence } : undefined
   };
 }

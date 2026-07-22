@@ -1,6 +1,8 @@
 import type { DataConfidence, FoodQualityFlag, NutritionReasonCode } from '../../engines/nutrition';
 import type { JsonValue } from './persistence';
 import type { HealthiProductSnapshot, ProductProvider, ProductQualitySnapshot } from './productLookup/productLookupTypes';
+import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
+import { mergeProductSnapshots } from './productLookup/mergeProductEvidence';
 
 export type UserFoodProductSource = 'open_food_facts' | 'manual' | 'demo' | 'scanner';
 export type ProductQualityLabel = ProductQualitySnapshot['label'];
@@ -90,7 +92,7 @@ function productSource(snapshot: HealthiProductSnapshot, source?: UserFoodProduc
   return snapshot.provider;
 }
 
-function qualitySnapshotValue(quality: ProductQualitySnapshot): JsonValue {
+export function productSnapshotValue(product: Partial<HealthiProductSnapshot>, quality: ProductQualitySnapshot): JsonValue {
   return {
     score: quality.score,
     label: quality.label,
@@ -106,6 +108,26 @@ function qualitySnapshotValue(quality: ProductQualitySnapshot): JsonValue {
     category_score: quality.category_score ?? null,
     category_id: quality.category_id ?? null,
     category_label: quality.category_label ?? null,
+    category_comparison_available: quality.category_comparison_available ?? false,
+    product_form: quality.product_form ?? null,
+    prepared_use: quality.prepared_use ?? null,
+    nutrient_basis: quality.nutrient_basis ? { ...quality.nutrient_basis } : null,
+    macro_context: quality.macro_context ? {
+      summary: quality.macro_context.summary,
+      highlights: [...quality.macro_context.highlights]
+    } : null,
+    top_drivers: (quality.top_drivers ?? []).map((factor) => ({
+      id: factor.id,
+      label: factor.label,
+      points: factor.points,
+      rawPoints: factor.rawPoints,
+      severity: factor.severity,
+      matched: [...factor.matched],
+      explanation: factor.explanation,
+      evidence_refs: [...(factor.evidence_refs ?? [])]
+    })),
+    source_confidence: quality.source_confidence ?? quality.confidence,
+    interpretation_confidence: quality.interpretation_confidence ?? 'low',
     processing_tier: quality.processing_tier ?? null,
     processing_tier_label: quality.processing_tier_label ?? null,
     factors: (quality.factors ?? []).map((factor) => ({
@@ -133,8 +155,71 @@ function qualitySnapshotValue(quality: ProductQualitySnapshot): JsonValue {
       year: reference.year ?? null,
       url: reference.url ?? null,
       summary: reference.summary
-    }))
+    })),
+    result_state: quality.result_state ?? 'more_data_needed',
+    estimated_grade_range: quality.estimated_grade_range ? [...quality.estimated_grade_range] : null,
+    missing_evidence: [...(quality.missing_evidence ?? [])],
+    evidence_confidence: quality.evidence_confidence ? { ...quality.evidence_confidence } : null,
+    product_evidence: {
+      canonical_barcode: product.canonical_barcode ?? canonicalBarcodeIdentity(product.barcode ?? ''),
+      variant: product.variant ?? null,
+      quantity: product.quantity ?? null,
+      ingredient_evidence: product.ingredient_evidence ? JSON.parse(JSON.stringify(product.ingredient_evidence)) as JsonValue : null,
+      evidence_confidence: product.evidence_confidence ? { ...product.evidence_confidence } : null,
+      provider_updated_at: product.provider_updated_at ?? null,
+      provider_completeness: product.provider_completeness ?? null,
+      provider_quality_tags: [...(product.provider_quality_tags ?? [])],
+      field_provenance: product.field_provenance ? JSON.parse(JSON.stringify(product.field_provenance)) as JsonValue : null,
+      provider_conflicts: [...(product.provider_conflicts ?? [])],
+      lab_evidence: product.lab_evidence ? JSON.parse(JSON.stringify(product.lab_evidence)) as JsonValue : null,
+      labels: [...(product.labels ?? [])],
+      categories_tags: [...(product.categories_tags ?? [])],
+      packaging_tags: [...(product.packaging_tags ?? [])],
+      nutriments_per_100g: product.nutriments_per_100g ? { ...product.nutriments_per_100g } : null
+    }
   };
+}
+
+function evidenceRank(snapshot: HealthiProductSnapshot): number {
+  const status = snapshot.ingredient_evidence?.status ?? (snapshot.ingredients_text ? 'partial' : 'absent');
+  return status === 'complete' ? 3 : status === 'reconstructed' ? 2 : status === 'partial' ? 1 : 0;
+}
+
+function storedSnapshot(row: UserFoodProductRow): HealthiProductSnapshot {
+  const envelope = row.quality_snapshot && typeof row.quality_snapshot === 'object' && !Array.isArray(row.quality_snapshot)
+    ? row.quality_snapshot as Record<string, JsonValue>
+    : {};
+  const evidence = envelope.product_evidence && typeof envelope.product_evidence === 'object' && !Array.isArray(envelope.product_evidence)
+    ? envelope.product_evidence as Record<string, JsonValue>
+    : {};
+  return {
+    barcode: row.barcode ?? '', canonical_barcode: typeof evidence.canonical_barcode === 'string' ? evidence.canonical_barcode : canonicalBarcodeIdentity(row.barcode ?? ''),
+    provider: row.provider, provider_product_id: row.provider_product_id, name: row.name, brand: row.brand,
+    serving_size: row.serving_size, serving_quantity_g: row.serving_quantity_g, calories_per_serving: row.calories_per_serving,
+    protein_g: row.protein_g, carbs_g: row.carbs_g, fat_g: row.fat_g, fiber_g: row.fiber_g, sugar_g: row.sugar_g,
+    sodium_mg: row.sodium_mg, saturated_fat_g: row.saturated_fat_g, ingredients_text: row.ingredients_text,
+    ingredient_evidence: evidence.ingredient_evidence && typeof evidence.ingredient_evidence === 'object'
+      ? evidence.ingredient_evidence as unknown as HealthiProductSnapshot['ingredient_evidence'] : undefined,
+    evidence_confidence: evidence.evidence_confidence && typeof evidence.evidence_confidence === 'object'
+      ? evidence.evidence_confidence as unknown as HealthiProductSnapshot['evidence_confidence'] : undefined,
+    provider_updated_at: typeof evidence.provider_updated_at === 'string' ? evidence.provider_updated_at : null,
+    quality_flags: [...row.quality_flags], confidence: row.source_confidence, reason_codes: [...row.quality_reason_codes]
+  };
+}
+
+export function shouldRefreshCachedProduct(row: UserFoodProductRow, now = Date.now(), completeTtlMs = 7 * 24 * 60 * 60 * 1000): boolean {
+  const snapshot = storedSnapshot(row);
+  if (evidenceRank(snapshot) < 3) return true;
+  const providerTime = snapshot.provider_updated_at ? new Date(snapshot.provider_updated_at).getTime() : NaN;
+  const storedTime = new Date(row.updated_at).getTime();
+  const freshnessTime = Number.isFinite(providerTime) ? providerTime : storedTime;
+  return !Number.isFinite(freshnessTime) || now - freshnessTime > completeTtlMs;
+}
+
+function protectStrongStoredEvidence(existing: UserFoodProductRow, incoming: UserFoodProductPersistenceInput): UserFoodProductPersistenceInput {
+  const stored = storedSnapshot(existing);
+  const merged = mergeProductSnapshots(stored, incoming);
+  return { ...incoming, ...merged.snapshot };
 }
 
 export function toUserFoodProductInsert(
@@ -143,7 +228,7 @@ export function toUserFoodProductInsert(
 ): UserFoodProductInsert {
   return {
     user_id: userId,
-    barcode: nullableText(product.barcode),
+    barcode: nullableText(product.canonical_barcode ?? canonicalBarcodeIdentity(product.barcode)),
     provider: product.provider,
     provider_product_id: nullableText(product.provider_product_id),
     name: product.name.trim() || 'Manual food',
@@ -164,7 +249,7 @@ export function toUserFoodProductInsert(
     quality_confidence: product.quality.confidence,
     quality_flags: [...product.quality_flags],
     quality_reason_codes: [...product.quality.reason_codes],
-    quality_snapshot: qualitySnapshotValue(product.quality),
+    quality_snapshot: productSnapshotValue(product, product.quality),
     is_saved: product.is_saved ?? false,
     last_used_at: product.last_used_at ?? null,
     last_scanned_at: product.last_scanned_at ?? null,
@@ -199,7 +284,7 @@ export function toUserFoodProductUpdate(
     update.quality_confidence = product.quality.confidence;
     update.quality_flags = [...(product.quality_flags ?? [])];
     update.quality_reason_codes = [...product.quality.reason_codes];
-    update.quality_snapshot = qualitySnapshotValue(product.quality);
+    update.quality_snapshot = productSnapshotValue(product, product.quality);
   }
   if (product.is_saved !== undefined) update.is_saved = product.is_saved;
   if (product.last_used_at !== undefined) update.last_used_at = product.last_used_at;
@@ -247,7 +332,7 @@ export async function getUserFoodProductByBarcode(
     .from('user_food_products')
     .select('*')
     .eq('user_id', userId)
-    .eq('barcode', barcode.trim())
+    .eq('barcode', canonicalBarcodeIdentity(barcode))
     .limit(1);
   if (error) raiseSupabaseError(error);
   return data?.[0] ?? null;
@@ -307,12 +392,13 @@ export async function upsertUserFoodProductFromSnapshot(
   userId: string,
   product: UserFoodProductPersistenceInput
 ): Promise<UserFoodProductRow> {
-  const barcode = product.barcode.trim();
+  const barcode = canonicalBarcodeIdentity(product.canonical_barcode ?? product.barcode);
   const existing = barcode ? await getUserFoodProductByBarcode(client, userId, barcode) : null;
 
   if (existing) {
+    const protectedProduct = protectStrongStoredEvidence(existing, { ...product, barcode, canonical_barcode: barcode });
     return updateUserFoodProduct(client, userId, existing.id, {
-      ...product,
+      ...protectedProduct,
       is_saved: product.is_saved ?? existing.is_saved,
       last_used_at: product.last_used_at ?? existing.last_used_at,
       last_scanned_at: product.last_scanned_at ?? existing.last_scanned_at

@@ -1,31 +1,47 @@
+export type ProductForm =
+  | 'ready_to_eat'
+  | 'beverage'
+  | 'powder_mix'
+  | 'pantry_staple'
+  | 'salt'
+  | 'condiment_or_sauce'
+  | 'frozen_dessert';
+
 export type ProductCategory = {
   id: string;
   label: string;
   keywords: string[];
-  typicalScore: number;
+  broadKeywords?: string[];
+  form: ProductForm;
+  expectedSodium?: boolean;
+  dessertContext?: boolean;
+  proteinContext?: boolean;
 };
 
-export const CATEGORY_SCORE_SLOPE = 0.8;
-
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
-  { id: 'soda', label: 'Soda and soft drinks', typicalScore: 22, keywords: ['soda', 'cola', 'soft drink', 'root beer', 'energy drink'] },
-  { id: 'chips', label: 'Chips and salty snacks', typicalScore: 38, keywords: ['tortilla chips', 'potato chips', 'chips', 'crisps', 'puffs'] },
-  { id: 'crackers', label: 'Crackers', typicalScore: 42, keywords: ['crackers', 'cracker'] },
-  { id: 'bars', label: 'Snack and protein bars', typicalScore: 44, keywords: ['granola bar', 'protein bar', 'snack bar', 'energy bar'] },
-  { id: 'cookies', label: 'Cookies and sweet baked goods', typicalScore: 30, keywords: ['sandwich cookie', 'cookies', 'cookie', 'wafers', 'brownie'] },
-  { id: 'candy', label: 'Candy', typicalScore: 24, keywords: ['candy', 'gummies', 'gummy', 'chews'] },
-  { id: 'cereal', label: 'Cereal and granola', typicalScore: 44, keywords: ['cereal', 'granola', 'muesli', 'oatmeal'] },
-  { id: 'bread', label: 'Bread and tortillas', typicalScore: 52, keywords: ['tortillas', 'bread', 'bagel', 'buns', 'pita'] },
-  { id: 'yogurt', label: 'Yogurt and cultured dairy', typicalScore: 68, keywords: ['yogurt', 'yoghurt', 'kefir', 'skyr'] },
-  { id: 'chocolate', label: 'Chocolate', typicalScore: 48, keywords: ['chocolate', 'cacao', 'cocoa'] },
-  { id: 'rice', label: 'Rice products', typicalScore: 62, keywords: ['rice cakes', 'rice crackers', 'rice'] },
-  { id: 'protein_powder', label: 'Protein powder', typicalScore: 52, keywords: ['protein powder', 'protein isolate powder', 'whey protein', 'plant protein'] },
-  { id: 'condiments', label: 'Condiments and sauces', typicalScore: 46, keywords: ['ketchup', 'mayonnaise', 'mayo', 'dressing', 'sauce', 'condiment', 'mustard'] },
-  { id: 'juice', label: 'Juice and fruit drinks', typicalScore: 48, keywords: ['juice', 'lemonade', 'fruit drink'] },
-  { id: 'frozen', label: 'Frozen meals', typicalScore: 42, keywords: ['frozen pizza', 'frozen meal', 'frozen entree'] },
-  { id: 'nut_butter', label: 'Nut butters', typicalScore: 64, keywords: ['peanut butter', 'almond butter', 'nut butter', 'tahini'] },
-  { id: 'jerky', label: 'Jerky and meat snacks', typicalScore: 52, keywords: ['jerky', 'meat stick', 'meat snack', 'biltong'] },
-  { id: 'oil', label: 'Cooking oils and fats', typicalScore: 72, keywords: ['olive oil', 'cooking oil', 'ghee', 'butter'] }
+  { id: 'salt', label: 'Salt and mineral pantry staples', form: 'salt', expectedSodium: true, keywords: ['iodized salt', 'table salt', 'sea salt', 'mineral salt', 'himalayan salt', 'pink salt', 'salt'], broadKeywords: ['salt'] },
+  { id: 'low_sodium_salt', label: 'Low-sodium salt substitute', form: 'salt', expectedSodium: true, keywords: ['potassium chloride', 'salt substitute', 'low sodium salt'] },
+  { id: 'electrolyte', label: 'Electrolyte and hydration mix', form: 'powder_mix', expectedSodium: true, keywords: ['electrolyte', 'hydration mix', 'hydration powder'] },
+  { id: 'plant_milk', label: 'Plant milk', form: 'beverage', keywords: ['almond milk', 'oat milk', 'cashew milk', 'coconut milk beverage', 'plant milk'] },
+  { id: 'marinara', label: 'Pasta sauce and marinara', form: 'condiment_or_sauce', expectedSodium: true, keywords: ['marinara', 'pasta sauce', 'tomato sauce'] },
+  { id: 'ice_cream', label: 'Ice cream', form: 'frozen_dessert', dessertContext: true, keywords: ['ice cream', 'gelato'] },
+  { id: 'frozen_dairy_dessert', label: 'Frozen dairy dessert', form: 'frozen_dessert', dessertContext: true, keywords: ['frozen dairy dessert', 'frozen dessert', 'ice cream cone'], broadKeywords: ['frozen dessert'] },
+  { id: 'prebiotic_soda', label: 'Prebiotic soda', form: 'beverage', keywords: ['prebiotic soda', 'prebiotic sparkling', 'sparkling tonic'] },
+  { id: 'soda', label: 'Soda and soft drinks', form: 'beverage', keywords: ['soda', 'cola', 'soft drink', 'root beer'], broadKeywords: ['soda', 'soft drink'] },
+  { id: 'cereal', label: 'Cereal and protein cereal', form: 'ready_to_eat', proteinContext: true, keywords: ['protein cereal', 'cereal', 'granola', 'muesli'], broadKeywords: ['cereal'] },
+  { id: 'yogurt', label: 'Yogurt and cultured dairy', form: 'ready_to_eat', proteinContext: true, keywords: ['zero sugar yogurt', 'yogurt', 'yoghurt', 'kefir', 'skyr'] },
+  { id: 'cottage_cheese', label: 'Cottage cheese and cultured dairy', form: 'ready_to_eat', expectedSodium: true, proteinContext: true, keywords: ['cottage cheese'] },
+  { id: 'crackers', label: 'Crackers', form: 'ready_to_eat', expectedSodium: true, keywords: ['crackers', 'cracker'] },
+  { id: 'protein_chip', label: 'Protein chip and protein snack', form: 'ready_to_eat', proteinContext: true, keywords: ['protein chips', 'protein chip', 'protein puffs', 'protein snack'] },
+  { id: 'ready_to_drink_protein', label: 'Ready-to-drink protein', form: 'beverage', proteinContext: true, keywords: ['protein shake', 'protein drink', 'ready to drink protein'] },
+  { id: 'chocolate', label: 'Chocolate and confection', form: 'ready_to_eat', dessertContext: true, keywords: ['chocolate', 'cacao', 'cocoa', 'confection'] },
+  { id: 'meat_snack', label: 'Meat snack', form: 'ready_to_eat', expectedSodium: true, proteinContext: true, keywords: ['jerky', 'meat stick', 'meat snack', 'biltong'] },
+  { id: 'protein_bar', label: 'Protein bar', form: 'ready_to_eat', proteinContext: true, keywords: ['protein bar', 'snack bar', 'energy bar'] },
+  { id: 'protein_powder', label: 'Protein powder', form: 'powder_mix', proteinContext: true, keywords: ['protein powder', 'protein isolate', 'whey protein', 'plant protein'] },
+  { id: 'juice', label: 'Juice and fruit drinks', form: 'beverage', keywords: ['juice', 'lemonade', 'fruit drink'] },
+  { id: 'chips', label: 'Chips and salty snacks', form: 'ready_to_eat', expectedSodium: true, keywords: ['tortilla chips', 'potato chips', 'chips', 'crisps', 'puffs'], broadKeywords: ['chips', 'puffs'] },
+  { id: 'cookies', label: 'Cookies and sweet baked goods', form: 'ready_to_eat', dessertContext: true, keywords: ['sandwich cookie', 'cookies', 'cookie', 'wafers', 'brownie'] },
+  { id: 'condiments', label: 'Condiments and sauces', form: 'condiment_or_sauce', expectedSodium: true, keywords: ['ketchup', 'mayonnaise', 'mayo', 'dressing', 'sauce', 'condiment', 'mustard'], broadKeywords: ['sauce', 'condiment'] }
 ];
 
 export function detectProductCategory(
@@ -43,10 +59,20 @@ export function detectProductCategory(
   let best: { category: ProductCategory; length: number } | null = null;
   for (const category of PRODUCT_CATEGORIES) {
     for (const keyword of category.keywords) {
-      if (searchable.includes(keyword) && (!best || keyword.length > best.length)) {
-        best = { category, length: keyword.length };
-      }
+      if (searchable.includes(keyword) && (!best || keyword.length > best.length)) best = { category, length: keyword.length };
     }
   }
   return best?.category ?? null;
+}
+
+export function categoryInterpretationConfidence(
+  category: ProductCategory | null,
+  explicit?: string | null,
+  name?: string | null,
+  categoryTags: string[] = []
+): 'low' | 'medium' | 'high' {
+  if (!category) return 'low';
+  const terms = [explicit, ...categoryTags].filter(Boolean).join(' ').toLowerCase();
+  if (terms.includes(category.id.replaceAll('_', ' ')) || category.keywords.some((keyword) => terms.includes(keyword))) return 'high';
+  return category.keywords.some((keyword) => (name ?? '').toLowerCase().includes(keyword)) ? 'medium' : 'low';
 }

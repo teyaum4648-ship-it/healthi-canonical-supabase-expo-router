@@ -11,13 +11,20 @@ export function normalizeBarcode(value: string): string {
   return value.trim().replace(/[\s-]+/g, '');
 }
 
+export function canonicalBarcodeIdentity(value: string): string {
+  const barcode = normalizeBarcode(value);
+  if (barcode.length === 14 && barcode.startsWith('00')) return barcode.slice(2);
+  if (barcode.length === 13 && barcode.startsWith('0')) return barcode.slice(1);
+  return barcode;
+}
+
 export function barcodeLookupCandidates(value: string): string[] {
   const barcode = normalizeBarcode(value);
   if (!barcode) return [];
 
-  const candidates = [barcode];
-  if (barcode.length === 12) candidates.push(`0${barcode}`);
-  if (barcode.length === 13 && barcode.startsWith('0')) candidates.push(barcode.slice(1));
+  const identity = canonicalBarcodeIdentity(barcode);
+  const candidates = [barcode, identity];
+  if (identity.length === 12) candidates.push(`0${identity}`, `00${identity}`);
   return [...new Set(candidates)];
 }
 

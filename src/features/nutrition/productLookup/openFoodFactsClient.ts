@@ -15,6 +15,7 @@ export type ProductLookupFetch = (
 export type OpenFoodFactsLookupOptions = {
   fetcher?: ProductLookupFetch;
   timeoutMs?: number;
+  locale?: string;
 };
 
 export type ProductSearchResult =
@@ -26,21 +27,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
-const productFields = [
+function productFields(locale = 'en'): string {
+  const safeLocale = locale.toLowerCase().replace('-', '_').match(/^[a-z]{2,3}(?:_[a-z]{2})?$/)?.[0] ?? 'en';
+  return [
   'code',
   'product_name',
+  'product_name_en',
   'generic_name',
+  'abbreviated_product_name',
   'brands',
+  'quantity',
+  'product_quantity',
+  'product_quantity_unit',
   'serving_size',
   'serving_quantity',
   'ingredients_text',
+  'ingredients_text_en',
+  `ingredients_text_${safeLocale}`,
+  'ingredients',
+  'ingredients_n',
   'labels_tags',
   'categories_tags',
   'packaging_tags',
+  'lang',
+  'languages_codes',
+  'countries_tags',
+  'last_modified_t',
+  'last_modified_datetime',
+  'completeness',
+  'data_quality_tags',
   'nova_group',
   'additives_n',
   'nutriments'
-].join(',');
+  ].join(',');
+}
 
 const requestHeaders = {
   Accept: 'application/json',
@@ -85,7 +105,7 @@ export async function lookupOpenFoodFactsProduct(
 
   try {
     for (const candidate of barcodeLookupCandidates(barcode)) {
-      const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(candidate)}.json?fields=${productFields}`;
+      const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(candidate)}.json?fields=${productFields(options.locale)}`;
       const response = await fetchWithTimeout(fetcher, url, timeoutMs);
       if (!response.ok) {
         return {
@@ -157,7 +177,7 @@ export async function searchOpenFoodFactsProducts(
   }
 
   const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
-  const url = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=&search_terms=${encodeURIComponent(searchTerms)}&fields=${productFields}&page_size=12`;
+  const url = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=&search_terms=${encodeURIComponent(searchTerms)}&fields=${productFields(options.locale)}&page_size=12`;
 
   try {
     const response = await fetchWithTimeout(fetcher, url, options.timeoutMs ?? 12_000);

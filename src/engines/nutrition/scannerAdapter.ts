@@ -36,7 +36,7 @@ export type AdaptScannedProductParams = {
 };
 
 function finiteNumber(value: number | null | undefined): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 function roundNutrient(value: number | null): number | null {
@@ -62,7 +62,7 @@ function sodiumMgPer100(nutriments: ScannedProductNutriments | null | undefined)
   if (sodiumGrams !== null) return sodiumGrams * 1000;
 
   const saltGrams = finiteNumber(nutriments?.salt_100g);
-  if (saltGrams !== null) return saltGrams * 393.4;
+  if (saltGrams !== null) return saltGrams * 1000 / 2.5;
 
   return null;
 }

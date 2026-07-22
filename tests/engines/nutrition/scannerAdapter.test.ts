@@ -76,6 +76,18 @@ describe('adaptScannedProductToMealLog', () => {
     );
   });
 
+  it('converts salt grams to sodium milligrams once and ignores negative values', () => {
+    const meal = adaptScannedProductToMealLog({
+      product: {
+        product_name: 'Salt reference',
+        nutriments: { salt_100g: 80, sodium_100g: -1 }
+      },
+      servingGrams: 5,
+      loggedAt
+    });
+    expect(meal.sodium_mg).toBe(1600);
+  });
+
   it('uses low confidence and partial data reasons when nutrition fields are sparse', () => {
     const meal = adaptScannedProductToMealLog({
       product: { product_name: 'Unknown item', nutriments: null },

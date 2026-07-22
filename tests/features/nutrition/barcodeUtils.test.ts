@@ -11,9 +11,9 @@ describe('barcode scanner debounce', () => {
     expect(shouldProcessBarcodeScan(previous, '3017620422003', 1_100)).toBe(true);
   });
 
-  it('tries equivalent UPC-A and EAN-13 forms without duplicating candidates', () => {
-    expect(barcodeLookupCandidates('123456789012')).toEqual(['123456789012', '0123456789012']);
-    expect(barcodeLookupCandidates('0123456789012')).toEqual(['0123456789012', '123456789012']);
+  it('tries equivalent UPC-A, EAN-13, and GTIN-14 forms without duplicating candidates', () => {
+    expect(barcodeLookupCandidates('123456789012')).toEqual(['123456789012', '0123456789012', '00123456789012']);
+    expect(barcodeLookupCandidates('0123456789012')).toEqual(['0123456789012', '123456789012', '00123456789012']);
     expect(barcodeLookupCandidates('3017620422003')).toEqual(['3017620422003']);
   });
 });

@@ -1,4 +1,9 @@
-export { CATEGORY_SCORE_SLOPE, PRODUCT_CATEGORIES, detectProductCategory } from './categories';
+export { PRODUCT_CATEGORIES, categoryInterpretationConfidence, detectProductCategory } from './categories';
+export type { ProductForm } from './categories';
+export { resolveProductCategory } from './categoryResolution';
+export type { CategoryCandidate, CategoryEvidence, CategoryEvidenceSource, CategoryResolution, CategoryResolutionInput } from './categoryResolution';
+export { CATEGORY_PROFILES, RULE_FAMILIES, getCategoryProfile } from './profiles';
+export type { CategoryProfile, NutrientBasisPreference, RuleFamily, RulePolicyStatus } from './profiles';
 export { PRODUCT_EVIDENCE_REFERENCES, resolveProductEvidence } from './evidence';
 export {
   productBetterOptions,
@@ -13,8 +18,13 @@ export type {
   ProductProcessingTier,
   ProductBetterOption,
   ProductGradeBand,
+  ProductGradeEligibility,
   ProductLetterGrade,
+  ProductMacroContext,
+  ProductNutrientBasis,
   ProductNutrients,
+  ProductScoreLedgerEntry,
+  ProductScoreLedgerStatus,
   ProductScoreFactor,
   ProductScoreLabel,
   ProductScoringInput,

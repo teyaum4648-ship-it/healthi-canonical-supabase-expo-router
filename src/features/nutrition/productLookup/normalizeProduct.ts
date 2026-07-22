@@ -4,8 +4,12 @@ import type {
   NutritionReasonCode
 } from '../../../engines/nutrition';
 import type { HealthiProductSnapshot } from './productLookupTypes';
+import { resolveIngredientEvidence } from './ingredientEvidenceResolver';
+import { canonicalBarcodeIdentity } from './barcodeUtils';
+import type { ProductEvidenceField, ProductFieldProvenance } from './productDataProvider';
 
 export type OpenFoodFactsProduct = {
+  [key: string]: unknown;
   code?: unknown;
   product_name?: unknown;
   generic_name?: unknown;
@@ -13,6 +17,18 @@ export type OpenFoodFactsProduct = {
   serving_size?: unknown;
   serving_quantity?: unknown;
   ingredients_text?: unknown;
+  ingredients_text_en?: unknown;
+  ingredients?: unknown;
+  ingredients_n?: unknown;
+  lang?: unknown;
+  languages_codes?: unknown;
+  countries_tags?: unknown;
+  quantity?: unknown;
+  abbreviated_product_name?: unknown;
+  last_modified_t?: unknown;
+  last_modified_datetime?: unknown;
+  completeness?: unknown;
+  data_quality_tags?: unknown;
   labels_tags?: unknown;
   categories_tags?: unknown;
   packaging_tags?: unknown;
@@ -22,10 +38,10 @@ export type OpenFoodFactsProduct = {
 };
 
 function finiteNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value;
   if (typeof value === 'string' && value.trim()) {
     const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
   }
   return null;
 }
@@ -70,9 +86,9 @@ function nutrientPerServing(
   const direct = finiteNumber(nutriments[`${key}_serving`]);
   if (direct !== null) return round(direct);
 
+  if (grams === null) return null;
   const per100 = finiteNumber(nutriments[`${key}_100g`]);
-  if (per100 === null) return null;
-  return round(per100 * ((grams ?? 100) / 100));
+  return per100 === null ? null : round(per100 * (grams / 100));
 }
 
 function energyPerServing(nutriments: Record<string, unknown>, grams: number | null): number | null {
@@ -90,15 +106,24 @@ function sodiumPerServingMg(nutriments: Record<string, unknown>, grams: number |
   const directGrams = finiteNumber(nutriments.sodium_serving);
   if (directGrams !== null) return round(directGrams * 1000);
 
+  if (grams === null) return null;
   const gramsPer100 = finiteNumber(nutriments.sodium_100g);
-  return gramsPer100 === null ? null : round(gramsPer100 * ((grams ?? 100) / 100) * 1000);
+  if (gramsPer100 !== null) return round(gramsPer100 * (grams / 100) * 1000);
+
+  const saltServing = finiteNumber(nutriments.salt_serving);
+  if (saltServing !== null) return round(saltServing * 1000 / 2.5);
+
+  const saltPer100 = finiteNumber(nutriments.salt_100g);
+  return saltPer100 === null ? null : round(saltPer100 * (grams / 100) * 1000 / 2.5);
 }
 
 function sodiumPer100gMg(nutriments: Record<string, unknown>): number | null {
   const milligrams = finiteNumber(nutriments.sodium_mg_100g);
   if (milligrams !== null) return round(milligrams);
   const grams = finiteNumber(nutriments.sodium_100g);
-  return grams === null ? null : round(grams * 1000);
+  if (grams !== null) return round(grams * 1000);
+  const salt = finiteNumber(nutriments.salt_100g);
+  return salt === null ? null : round(salt * 1000 / 2.5);
 }
 
 function pushUnique<T>(values: T[], value: T): void {
@@ -160,6 +185,33 @@ function productConfidence(coreCount: number, hasServing: boolean, hasIngredient
   return 'low';
 }
 
+function timestamp(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+  const seconds = finiteNumber(value);
+  return seconds === null ? null : new Date(seconds * 1000).toISOString();
+}
+
+function provenance(
+  product: OpenFoodFactsProduct,
+  updatedAt: string | null,
+  ingredientConfidence: DataConfidence,
+  nutritionConfidence: DataConfidence,
+  servingConfidence: DataConfidence
+): Partial<Record<ProductEvidenceField, ProductFieldProvenance[]>> {
+  const provider_record_id = cleanString(product.code);
+  const item = (confidence: DataConfidence): ProductFieldProvenance[] => [{
+    provider: 'open_food_facts', provider_record_id, source_timestamp: updatedAt, confidence
+  }];
+  return {
+    name: item('high'), brand: item(cleanString(product.brands) ? 'high' : 'low'), variant: item(cleanString(product.abbreviated_product_name) ? 'medium' : 'low'),
+    ingredients: item(ingredientConfidence), nutrition: item(nutritionConfidence), serving: item(servingConfidence),
+    category: item(cleanTagList(product.categories_tags).length > 0 ? 'medium' : 'low'), product_form: item('low')
+  };
+}
+
 export function normalizeOpenFoodFactsProduct(
   barcode: string,
   product: OpenFoodFactsProduct
@@ -168,7 +220,7 @@ export function normalizeOpenFoodFactsProduct(
   if (!name) return null;
 
   const providedServingGrams = servingGrams(product);
-  const grams = providedServingGrams ?? 100;
+  const grams = providedServingGrams;
   const nutriments = asRecord(product.nutriments);
   const calories = energyPerServing(nutriments, grams);
   const protein = nutrientPerServing(nutriments, 'proteins', grams);
@@ -179,7 +231,11 @@ export function normalizeOpenFoodFactsProduct(
   const sugar = nutrientPerServing(nutriments, 'sugars', grams);
   const sodium = sodiumPerServingMg(nutriments, grams);
   const coreCount = [calories, protein, carbs, fat, fiber, sugar, sodium].filter((value) => value !== null).length;
-  const ingredients = cleanString(product.ingredients_text);
+  const ingredientEvidence = resolveIngredientEvidence(product);
+  const ingredients = ingredientEvidence.resolved_text;
+  const updatedAt = timestamp(product.last_modified_datetime) ?? timestamp(product.last_modified_t);
+  const nutritionConfidence: DataConfidence = coreCount >= 5 ? 'high' : coreCount >= 2 ? 'medium' : 'low';
+  const servingConfidence: DataConfidence = providedServingGrams !== null ? 'high' : 'low';
   const signals = productSignals({
     calories,
     protein,
@@ -199,11 +255,12 @@ export function normalizeOpenFoodFactsProduct(
 
   return {
     barcode,
+    canonical_barcode: canonicalBarcodeIdentity(cleanString(product.code) ?? barcode),
     provider: 'open_food_facts',
     provider_product_id: cleanString(product.code) ?? barcode,
     name,
     brand: cleanString(product.brands)?.split(',')[0]?.trim() ?? null,
-    serving_size: cleanString(product.serving_size) ?? '100 g reference',
+    serving_size: cleanString(product.serving_size),
     serving_quantity_g: grams,
     calories_per_serving: calories,
     protein_g: protein,
@@ -214,6 +271,24 @@ export function normalizeOpenFoodFactsProduct(
     sugar_g: sugar,
     sodium_mg: sodium,
     ingredients_text: ingredients,
+    ingredient_evidence: ingredientEvidence,
+    evidence_confidence: {
+      identity: 'high',
+      ingredients: ingredientEvidence.confidence,
+      nutrition: nutritionConfidence,
+      serving: servingConfidence,
+      category: cleanTagList(product.categories_tags).length > 0 ? 'medium' : 'low',
+      product_form: 'low',
+      provider: 'medium',
+      overall: productConfidence(coreCount, providedServingGrams !== null, ingredients !== null)
+    },
+    variant: cleanString(product.abbreviated_product_name),
+    quantity: cleanString(product.quantity),
+    provider_updated_at: updatedAt,
+    provider_completeness: finiteNumber(product.completeness),
+    provider_quality_tags: cleanTagList(product.data_quality_tags),
+    field_provenance: provenance(product, updatedAt, ingredientEvidence.confidence, nutritionConfidence, servingConfidence),
+    provider_conflicts: [...ingredientEvidence.conflicts],
     labels: cleanTagList(product.labels_tags),
     categories_tags: cleanTagList(product.categories_tags),
     packaging_tags: cleanTagList(product.packaging_tags),
