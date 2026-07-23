@@ -1,6 +1,8 @@
 import type { HealthiProductSnapshot } from '../productLookup/productLookupTypes';
 import { canonicalBarcodeIdentity } from '../productLookup/barcodeUtils';
 import type { LabAnalyteResult, LabEvidenceMatchLevel, LabEvidenceRecord } from './labEvidenceTypes';
+import { deterministicEvidenceMatch } from './matching';
+import { badgeEligible as policyBadgeEligible, evidenceFreshness, type EvidenceSourceRights } from './policy';
 
 export type MatchedLabEvidence = {
   record: LabEvidenceRecord;
@@ -35,19 +37,45 @@ function normalized(value: string | null | undefined): string {
   return (value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-export function matchLabEvidence(product: HealthiProductSnapshot, records: LabEvidenceRecord[]): MatchedLabEvidence[] {
+export function matchLabEvidence(
+  product: HealthiProductSnapshot,
+  records: LabEvidenceRecord[],
+  options: { lotNumber?: string | null; rights?: EvidenceSourceRights } = {}
+): MatchedLabEvidence[] {
   return records.flatMap((record) => {
-    if (record.productCode && canonicalBarcodeIdentity(record.productCode) !== canonicalBarcodeIdentity(product.barcode)) return [];
-    if (isExactProductLabMatch(record.matchLevel)) {
-      if (normalized(record.productName) !== normalized(product.name)) return [];
-      if (product.brand && normalized(record.brand) !== normalized(product.brand)) return [];
-      if (record.variant && product.variant && normalized(record.variant) !== normalized(product.variant)) return [];
+    let level = record.matchLevel;
+    if (isExactProductLabMatch(level)) {
+      const derived = deterministicEvidenceMatch(
+        {
+          barcode: product.barcode,
+          productName: product.name,
+          brand: product.brand,
+          variant: product.variant,
+          size: product.quantity,
+          lotNumber: options.lotNumber
+        },
+        {
+          barcode: record.productCode,
+          productName: record.productName,
+          brand: record.brand,
+          variant: record.variant,
+          lotNumber: record.lotNumber
+        }
+      );
+      if (!derived.level || !isExactProductLabMatch(derived.level)) return [];
+      level = derived.level;
+    } else if (record.productCode && canonicalBarcodeIdentity(record.productCode) !== canonicalBarcodeIdentity(product.barcode)) {
+      return [];
     }
+    const freshness = evidenceFreshness({ publishedAt: record.publicationDate });
+    const badge = options.rights
+      ? policyBadgeEligible({ sourceType: record.sourceType, matchLevel: level, freshness, rights: options.rights })
+      : false;
     return [{
-      record,
-      badgeEligible: isExactProductLabMatch(record.matchLevel) && record.sourceType === 'independent_lab_test',
-      matchLabel: labMatchLabel(record.matchLevel),
-      matchStrength: strength[record.matchLevel]
+      record: { ...record, matchLevel: level },
+      badgeEligible: badge,
+      matchLabel: labMatchLabel(level),
+      matchStrength: strength[level]
     }];
   }).sort((left, right) => right.matchStrength - left.matchStrength);
 }

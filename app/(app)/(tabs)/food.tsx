@@ -28,7 +28,13 @@ import {
   type NutritionTargets
 } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
-import { formatLabAnalyte, matchLabEvidence, visibleLabAnalytes } from '../../../src/features/nutrition/labEvidence/labEvidenceMatcher';
+import {
+  labEvidenceStatusCopy,
+  lookupLabEvidenceResolution
+} from '../../../src/features/nutrition/labEvidence/labEvidenceClient';
+import { formatLabAnalyte } from '../../../src/features/nutrition/labEvidence/labEvidenceMatcher';
+import { clientSafeResolution, createTerminalResolution, emptyLabEvidenceIdentity, toLabEvidenceReferenceSnapshot } from '../../../src/features/nutrition/labEvidence/resolution';
+import type { LabEvidenceResolution } from '../../../src/features/nutrition/labEvidence/labEvidenceTypes';
 import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
   getActiveFoodPatternProfile,
@@ -265,6 +271,9 @@ function createLocalDemoProductRow(
     quality_flags: [...snapshot.quality_flags],
     quality_reason_codes: [...quality.reason_codes],
     quality_snapshot: productSnapshotValue(snapshot, quality),
+    lab_evidence_state: snapshot.lab_evidence_reference
+      ? JSON.parse(JSON.stringify(snapshot.lab_evidence_reference))
+      : null,
     is_saved: isSaved,
     last_used_at: now,
     last_scanned_at: source === 'scanner' ? now : null,
@@ -495,6 +504,12 @@ export default function FoodScreen() {
   const [showBetterOptions, setShowBetterOptions] = useState(false);
   const [showProductEvidence, setShowProductEvidence] = useState(false);
   const [showLabEvidence, setShowLabEvidence] = useState(false);
+  const [showCertifications, setShowCertifications] = useState(false);
+  const [showRegulatoryStatus, setShowRegulatoryStatus] = useState(false);
+  const [showEvidenceContext, setShowEvidenceContext] = useState(false);
+  const [labEvidenceResolution, setLabEvidenceResolution] = useState<LabEvidenceResolution | null>(null);
+  const [isLookingUpLabEvidence, setIsLookingUpLabEvidence] = useState(false);
+  const [scannerLotNumber, setScannerLotNumber] = useState('');
   const [scannerMessage, setScannerMessage] = useState('Scan a barcode or enter its numbers below.');
   const [scannerMealType, setScannerMealType] = useState<MealType>('unknown');
   const [scannerServingQuantity, setScannerServingQuantity] = useState('1');
@@ -544,10 +559,6 @@ export default function FoodScreen() {
     () => scannerProduct ? calculateProductQuality(scannerProduct) : null,
     [scannerProduct]
   );
-  const matchedLabEvidence = useMemo(
-    () => scannerProduct ? matchLabEvidence(scannerProduct, scannerProduct.lab_evidence ?? []) : [],
-    [scannerProduct]
-  );
   const mealBuilderTotals = useMemo(() => calculateMealBuilderTotals(mealBuilder.items), [mealBuilder.items]);
   const savedProducts = useMemo(() => productLibrary.filter((product) => product.is_saved), [productLibrary]);
 
@@ -555,6 +566,9 @@ export default function FoodScreen() {
     setShowBetterOptions(false);
     setShowProductEvidence(false);
     setShowLabEvidence(false);
+    setShowCertifications(false);
+    setShowRegulatoryStatus(false);
+    setShowEvidenceContext(false);
   }, [scannerProduct?.barcode]);
 
   useEffect(() => {
@@ -826,7 +840,12 @@ export default function FoodScreen() {
       return;
     }
 
-    await addSnapshotToMealBuilder(scannerProduct, 'scanner', servingQuantity);
+    await addSnapshotToMealBuilder({
+      ...scannerProduct,
+      lab_evidence_reference: labEvidenceResolution
+        ? toLabEvidenceReferenceSnapshot(labEvidenceResolution)
+        : scannerProduct.lab_evidence_reference
+    }, 'scanner', servingQuantity);
     setScannerProduct(null);
     setBarcodeInput('');
     setScannerServingQuantity('1');
@@ -839,6 +858,8 @@ export default function FoodScreen() {
     setScannerOpen(true);
     setCameraOpen(false);
     setScannerMessage('Scan a barcode or enter its numbers below.');
+    setLabEvidenceResolution(null);
+    setScannerLotNumber('');
   }
 
   function closeScanner() {
@@ -847,6 +868,7 @@ export default function FoodScreen() {
     setScannerOpen(false);
     setCameraOpen(false);
     setIsLookingUpProduct(false);
+    setIsLookingUpLabEvidence(false);
   }
 
   async function handleStartCamera() {
@@ -878,6 +900,51 @@ export default function FoodScreen() {
     }
   }
 
+  async function resolveEvidenceForProduct(product: HealthiProductSnapshot, requestId: number) {
+    setIsLookingUpLabEvidence(true);
+    const resolution = await lookupLabEvidenceResolution({
+      client: canUseRemote ? supabase : null,
+      product,
+      lotNumber: scannerLotNumber.trim() || null,
+      configured: canUseRemote
+    });
+    if (lookupRequestId.current === requestId) setLabEvidenceResolution(resolution);
+    if (lookupRequestId.current === requestId) setIsLookingUpLabEvidence(false);
+  }
+
+  async function presentScannerProduct(
+    product: HealthiProductSnapshot,
+    requestId: number,
+    message: string
+  ) {
+    const currentProduct = {
+      ...product,
+      lab_evidence: undefined,
+      lab_evidence_resolution: undefined
+    };
+    setBarcodeInput(currentProduct.barcode);
+    setScannerProduct(currentProduct);
+    setScannerMealName(currentProduct.name);
+    setScannerServingQuantity('1');
+    setScannerMessage(message);
+    await resolveEvidenceForProduct(currentProduct, requestId);
+  }
+
+  function setIdentityUnresolved(value: string, message: string) {
+    setLabEvidenceResolution(clientSafeResolution(createTerminalResolution({
+      status: 'identity_unresolved',
+      identity: emptyLabEvidenceIdentity({
+        barcode: normalizeBarcode(value),
+        canonicalBarcode: null,
+        productName: '',
+        categoryKeys: []
+      }),
+      confidence: 'low',
+      reasonCodes: ['product_provider_identity_unresolved']
+    })));
+    setScannerMessage(message);
+  }
+
   async function handleProductLookup(value = barcodeInput) {
     if (lookupInFlight.current) return;
     Keyboard.dismiss();
@@ -887,6 +954,7 @@ export default function FoodScreen() {
     setIsLookingUpProduct(true);
     setCameraOpen(false);
     setScannerProduct(null);
+    setLabEvidenceResolution(null);
     setScannerMessage('Looking up available label data...');
 
     try {
@@ -894,11 +962,7 @@ export default function FoodScreen() {
       const cached = productLibrary.find((product) => product.barcode && candidates.includes(product.barcode));
       if (cached && !shouldRefreshCachedProduct(cached)) {
         const snapshot = userFoodProductRowToSnapshot(cached);
-        setBarcodeInput(snapshot.barcode);
-        setScannerProduct(snapshot);
-        setScannerMealName(snapshot.name);
-        setScannerServingQuantity('1');
-        setScannerMessage('Saved product found. Review the label data before adding it.');
+        await presentScannerProduct(snapshot, requestId, 'Saved product found. Review the label data before adding it.');
         return;
       }
 
@@ -908,24 +972,16 @@ export default function FoodScreen() {
         const refreshedProduct = cached
           ? mergeProductSnapshots(userFoodProductRowToSnapshot(cached), result.product).snapshot
           : result.product;
-        setBarcodeInput(refreshedProduct.barcode);
-        setScannerProduct(refreshedProduct);
-        setScannerMealName(refreshedProduct.name);
-        setScannerServingQuantity('1');
-        setScannerMessage('Product found. Review the available label data before adding it.');
+        await presentScannerProduct(refreshedProduct, requestId, 'Product found. Review the available label data before adding it.');
       } else {
         if (cached) {
           const snapshot = userFoodProductRowToSnapshot(cached);
-          setBarcodeInput(snapshot.barcode);
-          setScannerProduct(snapshot);
-          setScannerMealName(snapshot.name);
-          setScannerServingQuantity('1');
-          setScannerMessage('Using saved label data because refreshed provider data is unavailable.');
-        } else setScannerMessage(result.message);
+          await presentScannerProduct(snapshot, requestId, 'Using saved label data because refreshed provider data is unavailable.');
+        } else setIdentityUnresolved(value, result.message);
       }
     } catch {
       if (lookupRequestId.current === requestId) {
-        setScannerMessage('Product lookup could not finish. Try again or enter the food manually.');
+        setIdentityUnresolved(value, 'Product lookup could not finish. Try again or enter the food manually.');
       }
     } finally {
       if (lookupRequestId.current === requestId) {
@@ -966,7 +1022,12 @@ export default function FoodScreen() {
     });
 
     try {
-      await cacheProductSnapshot(scannerProduct, 'scanner');
+      await cacheProductSnapshot({
+        ...scannerProduct,
+        lab_evidence_reference: labEvidenceResolution
+          ? toLabEvidenceReferenceSnapshot(labEvidenceResolution)
+          : scannerProduct.lab_evidence_reference
+      }, 'scanner');
       if (canUseRemote && userId) {
         const saved = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
         const nextMeal = mealRowToMealLog(saved);
@@ -1175,6 +1236,14 @@ export default function FoodScreen() {
           <Text style={styles.scannerMessage}>{scannerMessage}</Text>
         </Card>
 
+        {!scannerProduct && labEvidenceResolution ? (
+          <Card>
+            <Text style={styles.eyebrow}>Lab Evidence</Text>
+            <Text style={styles.cardTitle}>{labEvidenceStatusCopy(labEvidenceResolution).title}</Text>
+            <Text style={styles.body}>{labEvidenceStatusCopy(labEvidenceResolution).detail}</Text>
+          </Card>
+        ) : null}
+
         {scannerProduct && productQuality ? (
           <Card style={styles.productCard}>
             <View style={styles.productHeader}>
@@ -1184,7 +1253,11 @@ export default function FoodScreen() {
                 <Text style={styles.productMeta}>
                   {[scannerProduct.brand, scannerProduct.serving_size ?? 'Serving size unavailable'].filter(Boolean).join(' · ')}
                 </Text>
-                {matchedLabEvidence.some((item) => item.badgeEligible) ? (
+                {labEvidenceResolution?.labEvidence.some((item) =>
+                  item.provenance === 'independent'
+                  && (item.matchLevel === 'exact_lot' || item.matchLevel === 'exact_product')
+                  && item.freshness === 'current'
+                ) ? (
                   <Text style={styles.evidenceSource}>Third-party tested</Text>
                 ) : null}
               </View>
@@ -1329,52 +1402,153 @@ export default function FoodScreen() {
               </View>
             ) : null}
 
-            {matchedLabEvidence.length > 0 ? (
-              <View style={styles.disclosureBlock}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: showLabEvidence }}
-                  onPress={() => setShowLabEvidence((current) => !current)}
-                  style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
-                >
-                  <View style={styles.disclosureTitleRow}>
-                    <Ionicons color={colors.accent} name="flask-outline" size={19} />
-                    <View>
-                      <Text style={styles.disclosureTitle}>Lab Evidence</Text>
-                      <Text style={styles.evidenceSource}>
-                        {matchedLabEvidence[0]?.record.sourceName} · {matchedLabEvidence[0]?.matchLabel} · Confidence: {displayLabel(matchedLabEvidence[0]?.record.evidenceConfidence ?? 'low')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Ionicons color={C.muted} name={showLabEvidence ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
-                </Pressable>
-                {showLabEvidence ? matchedLabEvidence.map(({ record, matchLabel }) => (
-                  <View key={record.id} style={styles.disclosureContent}>
-                    <Text style={styles.optionTitle}>{record.sourceName}</Text>
+            <View style={styles.productFormDivider} />
+            <Field
+              label="Lot number (optional)"
+              onChangeText={setScannerLotNumber}
+              placeholder="Use the package lot code"
+              value={scannerLotNumber}
+            />
+            <PrimaryButton
+              disabled={isLookingUpLabEvidence}
+              label="Refresh evidence for this lot"
+              loading={isLookingUpLabEvidence}
+              onPress={() => void resolveEvidenceForProduct(scannerProduct, lookupRequestId.current)}
+            />
+
+            <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showLabEvidence }}
+                onPress={() => setShowLabEvidence((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="flask-outline" size={19} />
+                  <View style={styles.productHeaderCopy}>
+                    <Text style={styles.disclosureTitle}>Lab Evidence</Text>
                     <Text style={styles.evidenceSource}>
-                      {[matchLabel, record.sampleDate ? `Sampled ${record.sampleDate}` : null, record.publicationDate ? `Published ${record.publicationDate}` : null].filter(Boolean).join(' · ')}
+                      {isLookingUpLabEvidence
+                        ? 'Checking current evidence...'
+                        : labEvidenceResolution
+                          ? labEvidenceStatusCopy(labEvidenceResolution).title
+                          : 'Evidence lookup has not completed'}
                     </Text>
-                    {record.laboratory ? <Text style={styles.signalReasonText}>Laboratory: {record.laboratory}</Text> : null}
-                    {record.laboratoryAccreditation ? <Text style={styles.signalReasonText}>Accreditation: {record.laboratoryAccreditation}</Text> : null}
-                    {record.testingMethod ? <Text style={styles.signalReasonText}>Method: {record.testingMethod}</Text> : null}
-                    <Text style={styles.signalReasonText}>Source type: {displayLabel(record.sourceType)}</Text>
-                    {record.sampleAcquisition ? <Text style={styles.signalReasonText}>Sample: {displayLabel(record.sampleAcquisition)}</Text> : null}
-                    {visibleLabAnalytes(record).map((analyte) => (
-                      <View key={`${record.id}-${analyte.analyte}`} style={styles.evidenceItem}>
-                        <Text style={styles.optionTitle}>{analyte.analyte}</Text>
-                        <Text style={styles.signalReasonText}>{formatLabAnalyte(analyte)}</Text>
-                        {typeof analyte.comparisonThreshold === 'number' ? (
-                          <Text style={styles.evidenceSource}>
-                            Comparison: {analyte.comparisonThreshold}{analyte.thresholdUnit ? ` ${analyte.thresholdUnit}` : ''}{analyte.thresholdAuthority ? ` · ${analyte.thresholdAuthority}` : ''}
-                          </Text>
-                        ) : null}
-                      </View>
-                    ))}
-                    {record.sourceReference ? <Text style={styles.evidenceSource}>Source reference: {record.sourceReference}</Text> : null}
                   </View>
-                )) : null}
-              </View>
-            ) : null}
+                </View>
+                <Ionicons color={C.muted} name={showLabEvidence ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showLabEvidence ? (
+                <View style={styles.disclosureContent}>
+                  <Text style={styles.signalReasonText}>
+                    {labEvidenceResolution
+                      ? labEvidenceStatusCopy(labEvidenceResolution).detail
+                      : 'Evidence lookup has not completed.'}
+                  </Text>
+                  {labEvidenceResolution?.labEvidence.map((record) => (
+                    <View key={record.evidenceId} style={styles.evidenceItem}>
+                      <Text style={styles.optionTitle}>{record.sourceName}</Text>
+                      <Text style={styles.evidenceSource}>
+                        {[displayLabel(record.matchLevel), displayLabel(record.provenance), record.sampleDate ? `Sampled ${record.sampleDate}` : null, record.publicationDate ? `Published ${record.publicationDate}` : null].filter(Boolean).join(' · ')}
+                      </Text>
+                      <Text style={styles.signalReasonText}>{record.matchReason}</Text>
+                      {record.laboratory ? <Text style={styles.signalReasonText}>Laboratory: {record.laboratory}</Text> : null}
+                      {record.testingMethod ? <Text style={styles.signalReasonText}>Method: {record.testingMethod}</Text> : null}
+                      {record.analytes.map((analyte) => (
+                        <View key={`${record.evidenceId}-${analyte.canonicalAnalyteId ?? analyte.analyte}`} style={styles.evidenceItem}>
+                          <Text style={styles.optionTitle}>{analyte.analyte}</Text>
+                          <Text style={styles.signalReasonText}>{formatLabAnalyte(analyte)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                  {labEvidenceResolution && labEvidenceResolution.labEvidence.length === 0 ? (
+                    <Text style={styles.evidenceSource}>No product-specific numeric lab record is available in the current response.</Text>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showCertifications }}
+                onPress={() => setShowCertifications((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="ribbon-outline" size={19} />
+                  <Text style={styles.disclosureTitle}>Certifications</Text>
+                </View>
+                <Ionicons color={C.muted} name={showCertifications ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showCertifications ? (
+                <View style={styles.disclosureContent}>
+                  {labEvidenceResolution?.certifications.length ? labEvidenceResolution.certifications.map((certification) => (
+                    <View key={certification.certificationId} style={styles.evidenceItem}>
+                      <Text style={styles.optionTitle}>{certification.certificationName}</Text>
+                      <Text style={styles.evidenceSource}>{certification.certifyingBody} · {displayLabel(certification.scope)}</Text>
+                      <Text style={styles.signalReasonText}>{certification.matchReason}</Text>
+                    </View>
+                  )) : <Text style={styles.signalReasonText}>No current certification was found in the sources checked. Certification is separate from numeric lab testing.</Text>}
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showRegulatoryStatus }}
+                onPress={() => setShowRegulatoryStatus((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="document-text-outline" size={19} />
+                  <Text style={styles.disclosureTitle}>Regulatory Status</Text>
+                </View>
+                <Ionicons color={C.muted} name={showRegulatoryStatus ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showRegulatoryStatus ? (
+                <View style={styles.disclosureContent}>
+                  {labEvidenceResolution?.regulatoryAlerts.length ? labEvidenceResolution.regulatoryAlerts.map((alert) => (
+                    <View key={alert.alertId} style={styles.evidenceItem}>
+                      <Text style={styles.optionTitle}>{alert.title}</Text>
+                      <Text style={styles.evidenceSource}>{alert.authority} · {displayLabel(alert.status)} · {displayLabel(alert.matchLevel)}</Text>
+                      <Text style={styles.signalReasonText}>{alert.matchReason}</Text>
+                    </View>
+                  )) : <Text style={styles.signalReasonText}>No matching official alert was found in the sources checked. Source coverage may be incomplete.</Text>}
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showEvidenceContext }}
+                onPress={() => setShowEvidenceContext((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="layers-outline" size={19} />
+                  <Text style={styles.disclosureTitle}>Evidence Context</Text>
+                </View>
+                <Ionicons color={C.muted} name={showEvidenceContext ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showEvidenceContext ? (
+                <View style={styles.disclosureContent}>
+                  {[...(labEvidenceResolution?.relatedEvidence ?? []), ...(labEvidenceResolution?.categoryContext ?? [])].length
+                    ? [...(labEvidenceResolution?.relatedEvidence ?? []), ...(labEvidenceResolution?.categoryContext ?? [])].map((context) => (
+                      <View key={context.contextId} style={styles.evidenceItem}>
+                        <Text style={styles.optionTitle}>{context.title}</Text>
+                        <Text style={styles.evidenceSource}>{context.sourceName} · {displayLabel(context.scope)}</Text>
+                        <Text style={styles.signalReasonText}>{context.summary}</Text>
+                        <Text style={styles.evidenceSource}>{context.matchReason}</Text>
+                      </View>
+                    ))
+                    : <Text style={styles.signalReasonText}>No related or category context was found. Category context, when available, is not testing of the scanned product.</Text>}
+                </View>
+              ) : null}
+            </View>
 
             <View style={styles.personalResponseNote}>
               <Ionicons color={colors.accentMid} name="pulse-outline" size={18} />

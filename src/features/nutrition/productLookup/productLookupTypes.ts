@@ -16,7 +16,7 @@ import type {
 } from '../../../engines/nutrition/productScoring';
 import type { IngredientEvidence } from './ingredientEvidenceResolver';
 import type { ProductEvidenceField, ProductFieldProvenance } from './productDataProvider';
-import type { LabEvidenceRecord } from '../labEvidence/labEvidenceTypes';
+import type { LabEvidenceRecord, LabEvidenceReferenceSnapshot, LabEvidenceResolution } from '../labEvidence/labEvidenceTypes';
 
 export type ProductProvider = 'open_food_facts' | 'manual' | 'demo';
 
@@ -58,7 +58,10 @@ export type HealthiProductSnapshot = {
   provider_quality_tags?: string[];
   field_provenance?: Partial<Record<ProductEvidenceField, ProductFieldProvenance[]>>;
   provider_conflicts?: string[];
+  /** Legacy records are read-only and never trusted without server revalidation. */
   lab_evidence?: LabEvidenceRecord[];
+  lab_evidence_resolution?: LabEvidenceResolution;
+  lab_evidence_reference?: LabEvidenceReferenceSnapshot;
   labels?: string[];
   categories_tags?: string[];
   packaging_tags?: string[];

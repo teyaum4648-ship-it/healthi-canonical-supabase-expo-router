@@ -7,7 +7,7 @@ import { normalizeLabEvidenceRecord, unavailableLabEvidenceProvider } from '../.
 import type { LabEvidenceRecord } from '../../../src/features/nutrition/labEvidence/labEvidenceTypes';
 
 const product: HealthiProductSnapshot = {
-  barcode: '123456789012', canonical_barcode: '123456789012', provider: 'open_food_facts', provider_product_id: 'provider-1',
+  barcode: '012345678905', canonical_barcode: '012345678905', provider: 'open_food_facts', provider_product_id: 'provider-1',
   name: 'Cocoa nut bar', brand: 'Fixture Foods', variant: 'Cocoa', serving_size: '50 g', serving_quantity_g: 50,
   calories_per_serving: 200, protein_g: 12, carbs_g: 22, fat_g: 8, fiber_g: 4, sugar_g: 12, sodium_mg: 180,
   ingredients_text: 'dates, egg whites, almonds, cocoa, sea salt', categories_tags: ['protein bars'],
@@ -23,7 +23,7 @@ const product: HealthiProductSnapshot = {
 
 function record(overrides: Partial<LabEvidenceRecord> = {}): LabEvidenceRecord {
   return {
-    id: 'lab-1', productCode: '0123456789012', productName: 'Cocoa nut bar', brand: 'Fixture Foods', variant: 'Cocoa',
+    id: 'lab-1', productCode: '012345678905', productName: 'Cocoa nut bar', brand: 'Fixture Foods', variant: 'Cocoa',
     sourceName: 'Independent fixture laboratory', sourceType: 'independent_lab_test', laboratory: 'Fixture Analytical',
     testingMethod: 'Validated fixture method', sampleDate: '2026-06-01', publicationDate: '2026-06-15',
     matchLevel: 'exact_product', sampleAcquisition: 'retail_purchased', evidenceConfidence: 'high',
@@ -37,7 +37,10 @@ describe('Lab Evidence boundary', () => {
       record({ id: 'related', productCode: undefined, matchLevel: 'related_variant' }),
       record({ id: 'product', matchLevel: 'exact_product' }),
       record({ id: 'lot', lotNumber: 'LOT-1', matchLevel: 'exact_lot' })
-    ]);
+    ], {
+      lotNumber: 'LOT-1',
+      rights: { enabled: true, rightsStatus: 'approved', allowClientSummary: true, allowNumericResults: true }
+    });
     expect(matches.map((item) => item.record.id)).toEqual(['lot', 'product', 'related']);
     expect(matches[0]).toMatchObject({ badgeEligible: true, matchLabel: 'Exact lot' });
     expect(matches[2]).toMatchObject({ badgeEligible: false, matchLabel: 'Related variant' });
@@ -55,8 +58,9 @@ describe('Lab Evidence boundary', () => {
   });
 
   it('keeps manufacturer-provided evidence distinguishable from independent retail testing', () => {
-    const coa = matchLabEvidence(product, [record({ sourceType: 'manufacturer_coa', sampleAcquisition: 'manufacturer_submitted' })])[0]!;
-    const independent = matchLabEvidence(product, [record()])[0]!;
+    const rights = { enabled: true, rightsStatus: 'approved' as const, allowClientSummary: true, allowNumericResults: true };
+    const coa = matchLabEvidence(product, [record({ sourceType: 'manufacturer_coa', sampleAcquisition: 'manufacturer_submitted' })], { rights })[0]!;
+    const independent = matchLabEvidence(product, [record()], { rights })[0]!;
     expect(coa.badgeEligible).toBe(false);
     expect(coa.record).toMatchObject({ sourceType: 'manufacturer_coa', sampleAcquisition: 'manufacturer_submitted' });
     expect(independent.record).toMatchObject({ sourceType: 'independent_lab_test', sampleAcquisition: 'retail_purchased' });

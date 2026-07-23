@@ -40,6 +40,7 @@ export type UserFoodProductInsert = {
   quality_flags: FoodQualityFlag[];
   quality_reason_codes: NutritionReasonCode[];
   quality_snapshot: JsonValue;
+  lab_evidence_state?: JsonValue;
   is_saved: boolean;
   last_used_at: string | null;
   last_scanned_at: string | null;
@@ -171,7 +172,6 @@ export function productSnapshotValue(product: Partial<HealthiProductSnapshot>, q
       provider_quality_tags: [...(product.provider_quality_tags ?? [])],
       field_provenance: product.field_provenance ? JSON.parse(JSON.stringify(product.field_provenance)) as JsonValue : null,
       provider_conflicts: [...(product.provider_conflicts ?? [])],
-      lab_evidence: product.lab_evidence ? JSON.parse(JSON.stringify(product.lab_evidence)) as JsonValue : null,
       labels: [...(product.labels ?? [])],
       categories_tags: [...(product.categories_tags ?? [])],
       packaging_tags: [...(product.packaging_tags ?? [])],
@@ -202,6 +202,8 @@ function storedSnapshot(row: UserFoodProductRow): HealthiProductSnapshot {
       ? evidence.ingredient_evidence as unknown as HealthiProductSnapshot['ingredient_evidence'] : undefined,
     evidence_confidence: evidence.evidence_confidence && typeof evidence.evidence_confidence === 'object'
       ? evidence.evidence_confidence as unknown as HealthiProductSnapshot['evidence_confidence'] : undefined,
+    lab_evidence_reference: row.lab_evidence_state && typeof row.lab_evidence_state === 'object'
+      ? row.lab_evidence_state as unknown as HealthiProductSnapshot['lab_evidence_reference'] : undefined,
     provider_updated_at: typeof evidence.provider_updated_at === 'string' ? evidence.provider_updated_at : null,
     quality_flags: [...row.quality_flags], confidence: row.source_confidence, reason_codes: [...row.quality_reason_codes]
   };
@@ -250,6 +252,9 @@ export function toUserFoodProductInsert(
     quality_flags: [...product.quality_flags],
     quality_reason_codes: [...product.quality.reason_codes],
     quality_snapshot: productSnapshotValue(product, product.quality),
+    lab_evidence_state: product.lab_evidence_reference
+      ? JSON.parse(JSON.stringify(product.lab_evidence_reference)) as JsonValue
+      : null,
     is_saved: product.is_saved ?? false,
     last_used_at: product.last_used_at ?? null,
     last_scanned_at: product.last_scanned_at ?? null,
@@ -285,6 +290,11 @@ export function toUserFoodProductUpdate(
     update.quality_flags = [...(product.quality_flags ?? [])];
     update.quality_reason_codes = [...product.quality.reason_codes];
     update.quality_snapshot = productSnapshotValue(product, product.quality);
+  }
+  if (product.lab_evidence_reference !== undefined) {
+    update.lab_evidence_state = product.lab_evidence_reference
+      ? JSON.parse(JSON.stringify(product.lab_evidence_reference)) as JsonValue
+      : null;
   }
   if (product.is_saved !== undefined) update.is_saved = product.is_saved;
   if (product.last_used_at !== undefined) update.last_used_at = product.last_used_at;

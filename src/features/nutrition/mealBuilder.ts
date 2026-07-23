@@ -77,7 +77,9 @@ function cloneSnapshot(snapshot: HealthiProductSnapshot): HealthiProductSnapshot
     provider_quality_tags: snapshot.provider_quality_tags ? [...snapshot.provider_quality_tags] : undefined,
     field_provenance: snapshot.field_provenance ? JSON.parse(JSON.stringify(snapshot.field_provenance)) : undefined,
     provider_conflicts: snapshot.provider_conflicts ? [...snapshot.provider_conflicts] : undefined,
-    lab_evidence: snapshot.lab_evidence ? JSON.parse(JSON.stringify(snapshot.lab_evidence)) : undefined,
+    lab_evidence_reference: snapshot.lab_evidence_reference
+      ? JSON.parse(JSON.stringify(snapshot.lab_evidence_reference))
+      : undefined,
     labels: snapshot.labels ? [...snapshot.labels] : undefined,
     categories_tags: snapshot.categories_tags ? [...snapshot.categories_tags] : undefined,
     packaging_tags: snapshot.packaging_tags ? [...snapshot.packaging_tags] : undefined,
@@ -324,8 +326,8 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     field_provenance: evidence.field_provenance && typeof evidence.field_provenance === 'object'
       ? evidence.field_provenance as unknown as HealthiProductSnapshot['field_provenance'] : undefined,
     provider_conflicts: stringList(evidence.provider_conflicts),
-    lab_evidence: Array.isArray(evidence.lab_evidence)
-      ? evidence.lab_evidence as unknown as HealthiProductSnapshot['lab_evidence'] : undefined,
+    lab_evidence_reference: row.lab_evidence_state && typeof row.lab_evidence_state === 'object'
+      ? row.lab_evidence_state as unknown as HealthiProductSnapshot['lab_evidence_reference'] : undefined,
     labels: stringList(evidence.labels),
     categories_tags: stringList(evidence.categories_tags),
     packaging_tags: stringList(evidence.packaging_tags),
