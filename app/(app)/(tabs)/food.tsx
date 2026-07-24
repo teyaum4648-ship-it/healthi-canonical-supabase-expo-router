@@ -1411,7 +1411,7 @@ export default function FoodScreen() {
             />
             <PrimaryButton
               disabled={isLookingUpLabEvidence}
-              label="Refresh evidence for this lot"
+              label={scannerLotNumber.trim() ? 'Refresh evidence for this lot' : 'Continue without lot number'}
               loading={isLookingUpLabEvidence}
               onPress={() => void resolveEvidenceForProduct(scannerProduct, lookupRequestId.current)}
             />

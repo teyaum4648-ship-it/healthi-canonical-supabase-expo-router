@@ -44,9 +44,10 @@ export type CategoryResolutionInput = {
 };
 
 const TOKEN_VARIANTS: Record<string, string> = {
-  bars: 'bar', beverages: 'beverage', chips: 'chip', chocolates: 'chocolate', cookies: 'cookie',
+  bars: 'bar', beverages: 'beverage', breads: 'bread', breasts: 'breast', chips: 'chip', chocolates: 'chocolate', cookies: 'cookie',
   cereals: 'cereal', crackers: 'cracker', creams: 'cream', crisps: 'crisp', desserts: 'dessert', drinks: 'drink',
-  milks: 'milk', powders: 'powder', puffs: 'puff', sauces: 'sauce', sodas: 'soda', snacks: 'snack', yogurts: 'yogurt'
+  meats: 'meat', milks: 'milk', pastas: 'pasta', powders: 'powder', puffs: 'puff', sauces: 'sauce',
+  sodas: 'soda', soups: 'soup', snacks: 'snack', yogurts: 'yogurt'
 };
 
 const GENERIC_FORM_KEYWORDS = new Set(['chip', 'crisp', 'puff', 'soda', 'soft drink', 'cereal', 'salt', 'sauce', 'condiment', 'frozen dessert']);
@@ -210,7 +211,8 @@ export function resolveProductCategory(input: CategoryResolutionInput): Category
       const normalizedKeyword = normalized(keyword);
       const saltCategorySuppressed = (category.id === 'salt' || category.id === 'low_sodium_salt') && incompatibleSaltContext;
       const marinaraSuppressed = category.id === 'marinara' && condimentContext && !pastaSauceContext;
-      if (!saltCategorySuppressed && !marinaraSuppressed && hasPhrase(productName, normalizedKeyword)) {
+      const pastaSuppressed = category.id === 'pasta' && pastaSauceContext;
+      if (!saltCategorySuppressed && !marinaraSuppressed && !pastaSuppressed && hasPhrase(productName, normalizedKeyword)) {
         const broad = isBroadKeyword(category, keyword);
         const competingSpecificCategory = specificProviderCategories.size > 0 && !specificProviderCategories.has(category.id);
         addEvidence(evidenceByCategory, category.id, {
@@ -223,7 +225,7 @@ export function resolveProductCategory(input: CategoryResolutionInput): Category
         });
       }
       for (const tag of tags) {
-        if (marinaraSuppressed || !hasPhrase(tag, normalizedKeyword)) continue;
+        if (marinaraSuppressed || pastaSuppressed || !hasPhrase(tag, normalizedKeyword)) continue;
         const broad = isBroadKeyword(category, keyword);
         addEvidence(evidenceByCategory, category.id, {
           source: broad ? 'provider_broad' : 'provider_specific',

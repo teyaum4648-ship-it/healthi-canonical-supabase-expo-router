@@ -45,6 +45,33 @@ describe('Lab Evidence V2 client boundary', () => {
       .resolves.toEqual(terminal);
   });
 
+  it('sends a null lot without blocking product-level evidence lookup', async () => {
+    const terminal = clientSafeResolution(createTerminalResolution({
+      status: 'exact_product',
+      identity: emptyLabEvidenceIdentity({
+        barcode: product.barcode,
+        canonicalBarcode: product.canonical_barcode,
+        productName: product.name,
+        brand: product.brand,
+        lotNumber: null,
+        categoryKeys: product.categories_tags
+      })
+    }));
+    let invokedBody: Record<string, unknown> | null = null;
+    const successClient = {
+      functions: {
+        invoke: async (_name: string, options: { body: Record<string, unknown> }) => {
+          invokedBody = options.body;
+          return { data: terminal, error: null };
+        }
+      }
+    };
+
+    await expect(lookupLabEvidenceResolution({ product, configured: true, client: successClient }))
+      .resolves.toMatchObject({ status: 'exact_product' });
+    expect(invokedBody).toMatchObject({ identity: { lotNumber: null } });
+  });
+
   it('stores references only and never embeds a global record or safe DTO in quality snapshots', () => {
     const resolution = clientSafeResolution(createTerminalResolution({
       status: 'exact_product',

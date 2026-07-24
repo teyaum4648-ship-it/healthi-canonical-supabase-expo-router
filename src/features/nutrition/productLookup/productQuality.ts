@@ -87,7 +87,7 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
 
   const positives = [...scored.positives];
   const considerations = [...scored.considerations];
-  if (!snapshot.categories_tags?.length && scored.categoryId === null) {
+  if (scored.interpretationConfidence === 'low') {
     considerations.push('There is not enough reliable category information to assign a grade yet.');
   }
 
@@ -103,6 +103,7 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
     ...(ingredientStatus === 'complete' ? [] : ['Complete package ingredient details are unavailable.']),
     ...(snapshot.evidence_confidence?.serving === 'low' ? ['Provider-supplied serving details are unavailable.'] : []),
     ...(snapshot.evidence_confidence?.nutrition === 'low' ? ['Nutrition details are incomplete.'] : []),
+    ...(scored.interpretationConfidence === 'low' ? ['A reliable product category could not be resolved.'] : []),
     ...((snapshot.provider_conflicts?.length ?? 0) > 0 ? ['Available provider records materially disagree.'] : [])
   ];
   const publicScore = state === 'final' ? scored.displayScore : null;

@@ -90,6 +90,10 @@ describe('Lab Evidence V2 domain', () => {
       { barcode: '012345678906', productName: 'Fixture oats', brand: 'Fixture Foods' },
       { barcode: '012345678906', productName: 'Fixture oats', brand: 'Fixture Foods' }
     )).toMatchObject({ level: null, reasonCodes: ['invalid_gtin_checksum'] });
+    expect(deterministicEvidenceMatch(
+      { barcode: '012345678905', productName: 'Fixture oats', brand: 'Fixture Foods' },
+      { barcode: '012345678905', productName: 'Fixture oats', brand: 'Fixture Foods', lotNumber: 'A-1' }
+    )).toMatchObject({ level: 'exact_product', confidence: 'high' });
   });
 
   it('enforces source rights, revocation, freshness, and badge policy', () => {
