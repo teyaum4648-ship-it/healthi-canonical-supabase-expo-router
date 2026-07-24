@@ -84,6 +84,25 @@ describe('product lookup and quality', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it('retries a transient provider failure once before returning a product', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 1, product: completeProduct }) });
+    const result = await lookupOpenFoodFactsProduct('3017620422003', { fetcher });
+
+    expect(result).toMatchObject({ status: 'found', product: { name: 'Hazelnut spread' } });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[1]?.[0]).toBe(fetcher.mock.calls[0]?.[0]);
+  });
+
+  it('does not retry a permanent provider rejection', async () => {
+    const fetcher = vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) }));
+    const result = await lookupOpenFoodFactsProduct('3017620422003', { fetcher });
+
+    expect(result).toMatchObject({ status: 'error', code: 'provider_error' });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it('uses one stable identity for UPC-A and zero-prefixed EAN/GTIN forms', () => {
     expect(canonicalBarcodeIdentity('123456789012')).toBe('123456789012');
     expect(canonicalBarcodeIdentity('0123456789012')).toBe('123456789012');
@@ -141,6 +160,27 @@ describe('product lookup and quality', () => {
     });
   });
 
+  it('normalizes described household servings when gram equivalents are available', () => {
+    for (const [servingSize, servingQuantity] of [
+      ['1 slice (45 g)', 45],
+      ['2 bars (42 g)', 42],
+      ['1 cup (245 g)', 245],
+      ['17 crackers (29 g)', 29],
+      ['about 1 cup (240 g)', 240],
+      ['1 can (411 g)', 411],
+      ['2 oz (56 g)', 56]
+    ] as const) {
+      const product = normalizeOpenFoodFactsProduct('12345678', {
+        product_name: 'Serving parser fixture',
+        serving_size: servingSize,
+        serving_quantity: servingQuantity,
+        nutriments: { 'energy-kcal_100g': 100 }
+      });
+      expect(product?.serving_quantity_g).toBe(servingQuantity);
+      expect(product?.calories_per_serving).toBe(servingQuantity);
+    }
+  });
+
   it('maps complete, partial, and unresolved evidence to calm public result states', () => {
     const finalProduct = normalizeOpenFoodFactsProduct('12345678', {
       product_name: 'Simple oat cereal', categories_tags: ['en:cereals'], ingredients_text_en: 'whole oats, cinnamon, sea salt',
@@ -166,6 +206,7 @@ describe('product lookup and quality', () => {
     expect(unresolved).toMatchObject({ result_state: 'more_data_needed', score: null, letter_grade: null, grade_label: 'More data needed' });
     expect(JSON.stringify(unresolved)).not.toContain('Calibrating');
     expect(unresolved.considerations).toContain('There is not enough reliable category information to assign a grade yet.');
+    expect(unresolved.missing_evidence).toContain('A reliable product category could not be resolved.');
     expect(unresolved.considerations.join(' ').toLowerCase()).not.toMatch(/uses the overall label pattern|the score uses/);
   });
 

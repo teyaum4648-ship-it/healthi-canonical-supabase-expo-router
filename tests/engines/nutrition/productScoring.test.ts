@@ -105,6 +105,24 @@ describe('Healthi Scanner Engine V2', () => {
     expect(resolution.interpretationConfidence).toBe('high');
   });
 
+  it('resolves common packaged-food forms from specific provider categories', () => {
+    const fixtures = [
+      { name: 'Chickpea noodles', categoryTags: ['pastas'], expected: 'pasta' },
+      { name: 'Multigrain loaf', categoryTags: ['multigrain sliced breads'], expected: 'bread' },
+      { name: 'Lentil meal', categoryTags: ['canned soups', 'lentil soups'], expected: 'soup' },
+      { name: 'Toasted oat rings', categoryTags: ['breakfast cereals', 'extruded cereals'], expected: 'cereal' },
+      { name: 'Oven-roasted poultry slices', categoryTags: ['prepared meats', 'turkey breasts'], expected: 'prepared_meat' },
+      { name: 'Crunchy oat snack', categoryTags: ['cereal bars'], expected: 'cereal_bar' }
+    ];
+
+    for (const fixture of fixtures) {
+      const resolution = resolveProductCategory(fixture);
+      expect(resolution.selectedCategoryId).toBe(fixture.expected);
+      expect(resolution.interpretationConfidence).toBe('high');
+      expect(CATEGORY_PROFILES[fixture.expected]).toBeDefined();
+    }
+  });
+
   it('requires explicit hydration-mix context before minerals support electrolyte form', () => {
     const plantMilk = resolveProductCategory({
       name: 'Almondmilk',
@@ -129,6 +147,15 @@ describe('Healthi Scanner Engine V2', () => {
     });
     expect(condiment.selectedCategoryId).toBe('condiments');
     expect(condiment.candidates.map((candidate) => candidate.categoryId)).not.toContain('marinara');
+
+    const marinara = resolveProductCategory({
+      name: 'Tomato basil pasta sauce',
+      categoryTags: ['pasta sauces'],
+      ingredientsText: 'tomatoes, olive oil, onion, garlic, basil'
+    });
+    expect(marinara.selectedCategoryId).toBe('marinara');
+    expect(marinara.interpretationConfidence).toBe('high');
+    expect(marinara.candidates.map((candidate) => candidate.categoryId)).not.toContain('pasta');
   });
 
   it('requires every category profile to resolve every rule family explicitly', () => {
@@ -792,6 +819,23 @@ describe('Healthi Scanner Engine V2', () => {
     expect(splitIngredientList('oats, oil blend (canola oil, sunflower oil), sea salt')).toEqual([
       'oats', 'oil blend (canola oil, sunflower oil)', 'sea salt'
     ]);
+  });
+
+  it('keeps colon-delimited subingredients within their declared parent ingredient', () => {
+    const ingredients = 'pasteurized skim milk, live active cultures: s. thermophilus, l. bulgaricus, b. lactis';
+    expect(splitIngredientList(ingredients)).toEqual([
+      'pasteurized skim milk',
+      'live active cultures: s. thermophilus, l. bulgaricus, b. lactis'
+    ]);
+
+    const culturedDairy = score({
+      name: 'Plain cultured skyr',
+      category: 'yogurt',
+      ingredientsText: ingredients,
+      servingNutrients: { calories: 100, protein_g: 19, fiber_g: 0, sugar_g: 5, sodium_mg: 65 }
+    });
+    expect(culturedDairy.letterGrade).toBe('A');
+    expect(culturedDairy.gradeEligibility?.aEligible).toBe(true);
   });
 
   it('keeps generated V2 copy within general-wellness language', () => {

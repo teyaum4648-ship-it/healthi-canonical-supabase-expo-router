@@ -4,6 +4,7 @@ import type { HealthiProductSnapshot, ProductLookupResult } from './productLooku
 
 type FetchResponse = {
   ok: boolean;
+  status?: number;
   json(): Promise<unknown>;
 };
 
@@ -85,6 +86,29 @@ async function fetchWithTimeout(
   }
 }
 
+function isRetryableProviderFailure(response: FetchResponse): boolean {
+  return response.status === 408 || response.status === 429 || (typeof response.status === 'number' && response.status >= 500);
+}
+
+async function fetchProductWithRetry(
+  fetcher: ProductLookupFetch,
+  url: string,
+  timeoutMs: number
+): Promise<FetchResponse> {
+  const maximumAttempts = 2;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(fetcher, url, timeoutMs);
+      if (response.ok || !isRetryableProviderFailure(response) || attempt === maximumAttempts - 1) return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt === maximumAttempts - 1) throw error;
+    }
+  }
+  throw lastError;
+}
+
 export async function lookupOpenFoodFactsProduct(
   value: string,
   options: OpenFoodFactsLookupOptions = {}
@@ -106,7 +130,7 @@ export async function lookupOpenFoodFactsProduct(
   try {
     for (const candidate of barcodeLookupCandidates(barcode)) {
       const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(candidate)}.json?fields=${productFields(options.locale)}`;
-      const response = await fetchWithTimeout(fetcher, url, timeoutMs);
+      const response = await fetchProductWithRetry(fetcher, url, timeoutMs);
       if (!response.ok) {
         return {
           status: 'error',

@@ -166,12 +166,15 @@ export function splitIngredientList(text: string): string[] {
   const tokens: string[] = [];
   let depth = 0;
   let current = '';
+  let colonSublist = false;
   for (const character of text) {
     if (character === '(' || character === '[') depth += 1;
     if (character === ')' || character === ']') depth = Math.max(0, depth - 1);
-    if ((character === ',' || character === ';') && depth === 0) {
+    if (character === ':' && depth === 0 && !/^\s*(ingredients?|contains)\s*$/i.test(current)) colonSublist = true;
+    if ((character === ';' || (character === ',' && !colonSublist)) && depth === 0) {
       if (current.trim()) tokens.push(current.trim());
       current = '';
+      colonSublist = false;
     } else current += character;
   }
   if (current.trim()) tokens.push(current.trim());
