@@ -4,15 +4,19 @@ import {
   deleteWorkoutSession,
   getWorkoutSessionsForRange,
   saveWorkoutExerciseEntries,
+  saveWorkoutSetEntries,
   toExerciseLibraryItemInsert,
   toWorkoutExerciseEntryInsert,
   toWorkoutSessionInsert,
+  toWorkoutSetEntryInsert,
   type ExerciseLibraryItemInsert,
   type MovementSupabaseClient,
   type WorkoutExerciseEntryInsert,
   type WorkoutExerciseEntryRow,
   type WorkoutSessionInsert,
-  type WorkoutSessionRow
+  type WorkoutSessionRow,
+  type WorkoutSetEntryInsert,
+  type WorkoutSetEntryRow
 } from '../../../src/features/movement/movementPersistence';
 
 const userId = '00000000-0000-0000-0000-000000000001';
@@ -25,12 +29,16 @@ function entryRow(payload: WorkoutExerciseEntryInsert, index = 0): WorkoutExerci
   return { ...payload, id: `entry-${index + 1}`, created_at: '2026-07-13T18:00:00.000Z', updated_at: '2026-07-13T18:00:00.000Z' };
 }
 
+function setRow(payload: WorkoutSetEntryInsert, index = 0): WorkoutSetEntryRow {
+  return { ...payload, id: `set-${index + 1}`, created_at: '2026-07-13T18:00:00.000Z', updated_at: '2026-07-13T18:00:00.000Z' };
+}
+
 function createClient(calls: Array<{ action: string; table?: string; column?: string; value?: unknown; payload?: unknown }>): MovementSupabaseClient {
   return {
     from(table: string) {
       calls.push({ action: 'from', table });
       const query = {
-        insert(payload: ExerciseLibraryItemInsert | WorkoutSessionInsert | WorkoutExerciseEntryInsert) {
+        insert(payload: ExerciseLibraryItemInsert | WorkoutSessionInsert | WorkoutExerciseEntryInsert | WorkoutSetEntryInsert) {
           calls.push({ action: 'insert', table, payload });
           return {
             select() {
@@ -40,6 +48,8 @@ function createClient(calls: Array<{ action: string; table?: string; column?: st
                     ? sessionRow(payload as WorkoutSessionInsert)
                     : table === 'workout_exercise_entries'
                       ? entryRow(payload as WorkoutExerciseEntryInsert, calls.filter((call) => call.action === 'insert').length - 1)
+                      : table === 'workout_set_entries'
+                        ? setRow(payload as WorkoutSetEntryInsert, calls.filter((call) => call.action === 'insert').length - 1)
                       : { ...payload, id: 'library-1', created_at: '2026-07-13T18:00:00.000Z', updated_at: '2026-07-13T18:00:00.000Z' };
                   return Promise.resolve({ data, error: null });
                 }
@@ -139,6 +149,22 @@ describe('Movement persistence', () => {
     expect(payload).toMatchObject({ user_id: userId, exercise_name: 'Bike', duration_minutes: 20, sets: null, reps: null, weight: null, effort: null });
   });
 
+  it('maps set-level continuity fields without inventing values', () => {
+    const payload = toWorkoutSetEntryInsert({
+      workout_session_id: 'session-1',
+      workout_exercise_entry_id: 'entry-1',
+      set_index: 1,
+      weight: 24,
+      reps: 8,
+      rpe: 7.5,
+      rest_seconds: 90,
+      completed_at: '2026-07-13T18:05:00.000Z'
+    }, userId);
+
+    expect(payload).toMatchObject({ user_id: userId, set_index: 1, weight: 24, reps: 8, rpe: 7.5, rest_seconds: 90 });
+    expect(payload.reason_codes).toContain('quick_set_log');
+  });
+
   it('saves multiple exercise entries without losing ordering', async () => {
     const calls: Array<{ action: string; table?: string; column?: string; value?: unknown; payload?: unknown }> = [];
     const rows = await saveWorkoutExerciseEntries(createClient(calls), userId, [
@@ -148,6 +174,17 @@ describe('Movement persistence', () => {
 
     expect(rows.map((row) => row.order_index)).toEqual([0, 1]);
     expect(calls.filter((call) => call.action === 'insert')).toHaveLength(2);
+  });
+
+  it('saves multiple set entries with their exercise relationship', async () => {
+    const calls: Array<{ action: string; table?: string; column?: string; value?: unknown; payload?: unknown }> = [];
+    const rows = await saveWorkoutSetEntries(createClient(calls), userId, [
+      { workout_session_id: 'session-1', workout_exercise_entry_id: 'entry-1', set_index: 1, reps: 8 },
+      { workout_session_id: 'session-1', workout_exercise_entry_id: 'entry-1', set_index: 2, reps: 7 }
+    ]);
+
+    expect(rows.map((row) => row.set_index)).toEqual([1, 2]);
+    expect(calls.filter((call) => call.table === 'workout_set_entries' && call.action === 'insert')).toHaveLength(2);
   });
 
   it('uses user-scoped range filters', async () => {

@@ -122,6 +122,43 @@ export type WorkoutExerciseEntryRow = WorkoutExerciseEntryInsert & {
   updated_at: string;
 };
 
+export type WorkoutSetEntryInput = {
+  workout_session_id: string;
+  workout_exercise_entry_id: string;
+  set_index: number;
+  weight?: number | null;
+  reps?: number | null;
+  rpe?: number | null;
+  rest_seconds?: number | null;
+  completed_at?: string | null;
+  notes?: string | null;
+  source?: MovementPersistenceSource;
+  source_confidence?: DataConfidence;
+  reason_codes?: string[];
+};
+
+export type WorkoutSetEntryInsert = {
+  user_id: string;
+  workout_session_id: string;
+  workout_exercise_entry_id: string;
+  set_index: number;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
+  rest_seconds: number | null;
+  completed_at: string | null;
+  notes: string | null;
+  source: MovementPersistenceSource;
+  source_confidence: DataConfidence;
+  reason_codes: string[];
+};
+
+export type WorkoutSetEntryRow = WorkoutSetEntryInsert & {
+  id: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type QueryError = { message?: string };
 type QueryResponse<T> = { data: T | null; error: QueryError | null };
 type InsertQuery<TRow> = { select(columns: string): { single(): Promise<QueryResponse<TRow>> } };
@@ -154,6 +191,7 @@ export type MovementSupabaseClient = {
   from(table: 'exercise_library_items'): TableQuery<ExerciseLibraryItemInsert, ExerciseLibraryItemRow>;
   from(table: 'workout_sessions'): TableQuery<WorkoutSessionInsert, WorkoutSessionRow>;
   from(table: 'workout_exercise_entries'): TableQuery<WorkoutExerciseEntryInsert, WorkoutExerciseEntryRow>;
+  from(table: 'workout_set_entries'): TableQuery<WorkoutSetEntryInsert, WorkoutSetEntryRow>;
 };
 
 function raiseSupabaseError(error: QueryError): never {
@@ -220,6 +258,27 @@ export function toWorkoutExerciseEntryInsert(
     source: input.source ?? 'manual',
     source_confidence: input.source_confidence ?? 'medium',
     reason_codes: [...(input.reason_codes ?? ['manual_workout_log'])]
+  };
+}
+
+export function toWorkoutSetEntryInsert(
+  input: WorkoutSetEntryInput,
+  userId: string
+): WorkoutSetEntryInsert {
+  return {
+    user_id: userId,
+    workout_session_id: input.workout_session_id,
+    workout_exercise_entry_id: input.workout_exercise_entry_id,
+    set_index: input.set_index,
+    weight: input.weight ?? null,
+    reps: input.reps ?? null,
+    rpe: input.rpe ?? null,
+    rest_seconds: input.rest_seconds ?? null,
+    completed_at: input.completed_at ?? null,
+    notes: trimOrNull(input.notes),
+    source: input.source ?? 'manual',
+    source_confidence: input.source_confidence ?? 'medium',
+    reason_codes: [...(input.reason_codes ?? ['manual_workout_log', 'quick_set_log'])]
   };
 }
 
@@ -404,4 +463,44 @@ export async function deleteWorkoutExerciseEntry(
 ): Promise<void> {
   const { error } = await client.from('workout_exercise_entries').delete().eq('id', entryId).eq('user_id', userId);
   if (error) raiseSupabaseError(error);
+}
+
+export async function saveWorkoutSetEntry(
+  client: MovementSupabaseClient,
+  userId: string,
+  input: WorkoutSetEntryInput
+): Promise<WorkoutSetEntryRow> {
+  const { data, error } = await client
+    .from('workout_set_entries')
+    .insert(toWorkoutSetEntryInsert(input, userId))
+    .select('*')
+    .single();
+  if (error) raiseSupabaseError(error);
+  if (!data) throw new Error('Workout set save returned no data.');
+  return data;
+}
+
+export async function saveWorkoutSetEntries(
+  client: MovementSupabaseClient,
+  userId: string,
+  inputs: WorkoutSetEntryInput[]
+): Promise<WorkoutSetEntryRow[]> {
+  return Promise.all(inputs.map((input) => saveWorkoutSetEntry(client, userId, input)));
+}
+
+export async function getWorkoutSetEntriesForSession(
+  client: MovementSupabaseClient,
+  userId: string,
+  sessionId: string,
+  limit = 500
+): Promise<WorkoutSetEntryRow[]> {
+  const { data, error } = await client
+    .from('workout_set_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('workout_session_id', sessionId)
+    .order('set_index', { ascending: true })
+    .limit(limit);
+  if (error) raiseSupabaseError(error);
+  return data ?? [];
 }

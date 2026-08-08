@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
-import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
+import {
+  calculateMovementSummary,
+  generateAdaptiveMovementPlan,
+  generateMovementReadinessSignal
+} from '../../../src/engines/movement';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
@@ -41,25 +45,42 @@ import {
 import {
   addDemoWorkoutExerciseEntries,
   addDemoWorkoutSession,
+  addDemoWorkoutSetEntries,
   deleteDemoWorkoutSession,
   getLocalDemoMovementState
 } from '../../../src/features/movement/localDemoMovementStore';
+import { createMovementPreviewFixture } from '../../../src/features/movement/movementPreviewFixtures';
 import {
   deleteWorkoutSession,
   getExerciseLibraryItems,
   getWorkoutExerciseEntriesForSession,
+  getWorkoutSetEntriesForSession,
   getWorkoutSessionsForRange,
   saveWorkoutExerciseEntries,
   saveWorkoutSession,
+  saveWorkoutSetEntries,
   type ExerciseLibraryItemRow,
   type MovementSupabaseClient,
   type WorkoutExerciseEntryRow,
   type WorkoutSessionRow,
+  type WorkoutSetEntryRow,
   workoutExerciseEntryRowToEngineEntry,
   workoutSessionRowToEngineSession
 } from '../../../src/features/movement/movementPersistence';
 import {
-  applyWorkoutTemplate,
+  attachPreviousWorkout,
+  copyPreviousSet,
+  createDemoQuickWorkoutRows,
+  createQuickExerciseDraft,
+  createQuickSetDraft,
+  createQuickWorkoutFromTemplate,
+  createQuickWorkoutFromText,
+  isMovementLogWithinSafetyGuidance,
+  quickWorkoutToInputs,
+  removeQuickSetDraft,
+  type QuickWorkoutDraft
+} from '../../../src/features/movement/workoutQuickLog';
+import {
   createDemoWorkoutRows,
   createEmptyExerciseDraft,
   createEmptyWorkoutDraft,
@@ -72,17 +93,25 @@ import {
   type WorkoutExerciseDraft
 } from '../../../src/features/movement/workoutForms';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, hairlineWidth, radii, spacing, type } from '../../../src/styles/theme';
+import { colors, hairlineWidth, spacing, type } from '../../../src/styles/theme';
 
-type Segment = 'Today' | 'Log Workout' | 'Templates' | 'History';
+type Segment = 'Today' | 'Train' | 'Library' | 'History';
+type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
-const segments: Segment[] = ['Today', 'Log Workout', 'Templates', 'History'];
+const segments: Segment[] = ['Today', 'Train', 'Library', 'History'];
+const movePalette = {
+  background: '#EDEBE3',
+  surface: '#FAF9F5',
+  ink: '#141F19',
+  green: '#1C4235',
+  greenMid: '#2F6B53',
+  slate: '#4A5560',
+  line: 'rgba(20, 31, 25, 0.10)',
+  lineStrong: 'rgba(20, 31, 25, 0.14)',
+  wash: 'rgba(28, 66, 53, 0.06)'
+} as const;
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
-
-function weekStart(date: string): string {
-  return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
 
 function historyStart(date: string): string {
   return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -97,6 +126,33 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime())
     ? value
     : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function formatLoggedAt(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function EditorialLabel({ children }: { children: string }) {
+  return <Text style={styles.editorialLabel}>{children}</Text>;
+}
+
+function PageHeading({ section, title, action }: { section: string; title: string; action?: ReactNode }) {
+  return (
+    <View>
+      <EditorialLabel>{section}</EditorialLabel>
+      <View style={styles.pageHeadingRow}>
+        <Text style={styles.pageTitle}>{title}</Text>
+        {action}
+      </View>
+    </View>
+  );
+}
+
+function Divider() {
+  return <View style={styles.editorialDivider} />;
 }
 
 function Field({
@@ -142,23 +198,24 @@ function Chip({ label, selected, onPress }: { label: string; selected?: boolean;
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </View>
-  );
-}
-
 export default function MovementScreen() {
   const { user } = useAuth();
+  const { moveFixture } = useLocalSearchParams<{ moveFixture?: string | string[] }>();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const trainingLimited = Boolean(activeProtocol && !activeProtocol.safety.training_allowed);
+  const usePreviewFixture = __DEV__ && (Array.isArray(moveFixture) ? moveFixture[0] : moveFixture) === 'full';
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
+  const [isLogging, setIsLogging] = useState(false);
+  const [isQuickLogging, setIsQuickLogging] = useState(false);
+  const [quickPrompt, setQuickPrompt] = useState('');
+  const [quickDraft, setQuickDraft] = useState<QuickWorkoutDraft | null>(null);
+  const [showTodayDetails, setShowTodayDetails] = useState(false);
+  const [libraryQuery, setLibraryQuery] = useState('');
+  const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('all');
+  const [feeling, setFeeling] = useState<string | null>(null);
   const [sleepSignal, setSleepSignal] = useState<{ signal: MoveSleepSignal; summary: string }>({
     signal: 'unknown',
     summary: 'Sleep is still calibrating for today.'
@@ -169,6 +226,7 @@ export default function MovementScreen() {
   });
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [entries, setEntries] = useState<WorkoutExerciseEntryRow[]>([]);
+  const [workoutSets, setWorkoutSets] = useState<WorkoutSetEntryRow[]>([]);
   const [library, setLibrary] = useState<ExerciseLibraryItemRow[]>(() => starterExerciseRows());
   const [draft, setDraft] = useState<WorkoutDraft>(() => createEmptyWorkoutDraft(today));
   const [dataMode, setDataMode] = useState<'remote' | 'demo'>('demo');
@@ -183,6 +241,16 @@ export default function MovementScreen() {
   const loadMovement = useCallback(async () => {
     setIsLoading(true);
     try {
+      if (usePreviewFixture) {
+        const fixture = createMovementPreviewFixture(today);
+        setSessions(fixture.workoutSessions);
+        setEntries(fixture.workoutExerciseEntries);
+        setWorkoutSets(fixture.workoutSetEntries);
+        setLibrary(fixture.exerciseLibrary);
+        setDataMode('demo');
+        setStatus('Development preview fixture active. Nothing here is saved.');
+        return;
+      }
       if (canUseRemote && userId) {
         const client = supabase as unknown as MovementSupabaseClient;
         const [sessionRows, libraryRows] = await Promise.all([
@@ -192,8 +260,12 @@ export default function MovementScreen() {
         const entryRows = (await Promise.all(
           sessionRows.map((session) => getWorkoutExerciseEntriesForSession(client, userId, session.id))
         )).flat();
+        const setRows = (await Promise.all(
+          sessionRows.map((session) => getWorkoutSetEntriesForSession(client, userId, session.id).catch(() => []))
+        )).flat();
         setSessions(sessionRows);
         setEntries(entryRows);
+        setWorkoutSets(setRows);
         setLibrary(libraryRows.length > 0 ? libraryRows : starterExerciseRows());
         setDataMode('remote');
         setStatus(sessionRows.length > 0 ? 'Based on logged workouts.' : 'Log a workout to begin shaping your movement signal.');
@@ -203,6 +275,7 @@ export default function MovementScreen() {
       const state = await getLocalDemoMovementState();
       setSessions(state.workoutSessions);
       setEntries(state.workoutExerciseEntries);
+      setWorkoutSets(state.workoutSetEntries);
       setLibrary(state.exerciseLibrary.length > 0 ? state.exerciseLibrary : starterExerciseRows());
       setDataMode('demo');
       setStatus(state.workoutSessions.length > 0 ? 'Based on local demo workout logs.' : 'Log a workout to begin shaping your movement signal.');
@@ -210,17 +283,19 @@ export default function MovementScreen() {
       const state = await getLocalDemoMovementState().catch(() => ({
         exerciseLibrary: [],
         workoutSessions: [],
-        workoutExerciseEntries: []
+        workoutExerciseEntries: [],
+        workoutSetEntries: []
       }));
       setSessions(state.workoutSessions);
       setEntries(state.workoutExerciseEntries);
+      setWorkoutSets(state.workoutSetEntries);
       setLibrary(state.exerciseLibrary.length > 0 ? state.exerciseLibrary : starterExerciseRows());
       setDataMode('demo');
       setStatus('Movement sync is unavailable. Local demo logging is active.');
     } finally {
       setIsLoading(false);
     }
-  }, [canUseRemote, today, userId]);
+  }, [canUseRemote, today, usePreviewFixture, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -234,6 +309,11 @@ export default function MovementScreen() {
       let isMounted = true;
 
       async function loadContextSignals() {
+        if (usePreviewFixture) {
+          setSleepSignal({ signal: 'supportive', summary: 'Recent sleep timing looks steady enough to support normal movement capacity.' });
+          setNutritionSignal({ signal: 'supportive', summary: 'Logged meals provide supportive fueling context for today.' });
+          return;
+        }
         try {
           const sleepClient = supabase as unknown as SleepRhythmSupabaseClient;
           const [recentSessions, activeNeed] =
@@ -277,7 +357,7 @@ export default function MovementScreen() {
       return () => {
         isMounted = false;
       };
-    }, [canUseRemote, now, today, userId])
+    }, [canUseRemote, now, today, usePreviewFixture, userId])
   );
 
   const engineSessions = useMemo(() => sessions.map(workoutSessionRowToEngineSession), [sessions]);
@@ -295,6 +375,134 @@ export default function MovementScreen() {
       }),
     [nutritionSignal.signal, sleepSignal.signal, summary]
   );
+  const adaptivePlan = useMemo(
+    () =>
+      generateAdaptiveMovementPlan({
+        signal,
+        summary,
+        training_allowed: !trainingLimited,
+        sleep_signal: sleepSignal.signal,
+        nutrition_signal: nutritionSignal.signal
+      }),
+    [nutritionSignal.signal, signal, sleepSignal.signal, summary, trainingLimited]
+  );
+  const capacityIndex = ['restore', 'technique', 'build', 'push'].indexOf(adaptivePlan.capacity);
+  const filteredLibrary = useMemo(() => {
+    const query = libraryQuery.trim().toLowerCase();
+    return library.filter((item) => {
+      const matchesCategory = libraryFilter === 'all' || item.category === libraryFilter;
+      const matchesQuery = !query || [item.name, item.category, item.movement_pattern ?? '', ...(item.equipment ?? [])]
+        .some((value) => value.toLowerCase().includes(query));
+      return matchesCategory && matchesQuery;
+    });
+  }, [library, libraryFilter, libraryQuery]);
+  const libraryGroups = useMemo(
+    () =>
+      exerciseCategories
+        .map((category) => ({ category, items: filteredLibrary.filter((item) => item.category === category) }))
+        .filter((group) => group.items.length > 0),
+    [filteredLibrary]
+  );
+  const movementMix = useMemo(() => {
+    const known = summary.strength_session_count + summary.cardio_session_count + summary.mobility_recovery_session_count;
+    const rows = [
+      { label: 'Strength', count: summary.strength_session_count, color: movePalette.green },
+      { label: 'Cardio', count: summary.cardio_session_count, color: movePalette.greenMid },
+      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: '#7B8F82' },
+      { label: 'Mixed + sport', count: Math.max(0, summary.workout_count - known), color: movePalette.slate }
+    ];
+    const max = Math.max(1, ...rows.map((row) => row.count));
+    return rows.map((row) => ({ ...row, width: `${Math.max(row.count > 0 ? 12 : 0, (row.count / max) * 100)}%` as const }));
+  }, [summary]);
+  const weeklyDays = useMemo(() => {
+    const end = new Date(`${today}T12:00:00.000Z`);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(end.getTime() - (6 - index) * 24 * 60 * 60 * 1000);
+      const iso = date.toISOString().slice(0, 10);
+      const daySessions = sessions.filter((session) => session.session_date.slice(0, 10) === iso);
+      const category = daySessions[0]?.workout_type ?? null;
+      return {
+        iso,
+        label: date.toLocaleDateString(undefined, { weekday: 'narrow', timeZone: 'UTC' }),
+        category,
+        isToday: iso === today
+      };
+    });
+  }, [sessions, today]);
+  const historyWeeks = useMemo(() => {
+    const end = new Date(`${today}T23:59:59.999Z`).getTime();
+    const rows = Array.from({ length: 4 }, (_, index) => {
+      const rangeEnd = end - index * 7 * 24 * 60 * 60 * 1000;
+      const rangeStart = rangeEnd - 6 * 24 * 60 * 60 * 1000;
+      const matching = sessions.filter((session) => {
+        const value = new Date(`${session.session_date.slice(0, 10)}T12:00:00.000Z`).getTime();
+        return value >= rangeStart && value <= rangeEnd;
+      });
+      return {
+        label: index === 0 ? 'This week' : `${index}w ago`,
+        minutes: matching.reduce((total, session) => total + (session.duration_minutes ?? 0), 0),
+        count: matching.length
+      };
+    }).reverse();
+    const max = Math.max(1, ...rows.map((row) => row.minutes));
+    return rows.map((row) => ({ ...row, width: `${(row.minutes / max) * 100}%` as const }));
+  }, [sessions, today]);
+  const sessionPlot = useMemo(() => {
+    const recent = sessions.slice(0, 12);
+    const maxDuration = Math.max(1, ...recent.map((session) => session.duration_minutes ?? 0));
+    return recent.map((session) => {
+      const effort = session.perceived_effort ?? 5;
+      const duration = session.duration_minutes ?? 0;
+      return {
+        id: session.id,
+        title: session.title,
+        left: `${8 + (Math.min(10, Math.max(1, effort)) / 10) * 82}%` as const,
+        top: `${82 - (duration / maxDuration) * 68}%` as const,
+        color: session.workout_type === 'strength'
+          ? movePalette.green
+          : session.workout_type === 'cardio'
+            ? movePalette.greenMid
+            : session.workout_type === 'mobility' || session.workout_type === 'recovery'
+              ? '#869B90'
+              : movePalette.slate
+      };
+    });
+  }, [sessions]);
+  const recentPattern = useMemo(() => {
+    const minutes = sessions.map((session) => session.duration_minutes).filter((value): value is number => value !== null);
+    const averageMinutes = minutes.length > 0 ? Math.round(minutes.reduce((sum, value) => sum + value, 0) / minutes.length) : 0;
+    const counts = sessions.reduce<Record<string, number>>((result, session) => {
+      result[session.workout_type] = (result[session.workout_type] ?? 0) + 1;
+      return result;
+    }, {});
+    const mostFrequent = Object.entries(counts).sort((left, right) => right[1] - left[1])[0]?.[0] ?? 'calibrating';
+    return { averageMinutes, mostFrequent };
+  }, [sessions]);
+  const routineChoices = useMemo(() => {
+    const seen = new Set<string>();
+    const recent = sessions.filter((session) => {
+      const key = session.title.trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 4).map((session) => ({
+      kind: 'recent' as const,
+      id: `recent-${session.id}`,
+      title: session.title,
+      subtitle: `Last ${formatDate(session.session_date)}`,
+      workoutType: session.workout_type,
+      session
+    }));
+    const templates = workoutTemplates.map((template) => ({
+      kind: 'template' as const,
+      id: `template-${template.id}`,
+      title: template.title,
+      subtitle: `${template.exercises.length} movements · ${template.duration_minutes} min`,
+      workoutType: template.workout_type,
+      template
+    }));
+    return [...recent, ...templates];
+  }, [sessions]);
 
   function updateDraft<K extends keyof WorkoutDraft>(key: K, value: WorkoutDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -313,16 +521,224 @@ export default function MovementScreen() {
     updateDraft('exercises', [...draft.exercises, next]);
   }
 
+  function isSafetyCompatible(category: string): boolean {
+    return adaptivePlan.training_allowed || category === 'mobility' || category === 'recovery';
+  }
+
+  function startQuickWorkout(nextDraft: QuickWorkoutDraft) {
+    if (!isSafetyCompatible(nextDraft.workout_type)) {
+      setStatus('Today’s protocol keeps that routine outside the suggested movement range. Choose mobility or recovery instead.');
+      return;
+    }
+    setQuickDraft(attachPreviousWorkout(nextDraft, sessions, entries, workoutSets));
+    setActiveSegment('Train');
+    setIsLogging(false);
+    setIsQuickLogging(true);
+    setStatus('Quick log ready. Previous values stay on the left; today’s entries go on the right.');
+  }
+
+  function openQuickFromPrompt() {
+    const nextDraft = createQuickWorkoutFromText(quickPrompt);
+    if (!nextDraft) {
+      setStatus('Type a workout focus or one or more movements to begin.');
+      return;
+    }
+    startQuickWorkout(nextDraft);
+  }
+
+  function openQuickTemplate(template: (typeof workoutTemplates)[number]) {
+    startQuickWorkout(createQuickWorkoutFromTemplate(template));
+  }
+
+  function openQuickRecent(session: WorkoutSessionRow) {
+    const sessionEntries = entries.filter((entry) => entry.workout_session_id === session.id);
+    const seed = sessionEntries.map((entry) => entry.exercise_name).join(', ') || session.title;
+    const nextDraft = createQuickWorkoutFromText(seed);
+    if (!nextDraft) return;
+    startQuickWorkout({ ...nextDraft, title: session.title, workout_type: session.workout_type });
+  }
+
+  function updateQuickExercise(exerciseId: string, update: Partial<QuickWorkoutDraft['exercises'][number]>) {
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, ...update } : exercise)
+    } : current);
+  }
+
+  function updateQuickSet(
+    exerciseId: string,
+    setId: string,
+    update: Partial<QuickWorkoutDraft['exercises'][number]['sets'][number]>
+  ) {
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId
+        ? { ...exercise, sets: exercise.sets.map((set) => set.id === setId ? { ...set, ...update } : set) }
+        : exercise)
+    } : current);
+  }
+
+  function addQuickSet(exerciseId: string) {
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId
+        ? { ...exercise, sets: [...exercise.sets, createQuickSetDraft(exercise.sets.length + 1)] }
+        : exercise)
+    } : current);
+  }
+
+  function removeQuickSet(exerciseId: string, setId: string) {
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId
+        ? removeQuickSetDraft(exercise, setId)
+        : exercise)
+    } : current);
+  }
+
+  function addQuickExercise(item?: ExerciseLibraryItemRow) {
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: [...current.exercises, createQuickExerciseDraft(item?.name ?? '', item?.category ?? 'strength')]
+    } : current);
+  }
+
+  function applyPreviousSet(exerciseId: string, setIndex: number) {
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId
+        ? copyPreviousSet(exercise, setIndex)
+        : exercise)
+    } : current);
+  }
+
+  async function handleQuickSave() {
+    if (!quickDraft) return;
+    const finishedAt = new Date().toISOString();
+    const result = quickWorkoutToInputs(quickDraft, shouldUseRemote ? 'manual' : 'demo', finishedAt);
+    if (!result.ok) {
+      setStatus(result.error);
+      return;
+    }
+    if (!isMovementLogWithinSafetyGuidance(
+      adaptivePlan.training_allowed,
+      result.value.session.workout_type,
+      result.value.exercises.map((exercise) => exercise.category)
+    )) {
+      setStatus('Today’s protocol keeps this session outside the suggested movement range. Choose mobility or recovery instead.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (usePreviewFixture) {
+        const rows = createDemoQuickWorkoutRows(result.value, 'development-move-preview', finishedAt);
+        setSessions((current) => [rows.session, ...current]);
+        setEntries((current) => [...rows.exercises, ...current]);
+        setWorkoutSets((current) => [...rows.sets, ...current]);
+        setStatus('Preview workout added for this render only. Nothing was saved.');
+      } else if (shouldUseRemote && userId) {
+        const client = supabase as unknown as MovementSupabaseClient;
+        const session = await saveWorkoutSession(client, userId, result.value.session);
+        const savedExercises = await saveWorkoutExerciseEntries(
+          client,
+          userId,
+          result.value.exercises.map((exercise) => ({ ...exercise, workout_session_id: session.id }))
+        );
+        const savedSets = await saveWorkoutSetEntries(
+          client,
+          userId,
+          result.value.sets.map((set) => ({
+            ...set.input,
+            workout_session_id: session.id,
+            workout_exercise_entry_id: savedExercises[set.exercise_index].id
+          }))
+        );
+        setSessions((current) => [session, ...current]);
+        setEntries((current) => [...savedExercises, ...current]);
+        setWorkoutSets((current) => [...savedSets, ...current]);
+        setDataMode('remote');
+        setStatus('Workout saved with an automatic date and time.');
+      } else {
+        const rows = createDemoQuickWorkoutRows(result.value, 'demo-user', finishedAt);
+        await addDemoWorkoutSession(rows.session);
+        await addDemoWorkoutExerciseEntries(rows.exercises);
+        await addDemoWorkoutSetEntries(rows.sets);
+        setSessions((current) => [rows.session, ...current]);
+        setEntries((current) => [...rows.exercises, ...current]);
+        setWorkoutSets((current) => [...rows.sets, ...current]);
+        setDataMode('demo');
+        setStatus('Workout saved locally with an automatic date and time.');
+      }
+      setQuickDraft(null);
+      setQuickPrompt('');
+      setIsQuickLogging(false);
+      setActiveSegment('Today');
+    } catch {
+      setStatus('Workout could not save. Review the set details and try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function openBlankWorkout() {
+    const nextDraft = createEmptyWorkoutDraft(today);
+    if (!adaptivePlan.training_allowed) {
+      nextDraft.workout_type = 'recovery';
+      nextDraft.title = 'Gentle Movement';
+    }
+    setDraft(nextDraft);
+    setActiveSegment('Train');
+    setIsQuickLogging(false);
+    setIsLogging(true);
+    setStatus('New workout ready. Add only the details that are useful to you.');
+  }
+
+  function openCustomMovement() {
+    const nextDraft = createEmptyWorkoutDraft(today);
+    nextDraft.exercises = [createEmptyExerciseDraft(adaptivePlan.training_allowed ? 'strength' : 'recovery')];
+    setDraft(nextDraft);
+    setActiveSegment('Train');
+    setIsQuickLogging(false);
+    setIsLogging(true);
+    setStatus('Custom movement ready. Name it and add only the details you want to track.');
+  }
+
+  function addLibraryMovement(item: ExerciseLibraryItemRow) {
+    if (!isSafetyCompatible(item.category)) {
+      setStatus('Today’s protocol keeps this movement outside the suggested movement range.');
+      return;
+    }
+    addExercise(item);
+    setActiveSegment('Train');
+    setIsQuickLogging(false);
+    setIsLogging(true);
+    setStatus(`${item.name} added to your session.`);
+  }
+
   async function handleSave() {
     const result = workoutDraftToInputs(draft, shouldUseRemote ? 'manual' : 'demo');
     if (!result.ok) {
       setStatus(result.error);
       return;
     }
+    if (!isMovementLogWithinSafetyGuidance(
+      adaptivePlan.training_allowed,
+      result.session.workout_type,
+      result.exercises.map((exercise) => exercise.category)
+    )) {
+      setStatus('Today’s protocol keeps this session outside the suggested movement range. Choose mobility or recovery instead.');
+      return;
+    }
 
     setIsSaving(true);
     try {
-      if (shouldUseRemote && userId) {
+      if (usePreviewFixture) {
+        const rows = createDemoWorkoutRows(result);
+        setSessions((current) => [rows.session, ...current.filter((item) => item.id !== rows.session.id)]);
+        setEntries((current) => [...rows.exercises, ...current]);
+        setStatus('Preview workout added for this render only. Nothing was saved.');
+      } else if (shouldUseRemote && userId) {
         const client = supabase as unknown as MovementSupabaseClient;
         const session = await saveWorkoutSession(client, userId, result.session);
         const savedEntries = await saveWorkoutExerciseEntries(
@@ -345,6 +761,7 @@ export default function MovementScreen() {
       }
       setDraft(createEmptyWorkoutDraft(today));
       setActiveSegment('Today');
+      setIsLogging(false);
     } catch {
       setStatus('Workout could not save. Review the details and try again.');
     } finally {
@@ -354,6 +771,13 @@ export default function MovementScreen() {
 
   async function handleDelete(sessionId: string) {
     try {
+      if (usePreviewFixture) {
+        setSessions((current) => current.filter((item) => item.id !== sessionId));
+        setEntries((current) => current.filter((item) => item.workout_session_id !== sessionId));
+        setWorkoutSets((current) => current.filter((item) => item.workout_session_id !== sessionId));
+        setStatus('Preview workout removed for this render only. Nothing was saved.');
+        return;
+      }
       if (shouldUseRemote && userId) {
         await deleteWorkoutSession(supabase as unknown as MovementSupabaseClient, userId, sessionId);
       } else {
@@ -361,6 +785,7 @@ export default function MovementScreen() {
       }
       setSessions((current) => current.filter((item) => item.id !== sessionId));
       setEntries((current) => current.filter((item) => item.workout_session_id !== sessionId));
+      setWorkoutSets((current) => current.filter((item) => item.workout_session_id !== sessionId));
       setStatus('Workout removed. Your movement signal has been updated.');
     } catch {
       Alert.alert('Unable to remove workout', 'The workout could not be removed right now.');
@@ -369,75 +794,478 @@ export default function MovementScreen() {
 
   function renderToday() {
     return (
-      <View style={styles.stack}>
+      <View style={styles.page}>
+        <PageHeading section="MOVE · TODAY" title="Today" />
         {trainingLimited ? (
           <View style={styles.protocolNote}>
-            <Ionicons color={colors.accentMid} name="shield-checkmark-outline" size={16} />
+            <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
             <Text style={styles.protocolNoteText}>
               Today's protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
             </Text>
           </View>
         ) : null}
-        <View style={[styles.card, styles.heroCard]}>
-          <View style={styles.signalIcon}>
-            <Ionicons color={colors.accent} name="body-outline" size={24} />
+
+        <View style={styles.quickLaunchCard}>
+          <View style={styles.quickLaunchHeading}>
+            <View style={styles.quickLaunchIcon}>
+              <Ionicons color={movePalette.surface} name="flash-outline" size={18} />
+            </View>
+            <View style={styles.quickLaunchCopy}>
+              <Text style={styles.quickLaunchTitle}>Quick log</Text>
+              <Text style={styles.quickLaunchHint}>Type what you’re training, or choose a routine below.</Text>
+            </View>
           </View>
-          <Text style={styles.eyebrow}>Movement readiness</Text>
-          <Text style={styles.heroTitle}>{titleCase(signal.label)}</Text>
-          <Text style={styles.body}>{signal.summary}</Text>
-          <View style={styles.metricRow}>
-            <Metric label="Workouts" value={String(summary.workout_count)} />
-            <Metric label="Minutes" value={String(summary.total_minutes)} />
-            <Metric label="Load" value={summary.estimated_training_load > 0 ? String(summary.estimated_training_load) : '—'} />
+          <View style={styles.quickInputRow}>
+            <TextInput
+              accessibilityLabel="Workout focus or movements"
+              onChangeText={setQuickPrompt}
+              onSubmitEditing={openQuickFromPrompt}
+              placeholder="Leg day, or squat + row"
+              placeholderTextColor="rgba(20, 31, 25, 0.42)"
+              returnKeyType="go"
+              style={styles.quickInput}
+              value={quickPrompt}
+            />
+            <Pressable
+              accessibilityLabel="Start quick workout"
+              onPress={openQuickFromPrompt}
+              style={({ pressed }) => [styles.quickGoButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={movePalette.surface} name="arrow-forward" size={19} />
+            </Pressable>
           </View>
-          <View style={styles.signalScale}><View style={[styles.signalFill, { width: `${signal.score}%` }]} /></View>
-          <View style={styles.rowBetween}><Text style={styles.meta}>Score {signal.score}</Text><Text style={styles.meta}>Confidence: {signal.confidence}</Text></View>
-          <View style={styles.rule} />
-          <Text style={styles.nextAction}>{signal.suggested_next_action}</Text>
-          <Text style={styles.meta}>{dataMode === 'remote' ? 'Synced logs' : 'Local demo logs'}</Text>
+          <Text style={styles.routineWheelLabel}>Routine wheel</Text>
+          <ScrollView
+            accessibilityLabel="Recent and saved workout routines"
+            contentContainerStyle={styles.routineWheel}
+            decelerationRate="fast"
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={174}
+          >
+            {routineChoices.map((choice) => {
+              const enabled = isSafetyCompatible(choice.workoutType);
+              return (
+                <Pressable
+                  accessibilityHint={enabled ? 'Opens the quick set logger' : 'Unavailable under today’s movement safety guidance'}
+                  accessibilityRole="button"
+                  disabled={!enabled}
+                  key={choice.id}
+                  onPress={() => choice.kind === 'recent' ? openQuickRecent(choice.session) : openQuickTemplate(choice.template)}
+                  style={({ pressed }) => [styles.routineWheelCard, !enabled && styles.disabled, pressed && styles.routineWheelCardPressed]}
+                >
+                  <Text style={styles.routineWheelMeta}>{choice.kind === 'recent' ? 'RECENT' : 'ROUTINE'}</Text>
+                  <Text numberOfLines={2} style={styles.routineWheelTitle}>{choice.title}</Text>
+                  <Text numberOfLines={1} style={styles.routineWheelSubtitle}>{enabled ? choice.subtitle : 'Limited today'}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
-        <Pressable onPress={() => setActiveSegment('Log Workout')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Ionicons color={colors.textInverse} name="add" size={20} />
-          <Text style={styles.primaryButtonText}>Log Workout</Text>
+        <View style={styles.verdictBlock}>
+          <EditorialLabel>TODAY'S DIRECTION</EditorialLabel>
+          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
+          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
+          <Text style={styles.whyTitle}>Why this session</Text>
+          <View style={styles.reasonList}>
+            {adaptivePlan.reason_codes.slice(0, 3).map((reason) => (
+              <View key={reason} style={styles.reasonRow}>
+                <View style={styles.reasonDot} />
+                <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Pressable onPress={() => setActiveSegment('Train')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
+          <Text style={styles.primaryButtonText}>Start today’s session</Text>
+          <Ionicons color={movePalette.surface} name="arrow-forward" size={18} />
         </Pressable>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>This week</Text>
-          <View style={styles.breakdownRow}>
-            <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.strength_session_count}</Text><Text style={styles.meta}>Strength</Text></View>
-            <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.cardio_session_count}</Text><Text style={styles.meta}>Cardio</Text></View>
-            <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.mobility_recovery_session_count}</Text><Text style={styles.meta}>Reset</Text></View>
-            <View style={styles.breakdownItem}><Text style={styles.breakdownValue}>{summary.recent_high_effort_count}</Text><Text style={styles.meta}>High effort</Text></View>
+        <View style={styles.changedRow}>
+          <EditorialLabel>CHANGED SINCE LAST</EditorialLabel>
+          <Text style={styles.changedCopy}>{status}</Text>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowTodayDetails((current) => !current)}
+          style={({ pressed }) => [styles.contextToggle, pressed && styles.pressed]}
+        >
+          <View>
+            <Text style={styles.contextToggleTitle}>{showTodayDetails ? 'Hide movement context' : 'View full movement context'}</Text>
+            <Text style={styles.contextToggleHint}>Useful range, support signals, movement mix, and this week</Text>
+          </View>
+          <Ionicons color={movePalette.green} name={showTodayDetails ? 'chevron-up' : 'chevron-down'} size={18} />
+        </Pressable>
+
+        {showTodayDetails ? (
+          <>
+        <Divider />
+
+        <View>
+          <EditorialLabel>TODAY'S USEFUL RANGE</EditorialLabel>
+          <View style={styles.capacityLabels}>
+            {['Restore', 'Technique', 'Build', 'Push'].map((label, index) => (
+              <Text key={label} style={[styles.capacityLabel, index === capacityIndex && styles.capacityLabelActive]}>{label}</Text>
+            ))}
+          </View>
+          <View style={styles.capacityRail}>
+            {[0, 1, 2, 3].map((index) => (
+              <View key={index} style={[styles.capacitySegment, index === capacityIndex && styles.capacitySegmentActive]} />
+            ))}
+          </View>
+          <View style={styles.capacityPanel}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.capacityTitle}>{titleCase(adaptivePlan.capacity)}</Text>
+              <Text style={styles.monoMeta}>Score {adaptivePlan.readiness_score} · {adaptivePlan.confidence}</Text>
+            </View>
+            <Text style={styles.body}>{adaptivePlan.explanation}</Text>
+            <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10</Text>
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>What shapes this</Text>
-          <Text style={styles.body}>
-            Workout frequency, duration, and effort, plus how your recent sleep and fueling look today.
-          </Text>
-          <View style={styles.influenceRow}>
-            <Ionicons color={colors.accent} name="moon-outline" size={16} />
-            <Text style={styles.influenceText}>{sleepSignal.summary}</Text>
-          </View>
-          <View style={styles.influenceRow}>
-            <Ionicons color={colors.accent} name="nutrition-outline" size={16} />
-            <Text style={styles.influenceText}>{nutritionSignal.summary}</Text>
-          </View>
-          <View style={styles.reasonWrap}>
-            {signal.reason_codes.map((reason) => <View key={reason} style={styles.reasonPill}><Text style={styles.reasonText}>{titleCase(reason)}</Text></View>)}
+        <Divider />
+
+        <View>
+          <EditorialLabel>TODAY'S OBJECTIVE</EditorialLabel>
+          <Text style={styles.objective}>{adaptivePlan.objective}</Text>
+          <View style={styles.agenda}>
+            {adaptivePlan.agenda.map((item) => (
+              <View key={item.timing} style={styles.agendaRow}>
+                <Text style={styles.agendaWhen}>{item.timing.toUpperCase()}</Text>
+                <Text style={styles.agendaCopy}>{item.guidance}</Text>
+              </View>
+            ))}
           </View>
         </View>
+
+        <Divider />
+
+        <View>
+          <EditorialLabel>SUPPORTING TODAY</EditorialLabel>
+          <View style={styles.supportList}>
+            {adaptivePlan.support.map((item) => (
+              <View key={item.key} style={styles.supportRow}>
+                <Ionicons
+                  color={movePalette.greenMid}
+                  name={item.key === 'sleep' ? 'moon-outline' : item.key === 'nutrition' ? 'nutrition-outline' : 'pulse-outline'}
+                  size={17}
+                />
+                <View style={styles.supportCopy}>
+                  <Text style={styles.supportTitle}>{item.label}</Text>
+                  <Text style={styles.supportBody}>{item.summary}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.feelingPanel}>
+          <Text style={styles.feelingTitle}>How are you feeling?</Text>
+          <Text style={styles.feelingHint}>Optional · this check-in does not change today’s score.</Text>
+          <View style={styles.chipWrap}>
+            {['Heavy', 'Steady', 'Energized', 'Sore'].map((item) => (
+              <Chip key={item} label={item} onPress={() => setFeeling(feeling === item ? null : item)} selected={feeling === item} />
+            ))}
+          </View>
+        </View>
+
+        <Divider />
+
+        <View>
+          <EditorialLabel>YOUR MOVEMENT MIX</EditorialLabel>
+          <View style={styles.mixList}>
+            {movementMix.map((lane) => (
+              <View key={lane.label}>
+                <View style={styles.mixHeading}><Text style={styles.mixLabel}>{lane.label}</Text><Text style={styles.monoMeta}>{lane.count}</Text></View>
+                <View style={styles.mixRail}><View style={[styles.mixFill, { backgroundColor: lane.color, width: lane.width }]} /></View>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.mixInsight}>{adaptivePlan.movement_mix_insight}</Text>
+        </View>
+
+        <Divider />
+
+        <View>
+          <EditorialLabel>THIS WEEK</EditorialLabel>
+          <View style={styles.weekRow}>
+            {weeklyDays.map((day) => {
+              const dotColor = day.category === 'strength'
+                ? movePalette.green
+                : day.category === 'cardio'
+                  ? movePalette.greenMid
+                  : day.category === 'mobility' || day.category === 'recovery'
+                    ? '#92A69B'
+                    : day.category
+                      ? movePalette.slate
+                      : 'transparent';
+              return (
+                <View key={day.iso} style={styles.weekDay}>
+                  <Text style={[styles.weekLabel, day.isToday && styles.weekLabelToday]}>{day.label}</Text>
+                  <View style={[styles.weekDot, { backgroundColor: dotColor }, day.isToday && styles.weekDotToday]} />
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.weekLegend}>
+            <Text style={styles.monoMeta}>{summary.workout_count} sessions</Text>
+            <Text style={styles.monoMeta}>{summary.total_minutes} minutes</Text>
+            <Text style={styles.monoMeta}>{summary.recent_high_effort_count} high effort</Text>
+          </View>
+        </View>
+          </>
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderQuickLogger() {
+    if (!quickDraft) return null;
+    return (
+      <View style={styles.page}>
+        <PageHeading
+          action={(
+            <Pressable
+              onPress={() => {
+                setIsQuickLogging(false);
+                setQuickDraft(null);
+              }}
+              style={styles.textAction}
+            >
+              <Text style={styles.textActionLabel}>Back</Text>
+            </Pressable>
+          )}
+          section="MOVE · QUICK LOG"
+          title="Workout ledger"
+        />
+
+        <View style={styles.ledgerHero}>
+          <TextInput
+            accessibilityLabel="Workout name"
+            onChangeText={(title) => setQuickDraft((current) => current ? { ...current, title } : current)}
+            placeholder="Workout name"
+            placeholderTextColor="rgba(20, 31, 25, 0.38)"
+            style={styles.ledgerTitleInput}
+            value={quickDraft.title}
+          />
+          <View style={styles.ledgerTimestampRow}>
+            <Ionicons color={movePalette.greenMid} name="time-outline" size={16} />
+            <Text style={styles.ledgerTimestamp}>Started {formatLoggedAt(quickDraft.started_at)} · date and time saved automatically</Text>
+          </View>
+          <Text style={styles.ledgerHelp}>Previous values are reference-only. Tap one to copy it, then enter today’s work beside it.</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.libraryScroller}>
+          <View style={styles.libraryRow}>
+            <Pressable onPress={() => addQuickExercise()} style={styles.addMovementChip}>
+              <Ionicons color={movePalette.green} name="add" size={16} />
+              <Text style={styles.addMovementChipText}>Custom movement</Text>
+            </Pressable>
+            {library.slice(0, 10).map((item) => (
+              <Chip key={item.id} label={item.name} onPress={() => addQuickExercise(item)} />
+            ))}
+          </View>
+        </ScrollView>
+
+        {quickDraft.exercises.map((exercise, exerciseIndex) => (
+          <View key={exercise.id} style={styles.ledgerExerciseCard}>
+            <View style={styles.ledgerExerciseHeading}>
+              <View style={styles.ledgerExerciseTitleWrap}>
+                <Text style={styles.ledgerExerciseIndex}>Movement {exerciseIndex + 1}</Text>
+                <TextInput
+                  accessibilityLabel={`Movement ${exerciseIndex + 1} name`}
+                  onChangeText={(exercise_name) => updateQuickExercise(exercise.id, { exercise_name })}
+                  placeholder="Movement name"
+                  placeholderTextColor="rgba(20, 31, 25, 0.38)"
+                  style={styles.ledgerExerciseTitle}
+                  value={exercise.exercise_name}
+                />
+                <Text style={styles.ledgerPreviousDate}>
+                  {exercise.previous_date ? `Previous · ${formatDate(exercise.previous_date)}` : 'No previous entry yet'}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityLabel={`Remove ${exercise.exercise_name || `movement ${exerciseIndex + 1}`}`}
+                onPress={() => setQuickDraft((current) => current ? {
+                  ...current,
+                  exercises: current.exercises.filter((item) => item.id !== exercise.id)
+                } : current)}
+                style={styles.iconButton}
+              >
+                <Ionicons color={colors.danger} name="close" size={18} />
+              </Pressable>
+            </View>
+
+            <View style={styles.ledgerCategoryRow}>
+              {exerciseCategories.map((category) => (
+                <Pressable
+                  key={category}
+                  onPress={() => updateQuickExercise(exercise.id, { category })}
+                  style={[styles.ledgerCategoryChip, exercise.category === category && styles.ledgerCategoryChipActive]}
+                >
+                  <Text style={[styles.ledgerCategoryText, exercise.category === category && styles.ledgerCategoryTextActive]}>{titleCase(category)}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.ledgerSetCountRow}>
+              <View style={styles.ledgerSetCountCopy}>
+                <Text style={styles.ledgerSetCountTitle}>Sets</Text>
+                <Text style={styles.ledgerSetCountHint}>Match the number you actually completed.</Text>
+              </View>
+              <View style={styles.ledgerSetStepper}>
+                <Pressable
+                  accessibilityLabel={`Remove last set from ${exercise.exercise_name}`}
+                  disabled={exercise.sets.length <= 1}
+                  onPress={() => removeQuickSet(exercise.id, exercise.sets[exercise.sets.length - 1].id)}
+                  style={[styles.ledgerStepperButton, exercise.sets.length <= 1 && styles.disabled]}
+                >
+                  <Ionicons color={movePalette.green} name="remove" size={18} />
+                </Pressable>
+                <Text style={styles.ledgerSetCountValue}>{exercise.sets.length}</Text>
+                <Pressable
+                  accessibilityLabel={`Add set to ${exercise.exercise_name}`}
+                  onPress={() => addQuickSet(exercise.id)}
+                  style={styles.ledgerStepperButton}
+                >
+                  <Ionicons color={movePalette.green} name="add" size={18} />
+                </Pressable>
+              </View>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.ledgerSheet}>
+                <View style={styles.ledgerHeaderRow}>
+                  <Text style={[styles.ledgerHeader, styles.ledgerSetColumn]}>SET</Text>
+                  <Text style={[styles.ledgerHeader, styles.ledgerPreviousColumn]}>PREVIOUS</Text>
+                  <Text style={[styles.ledgerHeader, styles.ledgerInputColumn]}>WEIGHT</Text>
+                  <Text style={[styles.ledgerHeader, styles.ledgerInputColumn]}>REPS</Text>
+                  <Text style={[styles.ledgerHeader, styles.ledgerInputColumn]}>RPE</Text>
+                  <Text style={[styles.ledgerHeader, styles.ledgerRestColumn]}>REST</Text>
+                  <Text style={[styles.ledgerHeader, styles.ledgerDoneColumn]}>DONE</Text>
+                </View>
+                {exercise.sets.map((set) => {
+                  const previous = exercise.previous_sets.find((item) => item.set_index === set.set_index);
+                  const previousLabel = previous
+                    ? `${previous.weight ?? '—'} × ${previous.reps ?? '—'}${previous.rpe ? ` · ${previous.rpe}` : ''}`
+                    : '—';
+                  return (
+                    <View key={set.id} style={[styles.ledgerSetRow, set.completed && styles.ledgerSetRowComplete]}>
+                      <View style={[styles.ledgerSetIdentity, styles.ledgerSetColumn]}>
+                        <Text style={styles.ledgerSetNumber}>{set.set_index}</Text>
+                        <Pressable
+                          accessibilityLabel={`Remove ${exercise.exercise_name} set ${set.set_index}`}
+                          accessibilityRole="button"
+                          disabled={exercise.sets.length <= 1}
+                          onPress={() => removeQuickSet(exercise.id, set.id)}
+                          style={[styles.ledgerRemoveButton, exercise.sets.length <= 1 && styles.disabled]}
+                        >
+                          <Ionicons color={colors.danger} name="remove-circle-outline" size={15} />
+                          <Text style={styles.ledgerRemoveText}>{exercise.sets.length <= 1 ? 'Keep 1' : 'Remove'}</Text>
+                        </Pressable>
+                      </View>
+                      <Pressable
+                        accessibilityHint={previous ? 'Copies this set into today’s fields' : undefined}
+                        accessibilityLabel={`Previous set ${set.set_index}: ${previousLabel}`}
+                        disabled={!previous}
+                        onPress={() => applyPreviousSet(exercise.id, set.set_index)}
+                        style={[styles.ledgerPreviousCell, styles.ledgerPreviousColumn, !previous && styles.disabled]}
+                      >
+                        <Text style={styles.ledgerPreviousValue}>{previousLabel}</Text>
+                        {previous ? <Ionicons color={movePalette.greenMid} name="copy-outline" size={13} /> : null}
+                      </Pressable>
+                      <TextInput
+                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} weight`}
+                        keyboardType="decimal-pad"
+                        onChangeText={(weight) => updateQuickSet(exercise.id, set.id, { weight })}
+                        placeholder="—"
+                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
+                        value={set.weight}
+                      />
+                      <TextInput
+                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} reps`}
+                        keyboardType="numeric"
+                        onChangeText={(reps) => updateQuickSet(exercise.id, set.id, { reps })}
+                        placeholder="—"
+                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
+                        value={set.reps}
+                      />
+                      <TextInput
+                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} RPE`}
+                        keyboardType="decimal-pad"
+                        onChangeText={(rpe) => updateQuickSet(exercise.id, set.id, { rpe })}
+                        placeholder="—"
+                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
+                        value={set.rpe}
+                      />
+                      <TextInput
+                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} rest seconds`}
+                        keyboardType="numeric"
+                        onChangeText={(rest_seconds) => updateQuickSet(exercise.id, set.id, { rest_seconds })}
+                        placeholder="90"
+                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        style={[styles.ledgerCellInput, styles.ledgerRestColumn]}
+                        value={set.rest_seconds}
+                      />
+                      <Pressable
+                        accessibilityLabel={`${set.completed ? 'Mark incomplete' : 'Mark complete'} ${exercise.exercise_name} set ${set.set_index}`}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: set.completed }}
+                        onPress={() => updateQuickSet(exercise.id, set.id, {
+                          completed: !set.completed,
+                          completed_at: set.completed ? null : new Date().toISOString()
+                        })}
+                        style={[styles.ledgerDoneButton, styles.ledgerDoneColumn, set.completed && styles.ledgerDoneButtonActive]}
+                      >
+                        <Ionicons color={set.completed ? movePalette.surface : movePalette.green} name="checkmark" size={17} />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+            <Pressable onPress={() => addQuickSet(exercise.id)} style={({ pressed }) => [styles.ledgerAddSet, pressed && styles.pressed]}>
+              <Ionicons color={movePalette.green} name="add" size={16} />
+              <Text style={styles.ledgerAddSetText}>Add set</Text>
+            </Pressable>
+          </View>
+        ))}
+
+        <View style={styles.ledgerFinishBar}>
+          <View style={styles.ledgerFinishCopy}>
+            <Text style={styles.ledgerFinishTitle}>Finish when you’re done</Text>
+            <Text style={styles.ledgerFinishHint}>Blank rows are ignored. Completed rows keep their automatic timestamp.</Text>
+          </View>
+          <Pressable
+            disabled={isSaving}
+            onPress={handleQuickSave}
+            style={({ pressed }) => [styles.ledgerFinishButton, (pressed || isSaving) && styles.pressed]}
+          >
+            {isSaving ? <ActivityIndicator color={movePalette.surface} /> : <Ionicons color={movePalette.surface} name="checkmark" size={19} />}
+            <Text style={styles.ledgerFinishButtonText}>{isSaving ? 'Saving…' : 'Finish'}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.ledgerStatus}>{status}</Text>
       </View>
     );
   }
 
   function renderLogWorkout() {
     return (
-      <View style={styles.stack}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Workout details</Text>
+      <View style={styles.page}>
+        <PageHeading
+          action={<Pressable onPress={() => setIsLogging(false)} style={styles.textAction}><Text style={styles.textActionLabel}>Back</Text></Pressable>}
+          section="MOVE · TRAIN"
+          title={draft.title || 'Build a session'}
+        />
+        <View style={styles.panel}>
+          <EditorialLabel>SESSION DETAILS</EditorialLabel>
           <Field label="Title" onChangeText={(value) => updateDraft('title', value)} placeholder="Morning strength" value={draft.title} />
           <Text style={styles.fieldLabel}>Workout type</Text>
           <View style={styles.chipWrap}>
@@ -451,11 +1279,11 @@ export default function MovementScreen() {
           <Field label="Notes" multiline onChangeText={(value) => updateDraft('session_note', value)} placeholder="Optional session note" value={draft.session_note} />
         </View>
 
-        <View style={styles.card}>
+        <View style={styles.panel}>
           <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>Exercises</Text>
+            <EditorialLabel>EXERCISES</EditorialLabel>
             <Pressable onPress={() => addExercise()} style={({ pressed }) => [styles.iconTextButton, pressed && styles.pressed]}>
-              <Ionicons color={colors.accent} name="add" size={17} />
+              <Ionicons color={movePalette.green} name="add" size={17} />
               <Text style={styles.iconText}>Add</Text>
             </Pressable>
           </View>
@@ -469,7 +1297,7 @@ export default function MovementScreen() {
             <View key={item.id} style={styles.exerciseCard}>
               <View style={styles.rowBetween}>
                 <Text style={styles.exerciseIndex}>Exercise {index + 1}</Text>
-                <Pressable onPress={() => updateDraft('exercises', draft.exercises.filter((exerciseItem) => exerciseItem.id !== item.id))} style={styles.iconButton}>
+                <Pressable accessibilityLabel={`Remove ${item.exercise_name || `exercise ${index + 1}`}`} onPress={() => updateDraft('exercises', draft.exercises.filter((exerciseItem) => exerciseItem.id !== item.id))} style={styles.iconButton}>
                   <Ionicons color={colors.danger} name="close" size={17} />
                 </Pressable>
               </View>
@@ -494,62 +1322,216 @@ export default function MovementScreen() {
         </View>
 
         <Pressable disabled={isSaving} onPress={handleSave} style={({ pressed }) => [styles.primaryButton, (pressed || isSaving) && styles.pressed]}>
-          {isSaving ? <ActivityIndicator color={colors.textInverse} /> : <Ionicons color={colors.textInverse} name="checkmark" size={20} />}
+          {isSaving ? <ActivityIndicator color={movePalette.surface} /> : <Ionicons color={movePalette.surface} name="checkmark" size={20} />}
           <Text style={styles.primaryButtonText}>{isSaving ? 'Saving…' : 'Save Workout'}</Text>
         </Pressable>
       </View>
     );
   }
 
-  function renderTemplates() {
+  function renderTrain() {
+    if (isQuickLogging) return renderQuickLogger();
+    if (isLogging) return renderLogWorkout();
     return (
-      <View style={styles.stack}>
+      <View style={styles.page}>
+        <PageHeading
+          action={<Pressable onPress={openBlankWorkout} style={styles.textAction}><Text style={styles.textActionLabel}>+ New</Text></Pressable>}
+          section="MOVE · TRAIN"
+          title="Templates"
+        />
+        <Text style={styles.sectionIntro}>
+          Choose a starting point that fits today’s {titleCase(adaptivePlan.capacity)} range, then adjust it to your context.
+        </Text>
         {workoutTemplates.map((template) => (
-          <Pressable
-            key={template.id}
-            onPress={() => {
-              setDraft(applyWorkoutTemplate(template, today));
-              setActiveSegment('Log Workout');
-              setStatus(`${template.title} loaded. Edit any detail before saving.`);
-            }}
-            style={({ pressed }) => [styles.card, styles.templateCard, pressed && styles.pressed]}
-          >
-            <View style={styles.rowBetween}>
-              <View style={styles.templateCopy}>
-                <Text style={styles.cardTitle}>{template.title}</Text>
-                <Text style={styles.body}>{titleCase(template.workout_type)} · {template.duration_minutes} min · {template.exercises.length} {template.exercises.length === 1 ? 'movement' : 'movements'}</Text>
+          <View key={template.id} style={styles.templateCard}>
+            <View style={styles.templateCopy}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.templateTitle}>{template.title}</Text>
+                {adaptivePlan.recommended_session_types.includes(template.workout_type) ? (
+                  <Text style={styles.fitTag}>TODAY</Text>
+                ) : null}
               </View>
-              <Ionicons color={colors.accent} name="arrow-forward" size={19} />
+              <Text style={styles.monoLine}>{template.exercises.length} exercises · {template.duration_minutes} min</Text>
+              <Text style={styles.templateMeta}>{titleCase(template.workout_type)} · target effort {template.perceived_effort}</Text>
             </View>
-          </Pressable>
+            <View style={styles.templateActions}>
+              <Pressable
+                disabled={!isSafetyCompatible(template.workout_type)}
+                onPress={() => openQuickTemplate(template)}
+                style={({ pressed }) => [styles.templateStart, !isSafetyCompatible(template.workout_type) && styles.disabled, pressed && styles.pressed]}
+              >
+                <Text style={styles.templateStartText}>{isSafetyCompatible(template.workout_type) ? 'Start' : 'Limited today'}</Text>
+              </Pressable>
+              <Pressable
+                disabled={!isSafetyCompatible(template.workout_type)}
+                onPress={() => openQuickTemplate(template)}
+                style={({ pressed }) => [styles.templatePreview, !isSafetyCompatible(template.workout_type) && styles.disabled, pressed && styles.pressed]}
+              >
+                <Text style={styles.templatePreviewText}>Open ledger</Text>
+              </Pressable>
+            </View>
+          </View>
         ))}
-        <Text style={styles.footnote}>Templates are starting points. Every field stays editable before you save.</Text>
+        <Pressable onPress={openBlankWorkout} style={({ pressed }) => [styles.outlineAction, pressed && styles.pressed]}>
+          <View style={styles.outlineActionCopyWrap}>
+            <Text style={styles.outlineActionTitle}>Log from scratch</Text>
+            <Text style={styles.outlineActionCopy}>Build a session with only the details you want to track.</Text>
+          </View>
+          <Ionicons color={movePalette.ink} name="arrow-forward" size={17} />
+        </Pressable>
+        <Text style={styles.footnote}>Start opens the quick ledger. Edit opens the detailed session form.</Text>
+      </View>
+    );
+  }
+
+  function renderLibrary() {
+    return (
+      <View style={styles.page}>
+        <PageHeading
+          action={<Pressable onPress={openCustomMovement} style={styles.textAction}><Text style={styles.textActionLabel}>+ Custom</Text></Pressable>}
+          section="MOVE · LIBRARY"
+          title="Library"
+        />
+        <View style={styles.searchBox}>
+          <Ionicons color={movePalette.slate} name="search" size={17} />
+          <TextInput
+            onChangeText={setLibraryQuery}
+            placeholder="Search movements"
+            placeholderTextColor="rgba(20, 31, 25, 0.42)"
+            style={styles.searchInput}
+            value={libraryQuery}
+          />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.libraryFilters}>
+          {(['all', ...exerciseCategories] as LibraryFilter[]).map((category) => (
+            <Chip key={category} label={titleCase(category)} onPress={() => setLibraryFilter(category)} selected={libraryFilter === category} />
+          ))}
+        </ScrollView>
+        {filteredLibrary.length === 0 ? (
+          <Text style={styles.emptyLibrary}>No movements match that search.</Text>
+        ) : (
+          <View style={styles.libraryList}>
+            {libraryGroups.map((group) => (
+              <View key={group.category} style={styles.libraryGroup}>
+                <Text style={styles.libraryGroupTitle}>{titleCase(group.category)}</Text>
+                {group.items.map((item, index) => (
+                  <Pressable
+                    disabled={!isSafetyCompatible(item.category)}
+                    key={item.id}
+                    onPress={() => addLibraryMovement(item)}
+                    style={({ pressed }) => [styles.libraryItem, index === 0 && styles.libraryItemFirst, !isSafetyCompatible(item.category) && styles.disabled, pressed && styles.pressed]}
+                  >
+                    <View style={styles.libraryItemCopy}>
+                      <Text style={styles.libraryItemTitle}>{item.name}</Text>
+                      <Text style={styles.libraryItemMeta}>{titleCase(item.movement_pattern ?? item.category)} emphasis</Text>
+                    </View>
+                    <View style={styles.libraryItemAside}>
+                      <Text style={styles.libraryItemCategory}>{item.is_default ? 'Healthi movement' : 'Custom'}</Text>
+                      <Text style={styles.monoMeta}>{item.equipment?.join(', ') || 'No equipment'}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+        <Text style={styles.footnote}>Select a movement to add it to the current workout draft.</Text>
       </View>
     );
   }
 
   function renderHistory() {
     return (
-      <View style={styles.stack}>
+      <View style={styles.page}>
+        <PageHeading section="MOVE · HISTORY" title="History" />
+        <Text style={styles.historyInsight}>
+          {sessions.length === 0
+            ? 'Your first session will begin a useful movement pattern.'
+            : summary.consistency === 'steady'
+              ? 'Your recent rhythm is steady enough to learn from.'
+              : 'Each complete log makes the next movement suggestion more personal.'}
+        </Text>
+
+        <View style={styles.historyPlotCard}>
+          <View style={styles.plotArea}>
+            <View style={[styles.plotGridLine, { top: '25%' }]} />
+            <View style={[styles.plotGridLine, { top: '50%' }]} />
+            <View style={[styles.plotGridLine, { top: '75%' }]} />
+            {sessionPlot.map((point) => (
+              <View
+                accessibilityLabel={`${point.title} session marker`}
+                key={point.id}
+                style={[styles.plotDot, { backgroundColor: point.color, left: point.left, top: point.top }]}
+              />
+            ))}
+          </View>
+          <View style={styles.plotAxisRow}>
+            <Text style={styles.plotAxisLabel}>Lower effort</Text>
+            <Text style={styles.plotAxisTitle}>Session effort</Text>
+            <Text style={styles.plotAxisLabel}>Higher</Text>
+          </View>
+          <View style={styles.plotLegend}>
+            <Text style={styles.plotLegendText}>Dot height reflects duration</Text>
+            <Text style={styles.plotLegendText}>{sessionPlot.length} recent sessions</Text>
+          </View>
+        </View>
+
+        <Divider />
+
+        <View>
+          <EditorialLabel>POSITIVE MIRROR</EditorialLabel>
+          <Text style={styles.mirrorLine}>{adaptivePlan.movement_mix_insight}</Text>
+          <View style={styles.mirrorTag}><Text style={styles.monoLine}>{summary.workout_count} sessions · {summary.total_minutes} minutes · {summary.confidence} confidence</Text></View>
+        </View>
+
+        <Divider />
+
+        <View>
+          <EditorialLabel>LOAD HISTORY</EditorialLabel>
+          <View style={styles.loadRows}>
+            {historyWeeks.map((week) => (
+              <View key={week.label} style={styles.loadRow}>
+                <Text style={styles.loadLabel}>{week.label}</Text>
+                <View style={styles.loadRail}><View style={[styles.loadFill, { width: week.width }]} /></View>
+                <Text style={styles.loadValue}>{week.minutes}m</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Divider />
+
+        <View>
+          <EditorialLabel>RECENT PATTERN</EditorialLabel>
+          <View style={styles.patternRows}>
+            <View style={styles.patternRow}><Text style={styles.patternLabel}>Most frequent</Text><Text style={styles.patternValue}>{titleCase(recentPattern.mostFrequent)}</Text></View>
+            <View style={styles.patternRow}><Text style={styles.patternLabel}>Average duration</Text><Text style={styles.patternValue}>{recentPattern.averageMinutes || '—'} min</Text></View>
+            <View style={styles.patternRow}><Text style={styles.patternLabel}>Current training load</Text><Text style={styles.patternValue}>{summary.estimated_training_load || '—'}</Text></View>
+          </View>
+        </View>
+
+        <Divider />
+
+        <EditorialLabel>SESSIONS</EditorialLabel>
         {sessions.length === 0 ? (
-          <View style={styles.card}><Text style={styles.cardTitle}>No workouts yet</Text><Text style={styles.body}>Your recent sessions will appear here after you log one.</Text></View>
+          <View style={styles.emptyHistory}><Text style={styles.templateTitle}>No workouts yet</Text><Text style={styles.body}>Your recent sessions will appear here after you log one.</Text></View>
         ) : sessions.map((session) => {
           const sessionEntries = entries.filter((entry) => entry.workout_session_id === session.id);
           return (
-            <View key={session.id} style={styles.card}>
+            <View key={session.id} style={styles.sessionRow}>
+              <Text style={styles.sessionDate}>{formatDate(session.session_date)}</Text>
               <View style={styles.rowBetween}>
                 <View style={styles.historyTitleWrap}>
-                  <Text style={styles.cardTitle}>{session.title}</Text>
-                  <Text style={styles.meta}>{formatDate(session.session_date)} · {titleCase(session.workout_type)} · {session.source === 'demo' ? 'Local demo' : 'Logged'}</Text>
+                  <Text style={styles.sessionTitle}>{session.title}</Text>
+                  <Text style={styles.sessionMeta}>{titleCase(session.workout_type)} · {sessionEntries.length} exercises · {session.source === 'demo' ? 'Local demo' : 'Logged'}</Text>
                 </View>
-                <Pressable onPress={() => handleDelete(session.id)} style={styles.iconButton}>
+                <View style={styles.sessionAside}>
+                  <Text style={styles.sessionMinutes}>{session.duration_minutes ?? '—'} min</Text>
+                  <Text style={styles.sessionEffort}>Effort {session.perceived_effort ?? '—'}</Text>
+                </View>
+                <Pressable accessibilityLabel={`Delete ${session.title}`} onPress={() => handleDelete(session.id)} style={styles.iconButton}>
                   <Ionicons color={colors.danger} name="trash-outline" size={17} />
                 </Pressable>
-              </View>
-              <View style={styles.historyMetrics}>
-                <Text style={styles.historyMetric}>{session.duration_minutes ?? '—'} min</Text>
-                <Text style={styles.historyMetric}>Effort {session.perceived_effort ?? '—'}</Text>
-                <Text style={styles.historyMetric}>{sessionEntries.length} exercises</Text>
               </View>
             </View>
           );
@@ -561,29 +1543,35 @@ export default function MovementScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>Movement intelligence</Text>
-          <Text style={styles.title}>Move with context.</Text>
-          <Text style={styles.subtitle}>Build a useful training history, then let your recent pattern shape today’s movement signal.</Text>
-        </View>
-
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentRow}>
           {segments.map((segment) => (
-            <Pressable key={segment} onPress={() => setActiveSegment(segment)} style={[styles.segment, activeSegment === segment && styles.segmentActive]}>
+            <Pressable
+              key={segment}
+              onPress={() => {
+                setActiveSegment(segment);
+                if (segment !== 'Train') {
+                  setIsLogging(false);
+                  setIsQuickLogging(false);
+                }
+              }}
+              style={[styles.segment, activeSegment === segment && styles.segmentActive]}
+            >
               <Text style={[styles.segmentText, activeSegment === segment && styles.segmentTextActive]}>{segment}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <View style={styles.statusBar}>
-          <View style={[styles.statusDot, { backgroundColor: dataMode === 'remote' ? colors.accent : colors.accentSoft }]} />
-          <Text style={styles.statusText}>{status}</Text>
-        </View>
+        {usePreviewFixture ? (
+          <View style={styles.previewBanner}>
+            <View style={styles.previewDot} />
+            <Text style={styles.previewBannerText}>Full Move preview fixture · nothing is saved</Text>
+          </View>
+        ) : null}
 
-        {isLoading ? <View style={styles.loading}><ActivityIndicator color={colors.accent} /><Text style={styles.meta}>Loading movement data…</Text></View> : null}
+        {isLoading ? <View style={styles.loading}><ActivityIndicator color={movePalette.green} /><Text style={styles.meta}>Loading movement data…</Text></View> : null}
         {!isLoading && activeSegment === 'Today' ? renderToday() : null}
-        {!isLoading && activeSegment === 'Log Workout' ? renderLogWorkout() : null}
-        {!isLoading && activeSegment === 'Templates' ? renderTemplates() : null}
+        {!isLoading && activeSegment === 'Train' ? renderTrain() : null}
+        {!isLoading && activeSegment === 'Library' ? renderLibrary() : null}
         {!isLoading && activeSegment === 'History' ? renderHistory() : null}
       </ScrollView>
     </SafeAreaView>
@@ -591,75 +1579,245 @@ export default function MovementScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { paddingBottom: 108 },
-  header: { paddingHorizontal: 24, paddingTop: 22 },
-  eyebrow: { ...type.eyebrow, color: colors.accent },
-  title: { ...type.title, color: colors.text, marginTop: 7 },
-  subtitle: { ...type.body, color: colors.textMuted, marginTop: 8, maxWidth: 560 },
-  segmentRow: { gap: 8, paddingHorizontal: 20, paddingVertical: 20 },
-  segment: { borderBottomColor: 'transparent', borderBottomWidth: 1, minHeight: 42, justifyContent: 'center', paddingHorizontal: 8 },
-  segmentActive: { borderBottomColor: colors.accent },
-  segmentText: { ...type.caption, color: colors.textFaint },
-  segmentTextActive: { color: colors.accent, fontFamily: type.label.fontFamily },
-  statusBar: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingBottom: 16 },
-  statusDot: { borderRadius: 4, height: 6, width: 6 },
-  statusText: { ...type.caption, color: colors.textMuted, flex: 1 },
-  stack: { gap: 14, paddingHorizontal: 16 },
-  card: { backgroundColor: colors.surface, borderColor: colors.hairline, borderRadius: radii.md, borderWidth: hairlineWidth, padding: 20 },
-  heroCard: { paddingTop: 24 },
-  protocolNote: { alignItems: 'flex-start', backgroundColor: colors.accentWash, borderRadius: radii.md, flexDirection: 'row', gap: 8, padding: 14 },
-  protocolNoteText: { ...type.caption, color: colors.textMuted, flex: 1 },
-  signalIcon: { alignItems: 'center', backgroundColor: colors.accentWash, borderRadius: 24, height: 46, justifyContent: 'center', marginBottom: 18, width: 46 },
-  heroTitle: { ...type.heading, color: colors.text, marginTop: 7 },
-  body: { ...type.body, color: colors.textMuted, marginTop: 8 },
-  meta: { ...type.caption, color: colors.textFaint },
-  metricRow: { flexDirection: 'row', gap: 8, marginTop: 22 },
-  metric: { flex: 1 },
-  metricValue: { ...type.numberLg, color: colors.text },
-  metricLabel: { ...type.caption, color: colors.textFaint, marginTop: 2 },
-  rule: { backgroundColor: colors.hairlineSoft, height: hairlineWidth, marginVertical: 18 },
-  nextAction: { ...type.voice, color: colors.accent, marginBottom: 8 },
-  primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.accent, borderRadius: radii.sm, flexDirection: 'row', gap: 8, justifyContent: 'center', minHeight: 50, paddingHorizontal: 18 },
-  primaryButtonText: { ...type.label, color: colors.textInverse },
-  pressed: { opacity: 0.68 },
-  cardTitle: { ...type.heading, color: colors.text, fontSize: 19, lineHeight: 25 },
-  breakdownRow: { flexDirection: 'row', gap: 6, marginTop: 18 },
-  breakdownItem: { flex: 1 },
-  breakdownValue: { ...type.number, color: colors.text },
-  field: { marginTop: 16 },
-  fieldLabel: { ...type.label, color: colors.textMuted, marginTop: 14 },
-  input: { ...type.body, backgroundColor: colors.surfaceInset, borderColor: colors.hairline, borderRadius: radii.sm, borderWidth: hairlineWidth, color: colors.text, minHeight: 46, paddingHorizontal: 13, paddingVertical: 11 },
+  safe: { flex: 1, backgroundColor: movePalette.background },
+  scroll: { paddingBottom: 118 },
+  segmentRow: {
+    borderBottomColor: movePalette.line,
+    borderBottomWidth: hairlineWidth,
+    gap: 18,
+    paddingHorizontal: 22,
+    paddingTop: 6
+  },
+  segment: { borderBottomColor: 'transparent', borderBottomWidth: 2, minHeight: 48, justifyContent: 'center' },
+  segmentActive: { borderBottomColor: movePalette.green },
+  segmentText: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontFamily: type.label.fontFamily, fontSize: 12 },
+  segmentTextActive: { color: movePalette.green },
+  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.16)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
+  previewDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 6, width: 6 },
+  previewBannerText: { ...type.caption, color: movePalette.green, fontSize: 11.5 },
+  page: { gap: 22, paddingHorizontal: 22, paddingTop: 30 },
+  pageHeadingRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  pageTitle: { ...type.title, color: movePalette.ink, fontSize: 30, lineHeight: 37 },
+  editorialLabel: {
+    ...type.eyebrow,
+    color: 'rgba(20, 31, 25, 0.56)',
+    fontSize: 10.5,
+    letterSpacing: 1.5,
+    lineHeight: 15,
+    textTransform: 'uppercase'
+  },
+  editorialDivider: { backgroundColor: movePalette.line, height: hairlineWidth, marginVertical: 2 },
+  verdictBlock: { paddingTop: 4 },
+  verdict: { ...type.voice, color: movePalette.ink, fontSize: 28, lineHeight: 35, marginTop: 14 },
+  lede: { ...type.body, color: 'rgba(20, 31, 25, 0.70)', lineHeight: 22, marginTop: 10 },
+  whyTitle: { ...type.label, color: movePalette.ink, marginTop: 22 },
+  reasonList: { gap: 9, marginTop: 11 },
+  reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  reasonDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 5, width: 5 },
+  reasonLine: { ...type.caption, color: 'rgba(20, 31, 25, 0.65)', flex: 1 },
+  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
+  protocolNoteText: { ...type.caption, color: 'rgba(20, 31, 25, 0.72)', flex: 1 },
+  quickLaunchCard: { backgroundColor: movePalette.surface, borderColor: 'rgba(28, 66, 53, 0.16)', borderRadius: 20, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 17, paddingHorizontal: 17, paddingTop: 18 },
+  quickLaunchHeading: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  quickLaunchIcon: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, height: 42, justifyContent: 'center', width: 42 },
+  quickLaunchCopy: { flex: 1 },
+  quickLaunchTitle: { ...type.heading, color: movePalette.ink, fontSize: 21, lineHeight: 26 },
+  quickLaunchHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.64)', fontSize: 12, lineHeight: 17, marginTop: 2 },
+  quickInputRow: { alignItems: 'center', backgroundColor: movePalette.background, borderColor: movePalette.lineStrong, borderRadius: 14, borderWidth: hairlineWidth, flexDirection: 'row', gap: 8, marginTop: 16, paddingLeft: 13, paddingRight: 5 },
+  quickInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 52, paddingVertical: 11 },
+  quickGoButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 11, height: 42, justifyContent: 'center', width: 42 },
+  routineWheelLabel: { ...type.label, color: 'rgba(20, 31, 25, 0.64)', fontSize: 11.5, marginTop: 16 },
+  routineWheel: { gap: 10, paddingRight: 16, paddingTop: 9 },
+  routineWheelCard: { backgroundColor: '#F3F1EA', borderColor: movePalette.line, borderRadius: 14, borderWidth: hairlineWidth, justifyContent: 'space-between', minHeight: 112, padding: 13, width: 164 },
+  routineWheelCardPressed: { backgroundColor: 'rgba(28, 66, 53, 0.10)', borderColor: 'rgba(28, 66, 53, 0.24)' },
+  routineWheelMeta: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 9, letterSpacing: 1.2 },
+  routineWheelTitle: { ...type.label, color: movePalette.ink, fontSize: 14, lineHeight: 18, marginTop: 8 },
+  routineWheelSubtitle: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontSize: 11.5, marginTop: 9 },
+  primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: movePalette.green, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
+  primaryButtonText: { ...type.label, color: movePalette.surface, fontSize: 14 },
+  changedRow: { gap: 8 },
+  changedCopy: { ...type.body, color: 'rgba(20, 31, 25, 0.65)' },
+  contextToggle: { alignItems: 'center', backgroundColor: 'rgba(250, 249, 245, 0.62)', borderColor: movePalette.line, borderRadius: 14, borderWidth: hairlineWidth, flexDirection: 'row', gap: 14, justifyContent: 'space-between', minHeight: 64, paddingHorizontal: 15, paddingVertical: 12 },
+  contextToggleTitle: { ...type.label, color: movePalette.ink, fontSize: 13.5 },
+  contextToggleHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.56)', fontSize: 11.5, marginTop: 3 },
+  capacityLabels: { flexDirection: 'row', marginTop: 15 },
+  capacityLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', flex: 1, fontSize: 11, textAlign: 'center' },
+  capacityLabelActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
+  capacityRail: { flexDirection: 'row', gap: 3, marginTop: 8 },
+  capacitySegment: { backgroundColor: 'rgba(20, 31, 25, 0.08)', borderRadius: 3, flex: 1, height: 6 },
+  capacitySegmentActive: { backgroundColor: movePalette.green },
+  capacityPanel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 15, borderWidth: hairlineWidth, marginTop: 14, padding: 16 },
+  capacityTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 24 },
+  body: { ...type.body, color: 'rgba(20, 31, 25, 0.66)', marginTop: 8 },
+  monoMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontVariant: ['tabular-nums'], fontSize: 11.5 },
+  rangeMeta: { ...type.caption, color: movePalette.greenMid, fontVariant: ['tabular-nums'], marginTop: 12 },
+  objective: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 13 },
+  agenda: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 18 },
+  agendaRow: { alignItems: 'flex-start', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, flexDirection: 'row', gap: 16, paddingVertical: 13 },
+  agendaWhen: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 9, lineHeight: 17, width: 44 },
+  agendaCopy: { ...type.body, color: 'rgba(20, 31, 25, 0.70)', flex: 1, fontSize: 13.5, lineHeight: 20 },
+  supportList: { gap: 16, marginTop: 16 },
+  supportRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
+  supportCopy: { flex: 1 },
+  supportTitle: { ...type.label, color: movePalette.ink },
+  supportBody: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', marginTop: 3 },
+  feelingPanel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
+  feelingTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 23 },
+  feelingHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.45)', marginTop: 4 },
+  mixList: { gap: 14, marginTop: 16 },
+  mixHeading: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  mixLabel: { ...type.label, color: movePalette.ink, fontSize: 12.5 },
+  mixRail: { backgroundColor: 'rgba(20, 31, 25, 0.08)', borderRadius: 3, height: 6, overflow: 'hidden' },
+  mixFill: { borderRadius: 3, height: 6 },
+  mixInsight: { ...type.voice, color: 'rgba(20, 31, 25, 0.70)', marginTop: 16 },
+  weekRow: { flexDirection: 'row', marginTop: 16 },
+  weekDay: { alignItems: 'center', flex: 1, gap: 9 },
+  weekLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.42)', fontSize: 10 },
+  weekLabelToday: { color: movePalette.green, fontFamily: type.label.fontFamily },
+  weekDot: { borderColor: movePalette.lineStrong, borderRadius: 6, borderWidth: 1, height: 11, width: 11 },
+  weekDotToday: { borderColor: movePalette.green, borderWidth: 2 },
+  weekLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 16 },
+  panel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 18 },
+  ledgerHero: { backgroundColor: movePalette.surface, borderColor: 'rgba(28, 66, 53, 0.15)', borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
+  ledgerTitleInput: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 22, lineHeight: 28, minHeight: 48, paddingBottom: 8, paddingTop: 2 },
+  ledgerTimestampRow: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 12 },
+  ledgerTimestamp: { ...type.caption, color: movePalette.greenMid, flex: 1, fontSize: 11.5, fontVariant: ['tabular-nums'] },
+  ledgerHelp: { ...type.body, color: 'rgba(20, 31, 25, 0.62)', fontSize: 13.5, lineHeight: 20, marginTop: 12 },
+  addMovementChip: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 12, borderWidth: hairlineWidth, flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 42, paddingHorizontal: 14 },
+  addMovementChipText: { ...type.caption, color: movePalette.green, fontFamily: type.label.fontFamily },
+  ledgerExerciseCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 18, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 14, paddingTop: 16 },
+  ledgerExerciseHeading: { alignItems: 'flex-start', flexDirection: 'row', paddingHorizontal: 16 },
+  ledgerExerciseTitleWrap: { flex: 1 },
+  ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 10, letterSpacing: 1.15, textTransform: 'uppercase' },
+  ledgerExerciseTitle: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 19, lineHeight: 24, marginRight: 10, marginTop: 3, minHeight: 42, paddingVertical: 6 },
+  ledgerPreviousDate: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontSize: 11.5, marginTop: 6 },
+  ledgerCategoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingVertical: 13 },
+  ledgerCategoryChip: { borderColor: movePalette.lineStrong, borderRadius: 9, borderWidth: hairlineWidth, minHeight: 32, paddingHorizontal: 9, paddingVertical: 7 },
+  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.28)' },
+  ledgerCategoryText: { ...type.caption, color: 'rgba(20, 31, 25, 0.55)', fontSize: 10.5 },
+  ledgerCategoryTextActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
+  ledgerSetCountRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+  ledgerSetCountCopy: { flex: 1, paddingRight: 12 },
+  ledgerSetCountTitle: { ...type.label, color: movePalette.ink, fontSize: 13 },
+  ledgerSetCountHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.57)', fontSize: 11.5, marginTop: 2 },
+  ledgerSetStepper: { alignItems: 'center', borderColor: 'rgba(28, 66, 53, 0.20)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
+  ledgerStepperButton: { alignItems: 'center', backgroundColor: movePalette.surface, height: 42, justifyContent: 'center', width: 42 },
+  ledgerSetCountValue: { ...type.label, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, borderRightColor: movePalette.line, borderRightWidth: hairlineWidth, color: movePalette.ink, fontSize: 14, textAlign: 'center', width: 34 },
+  ledgerSheet: { borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, minWidth: 662 },
+  ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#F2F0E9', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
+  ledgerHeader: { ...type.eyebrow, color: 'rgba(20, 31, 25, 0.55)', fontSize: 9, letterSpacing: 1, textAlign: 'center' },
+  ledgerSetRow: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', minHeight: 54, paddingHorizontal: 10 },
+  ledgerSetRowComplete: { backgroundColor: 'rgba(28, 66, 53, 0.055)' },
+  ledgerSetColumn: { width: 104 },
+  ledgerPreviousColumn: { width: 126 },
+  ledgerInputColumn: { width: 76 },
+  ledgerRestColumn: { width: 76 },
+  ledgerDoneColumn: { width: 54 },
+  ledgerSetIdentity: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  ledgerSetNumber: { ...type.label, color: movePalette.ink, fontSize: 12, textAlign: 'center', width: 22 },
+  ledgerPreviousCell: { alignItems: 'center', flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 48, paddingHorizontal: 4 },
+  ledgerPreviousValue: { ...type.caption, color: 'rgba(20, 31, 25, 0.68)', fontSize: 11.5, fontVariant: ['tabular-nums'] },
+  ledgerCellInput: { ...type.body, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, color: movePalette.ink, fontSize: 13, minHeight: 48, paddingHorizontal: 5, textAlign: 'center' },
+  ledgerDoneButton: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 9, borderWidth: hairlineWidth, height: 36, justifyContent: 'center', marginHorizontal: 9 },
+  ledgerDoneButtonActive: { backgroundColor: movePalette.green },
+  ledgerRemoveButton: { alignItems: 'center', flexDirection: 'row', gap: 2, height: 44, justifyContent: 'center', width: 70 },
+  ledgerRemoveText: { ...type.caption, color: colors.danger, fontFamily: type.label.fontFamily, fontSize: 10.5 },
+  ledgerAddSet: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 4, minHeight: 44, paddingHorizontal: 16, paddingTop: 10 },
+  ledgerAddSetText: { ...type.label, color: movePalette.green, fontSize: 12 },
+  ledgerFinishBar: { alignItems: 'center', backgroundColor: movePalette.ink, borderRadius: 18, flexDirection: 'row', gap: 12, padding: 15 },
+  ledgerFinishCopy: { flex: 1 },
+  ledgerFinishTitle: { ...type.label, color: movePalette.surface, fontSize: 14 },
+  ledgerFinishHint: { ...type.caption, color: 'rgba(250, 249, 245, 0.68)', fontSize: 11.5, lineHeight: 16, marginTop: 3 },
+  ledgerFinishButton: { alignItems: 'center', backgroundColor: movePalette.greenMid, borderRadius: 12, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
+  ledgerFinishButtonText: { ...type.label, color: movePalette.surface },
+  ledgerStatus: { ...type.caption, color: 'rgba(20, 31, 25, 0.60)', fontSize: 11.5, textAlign: 'center' },
+  field: { marginTop: 15 },
+  fieldLabel: { ...type.label, color: 'rgba(20, 31, 25, 0.68)', marginTop: 12 },
+  input: { ...type.body, backgroundColor: movePalette.background, borderColor: movePalette.lineStrong, borderRadius: 11, borderWidth: hairlineWidth, color: movePalette.ink, minHeight: 48, paddingHorizontal: 13, paddingVertical: 11 },
   textarea: { minHeight: 84, textAlignVertical: 'top' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 9 },
-  chip: { alignItems: 'center', borderColor: colors.hairline, borderRadius: radii.full, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 38, paddingHorizontal: 13 },
-  chipSelected: { backgroundColor: colors.accentWash, borderColor: colors.accentPale },
-  chipText: { ...type.caption, color: colors.textMuted },
-  chipTextSelected: { color: colors.accent, fontFamily: type.label.fontFamily },
+  chip: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 42, paddingHorizontal: 14 },
+  chipSelected: { backgroundColor: movePalette.green, borderColor: movePalette.green },
+  chipText: { ...type.caption, color: 'rgba(20, 31, 25, 0.68)', fontFamily: type.label.fontFamily },
+  chipTextSelected: { color: movePalette.surface },
   twoFields: { flexDirection: 'row', gap: 10 },
   threeFields: { flexDirection: 'row', gap: 8 },
   flexField: { flex: 1, minWidth: 0 },
   rowBetween: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   iconTextButton: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 44, paddingHorizontal: 6 },
-  iconText: { ...type.label, color: colors.accent },
+  iconText: { ...type.label, color: movePalette.green },
   iconButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
   libraryScroller: { marginHorizontal: -4, marginTop: 10 },
   libraryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 4 },
-  emptyCopy: { ...type.caption, color: colors.textFaint, marginTop: 16 },
-  exerciseCard: { borderTopColor: colors.hairlineSoft, borderTopWidth: hairlineWidth, marginTop: 20, paddingTop: 16 },
-  exerciseIndex: { ...type.eyebrow, color: colors.textFaint },
-  templateCard: { minHeight: 94, justifyContent: 'center' },
-  templateCopy: { flex: 1, paddingRight: spacing.md },
-  footnote: { ...type.caption, color: colors.textFaint, marginTop: 12 },
-  historyTitleWrap: { flex: 1, paddingRight: 10 },
-  historyMetrics: { borderTopColor: colors.hairlineSoft, borderTopWidth: hairlineWidth, flexDirection: 'row', gap: 14, marginTop: 16, paddingTop: 14 },
-  historyMetric: { ...type.caption, color: colors.textMuted },
-  influenceRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginTop: 12 },
-  influenceText: { ...type.caption, color: colors.textMuted, flex: 1 },
-  signalScale: { backgroundColor: colors.track, borderRadius: radii.full, height: 6, marginBottom: 10, marginTop: 22, overflow: 'hidden' },
-  signalFill: { backgroundColor: colors.accent, borderRadius: radii.full, height: 6 },
-  reasonWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 18 },
-  reasonPill: { backgroundColor: colors.accentWash, borderRadius: radii.full, paddingHorizontal: 10, paddingVertical: 7 },
-  reasonText: { ...type.caption, color: colors.accent, fontSize: 11 },
+  emptyCopy: { ...type.caption, color: 'rgba(20, 31, 25, 0.46)', marginTop: 16 },
+  exerciseCard: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 20, paddingTop: 16 },
+  exerciseIndex: { ...type.eyebrow, color: 'rgba(20, 31, 25, 0.42)' },
+  textAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 },
+  textActionLabel: { ...type.label, color: movePalette.green },
+  sectionIntro: { ...type.body, color: 'rgba(20, 31, 25, 0.62)', marginTop: -10 },
+  templateCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
+  templateCopy: { flex: 1 },
+  templateTitle: { ...type.heading, color: movePalette.ink, fontSize: 19, lineHeight: 25 },
+  monoLine: { ...type.caption, color: 'rgba(20, 31, 25, 0.62)', fontVariant: ['tabular-nums'], marginTop: 7 },
+  templateMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', marginTop: 4 },
+  fitTag: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 8.5 },
+  templateActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  templateStart: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 48 },
+  templateStartText: { ...type.label, color: movePalette.surface },
+  templatePreview: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 48, minWidth: 92 },
+  templatePreviewText: { ...type.label, color: movePalette.ink },
+  outlineAction: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 15, borderWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, padding: 16 },
+  outlineActionCopyWrap: { flex: 1, paddingRight: spacing.md },
+  outlineActionTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
+  outlineActionCopy: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', marginTop: 3 },
+  footnote: { ...type.caption, color: 'rgba(20, 31, 25, 0.45)' },
+  searchBox: { alignItems: 'center', backgroundColor: movePalette.surface, borderColor: movePalette.lineStrong, borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 10, paddingHorizontal: 14 },
+  searchInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
+  libraryFilters: { gap: 8, paddingRight: 22 },
+  libraryList: { gap: 24, marginTop: 2 },
+  libraryGroup: { gap: 0 },
+  libraryGroupTitle: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 9.5, letterSpacing: 1.55, marginBottom: 8, textTransform: 'uppercase' },
+  libraryItem: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 62, paddingHorizontal: 2, paddingVertical: 12 },
+  libraryItemFirst: { borderTopWidth: 0 },
+  libraryItemCopy: { flex: 1 },
+  libraryItemTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
+  libraryItemMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', marginTop: 3 },
+  libraryItemAside: { alignItems: 'flex-end', maxWidth: '42%' },
+  libraryItemCategory: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', fontSize: 11 },
+  emptyLibrary: { ...type.body, color: 'rgba(20, 31, 25, 0.48)', paddingVertical: 40, textAlign: 'center' },
+  historyInsight: { ...type.voice, color: movePalette.ink, fontSize: 24, lineHeight: 31, marginTop: -6 },
+  historyPlotCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 14 },
+  plotArea: { height: 172, overflow: 'hidden', position: 'relative' },
+  plotGridLine: { backgroundColor: 'rgba(20, 31, 25, 0.07)', height: hairlineWidth, left: 0, position: 'absolute', right: 0 },
+  plotDot: { borderColor: movePalette.surface, borderRadius: 6, borderWidth: 1.5, height: 12, marginLeft: -6, marginTop: -6, position: 'absolute', width: 12 },
+  plotAxisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  plotAxisLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.40)', fontSize: 9.5 },
+  plotAxisTitle: { ...type.caption, color: movePalette.greenMid, fontSize: 9.5 },
+  plotLegend: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 10 },
+  plotLegendText: { ...type.caption, color: 'rgba(20, 31, 25, 0.50)', fontSize: 10.5 },
+  loadRows: { gap: 12, marginTop: 16 },
+  loadRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  loadLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', fontSize: 10, width: 54 },
+  loadRail: { backgroundColor: 'rgba(20, 31, 25, 0.06)', borderRadius: 5, flex: 1, height: 10, overflow: 'hidden' },
+  loadFill: { backgroundColor: movePalette.green, borderRadius: 5, height: 10 },
+  loadValue: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', fontSize: 10, textAlign: 'right', width: 34 },
+  patternRows: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 12 },
+  patternRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 52 },
+  patternLabel: { ...type.label, color: movePalette.ink },
+  patternValue: { ...type.caption, color: 'rgba(20, 31, 25, 0.62)', fontVariant: ['tabular-nums'] },
+  mirrorLine: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 14 },
+  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.17)', borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
+  emptyHistory: { paddingVertical: 14 },
+  sessionRow: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, paddingVertical: 13 },
+  sessionDate: { ...type.caption, color: 'rgba(20, 31, 25, 0.44)', fontSize: 10, marginBottom: 5 },
+  historyTitleWrap: { flex: 1, paddingRight: 8 },
+  sessionTitle: { ...type.label, color: movePalette.ink, fontSize: 13.5 },
+  sessionMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', fontSize: 11.5, marginTop: 2 },
+  sessionAside: { alignItems: 'flex-end', marginRight: 2 },
+  sessionMinutes: { ...type.caption, color: 'rgba(20, 31, 25, 0.68)', fontVariant: ['tabular-nums'] },
+  sessionEffort: { ...type.caption, color: 'rgba(20, 31, 25, 0.42)', fontSize: 10, marginTop: 2 },
+  meta: { ...type.caption, color: 'rgba(20, 31, 25, 0.46)' },
+  disabled: { opacity: 0.38 },
+  pressed: { opacity: 0.68 },
   loading: { alignItems: 'center', gap: 10, paddingVertical: 48 }
 });

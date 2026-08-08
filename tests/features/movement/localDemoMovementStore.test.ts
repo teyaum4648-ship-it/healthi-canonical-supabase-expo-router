@@ -3,19 +3,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addDemoWorkoutExerciseEntries,
   addDemoWorkoutSession,
+  addDemoWorkoutSetEntries,
   clearDemoMovementData,
   deleteDemoWorkoutExerciseEntry,
   deleteDemoWorkoutSession,
   deserializeDemoWorkoutExerciseEntries,
   deserializeDemoWorkoutSessions,
+  deserializeDemoWorkoutSetEntries,
   getLocalDemoMovementState,
   readDemoWorkoutExerciseEntries,
   readDemoWorkoutSessions,
+  readDemoWorkoutSetEntries,
   serializeDemoWorkoutExerciseEntries,
   serializeDemoWorkoutSessions,
+  serializeDemoWorkoutSetEntries,
   updateDemoWorkoutSession
 } from '../../../src/features/movement/localDemoMovementStore';
-import type { WorkoutExerciseEntryRow, WorkoutSessionRow } from '../../../src/features/movement/movementPersistence';
+import type { WorkoutExerciseEntryRow, WorkoutSessionRow, WorkoutSetEntryRow } from '../../../src/features/movement/movementPersistence';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -79,19 +83,42 @@ function entry(overrides: Partial<WorkoutExerciseEntryRow> = {}): WorkoutExercis
   };
 }
 
+function setEntry(overrides: Partial<WorkoutSetEntryRow> = {}): WorkoutSetEntryRow {
+  return {
+    id: 'local-set-1',
+    user_id: 'demo-user',
+    workout_session_id: 'local-workout-1',
+    workout_exercise_entry_id: 'local-entry-1',
+    set_index: 1,
+    weight: 20,
+    reps: 8,
+    rpe: 7,
+    rest_seconds: 90,
+    completed_at: '2026-07-13T18:05:00.000Z',
+    notes: null,
+    source: 'demo',
+    source_confidence: 'medium',
+    reason_codes: ['manual_workout_log', 'quick_set_log', 'demo_movement_data'],
+    created_at: '2026-07-13T18:00:00.000Z',
+    updated_at: '2026-07-13T18:00:00.000Z',
+    ...overrides
+  };
+}
+
 describe('local demo Movement store', () => {
   beforeEach(() => storage.clear());
 
-  it('serializes and deserializes workout sessions and exercise entries', () => {
+  it('serializes and deserializes workout sessions, exercises, and sets', () => {
     expect(deserializeDemoWorkoutSessions(serializeDemoWorkoutSessions([session()]))).toEqual([session()]);
     expect(deserializeDemoWorkoutExerciseEntries(serializeDemoWorkoutExerciseEntries([entry()]))).toEqual([entry()]);
+    expect(deserializeDemoWorkoutSetEntries(serializeDemoWorkoutSetEntries([setEntry()]))).toEqual([setEntry()]);
   });
 
   it('returns empty arrays for missing or malformed data', async () => {
     expect(deserializeDemoWorkoutSessions(null)).toEqual([]);
     expect(deserializeDemoWorkoutSessions('not-json')).toEqual([]);
     expect(deserializeDemoWorkoutExerciseEntries(JSON.stringify([{ id: 'partial' }]))).toEqual([]);
-    expect(await getLocalDemoMovementState()).toEqual({ exerciseLibrary: [], workoutSessions: [], workoutExerciseEntries: [] });
+    expect(await getLocalDemoMovementState()).toEqual({ exerciseLibrary: [], workoutSessions: [], workoutExerciseEntries: [], workoutSetEntries: [] });
   });
 
   it('adds, updates, and deletes a workout session', async () => {
@@ -107,25 +134,30 @@ describe('local demo Movement store', () => {
 
   it('adds and deletes exercise entries', async () => {
     await addDemoWorkoutExerciseEntries([entry(), entry({ id: 'local-entry-2', exercise_name: 'Walk' })]);
+    await addDemoWorkoutSetEntries([setEntry()]);
     expect(await readDemoWorkoutExerciseEntries()).toHaveLength(2);
 
     await deleteDemoWorkoutExerciseEntry('local-entry-1');
     expect((await readDemoWorkoutExerciseEntries()).map((item) => item.id)).toEqual(['local-entry-2']);
+    expect(await readDemoWorkoutSetEntries()).toEqual([]);
   });
 
   it('deleting a session also removes its exercise entries', async () => {
     await addDemoWorkoutSession(session());
     await addDemoWorkoutExerciseEntries([entry()]);
+    await addDemoWorkoutSetEntries([setEntry()]);
     await deleteDemoWorkoutSession('local-workout-1');
 
     expect(await readDemoWorkoutExerciseEntries()).toEqual([]);
+    expect(await readDemoWorkoutSetEntries()).toEqual([]);
   });
 
   it('clears all local Movement keys', async () => {
     await addDemoWorkoutSession(session());
     await addDemoWorkoutExerciseEntries([entry()]);
+    await addDemoWorkoutSetEntries([setEntry()]);
     await clearDemoMovementData();
 
-    expect(await getLocalDemoMovementState()).toEqual({ exerciseLibrary: [], workoutSessions: [], workoutExerciseEntries: [] });
+    expect(await getLocalDemoMovementState()).toEqual({ exerciseLibrary: [], workoutSessions: [], workoutExerciseEntries: [], workoutSetEntries: [] });
   });
 });

@@ -103,3 +103,44 @@ export type MovementReadinessSignal = {
   suggested_next_action: string;
   reason_codes: MovementReasonCode[];
 };
+
+export type AdaptiveMovementCapacity = 'restore' | 'technique' | 'build' | 'push';
+
+export type AdaptiveMovementPlanReasonCode =
+  | MovementReasonCode
+  | 'adaptive_plan_from_readiness'
+  | 'training_limited_by_safety'
+  | 'calibration_session_recommended'
+  | 'movement_mix_balanced'
+  | 'mobility_recovery_underrepresented'
+  | 'sleep_context_unknown'
+  | 'nutrition_context_unknown';
+
+export type AdaptiveMovementPlanInput = {
+  signal: MovementReadinessSignal;
+  summary: MovementSummary;
+  training_allowed?: boolean;
+  sleep_signal?: 'supportive' | 'limited' | 'unknown';
+  nutrition_signal?: 'supportive' | 'watch' | 'unknown';
+};
+
+export type AdaptiveMovementPlan = {
+  capacity: AdaptiveMovementCapacity;
+  readiness_score: number;
+  confidence: DataConfidence;
+  verdict: string;
+  explanation: string;
+  objective: string;
+  effort_range: { min: number; max: number };
+  recommended_session_types: MovementWorkoutType[];
+  agenda: Array<{ timing: 'now' | 'next' | 'later'; guidance: string }>;
+  support: Array<{
+    key: 'sleep' | 'nutrition' | 'recent_load';
+    label: string;
+    state: 'supportive' | 'watch' | 'limited' | 'unknown' | 'available';
+    summary: string;
+  }>;
+  movement_mix_insight: string;
+  training_allowed: boolean;
+  reason_codes: AdaptiveMovementPlanReasonCode[];
+};
