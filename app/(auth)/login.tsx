@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
@@ -15,20 +15,32 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    message: string;
+    tone: 'error' | 'success';
+  } | null>(null);
 
   async function handleLogin() {
     if (!email || !password) {
-      Alert.alert('Missing details', 'Enter your email and password to continue.');
+      setFeedback({
+        message: 'Enter your email and password to continue.',
+        tone: 'error'
+      });
       return;
     }
 
+    setFeedback(null);
     setIsSubmitting(true);
 
     try {
       await signIn(email.trim(), password);
+      setFeedback({
+        message: 'Signed in. Opening Healthi…',
+        tone: 'success'
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to log in right now.';
-      Alert.alert('Login failed', message);
+      setFeedback({ message, tone: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -60,6 +72,21 @@ export default function LoginScreen() {
           value={password}
         />
         <Button isLoading={isSubmitting} label="Log in" onPress={handleLogin} />
+        {feedback ? (
+          <View
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+            style={[
+              styles.feedback,
+              feedback.tone === 'error' ? styles.feedbackError : styles.feedbackSuccess
+            ]}
+          >
+            <Text style={styles.feedbackTitle}>
+              {feedback.tone === 'error' ? 'Login failed' : 'Login successful'}
+            </Text>
+            <Text style={styles.feedbackMessage}>{feedback.message}</Text>
+          </View>
+        ) : null}
       </Card>
 
       <View style={styles.footer}>
@@ -88,5 +115,29 @@ const styles = StyleSheet.create({
     color: colors.deepViolet,
     fontSize: 16,
     fontWeight: '800'
+  },
+  feedback: {
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: spacing.md
+  },
+  feedbackError: {
+    borderColor: colors.danger,
+    backgroundColor: colors.surface
+  },
+  feedbackSuccess: {
+    borderColor: colors.success,
+    backgroundColor: colors.surfaceMuted
+  },
+  feedbackTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  feedbackMessage: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20
   }
 });

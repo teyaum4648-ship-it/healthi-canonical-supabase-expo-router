@@ -5,11 +5,21 @@ import {
   buildDayPlanInput,
   createDemoScheduleBlockRow,
   createEmptyScheduleBlockForm,
+  createScheduleBlockFormForWindow,
   isValidScheduleTimeInput,
   scheduleBlockFormToInput
 } from '../../../src/features/dayPlan/scheduleBlockForms';
 
 describe('schedule block form helpers', () => {
+  it('prefills a one-hour block from a selected calendar time', () => {
+    expect(createScheduleBlockFormForWindow('2026-08-09T14:00:00.000Z', 'exercise')).toMatchObject({
+      date: '2026-08-09',
+      block_type: 'exercise',
+      start_time: '14:00',
+      end_time: '15:00'
+    });
+  });
+
   it('creates a valid schedule block payload from the UI form shape', () => {
     const form = {
       ...createEmptyScheduleBlockForm('2026-07-12'),

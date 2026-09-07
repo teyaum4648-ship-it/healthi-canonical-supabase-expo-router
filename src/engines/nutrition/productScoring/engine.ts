@@ -1,6 +1,14 @@
 import type { ProductForm } from './categories';
+import { resolveProductArchetype, type ProductArchetype } from './archetypes';
 import { resolveProductCategory, type CategoryResolution } from './categoryResolution';
+import {
+  type ProductDimensionScore,
+  type ProductScoreDimension,
+  type ProductScoreScope
+} from './dimensions';
+import { ingredientTextForMatching, parseIngredients } from './ingredientParser';
 import { resolveProductEvidence, type ProductEvidenceRef } from './evidence';
+import { scoreProductDimensionsV5 } from './kernelV5';
 import {
   getCategoryProfile,
   type CategoryProfile,
@@ -20,6 +28,8 @@ export type ProductScoreLabel = 'supportive' | 'steady' | 'watch' | 'calibrating
 export type ProductLetterGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type ProductGradeBand = 'strong' | 'solid' | 'mixed' | 'cautious' | 'avoid' | 'calibrating';
 export type DataConfidence = 'low' | 'medium' | 'high';
+export const PRODUCT_QUALITY_ENGINE_VERSION = 'product_quality_v5' as const;
+export type ProductQualityEngineVersion = 'product_quality_v2' | 'product_quality_v3' | 'product_quality_v4' | typeof PRODUCT_QUALITY_ENGINE_VERSION;
 
 export type ProductBetterOption = {
   title: 'What to Compare';
@@ -37,6 +47,8 @@ export type ProductNutrients = {
   fiber_g?: number | null;
   sodium_mg?: number | null;
   saturated_fat_g?: number | null;
+  added_sugar_g?: number | null;
+  caffeine_mg?: number | null;
 };
 
 export type ProductMacroContext = {
@@ -60,10 +72,48 @@ export type ProductScoringInput = {
   packaging?: string[];
   nutrimentsPer100g?: ProductNutrients;
   servingNutrients?: ProductNutrients & { serving_quantity_g?: number | null };
+  servingQuantity?: number | null;
+  servingUnit?: 'g' | 'ml' | null;
   preparedServingNutrients?: ProductNutrients;
   sourceConfidence?: DataConfidence;
   ingredientEvidenceStatus?: 'complete' | 'partial' | 'reconstructed' | 'absent';
+  evidenceContext?: {
+    identityConfidence?: DataConfidence;
+    nutritionConfidence?: DataConfidence;
+    servingConfidence?: DataConfidence;
+    productFormConfidence?: DataConfidence;
+    providerConflict?: boolean;
+    ingredientConflict?: boolean;
+    fieldReliability?: Partial<Record<keyof ProductNutrients, 'KNOWN' | 'ESTIMATED' | 'CONFLICTED' | 'UNRELIABLE' | 'MISSING'>>;
+    validationIssueCount?: number;
+  };
 };
+
+export type ProductScoreEligibility = {
+  eligible: boolean;
+  exactIdentityEstablished: boolean;
+  generalizedFallbackUsed: boolean;
+  supportedDimensionCount: number;
+  supportedRawWeight: number;
+  directEvidenceStrength: number;
+  directEvidenceKinds: Array<'ingredients' | 'nutrition' | 'serving'>;
+  maximumEffectiveWeight: number;
+  rangeWidth: number | null;
+  thresholds: {
+    minimumSupportedDimensions: 3;
+    minimumSupportedRawWeight: 0.5;
+    minimumDirectEvidenceStrength: 2;
+    maximumEffectiveWeight: 0.6;
+  };
+  deniedReasons: string[];
+};
+
+export const PRODUCT_SCORE_ELIGIBILITY_POLICY = {
+  minimumSupportedDimensions: 3,
+  minimumSupportedRawWeight: 0.5,
+  minimumDirectEvidenceStrength: 2,
+  maximumEffectiveWeight: 0.6
+} as const;
 
 export type ProductScoreLedgerStatus = 'applied' | 'suppressed' | 'context_only' | 'unavailable';
 export type ProductExplanationPolarity = 'help' | 'consideration' | 'neutral_detail' | 'hidden';
@@ -92,6 +142,15 @@ export type ProductGradeEligibility = {
   deniedReasons: string[];
 };
 
+export type ProductGradeCertaintyState = 'stable' | 'provisional' | 'unresolved';
+export type ProductGradeCertainty = {
+  state: ProductGradeCertaintyState;
+  centralGrade: ProductLetterGrade;
+  boundariesCrossed: number;
+  gradesSpanned: ProductLetterGrade[];
+  explanation: string;
+};
+
 export type ProductScoreFactor = {
   id: string;
   label: string;
@@ -104,6 +163,7 @@ export type ProductScoreFactor = {
 };
 
 export type ProductScoringResult = {
+  engineVersion: typeof PRODUCT_QUALITY_ENGINE_VERSION;
   absoluteScore: number | null;
   rawScore: number | null;
   categoryScore: number | null;
@@ -125,9 +185,18 @@ export type ProductScoringResult = {
   factors: ProductScoreFactor[];
   topDrivers: ProductScoreFactor[];
   scoreLedger: ProductScoreLedgerEntry[];
+  archetype: ProductArchetype | null;
+  dimensions: ProductScoreDimension[];
+  scoreRange: [number, number] | null;
+  supportedDimensionWeight: number;
+  scoreScope: ProductScoreScope;
+  dimensionAggregation: ProductDimensionScore['aggregation'];
+  scoreEligibility: ProductScoreEligibility;
+  generalizedFallbackUsed: boolean;
   scoreBaseline: number | null;
   scoreCap: { ruleId: string; label: string; cap: number } | null;
   gradeEligibility: ProductGradeEligibility | null;
+  gradeCertainty: ProductGradeCertainty | null;
   sourceConfidence: DataConfidence;
   interpretationConfidence: DataConfidence;
   confidence: DataConfidence;
@@ -138,8 +207,6 @@ export type ProductScoringResult = {
   evidence_refs: ProductEvidenceRef[];
   reasonCodes: string[];
 };
-
-const SHARED_BASELINE = 75;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -162,23 +229,18 @@ function hasNutrients(nutrients: ProductNutrients | null | undefined): boolean {
   return Object.values(nutrients ?? {}).some((value) => typeof value === 'number' && Number.isFinite(value));
 }
 
+function nutrientBasisConfidence(
+  input: ProductScoringInput,
+  ceiling: DataConfidence,
+  requiresServing: boolean
+): DataConfidence {
+  const nutrition = input.evidenceContext?.nutritionConfidence ?? ceiling;
+  const serving = requiresServing ? input.evidenceContext?.servingConfidence ?? ceiling : ceiling;
+  return lowerConfidence(ceiling, lowerConfidence(nutrition, serving));
+}
+
 export function splitIngredientList(text: string): string[] {
-  const tokens: string[] = [];
-  let depth = 0;
-  let current = '';
-  let colonSublist = false;
-  for (const character of text) {
-    if (character === '(' || character === '[') depth += 1;
-    if (character === ')' || character === ']') depth = Math.max(0, depth - 1);
-    if (character === ':' && depth === 0 && !/^\s*(ingredients?|contains)\s*$/i.test(current)) colonSublist = true;
-    if ((character === ';' || (character === ',' && !colonSublist)) && depth === 0) {
-      if (current.trim()) tokens.push(current.trim());
-      current = '';
-      colonSublist = false;
-    } else current += character;
-  }
-  if (current.trim()) tokens.push(current.trim());
-  return tokens.filter((token) => token.replace(/[^a-z]/gi, '').length > 0);
+  return parseIngredients(text).topLevelIngredients;
 }
 
 function sourceConfidence(input: ProductScoringInput): DataConfidence {
@@ -199,37 +261,37 @@ function selectNutrientBasis(input: ProductScoringInput, preference: NutrientBas
     if (hasNutrients(input.servingNutrients)) return {
       type: 'pantry_context',
       source: 'context_only',
-      confidence: 'medium',
+      confidence: nutrientBasisConfidence(input, 'medium', true),
       nutrients: { ...(input.servingNutrients ?? {}) }
     };
     if (hasNutrients(input.nutrimentsPer100g)) return {
-      type: 'per_100g', source: 'fallback', confidence: 'medium', nutrients: { ...input.nutrimentsPer100g }
+      type: 'per_100g', source: 'fallback', confidence: nutrientBasisConfidence(input, 'medium', false), nutrients: { ...input.nutrimentsPer100g }
     };
     return { type: 'unknown', source: 'unavailable', confidence: 'low', nutrients: {} };
   }
   if (preference === 'prepared_serving') {
     if (hasNutrients(input.preparedServingNutrients)) return {
-      type: 'prepared_serving', source: 'provided', confidence: 'high', nutrients: { ...input.preparedServingNutrients }
+      type: 'prepared_serving', source: 'provided', confidence: nutrientBasisConfidence(input, 'high', true), nutrients: { ...input.preparedServingNutrients }
     };
     if (hasNutrients(input.servingNutrients)) return {
-      type: 'prepared_serving', source: 'fallback', confidence: 'medium', nutrients: { ...input.servingNutrients }
+      type: 'prepared_serving', source: 'fallback', confidence: nutrientBasisConfidence(input, 'medium', true), nutrients: { ...input.servingNutrients }
     };
     if (hasNutrients(input.nutrimentsPer100g)) return {
-      type: 'per_100g', source: 'fallback', confidence: 'medium', nutrients: { ...input.nutrimentsPer100g }
+      type: 'per_100g', source: 'fallback', confidence: nutrientBasisConfidence(input, 'medium', false), nutrients: { ...input.nutrimentsPer100g }
     };
     return { type: 'unknown', source: 'unavailable', confidence: 'low', nutrients: {} };
   }
   if (preference === 'per_100g') {
     if (hasNutrients(input.nutrimentsPer100g)) return {
-      type: 'per_100g', source: 'provided', confidence: 'high', nutrients: { ...input.nutrimentsPer100g }
+      type: 'per_100g', source: 'provided', confidence: nutrientBasisConfidence(input, 'high', false), nutrients: { ...input.nutrimentsPer100g }
     };
     return { type: 'unknown', source: 'unavailable', confidence: 'low', nutrients: {} };
   }
   if (hasNutrients(input.servingNutrients)) return {
-    type: 'provider_serving', source: 'provided', confidence: 'high', nutrients: { ...input.servingNutrients }
+    type: 'provider_serving', source: 'provided', confidence: nutrientBasisConfidence(input, 'high', true), nutrients: { ...input.servingNutrients }
   };
   if (hasNutrients(input.nutrimentsPer100g)) return {
-    type: 'per_100g', source: 'fallback', confidence: 'medium', nutrients: { ...input.nutrimentsPer100g }
+    type: 'per_100g', source: 'fallback', confidence: nutrientBasisConfidence(input, 'medium', false), nutrients: { ...input.nutrimentsPer100g }
   };
   return { type: 'unknown', source: 'unavailable', confidence: 'low', nutrients: {} };
 }
@@ -248,6 +310,82 @@ function macroContext(basis: ProductNutrientBasis, profile: CategoryProfile | nu
   return {
     summary: 'Macros describe the selected product-use basis and do not automatically determine label quality.',
     highlights
+  };
+}
+
+function scoreEligibility(
+  input: ProductScoringInput,
+  basis: ProductNutrientBasis,
+  profile: CategoryProfile | null,
+  dimensionScore: ProductDimensionScore
+): ProductScoreEligibility {
+  const declaredIngredientStatus = input.ingredientEvidenceStatus ?? (input.ingredientsText?.trim() ? 'complete' : 'absent');
+  const ingredientStatus = declaredIngredientStatus === 'complete' && input.evidenceContext?.ingredientConflict
+    ? 'partial'
+    : declaredIngredientStatus;
+  const nutritionFieldCount = Object.values(basis.nutrients).filter((value) => (
+    typeof value === 'number' && Number.isFinite(value)
+  )).length;
+  const servingNormalized = ['provider_serving', 'prepared_serving', 'pantry_context'].includes(basis.type) &&
+    input.evidenceContext?.servingConfidence !== 'low';
+  const directEvidenceKinds: ProductScoreEligibility['directEvidenceKinds'] = [];
+  let directEvidenceStrength = 0;
+  if (ingredientStatus === 'complete' && input.ingredientsText?.trim()) {
+    directEvidenceKinds.push('ingredients');
+    directEvidenceStrength += 2;
+  } else if ((ingredientStatus === 'partial' || ingredientStatus === 'reconstructed') && input.ingredientsText?.trim()) {
+    directEvidenceKinds.push('ingredients');
+    directEvidenceStrength += 1;
+  }
+  if (nutritionFieldCount >= 2) {
+    directEvidenceKinds.push('nutrition');
+    directEvidenceStrength += 1;
+  }
+  if (servingNormalized) {
+    directEvidenceKinds.push('serving');
+    directEvidenceStrength += 1;
+  }
+
+  const supported = dimensionScore.dimensions.filter((dimension) => dimension.score !== null && dimension.weight > 0);
+  const supportedRawWeight = supported.reduce((sum, dimension) => sum + dimension.weight, 0);
+  const maximumEffectiveWeight = supportedRawWeight > 0
+    ? supported.reduce((maximum, dimension) => Math.max(
+      maximum,
+      dimension.weight / supportedRawWeight
+    ), 0)
+    : 0;
+  const rangeWidth = dimensionScore.range ? dimensionScore.range[1] - dimensionScore.range[0] : null;
+  const exactIdentityEstablished = input.evidenceContext?.identityConfidence !== 'low';
+  const deniedReasons: string[] = [];
+  if (!exactIdentityEstablished) deniedReasons.push('exact_identity_not_established');
+  if (supported.length < PRODUCT_SCORE_ELIGIBILITY_POLICY.minimumSupportedDimensions) {
+    deniedReasons.push('insufficient_supported_dimension_count');
+  }
+  if (supportedRawWeight < PRODUCT_SCORE_ELIGIBILITY_POLICY.minimumSupportedRawWeight) {
+    deniedReasons.push('insufficient_supported_dimension_weight');
+  }
+  if (directEvidenceStrength < PRODUCT_SCORE_ELIGIBILITY_POLICY.minimumDirectEvidenceStrength) {
+    deniedReasons.push('insufficient_direct_product_evidence');
+  }
+  if (maximumEffectiveWeight > PRODUCT_SCORE_ELIGIBILITY_POLICY.maximumEffectiveWeight) {
+    deniedReasons.push('central_estimate_dominated_by_one_dimension');
+  }
+  // Range width is retained for compatibility and result-state disclosure. It
+  // must not turn confidence into a score-eligibility or grade gate.
+  if (dimensionScore.score === null) deniedReasons.push('no_supported_dimension_score');
+
+  return {
+    eligible: deniedReasons.length === 0,
+    exactIdentityEstablished,
+    generalizedFallbackUsed: profile === null,
+    supportedDimensionCount: supported.length,
+    supportedRawWeight: Math.round(supportedRawWeight * 1000) / 1000,
+    directEvidenceStrength,
+    directEvidenceKinds: [...new Set(directEvidenceKinds)],
+    maximumEffectiveWeight: Math.round(maximumEffectiveWeight * 1000) / 1000,
+    rangeWidth,
+    thresholds: { ...PRODUCT_SCORE_ELIGIBILITY_POLICY },
+    deniedReasons
   };
 }
 
@@ -426,8 +564,15 @@ function categoryLedger(
   if (categoryId === 'marinara' && /\btomato(es)?\b/.test(ingredients) && /\b(olive oil|onion|garlic|basil|oregano)\b/.test(ingredients)) {
     add('marinara_base', 'claim_alignment', 'Marinara base', 7, ['tomato + culinary oil/seasoning'], 'The label has a straightforward tomato, oil, and seasoning pattern.');
   }
-  if (categoryId === 'electrolyte' && /\b(sodium|potassium|magnesium)\b/.test(ingredients)) {
+  if ((categoryId === 'electrolyte' || categoryId === 'electrolyte_beverage') && /\b(sodium|potassium|magnesium|calcium|salt)\b/.test(ingredients)) {
     add('electrolyte_alignment', 'claim_alignment', 'Electrolyte formula alignment', 5, ['named electrolyte mineral'], 'Named electrolyte minerals align with the intended hydration-mix use.');
+  }
+  if (categoryId === 'sparkling_water' && /\bcarbonated water\b/.test(ingredients) &&
+    !/\b(aspartame|acesulfame potassium|ace-?k|sucralose|saccharin|stevia|monk fruit|allulose|sugar|syrup)\b/.test(ingredients)) {
+    add('sparkling_water_alignment', 'claim_alignment', 'Sparkling-water formula alignment', 0, ['carbonated water without a sweetener system'], 'The formulation is aligned with an unsweetened sparkling water.', 'help');
+  }
+  if ((categoryId === 'soda' || categoryId === 'energy_drink') && /\bcaffeine\b/.test(ingredients)) {
+    add('caffeine_context', 'claim_alignment', 'Caffeine context', 0, ['caffeine declared in ingredients'], 'Caffeine is declared in the available ingredient list.', 'consideration');
   }
   if ((categoryId === 'chips' || categoryId === 'crackers') && /\b(avocado oil|extra virgin olive oil|olive oil|coconut oil)\b/.test(ingredients)) {
     add('clear_oil_category_fit', 'oils', 'Clear oil source', 5, ['named oil source'], 'The label names a straightforward oil source for this snack category.');
@@ -478,7 +623,7 @@ function categoryLedger(
   }
   const plantSweetenerSystem = /\b(allulose|stevia|monk fruit)\b/.test(ingredients);
   const refinedSweetenerSystem = /\b(high[- ]fructose corn syrup|cane sugar|corn syrup|glucose syrup|dextrose|rice syrup|tapioca syrup|agave syrup|sucrose)\b/.test(ingredients);
-  const sweetnessExpected = ['prebiotic_soda', 'soda', 'yogurt', 'protein_bar', 'protein_powder', 'ready_to_drink_protein', 'chocolate'].includes(categoryId);
+  const sweetnessExpected = ['prebiotic_soda', 'soda', 'energy_drink', 'electrolyte_beverage', 'yogurt', 'protein_bar', 'protein_powder', 'ready_to_drink_protein', 'chocolate'].includes(categoryId);
   if (supportsCategoryNutrientRules && plantSweetenerSystem && !refinedSweetenerSystem && sweetnessExpected && categoryId !== 'prebiotic_soda' && (nutrients.sugar_g ?? 0) <= 8) {
     add('reduced_refined_sugar_sweetener_system', 'claim_alignment', 'Reduced refined-sugar alignment', 1,
       ['one plant-derived sweetener system', 'no refined sweetener detected'],
@@ -497,8 +642,10 @@ function categoryLedger(
     const fiberContextAlreadyExplained = signal.id === 'fiber_density_context' && ledger.some((entry) => (
       ['prebiotic_category_fit', 'whole_ingredient_bar_pattern', 'protein_claim_alignment', 'isolated_nutrition_system'].includes(entry.ruleId)
     ));
-    const electrolyteSodiumContext = signal.id === 'higher_sodium_density' &&
-      categoryId === 'electrolyte' && basis.type === 'prepared_serving';
+    const electrolyteSodiumContext = signal.id === 'higher_sodium_density' && (
+      (categoryId === 'electrolyte' && basis.type === 'prepared_serving') ||
+      categoryId === 'electrolyte_beverage'
+    );
     add(
       signal.id,
       signal.family,
@@ -512,134 +659,93 @@ function categoryLedger(
   return ledger;
 }
 
-function processingTier(tokens: string[], ledger: ProductScoreLedgerEntry[]): ProductProcessingTier {
-  const strong = ledger.some((entry) => entry.status === 'applied' && entry.delta <= -10);
-  const formulationCount = ledger.filter((entry) => entry.status === 'applied' && entry.delta < 0 && ['flavor_systems', 'emulsifiers_gums', 'colors', 'oils'].includes(entry.ruleFamily)).length;
-  if (strong || formulationCount >= 3) return 4;
-  if (formulationCount > 0 || tokens.length > 8) return 3;
+function processingTier(tokens: string[], dimensions: ProductScoreDimension[]): ProductProcessingTier {
+  const formulation = dimensions.find((dimension) => dimension.id === 'formulation_burden');
+  const formulationSignals = formulation?.negativeContributions.length ?? 0;
+  if ((formulation?.score ?? 100) < 45 || formulationSignals >= 3) return 4;
+  if ((formulation?.score ?? 100) < 75 || formulationSignals > 0 || tokens.length > 8) return 3;
   return tokens.length <= 1 ? 1 : 2;
 }
 
-function factorFromLedger(entry: ProductScoreLedgerEntry): ProductScoreFactor {
+function factorFromDimension(dimension: ProductScoreDimension): ProductScoreFactor {
+  const score = dimension.score ?? 0;
+  const contributionLabels = [...dimension.positiveContributions, ...dimension.negativeContributions]
+    .map((item) => item.label);
   return {
-    id: entry.ruleId,
-    label: entry.label,
-    points: entry.delta,
-    rawPoints: entry.delta,
-    severity: entry.delta > 0 ? 'positive' : entry.delta <= -10 ? 'strong' : entry.delta <= -5 ? 'moderate' : 'light',
-    matched: entry.evidence.filter((item) => !item.startsWith('http')),
-    explanation: entry.userVisibleExplanation ?? entry.hiddenReason ?? entry.label,
-    evidence_refs: entry.evidence.filter((item) => item.includes('_') && !item.includes(' '))
+    id: `dimension_${dimension.id}`,
+    label: dimension.label,
+    points: dimension.contribution,
+    rawPoints: score,
+    severity: score >= 80 ? 'positive' : score < 40 ? 'strong' : score < 55 ? 'moderate' : 'light',
+    matched: dimension.evidence,
+    explanation: `${dimension.label} contributes ${dimension.contribution.toFixed(1)} points from a ${score}/100 dimension score${contributionLabels.length ? ` (${contributionLabels.join('; ')})` : ''}.`,
+    evidence_refs: []
   };
 }
 
-type ExplanationConcept =
-  | 'protein_amount'
-  | 'fiber_amount'
-  | 'lower_sugar_system'
-  | 'ingredient_integrity'
-  | 'oil_system'
-  | 'flavor_complexity';
-
-function explanationConcept(entry: ProductScoreLedgerEntry): ExplanationConcept | null {
-  if (['protein_claim_alignment', 'protein_density_context'].includes(entry.ruleId)) return 'protein_amount';
-  if (['prebiotic_category_fit', 'fiber_density_context'].includes(entry.ruleId)) return 'fiber_amount';
-  if (['lower_sugar_beverage', 'reduced_refined_sugar_sweetener_system'].includes(entry.ruleId)) return 'lower_sugar_system';
-  if (['ingredient_simplicity', 'whole_ingredient_bar_pattern'].includes(entry.ruleId)) return 'ingredient_integrity';
-  if (['refined_oil_blend', 'multiple_named_oils', 'formulated_fat'].includes(entry.ruleId)) return 'oil_system';
-  if (['flavor_blend', 'ingredient_complexity'].includes(entry.ruleId)) return 'flavor_complexity';
-  return null;
+function legacyLedgerAsContext(entries: ProductScoreLedgerEntry[]): ProductScoreLedgerEntry[] {
+  return entries.map((entry) => {
+    if (entry.status !== 'applied') return entry;
+    const explicitZeroPointContext = entry.delta === 0 && entry.visibility !== 'none' && entry.userVisibleExplanation !== null;
+    return {
+      ...entry,
+      status: 'context_only',
+      delta: 0,
+      presentation: explicitZeroPointContext ? entry.presentation : 'hidden',
+      visibility: explicitZeroPointContext ? entry.visibility : 'none',
+      userVisibleExplanation: explicitZeroPointContext ? entry.userVisibleExplanation : null,
+      hiddenReason: explicitZeroPointContext
+        ? undefined
+        : 'Legacy category-ledger match retained for trace context; Product Quality V4 score math is dimension-only.',
+      transformation: undefined
+    };
+  });
 }
 
-function explanationSpecificity(entry: ProductScoreLedgerEntry): number {
-  const specific: Record<string, number> = {
-    whole_ingredient_bar_pattern: 5,
-    prebiotic_category_fit: 5,
-    protein_claim_alignment: 5,
-    lower_sugar_beverage: 5,
-    reduced_refined_sugar_sweetener_system: 5,
-    refined_oil_blend: 5,
-    formulated_fat: 5,
-    flavor_blend: 5,
-    multiple_named_oils: 4,
-    protein_density_context: 2,
-    fiber_density_context: 2,
-    ingredient_simplicity: 2,
-    ingredient_complexity: 1
-  };
-  return specific[entry.ruleId] ?? 3;
-}
-
-function explanationPriority(entry: ProductScoreLedgerEntry): number {
-  return explanationSpecificity(entry) * 100 + Math.abs(entry.delta);
-}
-
-function dedupeVisibleLedger(entries: ProductScoreLedgerEntry[]): ProductScoreLedgerEntry[] {
-  const selected = new Set<ProductScoreLedgerEntry>();
-  const byConcept = new Map<ExplanationConcept, ProductScoreLedgerEntry[]>();
-  for (const entry of entries) {
-    const concept = explanationConcept(entry);
-    if (!concept) {
-      selected.add(entry);
+function dimensionExplanations(dimensions: ProductScoreDimension[]): { positives: string[]; considerations: string[] } {
+  const positives: string[] = [];
+  const considerations: string[] = [];
+  for (const dimension of dimensions) {
+    if (dimension.score === null) {
+      considerations.push(`${dimension.label} is unsupported: ${dimension.missingEvidence.join('; ') || 'required evidence is unavailable'}.`);
       continue;
     }
-    const choices = byConcept.get(concept) ?? [];
-    const oppositeApplied = choices.find((candidate) => candidate.delta * entry.delta < 0);
-    if (oppositeApplied) {
-      choices.push(entry);
-      selected.add(entry);
-      byConcept.set(concept, choices);
-      continue;
+    if (dimension.anchor && dimension.anchor.score >= 80) {
+      positives.push(`${dimension.label}: ${dimension.anchor.label}.`);
+    } else if (dimension.anchor && dimension.anchor.score < 60) {
+      considerations.push(`${dimension.label}: ${dimension.anchor.label}.`);
     }
-    const current = choices[0];
-    if (!current || explanationPriority(entry) > explanationPriority(current)) {
-      if (current) selected.delete(current);
-      choices[0] = entry;
-      selected.add(entry);
-    }
-    byConcept.set(concept, choices);
+    for (const item of dimension.positiveContributions) positives.push(`${dimension.label}: ${item.label}.`);
+    for (const item of dimension.negativeContributions) considerations.push(`${dimension.label}: ${item.label}.`);
   }
-  return entries.filter((entry) => selected.has(entry));
+  return { positives: unique(positives), considerations: unique(considerations) };
 }
 
-function gradeEligibility(
-  categoryId: string,
-  ledger: ProductScoreLedgerEntry[],
-  tokens: string[],
-  sourceConfidence: DataConfidence,
-  interpretationConfidence: DataConfidence
+function evaluateAGradeEligibility(
+  input: ProductScoringInput,
+  dimensions: ProductScoreDimension[]
 ): ProductGradeEligibility {
-  const applied = ledger.filter((entry) => entry.status === 'applied');
-  const appliedNegatives = applied.filter((entry) => entry.delta < 0);
-  const ingredientIntegrity = Boolean(
-    applied.find((entry) => entry.ruleId === 'ingredient_simplicity' && entry.delta >= 8) &&
-    !appliedNegatives.some((entry) => ['ingredient_simplicity', 'oils', 'colors', 'emulsifiers_gums', 'refined_syrups'].includes(entry.ruleFamily))
+  const scoreFor = (id: ProductScoreDimension['id']): number | null => (
+    dimensions.find((dimension) => dimension.id === id)?.score ?? null
   );
-  const formulationWatchFamilies = ['flavor_systems', 'sweeteners', 'oils', 'emulsifiers_gums', 'colors'];
-  const contextualFormulationSignals = ledger.some((entry) => (
-    entry.status === 'context_only' &&
-    entry.visibility !== 'none' &&
-    formulationWatchFamilies.includes(entry.ruleFamily)
-  ));
-  const formulationComplexity = Boolean(
-    tokens.length <= 5 &&
-    !appliedNegatives.some((entry) => formulationWatchFamilies.includes(entry.ruleFamily)) &&
-    !contextualFormulationSignals
-  );
-  const topGradeExcludedSignals = ['ingredient_simplicity', 'organic_label', 'reduced_refined_sugar_sweetener_system', 'protein_claim_alignment'];
-  const categoryStandardQuality = applied.some((entry) => (
-    entry.delta > 0 && ['claim_alignment', 'ingredient_simplicity', 'oils'].includes(entry.ruleFamily) && !topGradeExcludedSignals.includes(entry.ruleId)
-  ));
-  const expectedContextFamilies = categoryId === 'ice_cream' || categoryId === 'frozen_dairy_dessert' || categoryId === 'chocolate'
-    ? ['refined_syrups']
-    : [];
-  const unresolvedMajorWatch = appliedNegatives.some((entry) => entry.delta <= -6) || ledger.some((entry) => (
-    entry.status === 'context_only' &&
-    entry.ruleFamily === 'refined_syrups' &&
-    !expectedContextFamilies.includes(entry.ruleFamily)
+  const ingredientIntegrity = (scoreFor('ingredient_integrity') ?? 0) >= 85;
+  const formulationComplexity = (scoreFor('formulation_burden') ?? 0) >= 85 && (scoreFor('processing_purpose') ?? 0) >= 80;
+  const categoryStandardQuality = (scoreFor('category_nutrition_fit') ?? 0) >= 70;
+  const majorWatchRules = new Set([
+    'measured_added_sugar',
+    'measured_total_sugar_with_added_sugar_ingredient',
+    'industrial_fat_ingredient_order',
+    'industrial_fat_system',
+    'processed_meat_context',
+    'cumulative_additive_burden'
+  ]);
+  const unresolvedMajorWatch = dimensions.some((dimension) => (
+    dimension.score !== null && dimension.score < 55 ||
+    dimension.negativeContributions.some((item) => majorWatchRules.has(item.ruleId) && item.delta <= -10)
   ));
   const majorWatchSignals = !unresolvedMajorWatch;
-  const labelTransparency = sourceConfidence === 'high' && interpretationConfidence === 'high';
+  const declaredStatus = input.ingredientEvidenceStatus ?? (input.ingredientsText?.trim() ? 'complete' : 'absent');
+  const labelTransparency = declaredStatus === 'complete' && !input.evidenceContext?.ingredientConflict;
   const deniedReasons: string[] = [];
   if (!ingredientIntegrity) deniedReasons.push('ingredient_integrity_not_strong');
   if (!formulationComplexity) deniedReasons.push('formulation_complexity_not_low');
@@ -657,26 +763,48 @@ function gradeEligibility(
   };
 }
 
-function deniedTopGradeCopy(eligibility: ProductGradeEligibility): string {
-  const clauses: Record<string, string> = {
-    ingredient_integrity_not_strong: 'the ingredient profile is not strong enough for the top tier',
-    formulation_complexity_not_low: 'the formula includes added systems that keep it below the top tier',
-    category_standard_quality_not_strong: 'the strongest qualities expected in this category are not present',
-    unresolved_major_watch_signal: 'a significant label consideration remains',
-    label_transparency_or_confidence_insufficient: 'the available label evidence is not complete enough for a top-tier grade'
-  };
-  const reasons = eligibility.deniedReasons.map((reason) => clauses[reason]).filter((reason): reason is string => Boolean(reason));
-  if (reasons.length === 0) return 'The available label does not provide enough support for a top-tier grade.';
-  if (reasons.length === 1) return `${reasons[0]![0]!.toUpperCase()}${reasons[0]!.slice(1)}.`;
-  return `This remains below the top tier because ${reasons.slice(0, -1).join(', ')}, and ${reasons.at(-1)}.`;
-}
-
 export function productLetterGrade(score: number): ProductLetterGrade {
   if (score >= 90) return 'A';
   if (score >= 80) return 'B';
   if (score >= 70) return 'C';
   if (score >= 60) return 'D';
   return 'F';
+}
+
+export function productGradeCertainty(
+  centralScore: number,
+  scoreRange: [number, number]
+): ProductGradeCertainty {
+  const low = clamp(Math.min(scoreRange[0], centralScore), 0, 100);
+  const high = clamp(Math.max(scoreRange[1], centralScore), 0, 100);
+  const gradeOrder: ProductLetterGrade[] = ['F', 'D', 'C', 'B', 'A'];
+  const lowGrade = productLetterGrade(low);
+  const highGrade = productLetterGrade(high);
+  const lowIndex = gradeOrder.indexOf(lowGrade);
+  const highIndex = gradeOrder.indexOf(highGrade);
+  const boundariesCrossed = Math.max(0, highIndex - lowIndex);
+  const gradesSpanned = gradeOrder.slice(lowIndex, highIndex + 1);
+  const nearestBoundaryDistance = Math.min(...[60, 70, 80, 90].map((boundary) => Math.abs(centralScore - boundary)));
+  const oneBoundaryHasStrongCentralSupport = boundariesCrossed === 1 && nearestBoundaryDistance >= 3;
+  const state: ProductGradeCertaintyState = boundariesCrossed === 0 || oneBoundaryHasStrongCentralSupport
+    ? 'stable'
+    : boundariesCrossed >= 3
+      ? 'unresolved'
+      : 'provisional';
+  const explanation = state === 'stable'
+    ? boundariesCrossed === 0
+      ? `The supported range remains within grade ${lowGrade}.`
+      : `The range touches one adjacent grade, while the central score strongly supports grade ${productLetterGrade(centralScore)}.`
+    : state === 'unresolved'
+      ? `The supported range spans ${gradesSpanned[0]} through ${gradesSpanned.at(-1)}, so the letter grade is uncertain.`
+      : `The supported range crosses ${boundariesCrossed} grade ${boundariesCrossed === 1 ? 'boundary' : 'boundaries'}, so the letter grade is provisional.`;
+  return {
+    state,
+    centralGrade: productLetterGrade(centralScore),
+    boundariesCrossed,
+    gradesSpanned,
+    explanation
+  };
 }
 
 export function productGradeBand(grade: ProductLetterGrade | null): ProductGradeBand {
@@ -717,19 +845,43 @@ function productFormCopy(form: ProductForm | null, basis: ProductNutrientBasis):
   return null;
 }
 
+function productFormFromArchetype(archetype: ProductArchetype | null): ProductForm | null {
+  if (!archetype) return null;
+  if (archetype.form === 'beverage') return 'beverage';
+  if (archetype.form === 'powder') return 'powder_mix';
+  if (archetype.form === 'pantry') return 'pantry_staple';
+  if (archetype.intent === 'condiment') return 'condiment_or_sauce';
+  return 'ready_to_eat';
+}
+
 export function productBetterOptions(score: number | null, categoryId: string | null): ProductBetterOption[] {
   if (score === null || score >= 80) return [];
   const title = 'What to Compare' as const;
+  if (!categoryId) return [{
+    title,
+    summary: 'Compare products with a similar intended use when that context is available.',
+    criteria: ['Complete ingredient evidence', 'Fewer directly observed formulation signals', 'Clear serving and nutrition information'],
+    reason_codes: ['compare_direct_label_evidence']
+  }];
   if (categoryId === 'salt' || categoryId === 'low_sodium_salt') return [{ title, summary: 'Compare salts within the same pantry use.', criteria: ['Simple ingredient list', 'Additive use', 'Transparent sourcing', 'Documented quality testing when available'], reason_codes: ['compare_salt_label'] }];
   if (categoryId === 'marinara' || categoryId === 'condiments') return [{ title, summary: 'Compare sauces intended for the same meal use.', criteria: ['Straightforward tomato, oil, and seasoning pattern', 'Sodium in serving context', 'Fewer formulation signals'], reason_codes: ['compare_sauce_label'] }];
   if (categoryId === 'ice_cream' || categoryId === 'frozen_dairy_dessert' || categoryId === 'cookies' || categoryId === 'chocolate') return [{ title, summary: 'Compare a similar dessert or frozen treat.', criteria: ['Straightforward category-standard base', 'Fewer flavor, color, or texture systems', 'Clear serving information'], reason_codes: ['compare_dessert_label'] }];
-  if (categoryId === 'electrolyte') return [{ title, summary: 'Compare hydration mixes intended for the same use.', criteria: ['Clear serving instructions', 'Mineral amounts shown per intended use', 'Simpler flavor and sweetener system'], reason_codes: ['compare_electrolyte_label'] }];
+  if (categoryId === 'electrolyte' || categoryId === 'electrolyte_beverage') return [{ title, summary: 'Compare hydration products intended for the same use.', criteria: ['Clear serving instructions', 'Mineral amounts shown per intended use', 'Simpler flavor and sweetener system'], reason_codes: ['compare_electrolyte_label'] }];
+  if (categoryId === 'soda' || categoryId === 'energy_drink') return [{ title, summary: 'Compare beverages intended for the same use.', criteria: ['Declared sweetener system', 'Fewer color, preservative, and flavor-system signals', 'Clear serving and caffeine information when applicable'], reason_codes: ['compare_formulated_beverage_label'] }];
   return [{ title, summary: 'Compare products intended for the same use.', criteria: ['Category-standard ingredient base', 'Fewer formulation signals', 'Claims supported by the available label'], reason_codes: ['compare_product_label'] }];
 }
 
-function summaryFor(categoryId: string, band: ProductGradeBand): string {
+function summaryFor(categoryId: string | null, band: ProductGradeBand): string {
+  if (!categoryId) {
+    if (band === 'strong' || band === 'solid') return 'Direct label evidence supports a strong provisional result, but category-specific comparison is unavailable.';
+    if (band === 'mixed') return 'Direct label evidence supports a mixed provisional result without category-specific comparison.';
+    return 'Direct label evidence supports a bounded provisional result, with important uncertainty because category-specific comparison is unavailable.';
+  }
   if (categoryId === 'salt' || categoryId === 'low_sodium_salt') return 'Sodium is expected for salt. This result focuses on ingredient simplicity and label transparency.';
   if (categoryId === 'electrolyte') return 'This hydration mix is interpreted for its intended prepared use.';
+  if (categoryId === 'electrolyte_beverage') return 'This electrolyte beverage is interpreted for its intended hydration use.';
+  if (categoryId === 'sparkling_water') return 'This is interpreted as sparkling water rather than as a sweetened soft drink.';
+  if (categoryId === 'energy_drink') return 'This is interpreted within the energy-drink category, including its caffeine and formulation context.';
   if (categoryId === 'ice_cream' || categoryId === 'frozen_dairy_dessert' || categoryId === 'cookies' || categoryId === 'chocolate') return 'This is a label-quality result within its dessert category, not a universal frequency judgment.';
   if (band === 'strong') return 'The available label shows strong quality within this product category.';
   if (band === 'solid') return 'The available label shows good quality within this product category.';
@@ -738,107 +890,159 @@ function summaryFor(categoryId: string, band: ProductGradeBand): string {
   return 'The available label shows a more complex pattern for this product category.';
 }
 
-function calibratingResult(input: ProductScoringInput, resolution: CategoryResolution, source: DataConfidence, basis: ProductNutrientBasis): ProductScoringResult {
-  const form = resolution.productForm;
+function emptyDimensionScore(): ProductDimensionScore {
   return {
+    score: null,
+    range: null,
+    dimensions: [],
+    supportedWeight: 0,
+    scoreScope: 'supported_evidence',
+    aggregation: {
+      method: 'conditional_supported_evidence_with_unknown_interval',
+      formula: 'sum(weight * supported score) / supported weight',
+      supportedWeightedSum: 0,
+      supportedWeight: 0,
+      unknownWeight: 1,
+      supportedDimensionCount: 0,
+      conditionalCentralScore: null,
+      scoreScope: 'supported_evidence',
+      materialUnknownDimensions: []
+    }
+  };
+}
+
+function unresolvedResult(
+  input: ProductScoringInput,
+  resolution: CategoryResolution,
+  source: DataConfidence,
+  basis: ProductNutrientBasis,
+  archetype: ProductArchetype | null,
+  dimensionScore: ProductDimensionScore,
+  eligibility: ProductScoreEligibility
+): ProductScoringResult {
+  const form = resolution.productForm ?? productFormFromArchetype(archetype);
+  const identityMissing = eligibility.deniedReasons.includes('exact_identity_not_established');
+  const ingredientsMissing = !input.ingredientsText?.trim();
+  return {
+    engineVersion: PRODUCT_QUALITY_ENGINE_VERSION,
     absoluteScore: null, rawScore: null, categoryScore: null, categoryComparisonAvailable: false, displayScore: null, letterGrade: null,
     gradeBand: 'calibrating', gradeLabel: 'Not enough data', label: 'calibrating', tier: null,
-    tierLabel: 'Ingredient data unavailable', categoryId: resolution.selectedCategoryId, categoryLabel: resolution.selectedCategoryLabel,
+    tierLabel: ingredientsMissing ? 'Ingredient data unavailable' : 'Insufficient direct scoring evidence',
+    categoryId: resolution.selectedCategoryId, categoryLabel: resolution.selectedCategoryLabel,
     categoryResolution: resolution, productForm: form, preparedUse: productFormCopy(form, basis), nutrientBasis: basis,
     macroContext: macroContext(basis, getCategoryProfile(resolution.selectedCategoryId)), factors: [], topDrivers: [], scoreLedger: [],
-    scoreBaseline: null, scoreCap: null, gradeEligibility: null, sourceConfidence: source, interpretationConfidence: resolution.interpretationConfidence,
-    confidence: !input.ingredientsText?.trim()
+    archetype, dimensions: dimensionScore.dimensions, scoreRange: null, supportedDimensionWeight: dimensionScore.supportedWeight,
+    scoreScope: dimensionScore.scoreScope,
+    dimensionAggregation: dimensionScore.aggregation,
+    scoreEligibility: eligibility,
+    generalizedFallbackUsed: eligibility.generalizedFallbackUsed,
+    scoreBaseline: null, scoreCap: null, gradeEligibility: null, gradeCertainty: null, sourceConfidence: source, interpretationConfidence: resolution.interpretationConfidence,
+    confidence: ingredientsMissing || identityMissing
       ? 'low'
       : lowerConfidence(lowerConfidence(source, resolution.interpretationConfidence), basis.confidence),
-    summary: !input.ingredientsText?.trim()
+    summary: identityMissing
+      ? 'The exact product identity is not established, so no Product Quality grade is assigned.'
+      : ingredientsMissing
       ? 'Ingredient data is incomplete, so no Product Quality grade is assigned.'
-      : 'Category interpretation is incomplete, so no Product Quality grade is assigned.',
-    positives: [], considerations: ['More label or category data will make this interpretation clearer.'], better_options: [], evidence_refs: [],
-    reasonCodes: [!input.ingredientsText?.trim() ? 'ingredient_data_missing' : 'category_interpretation_missing', 'product_score_calibrating']
+      : 'The available direct evidence does not yet support enough material dimensions for a useful bounded result.',
+    positives: [], considerations: ['More direct label evidence will make this interpretation clearer.'], better_options: [], evidence_refs: [],
+    reasonCodes: unique([
+      ...(identityMissing ? ['product_identity_unresolved'] : []),
+      ...(ingredientsMissing ? ['ingredient_data_missing'] : []),
+      ...eligibility.deniedReasons,
+      'product_score_more_data_needed'
+    ])
   };
 }
 
 export function scoreProductLabel(input: ProductScoringInput): ProductScoringResult {
-  const ingredients = normalize(input.ingredientsText ?? '');
-  const tokens = splitIngredientList(ingredients);
+  const parsedIngredients = parseIngredients(input.ingredientsText, input.ingredientEvidenceStatus ?? 'unknown');
+  const ingredients = normalize(ingredientTextForMatching(parsedIngredients));
+  const tokens = parsedIngredients.topLevelIngredients;
   const source = sourceConfidence(input);
   const resolution = resolveProductCategory({
     name: input.name,
     explicitCategory: input.category,
     categoryTags: input.categoryTags,
     ingredientsText: ingredients,
+    ingredientEvidenceStatus: input.ingredientEvidenceStatus,
     servingNutrients: input.servingNutrients
   });
   const profile = getCategoryProfile(resolution.selectedCategoryId);
   const fallbackPreference: NutrientBasisPreference = resolution.productForm === 'salt' ? 'pantry_context' : 'per_serving';
   const basis = selectNutrientBasis(input, profile?.nutrientBasis ?? fallbackPreference);
+  const archetype = resolveProductArchetype(input, resolution);
 
-  if (!profile || resolution.interpretationConfidence === 'low') {
-    return calibratingResult(input, resolution, source, basis);
+  if (!archetype) {
+    const dimensionScore = emptyDimensionScore();
+    const scoreEligibilityResult = scoreEligibility(input, basis, profile, dimensionScore);
+    return unresolvedResult(input, resolution, source, basis, null, dimensionScore, scoreEligibilityResult);
   }
 
-  const ledger = [
+  const legacyLedger = profile ? [
     ...ingredientLedger(profile, ingredients, tokens, input.labels ?? []),
     ...categoryLedger(profile, input, ingredients, tokens, basis, tokens.length > 0)
-  ];
-  const unboundedRawScore = SHARED_BASELINE + ledger.reduce((sum, entry) => sum + entry.delta, 0);
-  const rawScore = Math.round(clamp(unboundedRawScore, 0, 100));
-  if (rawScore !== Math.round(unboundedRawScore)) {
-    ledger.push({
-      ruleId: 'score_range_clamp', ruleFamily: 'claim_alignment', label: 'Score range boundary', status: 'applied',
-      delta: rawScore - unboundedRawScore, evidence: [`unbounded score ${unboundedRawScore}`], reasonCode: 'score_range_clamp', presentation: 'hidden', visibility: 'none',
-      userVisibleExplanation: null, hiddenReason: 'The internal score was bounded to the supported 0–100 range.', transformation: 'clamp'
-    });
+  ] : [];
+  const ledger = legacyLedgerAsContext(legacyLedger);
+  const dimensionScore = scoreProductDimensionsV5({ input, archetype, basis, sourceConfidence: source, profile });
+  const scoreEligibilityResult = scoreEligibility(input, basis, profile, dimensionScore);
+  if (!scoreEligibilityResult.eligible || dimensionScore.score === null) {
+    return unresolvedResult(input, resolution, source, basis, archetype, dimensionScore, scoreEligibilityResult);
   }
-  const numericGrade = productLetterGrade(rawScore);
-  const eligibility = gradeEligibility(profile.categoryId, ledger, tokens, source, resolution.interpretationConfidence);
-  const deniedTopGrade = numericGrade === 'A' && !eligibility.aEligible;
+  const rawScore = dimensionScore.score;
+  const gradeEligibility = rawScore >= 90
+    ? evaluateAGradeEligibility(input, dimensionScore.dimensions)
+    : null;
+  const deniedTopGrade = gradeEligibility !== null && !gradeEligibility.aEligible;
   const displayScore = deniedTopGrade ? 89 : rawScore;
   if (deniedTopGrade) {
     ledger.push({
-      ruleId: 'grade_eligibility_adjustment', ruleFamily: 'claim_alignment', label: 'Public grade consistency adjustment', status: 'applied',
-      delta: displayScore - rawScore, evidence: [...eligibility.deniedReasons], reasonCode: 'grade_eligibility_adjustment', presentation: 'hidden', visibility: 'none',
-      userVisibleExplanation: null, hiddenReason: 'Top-grade requirements were not met across the available label pattern.', transformation: 'grade_eligibility'
+      ruleId: 'grade_eligibility_adjustment',
+      ruleFamily: 'claim_alignment',
+      label: 'Multidimensional A-grade eligibility',
+      status: 'applied',
+      delta: displayScore - rawScore,
+      evidence: [...gradeEligibility.deniedReasons],
+      reasonCode: 'grade_eligibility_adjustment',
+      presentation: 'hidden',
+      visibility: 'none',
+      userVisibleExplanation: null,
+      hiddenReason: 'An A grade requires strong ingredient integrity, low formulation complexity, strong nutrition evidence, no major watch signal, and sufficient label transparency.',
+      transformation: 'grade_eligibility'
     });
   }
   const letterGrade = productLetterGrade(displayScore);
   const gradeBand = productGradeBand(letterGrade);
-  const hasVisibleNegative = ledger.some((entry) => entry.status === 'applied' && entry.delta < 0 && entry.visibility === 'consider');
-  if (displayScore < 80 && !hasVisibleNegative) {
-    ledger.push({
-      ruleId: 'limited_category_strength', ruleFamily: 'claim_alignment', label: 'Limited category-specific strength', status: 'context_only',
-      delta: 0, evidence: ['public result below B without a visible negative rule'], reasonCode: 'limited_category_strength', presentation: 'consideration', visibility: 'consider',
-      userVisibleExplanation: 'The available label shows limited category-strengthening qualities.'
-    });
-  }
-  const visibleApplied = dedupeVisibleLedger(ledger.filter((entry) => (
-    (entry.status === 'applied' || entry.status === 'context_only') && entry.visibility !== 'none'
-  )));
-  const factors = visibleApplied.map(factorFromLedger);
-  const topDrivers = dedupeVisibleLedger(ledger
-    .filter((entry) => entry.status === 'applied' && entry.delta !== 0 && entry.visibility !== 'none')
-  )
-    .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta))
+  const supportedDimensions = dimensionScore.dimensions.filter((dimension) => dimension.score !== null);
+  const factors = supportedDimensions.map(factorFromDimension);
+  const topDrivers = [...supportedDimensions]
+    .sort((left, right) => Math.abs((right.score ?? 70) - 70) * right.effectiveWeight - Math.abs((left.score ?? 70) - 70) * left.effectiveWeight)
     .slice(0, 3)
-    .map(factorFromLedger);
-  const positives = unique(visibleApplied.filter((entry) => entry.visibility === 'helps' && entry.userVisibleExplanation).map((entry) => entry.userVisibleExplanation!));
-  const considerations = unique(visibleApplied.filter((entry) => entry.visibility === 'consider' && entry.userVisibleExplanation).map((entry) => entry.userVisibleExplanation!));
-  if (deniedTopGrade) {
-    considerations.push(deniedTopGradeCopy(eligibility));
-  }
+    .map(factorFromDimension);
+  const dimensionCopy = dimensionExplanations(dimensionScore.dimensions);
+  const positives = [...dimensionCopy.positives];
+  const considerations = [
+    ...dimensionCopy.considerations,
+    ...(deniedTopGrade ? ['An A grade requires strong ingredient integrity, low formulation complexity, strong nutrition evidence, and sufficient label transparency.'] : []),
+    ...ledger.filter((entry) => entry.status === 'context_only' && entry.visibility !== 'none' && entry.userVisibleExplanation)
+      .map((entry) => `Context only — ${entry.userVisibleExplanation}`)
+  ];
   const evidence_refs = resolveProductEvidence(ledger.flatMap((entry) => entry.evidence.filter((item) => item.includes('_') && !item.includes(' '))));
   const reasonCodes = unique([
-    `category_${profile.categoryId}`,
-    ...ledger
-      .filter((entry) => (
-        (entry.status === 'applied' || entry.status === 'context_only') &&
-        entry.visibility !== 'none'
-      ))
-      .map((entry) => entry.reasonCode)
+    ...(profile ? [`category_${profile.categoryId}`] : ['generalized_evidence_fallback']),
+    ...supportedDimensions.flatMap((dimension) => dimension.rulesFired),
+    ...ledger.filter((entry) => entry.status === 'context_only' && entry.visibility !== 'none').map((entry) => `context_${entry.reasonCode}`)
   ]);
-  const tier = processingTier(tokens, ledger);
+  const tier = processingTier(tokens, dimensionScore.dimensions);
+  const resolvedForm = profile?.productForm ?? resolution.productForm ?? productFormFromArchetype(archetype);
+  const resultConfidence = lowerConfidence(lowerConfidence(source, resolution.interpretationConfidence), basis.confidence);
+  const scoreRange: [number, number] = dimensionScore.range
+    ? [Math.min(dimensionScore.range[0], displayScore), Math.max(dimensionScore.range[1], displayScore)]
+    : [displayScore, displayScore];
+  const gradeCertainty = productGradeCertainty(displayScore, scoreRange);
 
   return {
+    engineVersion: PRODUCT_QUALITY_ENGINE_VERSION,
     absoluteScore: displayScore,
     rawScore,
     categoryScore: null,
@@ -850,26 +1054,37 @@ export function scoreProductLabel(input: ProductScoringInput): ProductScoringRes
     label: compatibilityLabel(gradeBand),
     tier,
     tierLabel: tier <= 2 ? 'Straightforward ingredient pattern' : 'More formulated ingredient pattern',
-    categoryId: profile.categoryId,
+    categoryId: profile?.categoryId ?? resolution.selectedCategoryId,
     categoryLabel: resolution.selectedCategoryLabel,
     categoryResolution: resolution,
-    productForm: profile.productForm,
-    preparedUse: productFormCopy(profile.productForm, basis),
+    productForm: resolvedForm,
+    preparedUse: productFormCopy(resolvedForm, basis),
     nutrientBasis: basis,
     macroContext: macroContext(basis, profile),
     factors,
     topDrivers,
     scoreLedger: ledger,
-    scoreBaseline: SHARED_BASELINE,
+    archetype,
+    dimensions: dimensionScore.dimensions,
+    scoreRange,
+    supportedDimensionWeight: dimensionScore.supportedWeight,
+    scoreScope: dimensionScore.scoreScope,
+    dimensionAggregation: dimensionScore.aggregation,
+    scoreEligibility: scoreEligibilityResult,
+    generalizedFallbackUsed: scoreEligibilityResult.generalizedFallbackUsed,
+    scoreBaseline: null,
     scoreCap: null,
-    gradeEligibility: eligibility,
+    gradeEligibility,
+    gradeCertainty,
     sourceConfidence: source,
     interpretationConfidence: resolution.interpretationConfidence,
-    confidence: lowerConfidence(lowerConfidence(source, resolution.interpretationConfidence), basis.confidence),
-    summary: summaryFor(profile.categoryId, gradeBand),
-    positives,
-    considerations,
-    better_options: productBetterOptions(displayScore, profile.categoryId),
+    confidence: resultConfidence,
+    summary: `${summaryFor(profile?.categoryId ?? null, gradeBand)}${dimensionScore.scoreScope === 'supported_evidence'
+      ? ' This conditional score summarizes supported Product Quality dimensions only; the deterministic range shows what missing material evidence could change.'
+      : ''}`,
+    positives: unique(positives),
+    considerations: unique(considerations),
+    better_options: productBetterOptions(displayScore, profile?.categoryId ?? null),
     evidence_refs,
     reasonCodes
   };

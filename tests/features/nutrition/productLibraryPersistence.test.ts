@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
+import { buildNutrientEvidenceLedger, nutrientObservation } from '../../../src/features/nutrition/productLookup/nutrientEvidence';
+import { validateNutritionData } from '../../../src/features/nutrition/productLookup/nutritionValidation';
 import type { HealthiProductSnapshot } from '../../../src/features/nutrition/productLookup/productLookupTypes';
 import { shouldRefreshCachedProduct, toUserFoodProductInsert, toUserFoodProductUpdate } from '../../../src/features/nutrition/productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from '../../../src/features/nutrition/mealBuilder';
@@ -25,6 +27,27 @@ const snapshot: HealthiProductSnapshot = {
   quality_flags: ['balanced_meal'],
   confidence: 'high',
   reason_codes: ['product_label_data', 'fiber_supportive']
+};
+
+const validatedNutrition = validateNutritionData({
+  source: 'open_food_facts',
+  values: {
+    calories: 220, protein_g: 14, carbs_g: 31, fat_g: 6, saturated_fat_g: 1,
+    fiber_g: 5, sugar_g: 7, added_sugar_g: null, sodium_mg: 180, caffeine_mg: null
+  },
+  servingQuantity: 50,
+  servingUnit: 'g',
+  ingredientsText: 'Oats, seeds, whey',
+  categoryAvailable: true,
+  categories: ['protein bars']
+});
+
+const providerResolution: NonNullable<HealthiProductSnapshot['provider_resolution']> = {
+  version: 'product_data_resolver_v3',
+  requested_barcode: '123456789012',
+  canonical_gtin: '123456789012',
+  terminal_state: 'resolved',
+  sources: [{ provider: 'open_food_facts', status: 'found', record_id: 'provider-1' }]
 };
 
 describe('product library persistence mapping', () => {
@@ -63,7 +86,10 @@ describe('product library persistence mapping', () => {
       source_confidence: quality.source_confidence,
       interpretation_confidence: quality.interpretation_confidence,
       evidence_refs: quality.evidence_refs,
-      better_options: quality.better_options
+      better_options: quality.better_options,
+      dimension_aggregation: quality.dimension_aggregation,
+      score_eligibility: quality.score_eligibility,
+      generalized_fallback_used: quality.generalized_fallback_used
     });
     expect(payload.quality_snapshot).toMatchObject({ result_state: quality.result_state });
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
@@ -83,6 +109,12 @@ describe('product library persistence mapping', () => {
   });
 
   it('persists and hydrates backward-compatible product evidence fields', () => {
+    const nutrientEvidence = buildNutrientEvidenceLedger([nutrientObservation({
+      nutrient: 'protein_g', value: 14, unit: 'g', basis: 'per_serving', servingQuantity: 50, servingUnit: 'g',
+      packageQuantity: 250, packageUnit: 'g', provider: 'open_food_facts', providerRecordId: 'provider-1',
+      directlyReported: true, derivedFrom: [], conversionFormula: null, conversionConfidence: 'high', confidence: 'high',
+      sourceTimestamp: '2026-07-20T12:00:00.000Z', rawField: 'proteins_serving', selectionReason: null
+    })], { servingQuantity: 50, servingUnit: 'g' });
     const enriched: HealthiProductSnapshot = {
       ...snapshot,
       canonical_barcode: '123456789012',
@@ -102,7 +134,20 @@ describe('product library persistence mapping', () => {
         identity: 'high', ingredients: 'high', nutrition: 'high', serving: 'high', category: 'medium',
         product_form: 'medium', provider: 'medium', overall: 'high'
       },
-      provider_updated_at: '2026-07-20T12:00:00.000Z'
+      provider_updated_at: '2026-07-20T12:00:00.000Z',
+      nutrient_evidence: nutrientEvidence,
+      nutrition_validation: validatedNutrition,
+      validation_issues: validatedNutrition.validationIssues,
+      provider_resolution_trace: [{
+        field: 'protein_g', candidates: [{ source: 'open_food_facts', value: 14, reliability: 'KNOWN' }],
+        selectedSource: 'open_food_facts', selectedValue: 14, reason: 'Validated direct field.'
+      }],
+      product_identity_resolution: {
+        confidence: 0.9, accepted: true,
+        signals: { barcodeMatch: true, brandSimilarity: 1, productNameSimilarity: 1, packageSizeSimilarity: null, ingredientSimilarity: 1 }
+      },
+      provider_resolution: providerResolution,
+      nutriments_per_100ml: { protein_g: 2 }
     };
     const quality = calculateProductQuality(enriched);
     const inserted = toUserFoodProductInsert({ ...enriched, quality }, 'user-1');
@@ -116,9 +161,27 @@ describe('product library persistence mapping', () => {
         status: 'complete', source_field: 'ingredients_text_en', language: 'en',
         localized_texts: expect.arrayContaining([{ source_field: 'ingredients_text_fr', language: 'fr', text: 'Avoine, graines, lactosérum' }])
       },
-      evidence_confidence: { ingredients: 'high', serving: 'high' }
+      evidence_confidence: { ingredients: 'high', serving: 'high' },
+      nutrient_evidence: { version: 'nutrient_evidence_v1', observations: [expect.objectContaining({ basis: 'per_serving', value: 14 })] },
+      nutrition_validation: { version: 'nutrition_validation_v1' },
+      provider_resolution_trace: [expect.objectContaining({ field: 'protein_g', selectedValue: 14 })],
+      product_identity_resolution: { accepted: true, confidence: 0.9 },
+      provider_resolution: { version: 'product_data_resolver_v3' },
+      nutriments_per_100ml: { protein_g: 2 }
     });
-    expect(inserted.quality_snapshot).toMatchObject({ nutrient_basis: quality.nutrient_basis });
+    expect(inserted.quality_snapshot).toMatchObject({
+      nutrient_basis: quality.nutrient_basis,
+      grade_certainty: quality.grade_certainty,
+      engine_version: 'product_quality_v5',
+      review_trace: {
+        engine_version: 'product_quality_v5',
+        category_resolution: expect.any(Object),
+        score_ledger: expect.any(Array),
+        grade_certainty: quality.grade_certainty,
+        dimension_aggregation: quality.dimension_aggregation,
+        score_eligibility: quality.score_eligibility
+      }
+    });
   });
 
   it('refreshes partial or stale cache records while reusing recent complete evidence', () => {
@@ -133,11 +196,17 @@ describe('product library persistence mapping', () => {
         resolved_text: snapshot.ingredients_text!, raw_text: snapshot.ingredients_text!, source_field: 'ingredients_text', language: 'en',
         structured_ingredients: [], status: 'complete', confidence: 'high', reconstructed: false, conflicts: []
       },
-      provider_updated_at: '2026-07-20T12:00:00.000Z'
+      provider_updated_at: '2026-07-20T12:00:00.000Z',
+      nutrition_validation: validatedNutrition,
+      provider_resolution: providerResolution
     };
     const completeInsert = toUserFoodProductInsert({ ...completeSnapshot, quality: calculateProductQuality(completeSnapshot) }, 'user-1');
     const completeRow = { ...completeInsert, id: 'row-2', created_at: row.created_at, updated_at: row.updated_at };
     expect(shouldRefreshCachedProduct(completeRow, new Date('2026-07-21T12:00:00.000Z').getTime())).toBe(false);
+    expect(shouldRefreshCachedProduct({
+      ...completeRow,
+      quality_snapshot: { score: completeRow.quality_score, label: completeRow.quality_label }
+    }, new Date('2026-07-21T12:00:00.000Z').getTime())).toBe(true);
     expect(shouldRefreshCachedProduct(completeRow, new Date('2026-08-01T12:00:00.000Z').getTime())).toBe(true);
   });
 });

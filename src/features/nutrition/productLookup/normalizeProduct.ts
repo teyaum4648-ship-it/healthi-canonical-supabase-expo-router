@@ -6,7 +6,26 @@ import type {
 import type { HealthiProductSnapshot } from './productLookupTypes';
 import { resolveIngredientEvidence } from './ingredientEvidenceResolver';
 import { canonicalBarcodeIdentity } from './barcodeUtils';
-import type { ProductEvidenceField, ProductFieldProvenance } from './productDataProvider';
+import type {
+  NutrientEvidenceLedger,
+  NutrientIdentifier,
+  NutrientMetricUnit,
+  NutrientObservation,
+  ProductEvidenceField,
+  ProductFieldProvenance
+} from './productDataProvider';
+import {
+  buildNutrientEvidenceLedger,
+  derivePerServingObservation,
+  nutrientEvidenceConfidence,
+  nutrientObservation,
+  selectedNutrition
+} from './nutrientEvidence';
+import {
+  VALIDATED_NUTRIENT_FIELDS,
+  validateNutritionData,
+  type ProviderResolutionTrace
+} from './nutritionValidation';
 
 export type OpenFoodFactsProduct = {
   [key: string]: unknown;
@@ -64,66 +83,140 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function round(value: number | null): number | null {
-  return value === null ? null : Math.round(value * 10) / 10;
-}
-
-function servingGrams(product: OpenFoodFactsProduct): number | null {
-  const direct = finiteNumber(product.serving_quantity);
-  if (direct !== null && direct > 0) return direct;
-
+function servingDetails(product: OpenFoodFactsProduct): {
+  quantity: number | null;
+  unit: string | null;
+  equivalent: string | null;
+} {
   const servingSize = cleanString(product.serving_size);
-  const match = servingSize?.match(/([\d.]+)\s*g\b/i);
-  const parsed = match ? Number(match[1]) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  const metricMatches = [...(servingSize?.matchAll(/([\d.]+)\s*(ml|g)\b/ig) ?? [])];
+  const metric = metricMatches.at(-1) ?? null;
+  const metricQuantity = finiteNumber(metric?.[1]);
+  const metricUnit = metric?.[2]?.toLowerCase() ?? null;
+  const direct = finiteNumber(product.serving_quantity);
+  return {
+    quantity: metricQuantity ?? (metricUnit ? direct : null),
+    unit: metricUnit,
+    equivalent: servingSize
+  };
 }
 
-function nutrientPerServing(
+function signedNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function metricPackageQuantity(value: unknown): { quantity: number; unit: NutrientMetricUnit } | null {
+  const quantityText = cleanString(value);
+  const matches = [...(quantityText?.matchAll(/([\d.]+)\s*(fl\s*oz|oz|lb|kg|l|ml|g)\b/ig) ?? [])];
+  const match = matches.at(-1);
+  const rawQuantity = signedNumber(match?.[1]);
+  const unit = match?.[2]?.toLowerCase().replace(/\s+/g, '');
+  if (rawQuantity === null || rawQuantity <= 0 || !unit) return null;
+  if (unit === 'g' || unit === 'ml') return { quantity: rawQuantity, unit };
+  if (unit === 'kg') return { quantity: rawQuantity * 1_000, unit: 'g' };
+  if (unit === 'lb') return { quantity: rawQuantity * 453.59237, unit: 'g' };
+  if (unit === 'oz') return { quantity: rawQuantity * 28.349523125, unit: 'g' };
+  if (unit === 'l') return { quantity: rawQuantity * 1_000, unit: 'ml' };
+  if (unit === 'floz') return { quantity: rawQuantity * 29.5735295625, unit: 'ml' };
+  return null;
+}
+
+const OFF_NUTRIENT_SPECS: Array<{
+  nutrient: NutrientIdentifier;
+  rawKeys: string[];
+  unit: NutrientObservation['unit'];
+  multiplier: number;
+}> = [
+  { nutrient: 'calories', rawKeys: ['energy-kcal', 'energy_kcal'], unit: 'kcal', multiplier: 1 },
+  { nutrient: 'protein_g', rawKeys: ['proteins'], unit: 'g', multiplier: 1 },
+  { nutrient: 'carbs_g', rawKeys: ['carbohydrates'], unit: 'g', multiplier: 1 },
+  { nutrient: 'fat_g', rawKeys: ['fat'], unit: 'g', multiplier: 1 },
+  { nutrient: 'saturated_fat_g', rawKeys: ['saturated-fat'], unit: 'g', multiplier: 1 },
+  { nutrient: 'fiber_g', rawKeys: ['fiber'], unit: 'g', multiplier: 1 },
+  { nutrient: 'sugar_g', rawKeys: ['sugars'], unit: 'g', multiplier: 1 },
+  { nutrient: 'added_sugar_g', rawKeys: ['added-sugars'], unit: 'g', multiplier: 1 },
+  { nutrient: 'sodium_mg', rawKeys: ['sodium_mg'], unit: 'mg', multiplier: 1 },
+  { nutrient: 'sodium_mg', rawKeys: ['sodium'], unit: 'mg', multiplier: 1_000 },
+  { nutrient: 'sodium_mg', rawKeys: ['salt'], unit: 'mg', multiplier: 400 },
+  { nutrient: 'caffeine_mg', rawKeys: ['caffeine_mg'], unit: 'mg', multiplier: 1 },
+  { nutrient: 'caffeine_mg', rawKeys: ['caffeine'], unit: 'mg', multiplier: 1_000 }
+];
+
+function openFoodFactsNutrientEvidence(
+  product: OpenFoodFactsProduct,
   nutriments: Record<string, unknown>,
-  key: string,
-  grams: number | null
-): number | null {
-  const direct = finiteNumber(nutriments[`${key}_serving`]);
-  if (direct !== null) return round(direct);
-
-  if (grams === null) return null;
-  const per100 = finiteNumber(nutriments[`${key}_100g`]);
-  return per100 === null ? null : round(per100 * (grams / 100));
+  updatedAt: string | null
+): NutrientEvidenceLedger {
+  const serving = servingDetails(product);
+  const metricServing = serving.quantity !== null && (serving.unit === 'g' || serving.unit === 'ml')
+    ? { quantity: serving.quantity, unit: serving.unit as NutrientMetricUnit }
+    : null;
+  const packageMetric = metricPackageQuantity(product.quantity);
+  const providerRecordId = cleanString(product.code);
+  const observations: NutrientObservation[] = [];
+  for (const spec of OFF_NUTRIENT_SPECS) {
+    for (const rawKey of spec.rawKeys) {
+      for (const suffix of ['serving', '100g', '100ml', 'package'] as const) {
+        const rawField = `${rawKey}_${suffix}`;
+        const rawValue = signedNumber(nutriments[rawField]);
+        if (rawValue === null) continue;
+        const basis = suffix === 'serving'
+          ? metricServing ? 'per_serving' : 'unknown'
+          : suffix === '100g'
+            ? 'per_100g'
+            : suffix === '100ml'
+              ? 'per_100ml'
+              : 'per_package';
+        const observation = nutrientObservation({
+          nutrient: spec.nutrient,
+          value: rawValue * spec.multiplier,
+          unit: spec.unit,
+          basis,
+          servingQuantity: suffix === 'serving' ? metricServing?.quantity ?? null : null,
+          servingUnit: suffix === 'serving' ? metricServing?.unit ?? null : null,
+          packageQuantity: packageMetric?.quantity ?? null,
+          packageUnit: packageMetric?.unit ?? null,
+          provider: 'open_food_facts',
+          providerRecordId,
+          directlyReported: true,
+          derivedFrom: [],
+          conversionFormula: spec.multiplier === 1 ? null : `${rawField} × ${spec.multiplier}`,
+          conversionConfidence: 'high',
+          confidence: basis === 'unknown' ? 'low' : 'medium',
+          sourceTimestamp: updatedAt,
+          rawField,
+          selectionReason: null
+        });
+        observations.push(observation);
+        if (metricServing && (basis === 'per_100g' || basis === 'per_100ml')) {
+          const derived = derivePerServingObservation(observation, metricServing.quantity, metricServing.unit);
+          if (derived) observations.push(derived);
+        }
+      }
+    }
+  }
+  return buildNutrientEvidenceLedger(
+    observations,
+    metricServing ? { servingQuantity: metricServing.quantity, servingUnit: metricServing.unit } : undefined
+  );
 }
 
-function energyPerServing(nutriments: Record<string, unknown>, grams: number | null): number | null {
-  return nutrientPerServing(nutriments, 'energy-kcal', grams)
-    ?? nutrientPerServing(nutriments, 'energy_kcal', grams);
-}
-
-function sodiumPerServingMg(nutriments: Record<string, unknown>, grams: number | null): number | null {
-  const directMilligrams = finiteNumber(nutriments.sodium_mg_serving);
-  if (directMilligrams !== null) return round(directMilligrams);
-
-  const milligramsPer100 = finiteNumber(nutriments.sodium_mg_100g);
-  if (milligramsPer100 !== null) return round(milligramsPer100 * ((grams ?? 100) / 100));
-
-  const directGrams = finiteNumber(nutriments.sodium_serving);
-  if (directGrams !== null) return round(directGrams * 1000);
-
-  if (grams === null) return null;
-  const gramsPer100 = finiteNumber(nutriments.sodium_100g);
-  if (gramsPer100 !== null) return round(gramsPer100 * (grams / 100) * 1000);
-
-  const saltServing = finiteNumber(nutriments.salt_serving);
-  if (saltServing !== null) return round(saltServing * 1000 / 2.5);
-
-  const saltPer100 = finiteNumber(nutriments.salt_100g);
-  return saltPer100 === null ? null : round(saltPer100 * (grams / 100) * 1000 / 2.5);
-}
-
-function sodiumPer100gMg(nutriments: Record<string, unknown>): number | null {
-  const milligrams = finiteNumber(nutriments.sodium_mg_100g);
-  if (milligrams !== null) return round(milligrams);
-  const grams = finiteNumber(nutriments.sodium_100g);
-  if (grams !== null) return round(grams * 1000);
-  const salt = finiteNumber(nutriments.salt_100g);
-  return salt === null ? null : round(salt * 1000 / 2.5);
+function ingredientSignals(value: string | null): { tokens: string[]; additives: string[] } {
+  if (!value) return { tokens: [], additives: [] };
+  return {
+    tokens: value.split(/[,;]/).map((item) => item.trim()).filter(Boolean),
+    additives: [
+      /\b(natural flavors?|artificial flavors?)\b/i.test(value) ? 'flavor_system' : null,
+      /\b(xanthan gum|guar gum|carrageenan|cellulose gum|lecithin)\b/i.test(value) ? 'texture_system' : null,
+      /\b(red 40|yellow 5|yellow 6|blue 1|artificial colors?)\b/i.test(value) ? 'color_system' : null,
+      /\b(sucralose|aspartame|acesulfame potassium|saccharin)\b/i.test(value) ? 'synthetic_sweetener_system' : null
+    ].filter((item): item is string => Boolean(item))
+  };
 }
 
 function pushUnique<T>(values: T[], value: T): void {
@@ -212,6 +305,24 @@ function provenance(
   };
 }
 
+function nutrientProvenance(ledger: NutrientEvidenceLedger): Partial<Record<ProductEvidenceField, ProductFieldProvenance[]>> {
+  const output: Partial<Record<ProductEvidenceField, ProductFieldProvenance[]>> = {};
+  for (const observation of ledger.observations) {
+    const selected = observation.selectedFor.length > 0;
+    const item: ProductFieldProvenance = {
+      provider: observation.provider,
+      provider_record_id: observation.providerRecordId,
+      source_timestamp: observation.sourceTimestamp,
+      confidence: observation.confidence,
+      raw_field: observation.rawField,
+      selected,
+      selection_reason: selected ? observation.selectionReason ?? 'Selected by nutrient evidence policy.' : observation.rejectionReasons.join(' ') || null
+    };
+    output[observation.nutrient] = [...(output[observation.nutrient] ?? []), item];
+  }
+  return output;
+}
+
 export function normalizeOpenFoodFactsProduct(
   barcode: string,
   product: OpenFoodFactsProduct
@@ -219,23 +330,79 @@ export function normalizeOpenFoodFactsProduct(
   const name = cleanString(product.product_name) ?? cleanString(product.generic_name);
   if (!name) return null;
 
-  const providedServingGrams = servingGrams(product);
-  const grams = providedServingGrams;
   const nutriments = asRecord(product.nutriments);
-  const calories = energyPerServing(nutriments, grams);
-  const protein = nutrientPerServing(nutriments, 'proteins', grams);
-  const carbs = nutrientPerServing(nutriments, 'carbohydrates', grams);
-  const fat = nutrientPerServing(nutriments, 'fat', grams);
-  const saturatedFat = nutrientPerServing(nutriments, 'saturated-fat', grams);
-  const fiber = nutrientPerServing(nutriments, 'fiber', grams);
-  const sugar = nutrientPerServing(nutriments, 'sugars', grams);
-  const sodium = sodiumPerServingMg(nutriments, grams);
-  const coreCount = [calories, protein, carbs, fat, fiber, sugar, sodium].filter((value) => value !== null).length;
+  const updatedAt = timestamp(product.last_modified_datetime) ?? timestamp(product.last_modified_t);
+  const nutrientEvidence = openFoodFactsNutrientEvidence(product, nutriments, updatedAt);
+  const servingNutrition = selectedNutrition(nutrientEvidence, 'per_serving');
+  const per100gNutrition = selectedNutrition(nutrientEvidence, 'per_100g');
+  const per100mlNutrition = selectedNutrition(nutrientEvidence, 'per_100ml');
   const ingredientEvidence = resolveIngredientEvidence(product);
   const ingredients = ingredientEvidence.resolved_text;
-  const updatedAt = timestamp(product.last_modified_datetime) ?? timestamp(product.last_modified_t);
-  const nutritionConfidence: DataConfidence = coreCount >= 5 ? 'high' : coreCount >= 2 ? 'medium' : 'low';
-  const servingConfidence: DataConfidence = providedServingGrams !== null ? 'high' : 'low';
+  const parsedIngredients = ingredientSignals(ingredients);
+  const serving = servingDetails(product);
+  const packageMetric = metricPackageQuantity(product.quantity);
+  const categories = cleanTagList(product.categories_tags);
+  const reportedServingQuantity = finiteNumber(product.serving_quantity);
+  const nutritionValidation = validateNutritionData({
+    source: 'open_food_facts',
+    values: servingNutrition,
+    basis: 'PER_SERVING',
+    servingQuantity: serving.quantity,
+    servingUnit: serving.unit,
+    servingDescription: serving.equivalent,
+    reportedServingQuantity,
+    packageQuantity: packageMetric?.quantity ?? null,
+    packageUnit: packageMetric?.unit ?? null,
+    per100g: per100gNutrition,
+    per100ml: per100mlNutrition,
+    ingredientsText: ingredients,
+    categoryAvailable: categories.length > 0,
+    categories
+  });
+  const calories = nutritionValidation.nutrients.calories.value;
+  const protein = nutritionValidation.nutrients.protein_g.value;
+  const carbs = nutritionValidation.nutrients.carbs_g.value;
+  const fat = nutritionValidation.nutrients.fat_g.value;
+  const saturatedFat = nutritionValidation.nutrients.saturated_fat_g.value;
+  const fiber = nutritionValidation.nutrients.fiber_g.value;
+  const sugar = nutritionValidation.nutrients.sugar_g.value;
+  const addedSugar = nutritionValidation.nutrients.added_sugar_g.value;
+  const sodium = nutritionValidation.nutrients.sodium_mg.value;
+  const caffeine = nutritionValidation.nutrients.caffeine_mg.value;
+  const selectedServingCount = [calories, protein, carbs, fat, fiber, sugar, sodium].filter((value) => value !== null).length;
+  const selectedPer100Count = Object.values(per100gNutrition).filter((value) => value !== null && value !== undefined).length;
+  const coreCount = Math.max(selectedServingCount, selectedPer100Count);
+  const validServing = nutritionValidation.serving.reliability === 'KNOWN'
+    ? { quantity: nutritionValidation.serving.value, unit: nutritionValidation.serving.unit }
+    : null;
+  const validatedNutrientEvidence = buildNutrientEvidenceLedger(
+    nutrientEvidence.observations.map((observation) => {
+      const nutrientReliability = nutritionValidation.nutrients[observation.nutrient].reliability;
+      const rejected = observation.basis === 'per_serving' && (
+        nutrientReliability === 'CONFLICTED' || nutrientReliability === 'UNRELIABLE' ||
+        nutritionValidation.serving.reliability === 'CONFLICTED' || nutritionValidation.serving.reliability === 'UNRELIABLE'
+      );
+      return rejected
+        ? {
+            ...observation,
+            plausibilityFlags: [...new Set([...observation.plausibilityFlags, 'provider_validation_rejected'])],
+            plausibilityNotes: [...new Set([
+              ...observation.plausibilityNotes,
+              ...nutritionValidation.nutrients[observation.nutrient].validationIssues.map((value) => value.code)
+            ])]
+          }
+        : observation;
+    }),
+    validServing?.quantity !== null && validServing?.quantity !== undefined && (validServing.unit === 'g' || validServing.unit === 'ml')
+      ? { servingQuantity: validServing.quantity, servingUnit: validServing.unit }
+      : undefined
+  );
+  const providedServingGrams = validServing?.unit === 'g' ? validServing.quantity : null;
+  const servingConfidence: DataConfidence = validServing ? 'high' : 'low';
+  const selectedNutritionBasis = selectedServingCount > 0 ? 'per_serving' : selectedPer100Count > 0 ? 'per_100g' : 'per_100ml';
+  const nutritionConfidence = nutritionValidation.validationIssues.some((item) => item.severity === 'ERROR' || item.severity === 'CRITICAL')
+    ? 'low'
+    : nutrientEvidenceConfidence(validatedNutrientEvidence, selectedNutritionBasis);
   const signals = productSignals({
     calories,
     protein,
@@ -253,6 +420,25 @@ export function normalizeOpenFoodFactsProduct(
     pushUnique(reasonCodes, 'nutrition_calibrating');
   }
 
+  const providerResolutionTrace: ProviderResolutionTrace[] = [
+    ...VALIDATED_NUTRIENT_FIELDS.map((field) => ({
+      field,
+      candidates: [{ source: 'open_food_facts', value: servingNutrition[field] ?? null, reliability: nutritionValidation.nutrients[field].reliability }],
+      selectedSource: nutritionValidation.nutrients[field].value === null ? null : 'open_food_facts',
+      selectedValue: nutritionValidation.nutrients[field].value,
+      reason: nutritionValidation.nutrients[field].validationIssues.map((item) => item.code).join(', ') ||
+        (nutritionValidation.nutrients[field].value === null ? 'No reliable value is available.' : 'The normalized provider value passed validation.')
+    })),
+    {
+      field: 'serving',
+      candidates: [{ source: 'open_food_facts', value: serving.quantity, reliability: nutritionValidation.serving.reliability }],
+      selectedSource: validServing ? 'open_food_facts' : null,
+      selectedValue: validServing?.quantity ?? null,
+      reason: nutritionValidation.serving.validationIssues.map((item) => item.code).join(', ') ||
+        (validServing ? 'The metric serving passed validation.' : 'No reliable metric serving is available.')
+    }
+  ];
+
   return {
     barcode,
     canonical_barcode: canonicalBarcodeIdentity(cleanString(product.code) ?? barcode),
@@ -261,7 +447,10 @@ export function normalizeOpenFoodFactsProduct(
     name,
     brand: cleanString(product.brands)?.split(',')[0]?.trim() ?? null,
     serving_size: cleanString(product.serving_size),
-    serving_quantity_g: grams,
+    serving_quantity_g: providedServingGrams,
+    serving_quantity: validServing?.quantity ?? null,
+    serving_unit: validServing?.unit ?? null,
+    serving_equivalent: serving.equivalent,
     calories_per_serving: calories,
     protein_g: protein,
     carbs_g: carbs,
@@ -269,39 +458,70 @@ export function normalizeOpenFoodFactsProduct(
     saturated_fat_g: saturatedFat,
     fiber_g: fiber,
     sugar_g: sugar,
+    added_sugar_g: addedSugar,
     sodium_mg: sodium,
+    caffeine_mg: caffeine,
     ingredients_text: ingredients,
+    ingredient_tokens: parsedIngredients.tokens,
+    additive_signals: parsedIngredients.additives,
     ingredient_evidence: ingredientEvidence,
     evidence_confidence: {
       identity: 'high',
       ingredients: ingredientEvidence.confidence,
       nutrition: nutritionConfidence,
       serving: servingConfidence,
-      category: cleanTagList(product.categories_tags).length > 0 ? 'medium' : 'low',
+      category: categories.length > 0 ? 'medium' : 'low',
       product_form: 'low',
       provider: 'medium',
-      overall: productConfidence(coreCount, providedServingGrams !== null, ingredients !== null)
+      overall: productConfidence(coreCount, Boolean(validServing), ingredients !== null)
     },
     variant: cleanString(product.abbreviated_product_name),
     quantity: cleanString(product.quantity),
     provider_updated_at: updatedAt,
     provider_completeness: finiteNumber(product.completeness),
     provider_quality_tags: cleanTagList(product.data_quality_tags),
-    field_provenance: provenance(product, updatedAt, ingredientEvidence.confidence, nutritionConfidence, servingConfidence),
-    provider_conflicts: [...ingredientEvidence.conflicts],
+    field_provenance: {
+      ...provenance(product, updatedAt, ingredientEvidence.confidence, nutritionConfidence, servingConfidence),
+      ...nutrientProvenance(validatedNutrientEvidence)
+    },
+    provider_conflicts: [...new Set([
+      ...ingredientEvidence.conflicts,
+      ...validatedNutrientEvidence.conflicts,
+      ...nutritionValidation.validationIssues.map((item) => `${item.code}: ${item.message}`)
+    ])],
+    nutrient_evidence: validatedNutrientEvidence,
+    nutrition_validation: nutritionValidation,
+    validation_issues: nutritionValidation.validationIssues,
+    provider_resolution_trace: providerResolutionTrace,
     labels: cleanTagList(product.labels_tags),
-    categories_tags: cleanTagList(product.categories_tags),
+    categories_tags: categories,
     packaging_tags: cleanTagList(product.packaging_tags),
     nutriments_per_100g: {
-      calories: round(finiteNumber(nutriments['energy-kcal_100g']) ?? finiteNumber(nutriments.energy_kcal_100g)),
-      sugar_g: round(finiteNumber(nutriments.sugars_100g)),
-      protein_g: round(finiteNumber(nutriments.proteins_100g)),
-      fiber_g: round(finiteNumber(nutriments.fiber_100g)),
-      sodium_mg: sodiumPer100gMg(nutriments),
-      saturated_fat_g: round(finiteNumber(nutriments['saturated-fat_100g']))
+      calories: per100gNutrition.calories ?? null,
+      carbs_g: per100gNutrition.carbs_g ?? null,
+      fat_g: per100gNutrition.fat_g ?? null,
+      sugar_g: per100gNutrition.sugar_g ?? null,
+      added_sugar_g: per100gNutrition.added_sugar_g ?? null,
+      protein_g: per100gNutrition.protein_g ?? null,
+      fiber_g: per100gNutrition.fiber_g ?? null,
+      sodium_mg: per100gNutrition.sodium_mg ?? null,
+      saturated_fat_g: per100gNutrition.saturated_fat_g ?? null,
+      caffeine_mg: per100gNutrition.caffeine_mg ?? null
+    },
+    nutriments_per_100ml: {
+      calories: per100mlNutrition.calories ?? null,
+      carbs_g: per100mlNutrition.carbs_g ?? null,
+      fat_g: per100mlNutrition.fat_g ?? null,
+      sugar_g: per100mlNutrition.sugar_g ?? null,
+      added_sugar_g: per100mlNutrition.added_sugar_g ?? null,
+      protein_g: per100mlNutrition.protein_g ?? null,
+      fiber_g: per100mlNutrition.fiber_g ?? null,
+      sodium_mg: per100mlNutrition.sodium_mg ?? null,
+      saturated_fat_g: per100mlNutrition.saturated_fat_g ?? null,
+      caffeine_mg: per100mlNutrition.caffeine_mg ?? null
     },
     quality_flags: signals.flags,
-    confidence: productConfidence(coreCount, providedServingGrams !== null, ingredients !== null),
+    confidence: productConfidence(coreCount, Boolean(validServing), ingredients !== null),
     reason_codes: reasonCodes
   };
 }

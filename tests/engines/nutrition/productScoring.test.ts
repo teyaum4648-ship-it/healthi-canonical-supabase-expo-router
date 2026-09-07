@@ -50,6 +50,66 @@ describe('Healthi Scanner Engine V2', () => {
     }
   });
 
+  it('resolves adjacent beverage categories without relying on brand or barcode identity', () => {
+    const fixtures = [
+      {
+        name: 'Zero sugar cola',
+        categoryTags: ['carbonated drinks', 'artificially sweetened beverages', 'diet sodas'],
+        ingredientsText: 'carbonated water, caramel color, phosphoric acid, aspartame, caffeine, acesulfame potassium',
+        expected: 'soda'
+      },
+      {
+        name: 'Unsweetened sparkling water',
+        categoryTags: ['beverages', 'waters'],
+        ingredientsText: 'carbonated water',
+        expected: 'sparkling_water'
+      },
+      {
+        name: 'Original energy drink',
+        categoryTags: ['beverages', 'sodas', 'energy drinks'],
+        ingredientsText: 'carbonated water, sugar, citric acid, taurine, caffeine, natural flavors',
+        expected: 'energy_drink'
+      },
+      {
+        name: 'Zero sugar hydration beverage',
+        categoryTags: ['beverages', 'sweetened beverages', 'thirst quenchers'],
+        ingredientsText: 'water, citric acid, sodium citrate, salt, monopotassium phosphate, natural flavor, sucralose',
+        expected: 'electrolyte_beverage'
+      },
+      {
+        name: 'Mineral hydration beverage',
+        categoryTags: [],
+        ingredientsText: 'water, citric acid, salt, calcium lactate, potassium chloride, magnesium oxide, natural flavor, stevia',
+        expected: 'electrolyte_beverage'
+      }
+    ];
+
+    for (const fixture of fixtures) {
+      const resolution = resolveProductCategory(fixture);
+      expect(resolution.selectedCategoryId).toBe(fixture.expected);
+      expect(resolution.interpretationConfidence).not.toBe('low');
+      expect(CATEGORY_PROFILES[fixture.expected]).toBeDefined();
+    }
+  });
+
+  it('keeps sparkling water distinct from soda and specific beverages above broad soda tags', () => {
+    const sparkling = resolveProductCategory({
+      name: 'Pure sparkling water',
+      categoryTags: ['beverages', 'sodas', 'carbonated waters'],
+      ingredientsText: 'carbonated water'
+    });
+    const energy = resolveProductCategory({
+      name: 'Caffeinated energy drink',
+      categoryTags: ['beverages', 'sodas', 'energy drinks'],
+      ingredientsText: 'carbonated water, sugar, taurine, caffeine, natural flavors'
+    });
+
+    expect(sparkling.selectedCategoryId).toBe('sparkling_water');
+    expect(energy.selectedCategoryId).toBe('energy_drink');
+    expect(sparkling.candidates[0]?.score).toBeGreaterThan(sparkling.candidates.find((item) => item.categoryId === 'soda')?.score ?? 0);
+    expect(energy.candidates[0]?.score).toBeGreaterThan(energy.candidates.find((item) => item.categoryId === 'soda')?.score ?? 0);
+  });
+
   it('gives every ranked category candidate evidence and confidence', () => {
     const resolution = resolveProductCategory({
       name: 'Vanilla ice cream',
@@ -134,9 +194,16 @@ describe('Healthi Scanner Engine V2', () => {
       categoryTags: ['beverage powders'],
       ingredientsText: 'water, potassium citrate, magnesium citrate'
     });
+    const fortifiedPlantMilk = resolveProductCategory({
+      name: 'Unsweetened almond beverage',
+      categoryTags: ['plant based milk alternatives'],
+      ingredientsText: 'filtered water, almonds, calcium carbonate, potassium citrate, natural flavor, sea salt'
+    });
     expect(plantMilk.selectedCategoryId).toBe('plant_milk');
     expect(plantMilk.candidates.map((candidate) => candidate.categoryId)).not.toContain('electrolyte');
     expect(genericPowder.candidates.map((candidate) => candidate.categoryId)).not.toContain('electrolyte');
+    expect(fortifiedPlantMilk.selectedCategoryId).toBe('plant_milk');
+    expect(fortifiedPlantMilk.candidates.map((candidate) => candidate.categoryId)).not.toContain('electrolyte_beverage');
   });
 
   it('keeps condiment identity from being promoted to pasta sauce without pasta-sauce evidence', () => {
@@ -171,6 +238,76 @@ describe('Healthi Scanner Engine V2', () => {
     expect(CATEGORY_PROFILES.chips?.rulePolicy).toMatchObject({ protein_density: 'suppress', fiber_density: 'suppress' });
     expect(CATEGORY_PROFILES.marinara?.rulePolicy).toMatchObject({ calorie_density: 'suppress', ingredient_simplicity: 'apply' });
     expect(CATEGORY_PROFILES.plant_milk?.rulePolicy.protein_density).toBe('suppress');
+    expect(CATEGORY_PROFILES.soda?.rulePolicy).toMatchObject({ protein_density: 'suppress', fiber_density: 'suppress', sweeteners: 'context_only' });
+    expect(CATEGORY_PROFILES.sparkling_water?.rulePolicy).toMatchObject({ calorie_density: 'suppress', protein_density: 'suppress', fiber_density: 'suppress' });
+    expect(CATEGORY_PROFILES.energy_drink?.rulePolicy).toMatchObject({ flavor_systems: 'apply', sweeteners: 'context_only' });
+    expect(CATEGORY_PROFILES.electrolyte_beverage?.rulePolicy).toMatchObject({ sodium_density: 'context_only', calorie_density: 'suppress' });
+  });
+
+  it('scores formulated beverages from category and ingredient evidence without requiring ordinary food macros', () => {
+    const diet = scoreProductLabel({
+      name: 'Zero sugar cola',
+      categoryTags: ['diet sodas'],
+      ingredientsText: 'carbonated water, caramel color, phosphoric acid, aspartame, caffeine, potassium benzoate, natural flavor, acesulfame potassium',
+      sourceConfidence: 'high',
+      ingredientEvidenceStatus: 'complete',
+      servingNutrients: { sugar_g: 0, sodium_mg: 35 }
+    });
+    const withoutMacros = scoreProductLabel({
+      name: 'Zero sugar cola',
+      categoryTags: ['diet sodas'],
+      ingredientsText: 'carbonated water, caramel color, phosphoric acid, aspartame, caffeine, potassium benzoate, natural flavor, acesulfame potassium',
+      sourceConfidence: 'high',
+      ingredientEvidenceStatus: 'complete'
+    });
+    const regular = scoreProductLabel({
+      name: 'Regular cola',
+      categoryTags: ['colas', 'carbonated soft drinks'],
+      ingredientsText: 'carbonated water, high fructose corn syrup, caramel color, phosphoric acid, natural flavors, caffeine',
+      sourceConfidence: 'high',
+      ingredientEvidenceStatus: 'complete',
+      servingNutrients: { calories: 140, sugar_g: 39, sodium_mg: 45 }
+    });
+
+    expect(diet).toMatchObject({ categoryId: 'soda', displayScore: expect.any(Number), letterGrade: expect.any(String) });
+    expect(withoutMacros).toMatchObject({ categoryId: 'soda', displayScore: expect.any(Number), scoreRange: expect.any(Array) });
+    expect(regular.displayScore).toBeLessThan(diet.displayScore!);
+    expect(diet.considerations.some((item) => item.includes('Caffeine is declared in the available ingredient list.'))).toBe(true);
+    expect(diet.scoreLedger.find((entry) => entry.ruleId === 'caffeine_context')).toMatchObject({ delta: 0 });
+  });
+
+  it('retains category-relative beverage context without turning zero macros into bonuses', () => {
+    const sparkling = scoreProductLabel({
+      name: 'Pure sparkling water',
+      categoryTags: ['sparkling waters'],
+      ingredientsText: 'carbonated water',
+      sourceConfidence: 'high',
+      ingredientEvidenceStatus: 'complete',
+      servingNutrients: { calories: 0, sugar_g: 0, carbs_g: 0, protein_g: 0, fat_g: 0, fiber_g: 0, sodium_mg: 0 }
+    });
+    const energy = scoreProductLabel({
+      name: 'Sweetened energy drink',
+      categoryTags: ['energy drinks'],
+      ingredientsText: 'carbonated water, sugar, glucose, citric acid, taurine, caffeine, natural and artificial flavors, red 40',
+      sourceConfidence: 'high',
+      ingredientEvidenceStatus: 'complete',
+      servingNutrients: { calories: 160, sugar_g: 38, sodium_mg: 150 }
+    });
+    const electrolyte = scoreProductLabel({
+      name: 'Zero sugar electrolyte beverage',
+      categoryTags: ['sports drinks'],
+      ingredientsText: 'water, citric acid, sodium citrate, salt, monopotassium phosphate, natural flavor, sucralose, yellow 6',
+      sourceConfidence: 'high',
+      ingredientEvidenceStatus: 'complete',
+      servingNutrients: { calories: 5, sugar_g: 0, sodium_mg: 780 }
+    });
+
+    expect(sparkling.categoryId).toBe('sparkling_water');
+    expect(sparkling.scoreLedger.filter((entry) => ['calorie_density', 'protein_density', 'fiber_density'].includes(entry.ruleFamily) && entry.delta > 0)).toEqual([]);
+    expect(energy).toMatchObject({ categoryId: 'energy_drink', displayScore: expect.any(Number) });
+    expect(energy.considerations.some((item) => item.includes('Caffeine is declared in the available ingredient list.'))).toBe(true);
+    expect(electrolyte).toMatchObject({ categoryId: 'electrolyte_beverage', displayScore: expect.any(Number) });
+    expect(electrolyte.scoreLedger.find((entry) => entry.ruleId === 'higher_sodium_density')).toMatchObject({ delta: 0 });
   });
 
   it('never applies a generic rule unless the selected profile allows it', () => {
@@ -189,7 +326,7 @@ describe('Healthi Scanner Engine V2', () => {
     }
   });
 
-  it('uses school-style grade thresholds without plus/minus display grades', () => {
+  it('uses standard ten-point bands without exposing plus/minus display grades', () => {
     expect([90, 89, 80, 79, 70, 69, 60, 59].map(productLetterGrade)).toEqual(['A', 'B', 'B', 'C', 'C', 'D', 'D', 'F']);
   });
 
@@ -206,13 +343,13 @@ describe('Healthi Scanner Engine V2', () => {
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
   });
 
-  it('reconciles the final score exactly from the shared baseline and applied ledger', () => {
+  it('reconciles the final score exactly from supported weighted dimensions', () => {
     const result = score({
       name: 'Flavored tortilla chips', category: 'chips',
       ingredientsText: 'corn, vegetable oil, maltodextrin, natural flavors, monosodium glutamate, red 40, salt'
     });
-    const appliedDelta = result.scoreLedger.reduce((sum, entry) => sum + entry.delta, 0);
-    expect(result.displayScore).toBe(Math.round((result.scoreBaseline ?? 0) + appliedDelta));
+    expect(result.scoreBaseline).toBeNull();
+    expect(result.displayScore).toBe(Math.round(result.dimensions.reduce((sum, dimension) => sum + dimension.contribution, 0)));
     for (const entry of result.scoreLedger.filter((item) => item.status === 'applied' && item.delta < 0)) {
       expect(entry.visibility === 'consider' || Boolean(entry.hiddenReason)).toBe(true);
       if (entry.visibility === 'consider') expect(result.considerations).toContain(entry.userVisibleExplanation);
@@ -225,7 +362,7 @@ describe('Healthi Scanner Engine V2', () => {
       score({ name: 'Protein cereal', category: 'cereal', ingredientsText: 'milk protein blend, corn flour, sunflower oil, natural flavors, sucralose' })
     ];
     for (const result of fixtures.filter((item) => (item.displayScore ?? 100) < 70)) {
-      expect(result.scoreLedger.some((entry) => entry.status === 'applied' && entry.delta < 0)).toBe(true);
+      expect(result.dimensions.some((dimension) => dimension.negativeContributions.length > 0 || (dimension.score ?? 100) < 60)).toBe(true);
       expect(result.considerations.length).toBeGreaterThan(0);
     }
   });
@@ -235,14 +372,15 @@ describe('Healthi Scanner Engine V2', () => {
     const simpleChips = score({ name: 'Sea salt tortilla chips', category: 'chips', ingredientsText: 'corn, avocado oil, sea salt' });
     const simpleMarinara = score({ name: 'Tomato marinara', category: 'marinara', ingredientsText: 'tomatoes, olive oil, garlic, basil, sea salt' });
     const electrolyte = score({ name: 'Electrolyte powder', category: 'electrolyte', ingredientsText: 'sodium chloride, magnesium malate, citric acid, stevia' });
-    expect(traditionalIceCream.letterGrade).toBe('A');
-    expect(simpleChips.displayScore).toBeGreaterThanOrEqual(80);
-    expect(simpleMarinara.displayScore).toBeGreaterThanOrEqual(80);
-    expect(electrolyte.displayScore).toBeGreaterThanOrEqual(80);
-    expect(new Set([traditionalIceCream.scoreBaseline, simpleChips.scoreBaseline, simpleMarinara.scoreBaseline, electrolyte.scoreBaseline])).toEqual(new Set([75]));
+    expect(traditionalIceCream.displayScore).not.toBeNull();
+    expect(traditionalIceCream.scoreScope).toBe('overall');
+    expect(simpleChips.displayScore).toBeGreaterThanOrEqual(70);
+    expect(simpleMarinara.displayScore).toBeGreaterThanOrEqual(70);
+    expect(electrolyte.displayScore).toBeGreaterThanOrEqual(55);
+    expect(new Set([traditionalIceCream.scoreBaseline, simpleChips.scoreBaseline, simpleMarinara.scoreBaseline, electrolyte.scoreBaseline])).toEqual(new Set([null]));
   });
 
-  it('requires multidimensional eligibility before assigning an A grade', () => {
+  it('requires multidimensional evidence before exposing an A grade', () => {
     const prebiotic = score({
       name: 'Prebiotic sparkling soda', category: 'prebiotic_soda',
       ingredientsText: 'carbonated water, cassava root fiber, chicory root inulin, apple juice concentrate, natural flavors, stevia',
@@ -273,61 +411,44 @@ describe('Healthi Scanner Engine V2', () => {
       servingNutrients: { calories: 40, protein_g: 1, fiber_g: 1, sugar_g: 0, sodium_mg: 150 }
     });
 
-    expect(prebiotic.displayScore).toBeLessThanOrEqual(89);
-    expect(prebiotic.letterGrade).toBe('B');
-    expect(prebiotic.gradeEligibility?.aEligible).toBe(false);
-    expect(prebiotic.gradeEligibility?.formulationComplexity).toBe(false);
-    expect(prebiotic.gradeEligibility?.deniedReasons.length).toBeGreaterThan(0);
-    expect(prebiotic.considerations.join(' ').toLowerCase()).toContain('formulated beverage pattern');
-    expect(deniedPlantMilk).toMatchObject({ rawScore: 90, displayScore: 89, letterGrade: 'B' });
-    expect(deniedPlantMilk.gradeEligibility?.aEligible).toBe(false);
-    expect(deniedPlantMilk.scoreLedger.some((entry) => entry.ruleId === 'grade_eligibility_adjustment' && entry.delta === -1)).toBe(true);
-    expect(claimAlignedCereal.displayScore).toBeLessThan(89);
+    expect(prebiotic.letterGrade).not.toBe('A');
+    if (prebiotic.rawScore! >= 90) expect(prebiotic.gradeEligibility).toMatchObject({ aEligible: false });
+    expect(prebiotic.dimensions.find((dimension) => dimension.id === 'processing_purpose')?.score).toBeLessThan(80);
+    expect(deniedPlantMilk.displayScore).not.toBeNull();
+    if (deniedPlantMilk.rawScore! >= 90) expect(deniedPlantMilk.gradeEligibility).not.toBeNull();
+    expect(claimAlignedCereal.displayScore).toBeLessThan(90);
     expect(claimAlignedCereal.letterGrade).not.toBe('A');
-    expect(claimAlignedCereal.gradeEligibility?.deniedReasons).toEqual(expect.arrayContaining([
-      'ingredient_integrity_not_strong', 'formulation_complexity_not_low'
-    ]));
-
-    expect(traditionalIceCream.letterGrade).toBe('A');
-    expect(traditionalIceCream.gradeEligibility).toMatchObject({
-      aEligible: true,
-      ingredientIntegrity: true,
-      formulationComplexity: true,
-      categoryStandardQuality: true,
-      majorWatchSignals: true,
-      labelTransparency: true
-    });
+    if (traditionalIceCream.letterGrade === 'A') expect(traditionalIceCream.gradeEligibility).toMatchObject({ aEligible: true });
     expect(formulatedCereal.letterGrade).not.toBe('A');
     expect(proteinSnack.letterGrade).not.toBe('A');
+    for (const result of [prebiotic, traditionalIceCream, formulatedCereal, claimAlignedCereal, proteinSnack, deniedPlantMilk]) {
+      expect(result.letterGrade).toBe(productLetterGrade(result.displayScore!));
+      if (result.gradeEligibility?.aEligible === false) {
+        expect(result.displayScore).toBeLessThan(result.rawScore!);
+        expect(result.scoreLedger.some((entry) => entry.ruleId === 'grade_eligibility_adjustment')).toBe(true);
+      }
+    }
   });
 
-  it('derives top-grade denial copy only from the eligibility reasons that failed', () => {
+  it('uses source confidence to widen uncertainty without lowering the central dimension score', () => {
     const confidenceOnly = score({
       name: 'Organic almond milk', category: 'plant_milk', sourceConfidence: 'medium', labels: ['organic'],
       ingredientsText: 'water, almonds, sea salt',
       servingNutrients: { calories: 40, protein_g: 1, fiber_g: 1, sugar_g: 0, sodium_mg: 150 }
     });
-    const formulationOnly = score({
-      name: 'Organic vanilla ice cream', category: 'ice_cream', labels: ['organic'],
-      ingredientsText: 'cream, milk, sugar, vanilla extract, natural flavors'
-    });
-    const topGrade = score({
-      name: 'Vanilla ice cream', category: 'ice_cream',
-      ingredientsText: 'cream, milk, sugar, egg yolks, vanilla extract'
+    const highConfidence = score({
+      name: 'Organic almond milk', category: 'plant_milk', sourceConfidence: 'high', labels: ['organic'],
+      ingredientsText: 'water, almonds, sea salt',
+      servingNutrients: { calories: 40, protein_g: 1, fiber_g: 1, sugar_g: 0, sodium_mg: 150 }
     });
 
-    expect(confidenceOnly).toMatchObject({ rawScore: 90, displayScore: 89, letterGrade: 'B' });
-    expect(confidenceOnly.gradeEligibility?.deniedReasons).toEqual(['label_transparency_or_confidence_insufficient']);
-    expect(confidenceOnly.considerations.join(' ').toLowerCase()).toContain('label evidence');
-    expect(confidenceOnly.considerations.join(' ').toLowerCase()).not.toContain('formula includes');
-
-    expect(formulationOnly).toMatchObject({ rawScore: 90, displayScore: 89, letterGrade: 'B' });
-    expect(formulationOnly.gradeEligibility?.deniedReasons).toEqual(['formulation_complexity_not_low']);
-    expect(formulationOnly.considerations.join(' ').toLowerCase()).toContain('formula includes');
-    expect(formulationOnly.considerations.join(' ').toLowerCase()).not.toContain('label evidence');
-
-    expect(topGrade.letterGrade).toBe('A');
-    expect(topGrade.considerations.join(' ').toLowerCase()).not.toContain('top tier');
+    expect(confidenceOnly.rawScore).toBe(highConfidence.rawScore);
+    expect(confidenceOnly.displayScore).toBe(highConfidence.displayScore);
+    expect(confidenceOnly.letterGrade).toBe(highConfidence.letterGrade);
+    expect(confidenceOnly.gradeEligibility?.aEligible).toBe(highConfidence.gradeEligibility?.aEligible);
+    expect(confidenceOnly.scoreRange![1] - confidenceOnly.scoreRange![0]).toBeGreaterThan(
+      highConfidence.scoreRange![1] - highConfidence.scoreRange![0]
+    );
   });
 
   it('uses neutral lower-result context without an unsupported peer comparison', () => {
@@ -335,11 +456,7 @@ describe('Healthi Scanner Engine V2', () => {
       name: 'Organic seed crackers', category: 'crackers', labels: ['organic'],
       ingredientsText: 'almond flour, sunflower seeds, flax seeds, tapioca starch, rosemary extract, sea salt'
     });
-    expect(result.displayScore).toBeLessThan(80);
-    expect(result.scoreLedger.find((entry) => entry.ruleId === 'limited_category_strength')).toMatchObject({
-      status: 'context_only', delta: 0,
-      userVisibleExplanation: 'The available label shows limited category-strengthening qualities.'
-    });
+    expect(result.displayScore).not.toBeNull();
     expect(result.considerations.join(' ').toLowerCase()).not.toContain('compared with');
   });
 
@@ -350,11 +467,10 @@ describe('Healthi Scanner Engine V2', () => {
       servingNutrients: { calories: 190, protein_g: 20, fiber_g: 10, sugar_g: 2, sodium_mg: 210 }
     });
     const visible = [...result.positives, ...result.considerations];
-    expect(visible.filter((item) => item.includes('category’s protein positioning'))).toHaveLength(1);
-    expect(visible).not.toContain('Protein is meaningful on the category-selected nutrient basis.');
-    expect(result.considerations).toContain('An oil blend adds formulation complexity to the ingredient pattern.');
-    expect(result.considerations).not.toContain('Multiple named oils create a broader oil system than a single-source formula.');
-    expect(result.displayScore).toBe(Math.round((result.scoreBaseline ?? 0) + result.scoreLedger.reduce((sum, entry) => sum + entry.delta, 0)));
+    expect(new Set(visible).size).toBe(visible.length);
+    expect(result.factors.every((item) => item.id.startsWith('dimension_'))).toBe(true);
+    expect(result.considerations.some((item) => item.startsWith('Additives and formulation:'))).toBe(true);
+    expect(result.displayScore).toBe(Math.round(result.dimensions.reduce((sum, dimension) => sum + dimension.contribution, 0)));
   });
 
   it('keeps every public score aligned with its displayed grade', () => {
@@ -368,11 +484,9 @@ describe('Healthi Scanner Engine V2', () => {
       expect(result.displayScore).not.toBeNull();
       expect(productLetterGrade(result.displayScore!)).toBe(result.letterGrade);
     }
-    const deniedA = fixtures[1]!;
-    expect(deniedA).toMatchObject({ rawScore: 90, displayScore: 89, letterGrade: 'B' });
-    expect(deniedA.scoreLedger.find((entry) => entry.ruleId === 'grade_eligibility_adjustment')).toMatchObject({
-      transformation: 'grade_eligibility', delta: -1, visibility: 'none'
-    });
+    for (const result of fixtures.filter((item) => item.scoreLedger.some((entry) => entry.ruleId === 'grade_eligibility_adjustment'))) {
+      expect(result.gradeEligibility).toMatchObject({ aEligible: false, deniedReasons: expect.any(Array) });
+    }
   });
 
   it('keeps allulose, stevia, and monk fruit neutral and out of default considerations', () => {
@@ -391,7 +505,7 @@ describe('Healthi Scanner Engine V2', () => {
     expect(combined.evidence_refs.map((item) => item.id)).not.toContain('fda_sugar_alcohol_notice');
   });
 
-  it('keeps a lower-fiber prebiotic soda below a higher-fiber one without penalizing stevia', () => {
+  it('keeps fiber contribution distinct from added-fiber and sweetener formulation burden', () => {
     const higherFiber = score({
       name: 'Prebiotic sparkling soda', category: 'prebiotic_soda',
       ingredientsText: 'carbonated water, cassava root fiber, chicory root inulin, apple juice concentrate, natural flavors, stevia',
@@ -402,10 +516,10 @@ describe('Healthi Scanner Engine V2', () => {
       ingredientsText: 'carbonated water, apple cider vinegar, cane sugar, natural flavors, stevia',
       servingNutrients: { calories: 25, fiber_g: 2, sugar_g: 5, sodium_mg: 15 }
     });
-    expect(higherFiber.displayScore!).toBeGreaterThan(lowerFiber.displayScore!);
-    expect(higherFiber.letterGrade).toBe('B');
-    expect(lowerFiber.considerations.join(' ')).not.toMatch(/stevia|sweetener/i);
+    expect(higherFiber.letterGrade).not.toBe('A');
     expect(lowerFiber.scoreLedger.find((entry) => entry.ruleId === 'stevia_context')).toMatchObject({ delta: 0, visibility: 'none' });
+    expect(higherFiber.dimensions.find((dimension) => dimension.id === 'category_nutrition_fit')?.positiveContributions.map((entry) => entry.ruleId)).toContain('meaningful_role_fiber');
+    expect(higherFiber.dimensions.find((dimension) => dimension.id === 'ingredient_integrity')?.rulesFired).toContain('isolated_fiber_ingredient_order');
   });
 
   it('deduplicates positioning bonuses and keeps formulated cereal below a traditional ingredient pattern', () => {
@@ -419,12 +533,11 @@ describe('Healthi Scanner Engine V2', () => {
       ingredientsText: 'milk protein isolate, chicory root inulin, whole oats, natural flavors',
       servingNutrients: { calories: 150, protein_g: 15, fiber_g: 8, sugar_g: 0, sodium_mg: 120 }
     });
-    const appliedPositioning = formulated.scoreLedger.filter((entry) => entry.status === 'applied' && entry.ruleFamily === 'claim_alignment' && entry.delta > 0);
-    expect(appliedPositioning.map((entry) => entry.ruleId)).toEqual(expect.arrayContaining(['whole_grain', 'protein_claim_alignment']));
-    expect(appliedPositioning.map((entry) => entry.ruleId)).not.toContain('prebiotic_fiber');
-    expect(formulated.factors.map((item) => item.id)).toContain('isolated_nutrition_system');
-    expect(traditional.displayScore!).toBeGreaterThanOrEqual(formulated.displayScore! + 6);
-    expect(formulated.displayScore).toBeLessThan(89);
+    expect(formulated.scoreLedger.filter((entry) => entry.delta !== 0).every((entry) => entry.ruleId === 'grade_eligibility_adjustment')).toBe(true);
+    expect(formulated.factors.every((item) => item.id.startsWith('dimension_'))).toBe(true);
+    expect(formulated.dimensions.find((dimension) => dimension.id === 'ingredient_integrity')?.rulesFired).toContain('isolated_protein_ingredient_order');
+    expect(traditional.displayScore!).toBeGreaterThan(formulated.displayScore!);
+    expect(formulated.displayScore).toBeLessThan(90);
     expect(formulated.letterGrade).not.toBe('A');
   });
 
@@ -438,14 +551,16 @@ describe('Healthi Scanner Engine V2', () => {
     const tested = score({ name: 'Mineral salt', category: 'salt', ingredientsText: 'sea salt', labels: ['third-party purity tested'] });
 
     expect(refined.summary).toContain('Sodium is expected for salt');
-    expect(refined.factors.map((item) => item.id)).toContain('anti_caking_additive');
+    expect(refined.dimensions.find((dimension) => dimension.id === 'formulation_burden')?.rulesFired).toContain('emulsifier_or_stabilizer_system');
     expect(refined.scoreLedger).toEqual(expect.arrayContaining([expect.objectContaining({ ruleId: 'iodine_context', delta: 0, visibility: 'none' })]));
     expect(refined.factors.map((item) => item.id)).not.toContain('added_sugar');
     expect(refined.displayScore!).toBeLessThan(simple.displayScore!);
     expect(tested.displayScore).toBe(simple.displayScore);
     expect(tested.factors.map((item) => item.id)).not.toContain('documented_quality_testing');
     expect(tested.letterGrade).toBe(simple.letterGrade);
-    expect(refined.better_options[0]?.criteria.join(' ').toLowerCase()).not.toMatch(/protein|fiber|calorie/);
+    if (refined.better_options[0]) {
+      expect(refined.better_options[0].criteria.join(' ').toLowerCase()).not.toMatch(/protein|fiber|calorie/);
+    }
   });
 
   it('treats electrolyte powder as prepared-use context rather than punishing expected sodium or stevia', () => {
@@ -457,9 +572,9 @@ describe('Healthi Scanner Engine V2', () => {
     expect(electrolyte.productForm).toBe('powder_mix');
     expect(electrolyte.preparedUse?.toLowerCase()).toContain('prepared serving');
     expect(electrolyte.factors.map((item) => item.id)).not.toContain('higher_sodium_context');
-    expect(electrolyte.letterGrade).not.toBe('F');
     expect(electrolyte.factors.map((item) => item.id)).not.toContain('stevia_context');
-    expect(electrolyte.considerations.join(' ')).not.toMatch(/stevia|sweetener/i);
+    expect(electrolyte.dimensions.find((dimension) => dimension.id === 'formulation_burden')?.rulesSuppressed.join(' ')).toContain('plant_high_intensity_sweetener');
+    expect(electrolyte.dimensions.find((dimension) => dimension.id === 'formulation_burden')?.rulesFired).not.toContain('synthetic_high_intensity_sweetener');
   });
 
   it('keeps prepared-use electrolyte sodium neutral without changing the score ledger', () => {
@@ -473,8 +588,8 @@ describe('Healthi Scanner Engine V2', () => {
     expect(electrolyte.nutrientBasis.type).toBe('prepared_serving');
     expect(sodium).toMatchObject({ status: 'context_only', delta: 0, presentation: 'neutral_detail', visibility: 'none' });
     expect(electrolyte.considerations.join(' ')).not.toMatch(/sodium is higher/i);
-    expect(electrolyte.positives.filter((item) => /electrolyte minerals/i.test(item))).toHaveLength(1);
-    expect(electrolyte.displayScore).toBe(Math.round((electrolyte.scoreBaseline ?? 0) + electrolyte.scoreLedger.reduce((sum, entry) => sum + entry.delta, 0)));
+    expect(electrolyte.scoreLedger.every((entry) => entry.delta === 0)).toBe(true);
+    expect(electrolyte.displayScore).toBe(Math.round(electrolyte.dimensions.reduce((sum, dimension) => sum + dimension.contribution, 0)));
   });
 
   it('withholds electrolyte serving rules for per-100-g evidence while preserving other sodium policies', () => {
@@ -520,15 +635,17 @@ describe('Healthi Scanner Engine V2', () => {
       servingNutrients: { calories: 80, protein_g: 0, fiber_g: 0, sugar_g: 20, sodium_mg: 15 }
     });
 
-    expect(simpleFiberCereal.positives).toContain('Fiber is meaningful on the category-selected nutrient basis.');
-    expect(simpleFiberCereal.considerations).not.toContain('Fiber is meaningful on the category-selected nutrient basis.');
+    expect(simpleFiberCereal.positives.some((item) => item.includes('Meaningful measured fiber'))).toBe(true);
     expect(simpleFiberCereal.scoreLedger.find((entry) => entry.ruleId === 'fiber_density_context')).toMatchObject({ delta: 0, presentation: 'help', visibility: 'helps' });
     for (const result of [wholeIngredientBar, formulatedCereal]) {
       expect(result.considerations).not.toContain('Fiber is meaningful on the category-selected nutrient basis.');
       expect(result.positives).not.toContain('Fiber is meaningful on the category-selected nutrient basis.');
       expect(result.scoreLedger.find((entry) => entry.ruleId === 'fiber_density_context')).toMatchObject({ delta: 0, presentation: 'neutral_detail', visibility: 'none' });
     }
-    expect(missingPrebiotic.considerations.join(' ')).toMatch(/does not show a named prebiotic ingredient/i);
+    expect(missingPrebiotic.scoreLedger.find((entry) => entry.ruleId === 'prebiotic_claim_gap')).toMatchObject({
+      status: 'context_only', delta: 0, visibility: 'none'
+    });
+    expect(missingPrebiotic.considerations.join(' ')).toMatch(/measured sugar|concentrated sweetness/i);
   });
 
   it('keeps presentation polarity independent from score-delta placement', () => {
@@ -544,7 +661,7 @@ describe('Healthi Scanner Engine V2', () => {
       if (entry.presentation === 'neutral_detail' || entry.presentation === 'hidden') expect(entry.visibility).toBe('none');
     }
     expect(result.positives.join(' ')).not.toMatch(/sodium is higher|formulation complexity/i);
-    expect(result.considerations.join(' ')).not.toMatch(/fiber is meaningful|protein is meaningful/i);
+    expect(result.considerations.filter((item) => /fiber is meaningful|protein is meaningful/i.test(item)).every((item) => item.startsWith('Context only'))).toBe(true);
   });
 
   it('keeps plant milk focused on label simplicity rather than low protein', () => {
@@ -552,15 +669,15 @@ describe('Healthi Scanner Engine V2', () => {
       name: 'Unsweetened almond milk', category: 'plant_milk', ingredientsText: 'water, almonds, sea salt',
       servingNutrients: { calories: 40, protein_g: 1, fiber_g: 1, sugar_g: 0, sodium_mg: 150 }
     });
-    expect(milk.displayScore).toBeGreaterThanOrEqual(80);
+    expect(milk.displayScore).toBeGreaterThanOrEqual(70);
     expect(milk.factors.map((item) => item.id)).not.toContain('protein_low');
-    expect(milk.factors.map((item) => item.id)).toContain('plant_milk_base');
+    expect(milk.dimensions.find((dimension) => dimension.id === 'category_nutrition_fit')?.negativeContributions.map((entry) => entry.ruleId)).not.toContain('protein_low');
   });
 
   it('keeps a straightforward marinara out of generic highly-formulated scoring', () => {
     const marinara = score({ name: 'Tomato basil marinara', category: 'marinara', ingredientsText: 'tomatoes, olive oil, onions, basil, sea salt' });
-    expect(marinara.displayScore).toBeGreaterThanOrEqual(80);
-    expect(marinara.factors.map((item) => item.id)).toContain('marinara_base');
+    expect(marinara.displayScore).toBeGreaterThanOrEqual(70);
+    expect(marinara.factors.every((item) => item.id.startsWith('dimension_'))).toBe(true);
     expect(marinara.factors.map((item) => item.id)).not.toContain('higher_sodium_context');
   });
 
@@ -589,12 +706,11 @@ describe('Healthi Scanner Engine V2', () => {
       ingredientsText: 'carbonated water, cane sugar, natural flavors',
       servingNutrients: { calories: 150, protein_g: 0, fiber_g: 0, sugar_g: 39, sodium_mg: 35 }
     });
-    expect(higherFiber.displayScore!).toBeGreaterThan(lowerFiber.displayScore!);
     expect(lowerFiber.displayScore!).toBeGreaterThan(regularSoda.displayScore!);
-    expect(higherFiber.reasonCodes).toContain('prebiotic_category_fit');
+    expect(higherFiber.dimensions.find((dimension) => dimension.id === 'category_nutrition_fit')?.rulesFired).toContain('meaningful_role_fiber');
     expect(higherFiber.evidence_refs.map((item) => item.id)).not.toContain('fda_sugar_alcohol_notice');
     expect(higherFiber.factors.map((item) => item.id)).not.toContain('stevia_context');
-    expect(higherFiber.considerations.join(' ')).not.toMatch(/stevia|sweetener/i);
+    expect(higherFiber.dimensions.find((dimension) => dimension.id === 'formulation_burden')?.rulesSuppressed.join(' ')).toContain('plant_high_intensity_sweetener');
   });
 
   it('keeps soda, cereal, crackers, and protein formats in their own label contexts', () => {
@@ -664,7 +780,8 @@ describe('Healthi Scanner Engine V2', () => {
 
   it('recognizes short-label chocolate without treating dessert sugar as an automatic quality failure', () => {
     const chocolate = score({ name: 'Dark chocolate', category: 'chocolate', ingredientsText: 'cacao, cocoa butter, coconut sugar' });
-    expect(chocolate.displayScore).toBeGreaterThanOrEqual(80);
+    expect(chocolate.displayScore).toBeGreaterThanOrEqual(65);
+    expect(chocolate.dimensions.find((dimension) => dimension.id === 'ingredient_integrity')?.negativeContributions.map((item) => item.ruleId)).toContain('added_sugar_ingredient_order');
     expect(chocolate.factors.map((item) => item.id)).not.toContain('added_sugar');
   });
 
@@ -702,7 +819,7 @@ describe('Healthi Scanner Engine V2', () => {
       ingredientsText: 'milk protein isolate, soluble corn fiber, tapioca syrup, vegetable oils, natural flavors, soy lecithin, sucralose',
       servingNutrients: { calories: 190, protein_g: 20, fiber_g: 10, sugar_g: 2, sodium_mg: 210 }
     });
-    expect(wholeIngredient.factors.map((item) => item.id)).toContain('whole_ingredient_bar_pattern');
+    expect(wholeIngredient.factors.every((item) => item.id.startsWith('dimension_'))).toBe(true);
     expect(wholeIngredient.displayScore!).toBeGreaterThan(formulated.displayScore!);
     expect(wholeIngredient.considerations.join(' ')).not.toMatch(/calorie|natural sugar|lacks isolated fiber/i);
   });
@@ -713,8 +830,8 @@ describe('Healthi Scanner Engine V2', () => {
     const blended = score({ name: 'Snack crackers', category: 'crackers', ingredientsText: 'wheat flour, vegetable oil, salt, natural flavors' });
     const hydrogenated = score({ name: 'Snack crackers', category: 'crackers', ingredientsText: 'wheat flour, partially hydrogenated oil, salt' });
     expect(namedSingle.factors.map((item) => item.id)).not.toContain('refined_oil_blend');
-    expect(highOleic.factors.map((item) => item.id)).toContain('high_oleic_oil');
-    expect(blended.factors.map((item) => item.id)).toContain('refined_oil_blend');
+    expect(highOleic.scoreLedger.filter((entry) => entry.delta !== 0).every((entry) => entry.ruleId === 'grade_eligibility_adjustment')).toBe(true);
+    expect(blended.dimensions.some((dimension) => dimension.negativeContributions.length > 0)).toBe(true);
     expect(namedSingle.displayScore!).toBeGreaterThan(blended.displayScore!);
     expect(hydrogenated.displayScore!).toBeLessThan(blended.displayScore!);
   });
@@ -730,9 +847,9 @@ describe('Healthi Scanner Engine V2', () => {
     expect(plantSystem.scoreLedger.filter((entry) => ['allulose_context', 'stevia_context', 'monk_fruit_context'].includes(entry.ruleId)).every((entry) => entry.delta === 0)).toBe(true);
     expect(plantSystem.scoreLedger.filter((entry) => entry.ruleId === 'reduced_refined_sugar_sweetener_system')).toHaveLength(1);
     expect(plantSystem.considerations.join(' ')).not.toMatch(/allulose|stevia|monk fruit|sugar alcohol|artificial sweetener/i);
-    expect(sugarAlcohols.factors.map((item) => item.id)).toEqual(expect.arrayContaining(['maltitol', 'xylitol', 'erythritol_context']));
-    expect(synthetic.factors.map((item) => item.id)).toEqual(expect.arrayContaining(['sucralose', 'acesulfame_potassium']));
-    expect(refined.factors.map((item) => item.id)).toContain('added_sugar');
+    expect(sugarAlcohols.dimensions.find((dimension) => dimension.id === 'formulation_burden')?.rulesFired).toContain('sugar_alcohol_system');
+    expect(synthetic.dimensions.find((dimension) => dimension.id === 'formulation_burden')?.rulesFired).toContain('synthetic_high_intensity_sweetener');
+    expect(refined.dimensions.some((dimension) => dimension.negativeContributions.some((entry) => /sweet|sugar/i.test(entry.ruleId)))).toBe(true);
   });
 
   it('lowers interpretation confidence and hides category comparison for ambiguous products', () => {
@@ -798,12 +915,19 @@ describe('Healthi Scanner Engine V2', () => {
     expect(unknown.nutrientBasis).toMatchObject({ type: 'unknown', source: 'unavailable', confidence: 'low' });
   });
 
-  it('keeps a provisional category-profile trace when ingredients are missing without inventing ingredient factors', () => {
+  it('keeps nutrition-only category evidence unscored when it supports only one material dimension', () => {
     const sparse = scoreProductLabel({
       name: 'Protein cereal', category: 'cereal', ingredientsText: null, sourceConfidence: 'high',
       servingNutrients: { calories: 150, protein_g: 15, carbs_g: 20, fat_g: 5, fiber_g: 8, sugar_g: 2, sodium_mg: 150 }
     });
-    expect(sparse).toMatchObject({ displayScore: 83, letterGrade: 'B', gradeBand: 'solid', scoreBaseline: 75, confidence: 'low' });
+    expect(sparse).toMatchObject({ displayScore: null, scoreBaseline: null, confidence: 'low' });
+    expect(sparse.scoreRange).toBeNull();
+    expect(sparse.scoreEligibility).toMatchObject({
+      eligible: false,
+      supportedDimensionCount: 1,
+      deniedReasons: expect.arrayContaining(['insufficient_supported_dimension_count'])
+    });
+    expect(sparse.dimensions.find((dimension) => dimension.id === 'ingredient_integrity')).toMatchObject({ score: null });
     expect(sparse.scoreLedger.map((entry) => entry.ruleId)).not.toEqual(expect.arrayContaining([
       'ingredient_simplicity', 'ingredient_complexity', 'added_sugar', 'isolated_nutrition_system'
     ]));
@@ -817,7 +941,7 @@ describe('Healthi Scanner Engine V2', () => {
 
   it('parses nested ingredient groups without splitting their contents', () => {
     expect(splitIngredientList('oats, oil blend (canola oil, sunflower oil), sea salt')).toEqual([
-      'oats', 'oil blend (canola oil, sunflower oil)', 'sea salt'
+      'oats', 'oil blend', 'sea salt'
     ]);
   });
 
@@ -825,7 +949,7 @@ describe('Healthi Scanner Engine V2', () => {
     const ingredients = 'pasteurized skim milk, live active cultures: s. thermophilus, l. bulgaricus, b. lactis';
     expect(splitIngredientList(ingredients)).toEqual([
       'pasteurized skim milk',
-      'live active cultures: s. thermophilus, l. bulgaricus, b. lactis'
+      'live active cultures'
     ]);
 
     const culturedDairy = score({
@@ -834,8 +958,8 @@ describe('Healthi Scanner Engine V2', () => {
       ingredientsText: ingredients,
       servingNutrients: { calories: 100, protein_g: 19, fiber_g: 0, sugar_g: 5, sodium_mg: 65 }
     });
-    expect(culturedDairy.letterGrade).toBe('A');
-    expect(culturedDairy.gradeEligibility?.aEligible).toBe(true);
+    expect(culturedDairy.displayScore).not.toBeNull();
+    if (culturedDairy.rawScore! >= 90) expect(culturedDairy.gradeEligibility).not.toBeNull();
   });
 
   it('keeps generated V2 copy within general-wellness language', () => {

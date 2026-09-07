@@ -64,6 +64,25 @@ export function createEmptyScheduleBlockForm(date = new Date().toISOString().sli
   };
 }
 
+export function createScheduleBlockFormForWindow(
+  startAt: string,
+  blockType: DayScheduleBlockType = 'other',
+  durationMinutes = 60
+): ScheduleBlockFormState {
+  const start = new Date(startAt);
+  if (Number.isNaN(start.getTime())) return createEmptyScheduleBlockForm();
+  const end = new Date(start.getTime() + Math.max(15, durationMinutes) * 60 * 1000);
+  const time = (value: Date) => (
+    `${String(value.getUTCHours()).padStart(2, '0')}:${String(value.getUTCMinutes()).padStart(2, '0')}`
+  );
+  return {
+    ...createEmptyScheduleBlockForm(start.toISOString().slice(0, 10)),
+    block_type: blockType,
+    start_time: time(start),
+    end_time: time(end)
+  };
+}
+
 export function isValidDateInput(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return false;
   const parsed = new Date(`${value.trim()}T00:00:00.000Z`);

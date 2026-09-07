@@ -94,6 +94,27 @@ export const CATEGORY_PROFILES: Record<string, CategoryProfile> = {
     fiber_density: 'suppress', flavor_systems: 'context_only', sweeteners: 'context_only', oils: 'apply', emulsifiers_gums: 'apply',
     colors: 'apply', refined_syrups: 'apply', ingredient_simplicity: 'apply', claim_alignment: 'apply'
   }, { prebiotic_fiber: 'suppress' }),
+  still_water: profile(category('still_water'), 'per_serving', {
+    sugar_density: 'suppress', sodium_density: 'context_only', calorie_density: 'suppress', fat_density: 'suppress',
+    protein_density: 'suppress', fiber_density: 'suppress', flavor_systems: 'suppress', sweeteners: 'suppress',
+    oils: 'unavailable', emulsifiers_gums: 'suppress', colors: 'suppress', refined_syrups: 'suppress',
+    ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  sparkling_water: profile(category('sparkling_water'), 'per_serving', {
+    sugar_density: 'apply', sodium_density: 'context_only', calorie_density: 'suppress', fat_density: 'suppress', protein_density: 'suppress',
+    fiber_density: 'suppress', flavor_systems: 'context_only', sweeteners: 'context_only', oils: 'unavailable', emulsifiers_gums: 'apply',
+    colors: 'apply', refined_syrups: 'apply', ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  energy_drink: profile(category('energy_drink'), 'per_serving', {
+    sugar_density: 'apply', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'suppress', protein_density: 'suppress',
+    fiber_density: 'suppress', flavor_systems: 'apply', sweeteners: 'context_only', oils: 'unavailable', emulsifiers_gums: 'apply',
+    colors: 'apply', refined_syrups: 'apply', ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  electrolyte_beverage: profile(category('electrolyte_beverage'), 'per_serving', {
+    sugar_density: 'apply', sodium_density: 'context_only', calorie_density: 'suppress', fat_density: 'suppress', protein_density: 'suppress',
+    fiber_density: 'suppress', flavor_systems: 'apply', sweeteners: 'context_only', oils: 'unavailable', emulsifiers_gums: 'apply',
+    colors: 'apply', refined_syrups: 'apply', ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
   soda: profile(category('soda'), 'per_serving', {
     sugar_density: 'apply', sodium_density: 'suppress', calorie_density: 'context_only', fat_density: 'suppress', protein_density: 'suppress',
     fiber_density: 'suppress', flavor_systems: 'context_only', sweeteners: 'context_only', oils: 'apply', emulsifiers_gums: 'apply',
@@ -104,6 +125,12 @@ export const CATEGORY_PROFILES: Record<string, CategoryProfile> = {
     protein_density: 'context_only', fiber_density: 'context_only', flavor_systems: 'apply', sweeteners: 'context_only',
     oils: 'apply', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'apply', ingredient_simplicity: 'apply', claim_alignment: 'apply'
   }),
+  pancake_mix: profile(category('pancake_mix'), 'prepared_serving', {
+    sugar_density: 'apply', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
+    protein_density: 'context_only', fiber_density: 'context_only', flavor_systems: 'apply', sweeteners: 'context_only',
+    oils: 'apply', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'apply',
+    ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
   bread: profile(category('bread'), 'per_serving', {
     sugar_density: 'apply', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
     protein_density: 'context_only', fiber_density: 'context_only', flavor_systems: 'apply', sweeteners: 'context_only',
@@ -113,6 +140,30 @@ export const CATEGORY_PROFILES: Record<string, CategoryProfile> = {
     sugar_density: 'context_only', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
     protein_density: 'context_only', fiber_density: 'context_only', flavor_systems: 'context_only', sweeteners: 'context_only',
     oils: 'apply', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'apply', ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  broth: profile(category('broth'), 'per_serving', {
+    sugar_density: 'context_only', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
+    protein_density: 'context_only', fiber_density: 'unavailable', flavor_systems: 'context_only', sweeteners: 'context_only',
+    oils: 'apply', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'apply',
+    ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  tofu: profile(category('tofu'), 'per_serving', {
+    sugar_density: 'context_only', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
+    protein_density: 'context_only', fiber_density: 'context_only', flavor_systems: 'apply', sweeteners: 'context_only',
+    oils: 'apply', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'apply',
+    ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  canned_fish: profile(category('canned_fish'), 'per_serving', {
+    sugar_density: 'suppress', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
+    protein_density: 'context_only', fiber_density: 'unavailable', flavor_systems: 'apply', sweeteners: 'suppress',
+    oils: 'context_only', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'suppress',
+    ingredient_simplicity: 'apply', claim_alignment: 'apply'
+  }),
+  plant_based_meat: profile(category('plant_based_meat'), 'per_serving', {
+    sugar_density: 'context_only', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',
+    protein_density: 'context_only', fiber_density: 'context_only', flavor_systems: 'apply', sweeteners: 'context_only',
+    oils: 'apply', emulsifiers_gums: 'apply', colors: 'apply', refined_syrups: 'apply',
+    ingredient_simplicity: 'apply', claim_alignment: 'apply'
   }),
   prepared_meat: profile(category('prepared_meat'), 'per_serving', {
     sugar_density: 'context_only', sodium_density: 'context_only', calorie_density: 'context_only', fat_density: 'context_only',

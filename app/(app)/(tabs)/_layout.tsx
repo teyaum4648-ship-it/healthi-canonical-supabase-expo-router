@@ -72,8 +72,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          title: 'Trends',
-          tabBarIcon: tabIcon('trending-up-outline', 'trending-up')
+          href: null
         }}
       />
       <Tabs.Screen

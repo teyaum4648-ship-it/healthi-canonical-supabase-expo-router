@@ -12,7 +12,8 @@ function result(overrides: Partial<NormalizedProductProviderResult> = {}): Norma
       resolved_text: null, raw_text: null, source_field: null, language: 'en', structured_ingredients: [],
       status: 'absent', confidence: 'low', reconstructed: false, conflicts: []
     },
-    nutrition: {}, serving_size: null, serving_quantity_g: null, categories: ['bars'], product_form: 'ready_to_eat',
+    nutrition: {}, serving_size: '1 unit (50 g)', serving_quantity_g: 50, serving_quantity: 50, serving_unit: 'g',
+    categories: ['bars'], product_form: 'ready_to_eat',
     source_timestamp: '2026-07-01T00:00:00.000Z', provider_confidence: 'medium',
     field_provenance: {}, conflicts: [], ...overrides
   };
@@ -46,9 +47,11 @@ describe('provider-neutral product evidence merge', () => {
     expect(merged.result?.barcode).toBe('123456789012');
   });
 
-  it('rejects different barcodes and materially different variants', () => {
+  it('rejects different barcodes and retains exact-barcode variant conflicts', () => {
     expect(mergeProductEvidence(result(), result({ barcode: '999999999999' }))).toMatchObject({ status: 'rejected' });
-    expect(mergeProductEvidence(result(), result({ variant: 'Vanilla' }))).toMatchObject({ status: 'rejected', conflicts: ['Provider records identify different product variants.'] });
+    expect(mergeProductEvidence(result(), result({ variant: 'Vanilla' }))).toMatchObject({
+      status: 'merged', conflicts: ['Exact-barcode provider records use different variant text.']
+    });
   });
 
   it('retains ingredient conflicts, lowers relevant confidence, and preserves provenance', () => {
@@ -66,12 +69,38 @@ describe('provider-neutral product evidence merge', () => {
     expect(merged.result?.field_provenance.ingredients).toHaveLength(2);
   });
 
-  it('uses newer complete nutrition when quality is comparable but not weaker sparse nutrition', () => {
+  it('selects each available nutrition field independently', () => {
     const primary = result({ nutrition: { calories: 200, protein_g: 10, sugar_g: 5 }, provider_confidence: 'high' });
     const newerComplete = result({ nutrition: { calories: 190, protein_g: 11, sugar_g: 4 }, provider_confidence: 'high', source_timestamp: '2026-07-05T00:00:00.000Z' });
     expect(mergeProductEvidence(primary, newerComplete).result?.nutrition.calories).toBe(190);
     const newerSparse = result({ nutrition: { calories: 180 }, provider_confidence: 'high', source_timestamp: '2026-07-06T00:00:00.000Z' });
-    expect(mergeProductEvidence(primary, newerSparse).result?.nutrition.calories).toBe(200);
+    expect(mergeProductEvidence(primary, newerSparse).result?.nutrition).toMatchObject({
+      calories: 180, protein_g: 10, sugar_g: 5
+    });
+  });
+
+  it('does not interpret a household serving count as grams during a legacy merge', () => {
+    const household = result({
+      nutrition: { calories: 100 },
+      serving_size: '1 cup',
+      serving_quantity_g: null,
+      serving_quantity: 1,
+      serving_unit: null
+    });
+    const merged = mergeProductEvidence(household, result({
+      provider_record_id: 'fixture-2',
+      nutrition: {},
+      serving_size: '1 cup',
+      serving_quantity_g: null,
+      serving_quantity: 1,
+      serving_unit: null
+    }));
+
+    expect(merged.result?.nutrition.calories).toBeNull();
+    expect(merged.result?.serving_quantity).toBeNull();
+    expect(merged.result?.nutrient_evidence?.observations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nutrient: 'calories', basis: 'unknown', selectedFor: [] })
+    ]));
   });
 
   it('keeps the production secondary source explicitly unavailable without credentials', async () => {

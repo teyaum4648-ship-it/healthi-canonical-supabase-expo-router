@@ -47,6 +47,7 @@ import {
   buildDayPlanInput,
   createDemoScheduleBlockRow,
   createEmptyScheduleBlockForm,
+  createScheduleBlockFormForWindow,
   defaultScheduleBlockTitle,
   scheduleBlockFlexibilities,
   scheduleBlockFormToInput,
@@ -72,10 +73,6 @@ import {
 } from '../../../src/features/movement/movementPersistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, hairlineWidth, palette, spacing, type } from '../../../src/styles/theme';
-
-type Segment = 'Plan' | 'Schedule' | 'Add Block';
-
-const segments: Segment[] = ['Plan', 'Schedule', 'Add Block'];
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -150,6 +147,16 @@ const BLOCK_TYPE_SECTION: Record<DayScheduleBlockType, CalendarSection> = {
   appointment: 'light_movement',
   sleep: 'sleep',
   other: 'neutral'
+};
+
+const SECTION_BLOCK_TYPE: Record<CalendarSection, DayScheduleBlockType> = {
+  deep_work: 'work',
+  exercise: 'exercise',
+  light_movement: 'free_time',
+  wind_down: 'recovery',
+  meal: 'meal',
+  sleep: 'sleep',
+  neutral: 'other'
 };
 
 type CalendarBand = { section: CalendarSection; startMs: number; endMs: number; label: string };
@@ -281,23 +288,19 @@ const TIMELINE_HOUR_HEIGHT = 60;
 function DayTimeline({
   briefing,
   blocks,
+  date,
+  onAddBlockAt,
   onDeleteBlock
 }: {
   briefing: CircadianBriefing | null;
   blocks: DayScheduleBlockRow[];
+  date: string;
+  onAddBlockAt: (startMs: number, section: CalendarSection) => void;
   onDeleteBlock: (id: string, title: string) => void;
 }) {
-  if (!briefing || !briefing.wake_time || !briefing.target_bedtime) {
-    return (
-      <Text style={styles.body}>
-        Add a sleep window in the Sleep tab so Healthi can shade the day with recommended sections.
-      </Text>
-    );
-  }
-
   const bands = buildRecommendationBands(briefing);
-  const wakeMs = new Date(briefing.wake_time).getTime();
-  const bedMs = new Date(briefing.target_bedtime).getTime();
+  const wakeMs = new Date(briefing?.wake_time ?? `${date}T06:00:00.000Z`).getTime();
+  const bedMs = new Date(briefing?.target_bedtime ?? `${date}T23:00:00.000Z`).getTime();
   const rangeStart = Math.floor(wakeMs / HOUR_MS) * HOUR_MS;
   const rangeEnd = Math.ceil(bedMs / HOUR_MS) * HOUR_MS;
   const totalMs = Math.max(HOUR_MS, rangeEnd - rangeStart);
@@ -306,6 +309,7 @@ function DayTimeline({
   const yFor = (ms: number) => ((clampMs(ms) - rangeStart) / HOUR_MS) * TIMELINE_HOUR_HEIGHT;
   const hourCount = Math.round(totalMs / HOUR_MS);
   const hours = Array.from({ length: hourCount + 1 }, (_, index) => rangeStart + index * HOUR_MS);
+  const hourSlots = hours.slice(0, -1);
   const visibleBlocks = blocks.filter((block) => {
     const start = new Date(block.start_at).getTime();
     const end = new Date(block.end_at).getTime();
@@ -315,6 +319,25 @@ function DayTimeline({
   return (
     <View>
       <View style={[styles.timeline, { height }]}>
+        {hourSlots.map((ms, index) => {
+          const band = bands.find((item) => ms >= item.startMs && ms < item.endMs);
+          const section = band?.section ?? 'neutral';
+          return (
+            <Pressable
+              accessibilityLabel={`Add a block at ${formatHourLabel(ms)}`}
+              accessibilityRole="button"
+              key={`slot-${ms}`}
+              onPress={() => onAddBlockAt(ms, section)}
+              style={({ pressed }) => [
+                styles.hourSlot,
+                { top: index * TIMELINE_HOUR_HEIGHT },
+                pressed && styles.hourSlotPressed
+              ]}
+            >
+              <Ionicons color={colors.accent} name="add" size={14} />
+            </Pressable>
+          );
+        })}
         {hours.map((ms, index) => (
           <View key={ms} pointerEvents="none" style={[styles.hourRow, { top: index * TIMELINE_HOUR_HEIGHT }]}>
             <Text style={styles.hourLabel}>{formatHourLabel(ms)}</Text>
@@ -362,7 +385,8 @@ function DayTimeline({
           </View>
         ))}
       </View>
-      <Text style={styles.metaText}>Tap a block to remove it.</Text>
+      {!briefing ? <Text style={styles.metaText}>Sleep rhythm shading will appear when timing data is available.</Text> : null}
+      <Text style={styles.metaText}>Tap an open hour to add a block. Tap an existing block to remove it.</Text>
     </View>
   );
 }
@@ -373,7 +397,6 @@ export default function PlanScreen() {
   const now = useMemo(() => new Date().toISOString(), []);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
-  const [activeSegment, setActiveSegment] = useState<Segment>('Plan');
   const [blocks, setBlocks] = useState<DayScheduleBlockRow[]>([]);
   const [sleepBriefing, setSleepBriefing] = useState<CircadianBriefing | null>(null);
   const [form, setForm] = useState<ScheduleBlockFormState>(() => createEmptyScheduleBlockForm(today));
@@ -382,6 +405,7 @@ export default function PlanScreen() {
   const [movementInput, setMovementInput] = useState<ReturnType<typeof movementSignalToDayPlanInput> | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showBlockComposer, setShowBlockComposer] = useState(false);
 
   const userId = user?.id;
   const canUseRemote = Boolean(isSupabaseConfigured && isUuid(userId));
@@ -587,7 +611,7 @@ export default function PlanScreen() {
       }
 
       setForm(createEmptyScheduleBlockForm(today));
-      setActiveSegment('Plan');
+      setShowBlockComposer(false);
     } catch {
       setStatus('Schedule block could not save. Check the block details and try again.');
     } finally {
@@ -616,6 +640,16 @@ export default function PlanScreen() {
     ]);
   }
 
+  function openBlockComposer(startMs: number, section: CalendarSection) {
+    setForm(createScheduleBlockFormForWindow(new Date(startMs).toISOString(), SECTION_BLOCK_TYPE[section]));
+    setShowBlockComposer(true);
+  }
+
+  function closeBlockComposer() {
+    setForm(createEmptyScheduleBlockForm(today));
+    setShowBlockComposer(false);
+  }
+
   function renderPlan() {
     return (
       <View style={styles.stack}>
@@ -634,6 +668,34 @@ export default function PlanScreen() {
             </View>
           </View>
         </View>
+
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <View style={styles.blockHeader}>
+              <Text style={styles.cardTitle}>Your day</Text>
+              <Text style={styles.metaText}>Tap a time to add a block</Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Add a schedule block"
+              accessibilityRole="button"
+              onPress={() => openBlockComposer(new Date(`${today}T09:00:00.000Z`).getTime(), 'neutral')}
+              style={({ pressed }) => [styles.addBlockButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.primaryText} name="add" size={17} />
+              <Text style={styles.addBlockButtonText}>Block</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.body}>Recommended sections come from your sleep rhythm and stay separate from your saved commitments.</Text>
+          <DayTimeline
+            blocks={blocks}
+            briefing={sleepBriefing}
+            date={today}
+            onAddBlockAt={openBlockComposer}
+            onDeleteBlock={requestDeleteBlock}
+          />
+        </View>
+
+        {showBlockComposer ? renderBlockComposer() : null}
 
         {dayPlan.missing_data.length > 0 ? (
           <View style={styles.card}>
@@ -714,60 +776,23 @@ export default function PlanScreen() {
     );
   }
 
-  function renderSchedule() {
+  function renderBlockComposer() {
     return (
-      <View style={styles.stack}>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.composerCard]}>
           <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>Your day</Text>
-            <Text style={styles.metaText}>Shaded by sleep rhythm</Text>
-          </View>
-          <Text style={styles.body}>
-            Recommended sections come from your sleep pattern. Add blocks to fit them into the day.
-          </Text>
-          <DayTimeline blocks={blocks} briefing={sleepBriefing} onDeleteBlock={requestDeleteBlock} />
-        </View>
-        {blocks.length > 0 ? (
-          blocks.map((block) => (
-            <View key={block.id} style={styles.card}>
-              <View style={styles.rowBetween}>
-                <View style={styles.blockHeader}>
-                  <Text style={styles.cardTitle}>{block.title ?? defaultScheduleBlockTitle(block.block_type)}</Text>
-                  <Text style={styles.metaText}>{formatWindow(block.start_at, block.end_at)}</Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => handleDeleteBlock(block.id)}
-                  style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-                >
-                  <Ionicons color={colors.danger} name="trash-outline" size={17} />
-                </Pressable>
-              </View>
-              <View style={styles.reasonWrap}>
-                <View style={styles.reasonPill}><Text style={styles.reasonText}>{titleCase(block.block_type)}</Text></View>
-                <View style={styles.reasonPill}>
-                  <Text style={styles.reasonText}>{block.is_protected ? 'Protected' : titleCase(block.flexibility)}</Text>
-                </View>
-                <View style={styles.reasonPill}><Text style={styles.reasonText}>{titleCase(block.source)}</Text></View>
-              </View>
-              {block.description ? <Text style={styles.body}>{block.description}</Text> : null}
-              {block.location ? <Text style={styles.metaText}>{block.location}</Text> : null}
+            <View style={styles.blockHeader}>
+              <Text style={styles.cardTitle}>Add a block</Text>
+              <Text style={styles.metaText}>{formatWindow(`${form.date}T${form.start_time}:00.000Z`, `${form.date}T${form.end_time}:00.000Z`)}</Text>
             </View>
-          ))
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>No schedule blocks yet</Text>
-            <Text style={styles.body}>Add schedule blocks so Healthi can find useful openings in your day.</Text>
+            <Pressable
+              accessibilityLabel="Close block form"
+              accessibilityRole="button"
+              onPress={closeBlockComposer}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.textMuted} name="close" size={18} />
+            </Pressable>
           </View>
-        )}
-      </View>
-    );
-  }
-
-  function renderAddBlock() {
-    return (
-      <View style={styles.stack}>
-        <View style={styles.card}>
           <Field label="Title" onChangeText={(value) => updateForm('title', value)} placeholder="Work block" value={form.title} />
           <Field label="Date" onChangeText={(value) => updateForm('date', value)} placeholder="2026-07-12" value={form.date} />
           <View style={styles.twoCol}>
@@ -849,7 +874,6 @@ export default function PlanScreen() {
             {isSaving ? <ActivityIndicator color={colors.textInverse} /> : <Text style={styles.primaryButtonText}>Save block</Text>}
           </Pressable>
         </View>
-      </View>
     );
   }
 
@@ -865,30 +889,12 @@ export default function PlanScreen() {
             </Text>
           </View>
 
-          <View style={styles.segmentBar}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {segments.map((segment) => (
-                <Pressable
-                  accessibilityRole="button"
-                  key={segment}
-                  onPress={() => setActiveSegment(segment)}
-                  style={[styles.segment, activeSegment === segment && styles.segmentActive]}
-                >
-                  <Text style={[styles.segmentText, activeSegment === segment && styles.segmentTextActive]}>{segment}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-            <View style={styles.segmentBaseline} />
-          </View>
-
           <View style={styles.statusLine}>
             <View style={styles.statusDot} />
             <Text style={styles.statusText}>{isLoading ? 'Loading schedule...' : `${status} ${sourceLabel(dataMode)}.`}</Text>
           </View>
 
-          {activeSegment === 'Plan' ? renderPlan() : null}
-          {activeSegment === 'Schedule' ? renderSchedule() : null}
-          {activeSegment === 'Add Block' ? renderAddBlock() : null}
+          {renderPlan()}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -981,6 +987,9 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderColor: palette.forestPale
+  },
+  composerCard: {
+    borderColor: colors.accentPale
   },
   eyebrow: {
     ...type.eyebrow,
@@ -1086,6 +1095,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 34
   },
+  addBlockButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 4,
+    minHeight: 36,
+    paddingHorizontal: 12
+  },
+  addBlockButtonText: {
+    ...type.caption,
+    color: colors.primaryText,
+    fontFamily: fonts.bodyMedium
+  },
   field: {
     gap: 7
   },
@@ -1164,6 +1187,20 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0
+  },
+  hourSlot: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: TIMELINE_HOUR_HEIGHT,
+    justifyContent: 'center',
+    left: 52,
+    opacity: 0.38,
+    position: 'absolute',
+    right: 4
+  },
+  hourSlotPressed: {
+    backgroundColor: colors.accentWash,
+    opacity: 1
   },
   hourLabel: {
     ...type.caption,

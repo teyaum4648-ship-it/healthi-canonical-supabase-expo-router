@@ -77,8 +77,11 @@ describe('meal builder helpers', () => {
       sodium_mg: 400,
       saturated_fat_g: 3.5
     });
-    expect(adjusted.items[0]?.quality.result_state).toBe('final');
-    expect(adjusted.items[1]?.quality.result_state).toBe('estimated');
+    expect(adjusted.items[0]?.quality).toMatchObject({
+      result_state: 'final',
+      score_scope: 'overall'
+    });
+    expect(adjusted.items[1]?.quality).toMatchObject({ result_state: 'more_data_needed', score: null });
   });
 
   it('removes a builder item without changing the source snapshot', () => {

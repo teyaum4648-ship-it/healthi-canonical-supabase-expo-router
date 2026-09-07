@@ -77,6 +77,14 @@ function cloneSnapshot(snapshot: HealthiProductSnapshot): HealthiProductSnapshot
     provider_quality_tags: snapshot.provider_quality_tags ? [...snapshot.provider_quality_tags] : undefined,
     field_provenance: snapshot.field_provenance ? JSON.parse(JSON.stringify(snapshot.field_provenance)) : undefined,
     provider_conflicts: snapshot.provider_conflicts ? [...snapshot.provider_conflicts] : undefined,
+    nutrient_evidence: snapshot.nutrient_evidence ? JSON.parse(JSON.stringify(snapshot.nutrient_evidence)) : undefined,
+    nutrition_validation: snapshot.nutrition_validation ? JSON.parse(JSON.stringify(snapshot.nutrition_validation)) : undefined,
+    validation_issues: snapshot.validation_issues ? JSON.parse(JSON.stringify(snapshot.validation_issues)) : undefined,
+    provider_resolution_trace: snapshot.provider_resolution_trace ? JSON.parse(JSON.stringify(snapshot.provider_resolution_trace)) : undefined,
+    product_identity_resolution: snapshot.product_identity_resolution
+      ? JSON.parse(JSON.stringify(snapshot.product_identity_resolution))
+      : snapshot.product_identity_resolution,
+    provider_resolution: snapshot.provider_resolution ? JSON.parse(JSON.stringify(snapshot.provider_resolution)) : undefined,
     lab_evidence_reference: snapshot.lab_evidence_reference
       ? JSON.parse(JSON.stringify(snapshot.lab_evidence_reference))
       : undefined,
@@ -84,6 +92,7 @@ function cloneSnapshot(snapshot: HealthiProductSnapshot): HealthiProductSnapshot
     categories_tags: snapshot.categories_tags ? [...snapshot.categories_tags] : undefined,
     packaging_tags: snapshot.packaging_tags ? [...snapshot.packaging_tags] : undefined,
     nutriments_per_100g: snapshot.nutriments_per_100g ? { ...snapshot.nutriments_per_100g } : undefined,
+    nutriments_per_100ml: snapshot.nutriments_per_100ml ? { ...snapshot.nutriments_per_100ml } : undefined,
     quality_flags: [...snapshot.quality_flags],
     reason_codes: [...snapshot.reason_codes]
   };
@@ -96,6 +105,11 @@ function cloneQuality(quality: ProductQualitySnapshot): ProductQualitySnapshot {
     considerations: [...quality.considerations],
     reason_codes: [...quality.reason_codes],
     estimated_grade_range: quality.estimated_grade_range ? [...quality.estimated_grade_range] : null,
+    estimated_score_range: quality.estimated_score_range ? [...quality.estimated_score_range] : null,
+    grade_certainty: quality.grade_certainty ? {
+      ...quality.grade_certainty,
+      gradesSpanned: [...quality.grade_certainty.gradesSpanned]
+    } : null,
     missing_evidence: quality.missing_evidence ? [...quality.missing_evidence] : undefined,
     evidence_confidence: quality.evidence_confidence ? { ...quality.evidence_confidence } : undefined,
     nutrient_basis: quality.nutrient_basis ? { ...quality.nutrient_basis } : undefined,
@@ -307,6 +321,9 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     quantity: typeof evidence.quantity === 'string' ? evidence.quantity : null,
     serving_size: row.serving_size,
     serving_quantity_g: row.serving_quantity_g,
+    serving_quantity: typeof evidence.serving_quantity === 'number' ? evidence.serving_quantity : row.serving_quantity_g,
+    serving_unit: typeof evidence.serving_unit === 'string' ? evidence.serving_unit : row.serving_quantity_g ? 'g' : null,
+    serving_equivalent: typeof evidence.serving_equivalent === 'string' ? evidence.serving_equivalent : row.serving_size,
     calories_per_serving: row.calories_per_serving,
     protein_g: row.protein_g,
     carbs_g: row.carbs_g,
@@ -314,10 +331,14 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     saturated_fat_g: row.saturated_fat_g,
     fiber_g: row.fiber_g,
     sugar_g: row.sugar_g,
+    added_sugar_g: typeof evidence.added_sugar_g === 'number' ? evidence.added_sugar_g : null,
     sodium_mg: row.sodium_mg,
+    caffeine_mg: typeof evidence.caffeine_mg === 'number' ? evidence.caffeine_mg : null,
     ingredients_text: row.ingredients_text,
     ingredient_evidence: evidence.ingredient_evidence && typeof evidence.ingredient_evidence === 'object'
       ? evidence.ingredient_evidence as unknown as HealthiProductSnapshot['ingredient_evidence'] : undefined,
+    ingredient_tokens: stringList(evidence.ingredient_tokens),
+    additive_signals: stringList(evidence.additive_signals),
     evidence_confidence: evidence.evidence_confidence && typeof evidence.evidence_confidence === 'object'
       ? evidence.evidence_confidence as unknown as HealthiProductSnapshot['evidence_confidence'] : undefined,
     provider_updated_at: typeof evidence.provider_updated_at === 'string' ? evidence.provider_updated_at : null,
@@ -326,6 +347,19 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     field_provenance: evidence.field_provenance && typeof evidence.field_provenance === 'object'
       ? evidence.field_provenance as unknown as HealthiProductSnapshot['field_provenance'] : undefined,
     provider_conflicts: stringList(evidence.provider_conflicts),
+    provider_missing_fields: stringList(evidence.provider_missing_fields),
+    nutrient_evidence: evidence.nutrient_evidence && typeof evidence.nutrient_evidence === 'object'
+      ? evidence.nutrient_evidence as unknown as HealthiProductSnapshot['nutrient_evidence'] : undefined,
+    nutrition_validation: evidence.nutrition_validation && typeof evidence.nutrition_validation === 'object'
+      ? evidence.nutrition_validation as unknown as HealthiProductSnapshot['nutrition_validation'] : undefined,
+    validation_issues: Array.isArray(evidence.validation_issues)
+      ? evidence.validation_issues as unknown as HealthiProductSnapshot['validation_issues'] : undefined,
+    provider_resolution_trace: Array.isArray(evidence.provider_resolution_trace)
+      ? evidence.provider_resolution_trace as unknown as HealthiProductSnapshot['provider_resolution_trace'] : undefined,
+    product_identity_resolution: evidence.product_identity_resolution && typeof evidence.product_identity_resolution === 'object'
+      ? evidence.product_identity_resolution as unknown as HealthiProductSnapshot['product_identity_resolution'] : null,
+    provider_resolution: evidence.provider_resolution && typeof evidence.provider_resolution === 'object'
+      ? evidence.provider_resolution as unknown as HealthiProductSnapshot['provider_resolution'] : undefined,
     lab_evidence_reference: row.lab_evidence_state && typeof row.lab_evidence_state === 'object'
       ? row.lab_evidence_state as unknown as HealthiProductSnapshot['lab_evidence_reference'] : undefined,
     labels: stringList(evidence.labels),
@@ -333,6 +367,8 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     packaging_tags: stringList(evidence.packaging_tags),
     nutriments_per_100g: evidence.nutriments_per_100g && typeof evidence.nutriments_per_100g === 'object'
       ? evidence.nutriments_per_100g as HealthiProductSnapshot['nutriments_per_100g'] : undefined,
+    nutriments_per_100ml: evidence.nutriments_per_100ml && typeof evidence.nutriments_per_100ml === 'object'
+      ? evidence.nutriments_per_100ml as HealthiProductSnapshot['nutriments_per_100ml'] : undefined,
     quality_flags: [...row.quality_flags],
     confidence: row.source_confidence,
     reason_codes: [...row.quality_reason_codes]

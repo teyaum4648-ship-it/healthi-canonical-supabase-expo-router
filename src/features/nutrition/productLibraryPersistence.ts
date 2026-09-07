@@ -4,7 +4,7 @@ import type { HealthiProductSnapshot, ProductProvider, ProductQualitySnapshot } 
 import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
 import { mergeProductSnapshots } from './productLookup/mergeProductEvidence';
 
-export type UserFoodProductSource = 'open_food_facts' | 'manual' | 'demo' | 'scanner';
+export type UserFoodProductSource = 'open_food_facts' | 'usda_food_data_central' | 'manual' | 'demo' | 'scanner';
 export type ProductQualityLabel = ProductQualitySnapshot['label'];
 
 export type UserFoodProductPersistenceInput = HealthiProductSnapshot & {
@@ -96,6 +96,7 @@ function productSource(snapshot: HealthiProductSnapshot, source?: UserFoodProduc
 export function productSnapshotValue(product: Partial<HealthiProductSnapshot>, quality: ProductQualitySnapshot): JsonValue {
   return {
     score: quality.score,
+    central_score: quality.central_score ?? quality.absolute_score ?? quality.score,
     label: quality.label,
     summary: quality.summary,
     positives: [...quality.positives],
@@ -104,7 +105,8 @@ export function productSnapshotValue(product: Partial<HealthiProductSnapshot>, q
     reason_codes: [...quality.reason_codes],
     letter_grade: quality.letter_grade ?? null,
     grade_band: quality.grade_band ?? 'calibrating',
-    grade_label: quality.grade_label ?? 'Calibrating',
+    grade_label: quality.grade_label ?? 'More data needed',
+    grade_certainty: quality.grade_certainty ? JSON.parse(JSON.stringify(quality.grade_certainty)) as JsonValue : null,
     absolute_score: quality.absolute_score ?? null,
     category_score: quality.category_score ?? null,
     category_id: quality.category_id ?? null,
@@ -159,23 +161,48 @@ export function productSnapshotValue(product: Partial<HealthiProductSnapshot>, q
     })),
     result_state: quality.result_state ?? 'more_data_needed',
     estimated_grade_range: quality.estimated_grade_range ? [...quality.estimated_grade_range] : null,
+    estimated_score_range: quality.estimated_score_range ? [...quality.estimated_score_range] : null,
     missing_evidence: [...(quality.missing_evidence ?? [])],
     evidence_confidence: quality.evidence_confidence ? { ...quality.evidence_confidence } : null,
+    engine_version: quality.engine_version ?? null,
+    archetype: quality.archetype ? JSON.parse(JSON.stringify(quality.archetype)) as JsonValue : null,
+    dimensions: quality.dimensions ? JSON.parse(JSON.stringify(quality.dimensions)) as JsonValue : [],
+    supported_dimension_weight: quality.supported_dimension_weight ?? null,
+    score_scope: quality.score_scope ?? null,
+    dimension_aggregation: quality.dimension_aggregation ? { ...quality.dimension_aggregation } : null,
+    score_eligibility: quality.score_eligibility ? JSON.parse(JSON.stringify(quality.score_eligibility)) as JsonValue : null,
+    generalized_fallback_used: quality.generalized_fallback_used ?? false,
+    review_trace: quality.review_trace ? JSON.parse(JSON.stringify(quality.review_trace)) as JsonValue : null,
     product_evidence: {
       canonical_barcode: product.canonical_barcode ?? canonicalBarcodeIdentity(product.barcode ?? ''),
       variant: product.variant ?? null,
       quantity: product.quantity ?? null,
       ingredient_evidence: product.ingredient_evidence ? JSON.parse(JSON.stringify(product.ingredient_evidence)) as JsonValue : null,
+      ingredient_tokens: [...(product.ingredient_tokens ?? [])],
+      additive_signals: [...(product.additive_signals ?? [])],
       evidence_confidence: product.evidence_confidence ? { ...product.evidence_confidence } : null,
       provider_updated_at: product.provider_updated_at ?? null,
       provider_completeness: product.provider_completeness ?? null,
       provider_quality_tags: [...(product.provider_quality_tags ?? [])],
       field_provenance: product.field_provenance ? JSON.parse(JSON.stringify(product.field_provenance)) as JsonValue : null,
       provider_conflicts: [...(product.provider_conflicts ?? [])],
+      provider_missing_fields: [...(product.provider_missing_fields ?? [])],
+      nutrient_evidence: product.nutrient_evidence ? JSON.parse(JSON.stringify(product.nutrient_evidence)) as JsonValue : null,
+      nutrition_validation: product.nutrition_validation ? JSON.parse(JSON.stringify(product.nutrition_validation)) as JsonValue : null,
+      validation_issues: product.validation_issues ? JSON.parse(JSON.stringify(product.validation_issues)) as JsonValue : [],
+      provider_resolution_trace: product.provider_resolution_trace ? JSON.parse(JSON.stringify(product.provider_resolution_trace)) as JsonValue : [],
+      product_identity_resolution: product.product_identity_resolution ? JSON.parse(JSON.stringify(product.product_identity_resolution)) as JsonValue : null,
+      provider_resolution: product.provider_resolution ? JSON.parse(JSON.stringify(product.provider_resolution)) as JsonValue : null,
+      serving_quantity: product.serving_quantity ?? null,
+      serving_unit: product.serving_unit ?? null,
+      serving_equivalent: product.serving_equivalent ?? null,
+      added_sugar_g: product.added_sugar_g ?? null,
+      caffeine_mg: product.caffeine_mg ?? null,
       labels: [...(product.labels ?? [])],
       categories_tags: [...(product.categories_tags ?? [])],
       packaging_tags: [...(product.packaging_tags ?? [])],
-      nutriments_per_100g: product.nutriments_per_100g ? { ...product.nutriments_per_100g } : null
+      nutriments_per_100g: product.nutriments_per_100g ? { ...product.nutriments_per_100g } : null,
+      nutriments_per_100ml: product.nutriments_per_100ml ? { ...product.nutriments_per_100ml } : null
     }
   };
 }
@@ -195,22 +222,72 @@ function storedSnapshot(row: UserFoodProductRow): HealthiProductSnapshot {
   return {
     barcode: row.barcode ?? '', canonical_barcode: typeof evidence.canonical_barcode === 'string' ? evidence.canonical_barcode : canonicalBarcodeIdentity(row.barcode ?? ''),
     provider: row.provider, provider_product_id: row.provider_product_id, name: row.name, brand: row.brand,
+    variant: typeof evidence.variant === 'string' ? evidence.variant : null,
+    quantity: typeof evidence.quantity === 'string' ? evidence.quantity : null,
     serving_size: row.serving_size, serving_quantity_g: row.serving_quantity_g, calories_per_serving: row.calories_per_serving,
     protein_g: row.protein_g, carbs_g: row.carbs_g, fat_g: row.fat_g, fiber_g: row.fiber_g, sugar_g: row.sugar_g,
     sodium_mg: row.sodium_mg, saturated_fat_g: row.saturated_fat_g, ingredients_text: row.ingredients_text,
     ingredient_evidence: evidence.ingredient_evidence && typeof evidence.ingredient_evidence === 'object'
       ? evidence.ingredient_evidence as unknown as HealthiProductSnapshot['ingredient_evidence'] : undefined,
+    ingredient_tokens: Array.isArray(evidence.ingredient_tokens)
+      ? evidence.ingredient_tokens.filter((value): value is string => typeof value === 'string') : [],
+    additive_signals: Array.isArray(evidence.additive_signals)
+      ? evidence.additive_signals.filter((value): value is string => typeof value === 'string') : [],
     evidence_confidence: evidence.evidence_confidence && typeof evidence.evidence_confidence === 'object'
       ? evidence.evidence_confidence as unknown as HealthiProductSnapshot['evidence_confidence'] : undefined,
     lab_evidence_reference: row.lab_evidence_state && typeof row.lab_evidence_state === 'object'
       ? row.lab_evidence_state as unknown as HealthiProductSnapshot['lab_evidence_reference'] : undefined,
     provider_updated_at: typeof evidence.provider_updated_at === 'string' ? evidence.provider_updated_at : null,
+    provider_completeness: typeof evidence.provider_completeness === 'number' ? evidence.provider_completeness : null,
+    provider_quality_tags: Array.isArray(evidence.provider_quality_tags)
+      ? evidence.provider_quality_tags.filter((value): value is string => typeof value === 'string') : [],
+    field_provenance: evidence.field_provenance && typeof evidence.field_provenance === 'object'
+      ? evidence.field_provenance as unknown as HealthiProductSnapshot['field_provenance'] : undefined,
+    provider_conflicts: Array.isArray(evidence.provider_conflicts)
+      ? evidence.provider_conflicts.filter((value): value is string => typeof value === 'string') : [],
+    provider_missing_fields: Array.isArray(evidence.provider_missing_fields)
+      ? evidence.provider_missing_fields.filter((value): value is string => typeof value === 'string') : [],
+    nutrient_evidence: evidence.nutrient_evidence && typeof evidence.nutrient_evidence === 'object'
+      ? evidence.nutrient_evidence as unknown as HealthiProductSnapshot['nutrient_evidence'] : undefined,
+    nutrition_validation: evidence.nutrition_validation && typeof evidence.nutrition_validation === 'object'
+      ? evidence.nutrition_validation as unknown as HealthiProductSnapshot['nutrition_validation'] : undefined,
+    validation_issues: Array.isArray(evidence.validation_issues)
+      ? evidence.validation_issues as unknown as HealthiProductSnapshot['validation_issues'] : [],
+    provider_resolution_trace: Array.isArray(evidence.provider_resolution_trace)
+      ? evidence.provider_resolution_trace as unknown as HealthiProductSnapshot['provider_resolution_trace'] : [],
+    product_identity_resolution: evidence.product_identity_resolution && typeof evidence.product_identity_resolution === 'object'
+      ? evidence.product_identity_resolution as unknown as HealthiProductSnapshot['product_identity_resolution'] : null,
+    provider_resolution: evidence.provider_resolution && typeof evidence.provider_resolution === 'object'
+      ? evidence.provider_resolution as unknown as HealthiProductSnapshot['provider_resolution'] : undefined,
+    serving_quantity: typeof evidence.serving_quantity === 'number' ? evidence.serving_quantity : null,
+    serving_unit: typeof evidence.serving_unit === 'string' ? evidence.serving_unit : null,
+    serving_equivalent: typeof evidence.serving_equivalent === 'string' ? evidence.serving_equivalent : null,
+    added_sugar_g: typeof evidence.added_sugar_g === 'number' ? evidence.added_sugar_g : null,
+    caffeine_mg: typeof evidence.caffeine_mg === 'number' ? evidence.caffeine_mg : null,
+    labels: Array.isArray(evidence.labels) ? evidence.labels.filter((value): value is string => typeof value === 'string') : [],
+    categories_tags: Array.isArray(evidence.categories_tags)
+      ? evidence.categories_tags.filter((value): value is string => typeof value === 'string') : [],
+    packaging_tags: Array.isArray(evidence.packaging_tags)
+      ? evidence.packaging_tags.filter((value): value is string => typeof value === 'string') : [],
+    nutriments_per_100g: evidence.nutriments_per_100g && typeof evidence.nutriments_per_100g === 'object'
+      ? evidence.nutriments_per_100g as HealthiProductSnapshot['nutriments_per_100g'] : undefined,
+    nutriments_per_100ml: evidence.nutriments_per_100ml && typeof evidence.nutriments_per_100ml === 'object'
+      ? evidence.nutriments_per_100ml as HealthiProductSnapshot['nutriments_per_100ml'] : undefined,
     quality_flags: [...row.quality_flags], confidence: row.source_confidence, reason_codes: [...row.quality_reason_codes]
   };
 }
 
 export function shouldRefreshCachedProduct(row: UserFoodProductRow, now = Date.now(), completeTtlMs = 7 * 24 * 60 * 60 * 1000): boolean {
+  const qualityEnvelope = row.quality_snapshot && typeof row.quality_snapshot === 'object' && !Array.isArray(row.quality_snapshot)
+    ? row.quality_snapshot as Record<string, JsonValue>
+    : {};
+  if (qualityEnvelope.engine_version !== 'product_quality_v5') return true;
+  if (!['final', 'estimated', 'provisional', 'more_data_needed'].includes(String(qualityEnvelope.result_state ?? ''))) return true;
   const snapshot = storedSnapshot(row);
+  if (snapshot.provider !== 'manual' && snapshot.provider !== 'demo') {
+    if (snapshot.provider_resolution?.version !== 'product_data_resolver_v3') return true;
+    if (snapshot.nutrition_validation?.version !== 'nutrition_validation_v1') return true;
+  }
   if (evidenceRank(snapshot) < 3) return true;
   const providerTime = snapshot.provider_updated_at ? new Date(snapshot.provider_updated_at).getTime() : NaN;
   const storedTime = new Date(row.updated_at).getTime();

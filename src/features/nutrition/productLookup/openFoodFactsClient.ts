@@ -1,10 +1,15 @@
 import { barcodeLookupCandidates, validateBarcode } from './barcodeUtils';
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
+import {
+  openFoodFactsProductRequestScheduler,
+  type ProviderRequestScheduler
+} from './productRequestScheduler';
 import type { HealthiProductSnapshot, ProductLookupResult } from './productLookupTypes';
 
 type FetchResponse = {
   ok: boolean;
   status?: number;
+  headers?: { get(name: string): string | null };
   json(): Promise<unknown>;
 };
 
@@ -17,6 +22,7 @@ export type OpenFoodFactsLookupOptions = {
   fetcher?: ProductLookupFetch;
   timeoutMs?: number;
   locale?: string;
+  scheduler?: Pick<ProviderRequestScheduler, 'schedule' | 'defer'> | null;
 };
 
 export type ProductSearchResult =
@@ -90,17 +96,30 @@ function isRetryableProviderFailure(response: FetchResponse): boolean {
   return response.status === 408 || response.status === 429 || (typeof response.status === 'number' && response.status >= 500);
 }
 
+export function retryAfterMilliseconds(value: string | null | undefined, now = Date.now()): number | null {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1_000);
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? Math.max(0, date - now) : null;
+}
+
 async function fetchProductWithRetry(
   fetcher: ProductLookupFetch,
   url: string,
-  timeoutMs: number
+  timeoutMs: number,
+  scheduler: OpenFoodFactsLookupOptions['scheduler']
 ): Promise<FetchResponse> {
   const maximumAttempts = 2;
   let lastError: unknown;
   for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
-      const response = await fetchWithTimeout(fetcher, url, timeoutMs);
+      const request = () => fetchWithTimeout(fetcher, url, timeoutMs);
+      const response = scheduler ? await scheduler.schedule(request) : await request();
       if (response.ok || !isRetryableProviderFailure(response) || attempt === maximumAttempts - 1) return response;
+      if (response.status === 429 && scheduler) {
+        scheduler.defer(retryAfterMilliseconds(response.headers?.get('retry-after')) ?? 0);
+      }
     } catch (error) {
       lastError = error;
       if (attempt === maximumAttempts - 1) throw error;
@@ -126,11 +145,14 @@ export async function lookupOpenFoodFactsProduct(
   const { barcode } = validation;
   const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
   const timeoutMs = options.timeoutMs ?? 12_000;
+  const scheduler = options.scheduler === undefined
+    ? (options.fetcher ? null : openFoodFactsProductRequestScheduler)
+    : options.scheduler;
 
   try {
     for (const candidate of barcodeLookupCandidates(barcode)) {
       const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(candidate)}.json?fields=${productFields(options.locale)}`;
-      const response = await fetchProductWithRetry(fetcher, url, timeoutMs);
+      const response = await fetchProductWithRetry(fetcher, url, timeoutMs, scheduler);
       if (!response.ok) {
         return {
           status: 'error',

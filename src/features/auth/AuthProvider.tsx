@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren
 } from 'react';
@@ -36,79 +37,112 @@ type HealthiProfile = {
   onboarding_status: 'not_started' | 'in_progress' | 'completed';
 };
 
-export function AuthProvider({ children }: PropsWithChildren) {
-  const shouldUseLocalDemoAuth = isDemoMode || !isSupabaseConfigured;
+const demoUser = {
+  id: 'demo-user',
+  email: 'demo@healthi.local'
+} as User;
+
+const demoSession = {
+  access_token: 'demo',
+  refresh_token: 'demo',
+  expires_in: 3600,
+  token_type: 'bearer',
+  user: demoUser
+} as Session;
+
+export function parseDemoOnboardingStatus(value: string | null): HealthiProfile['onboarding_status'] {
+  return value === 'false' ? 'in_progress' : 'completed';
+}
+
+function DemoAuthProvider({ children }: PropsWithChildren) {
   const [demoOnboardingStatus, setDemoOnboardingStatus] =
     useState<HealthiProfile['onboarding_status']>('completed');
   const [isLocalDemoSignedOut, setIsLocalDemoSignedOut] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<HealthiProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!shouldUseLocalDemoAuth) {
-      return;
-    }
-
+    let isMounted = true;
     AsyncStorage.getItem(demoOnboardingCompletedKey)
       .then((value) => {
-        setDemoOnboardingStatus(value === 'false' ? 'in_progress' : 'completed');
+        if (isMounted) {
+          setDemoOnboardingStatus(parseDemoOnboardingStatus(value));
+        }
       })
       .catch(() => {
-        setDemoOnboardingStatus('completed');
+        if (isMounted) {
+          setDemoOnboardingStatus('completed');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       });
-  }, [shouldUseLocalDemoAuth]);
 
-  if (shouldUseLocalDemoAuth) {
-    const demoUser = {
-      id: 'demo-user',
-      email: 'demo@healthi.local'
-    } as User;
-    const demoSession = {
-      access_token: 'demo',
-      refresh_token: 'demo',
-      expires_in: 3600,
-      token_type: 'bearer',
-      user: demoUser
-    } as Session;
-    const demoProfile: HealthiProfile = {
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const demoProfile = useMemo<HealthiProfile>(
+    () => ({
       id: demoUser.id,
       display_name: 'Demo User',
       primary_goal: null,
       training_experience: null,
       onboarding_status: demoOnboardingStatus
-    };
-    const refreshDemoProfile = async () => {
-      const value = await AsyncStorage.getItem(demoOnboardingCompletedKey);
-      setDemoOnboardingStatus(value === 'true' ? 'completed' : 'in_progress');
-    };
-    const value: AuthContextValue = {
+    }),
+    [demoOnboardingStatus]
+  );
+
+  const refreshProfile = useCallback(async () => {
+    const value = await AsyncStorage.getItem(demoOnboardingCompletedKey);
+    setDemoOnboardingStatus(parseDemoOnboardingStatus(value));
+  }, []);
+
+  const signIn = useCallback(async () => {
+    await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
+    setDemoOnboardingStatus('completed');
+    setIsLocalDemoSignedOut(false);
+  }, []);
+
+  const signUp = useCallback(async () => {
+    await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
+    setDemoOnboardingStatus('completed');
+    setIsLocalDemoSignedOut(false);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await AsyncStorage.removeItem(demoOnboardingCompletedKey);
+    setDemoOnboardingStatus('in_progress');
+    setIsLocalDemoSignedOut(true);
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
       session: isLocalDemoSignedOut ? null : demoSession,
       user: isLocalDemoSignedOut ? null : demoUser,
       profile: isLocalDemoSignedOut ? null : demoProfile,
-      isLoading: false,
-      refreshProfile: refreshDemoProfile,
-      signIn: async () => {
-        await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
-        setDemoOnboardingStatus('completed');
-        setIsLocalDemoSignedOut(false);
-      },
-      signUp: async () => {
-        await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
-        setDemoOnboardingStatus('completed');
-        setIsLocalDemoSignedOut(false);
-      },
-      signOut: async () => {
-        await AsyncStorage.removeItem(demoOnboardingCompletedKey);
-        setDemoOnboardingStatus('in_progress');
-        setIsLocalDemoSignedOut(true);
-      }
-    };
+      isLoading,
+      refreshProfile,
+      signIn,
+      signUp,
+      signOut
+    }),
+    [demoProfile, isLoading, isLocalDemoSignedOut, refreshProfile, signIn, signOut, signUp]
+  );
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-  }
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
-  const loadProfile = useCallback(async (userId: string) => {
+function RemoteAuthProvider({ children }: PropsWithChildren) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<HealthiProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const isMounted = useRef(true);
+  const sessionRequestId = useRef(0);
+
+  const fetchProfile = useCallback(async (userId: string): Promise<HealthiProfile | null> => {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, display_name, primary_goal, training_experience, onboarding_status')
@@ -119,8 +153,70 @@ export function AuthProvider({ children }: PropsWithChildren) {
       throw error;
     }
 
-    setProfile((data as HealthiProfile | null) ?? null);
+    return (data as HealthiProfile | null) ?? null;
   }, []);
+
+  const synchronizeSession = useCallback(async (nextSession: Session | null) => {
+    const requestId = ++sessionRequestId.current;
+
+    if (!isMounted.current) {
+      return;
+    }
+
+    setSession(nextSession);
+    setIsLoading(true);
+
+    if (!nextSession?.user.id) {
+      setProfile(null);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const nextProfile = await fetchProfile(nextSession.user.id);
+      if (isMounted.current && requestId === sessionRequestId.current) {
+        setProfile(nextProfile);
+      }
+    } catch {
+      if (isMounted.current && requestId === sessionRequestId.current) {
+        setProfile(null);
+      }
+    } finally {
+      if (isMounted.current && requestId === sessionRequestId.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (error) {
+          throw error;
+        }
+        return synchronizeSession(data.session);
+      })
+      .catch(() => {
+        if (isMounted.current) {
+          setSession(null);
+          setProfile(null);
+          setIsLoading(false);
+        }
+      });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void synchronizeSession(nextSession);
+    });
+
+    return () => {
+      isMounted.current = false;
+      sessionRequestId.current += 1;
+      data.subscription.unsubscribe();
+    };
+  }, [synchronizeSession]);
 
   const refreshProfile = useCallback(async () => {
     if (!session?.user.id) {
@@ -128,62 +224,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    await loadProfile(session.user.id);
-  }, [loadProfile, session?.user.id]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    supabase.auth
-      .getSession()
-      .then(async ({ data }) => {
-        if (isMounted) {
-          setSession(data.session);
-        }
-
-        if (data.session?.user.id) {
-          await loadProfile(data.session.user.id);
-        } else if (isMounted) {
-          setProfile(null);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setProfile(null);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-
-      if (!nextSession?.user.id) {
-        setProfile(null);
-        setIsLoading(false);
-        return;
+    setIsLoading(true);
+    try {
+      const nextProfile = await fetchProfile(session.user.id);
+      if (isMounted.current) {
+        setProfile(nextProfile);
       }
-
-      loadProfile(nextSession.user.id)
-        .catch(() => {
-          setProfile(null);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    });
-
-    return () => {
-      isMounted = false;
-      data.subscription.unsubscribe();
-    };
-  }, [loadProfile]);
+    } finally {
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [fetchProfile, session?.user.id]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
@@ -191,10 +246,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (error) {
       throw error;
     }
-  }, []);
+
+    if (!data.session) {
+      throw new Error('Sign in completed without an active session. Please try again.');
+    }
+
+    await synchronizeSession(data.session);
+  }, [synchronizeSession]);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password
     });
@@ -202,7 +263,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (error) {
       throw error;
     }
-  }, []);
+
+    if (data.session) {
+      await synchronizeSession(data.session);
+    }
+  }, [synchronizeSession]);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -210,7 +275,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (error) {
       throw error;
     }
-  }, []);
+
+    await synchronizeSession(null);
+  }, [synchronizeSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -227,6 +294,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  const shouldUseLocalDemoAuth = isDemoMode || !isSupabaseConfigured;
+  return shouldUseLocalDemoAuth
+    ? <DemoAuthProvider>{children}</DemoAuthProvider>
+    : <RemoteAuthProvider>{children}</RemoteAuthProvider>;
 }
 
 export function useAuth() {

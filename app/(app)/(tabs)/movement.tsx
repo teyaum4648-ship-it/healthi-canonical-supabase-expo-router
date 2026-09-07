@@ -212,7 +212,6 @@ export default function MovementScreen() {
   const [isQuickLogging, setIsQuickLogging] = useState(false);
   const [quickPrompt, setQuickPrompt] = useState('');
   const [quickDraft, setQuickDraft] = useState<QuickWorkoutDraft | null>(null);
-  const [showTodayDetails, setShowTodayDetails] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState('');
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('all');
   const [feeling, setFeeling] = useState<string | null>(null);
@@ -888,20 +887,6 @@ export default function MovementScreen() {
           <Text style={styles.changedCopy}>{status}</Text>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setShowTodayDetails((current) => !current)}
-          style={({ pressed }) => [styles.contextToggle, pressed && styles.pressed]}
-        >
-          <View>
-            <Text style={styles.contextToggleTitle}>{showTodayDetails ? 'Hide movement context' : 'View full movement context'}</Text>
-            <Text style={styles.contextToggleHint}>Useful range, support signals, movement mix, and this week</Text>
-          </View>
-          <Ionicons color={movePalette.green} name={showTodayDetails ? 'chevron-up' : 'chevron-down'} size={18} />
-        </Pressable>
-
-        {showTodayDetails ? (
-          <>
         <Divider />
 
         <View>
@@ -1016,8 +1001,6 @@ export default function MovementScreen() {
             <Text style={styles.monoMeta}>{summary.recent_high_effort_count} high effort</Text>
           </View>
         </View>
-          </>
-        ) : null}
       </View>
     );
   }
@@ -1637,9 +1620,6 @@ const styles = StyleSheet.create({
   primaryButtonText: { ...type.label, color: movePalette.surface, fontSize: 14 },
   changedRow: { gap: 8 },
   changedCopy: { ...type.body, color: 'rgba(20, 31, 25, 0.65)' },
-  contextToggle: { alignItems: 'center', backgroundColor: 'rgba(250, 249, 245, 0.62)', borderColor: movePalette.line, borderRadius: 14, borderWidth: hairlineWidth, flexDirection: 'row', gap: 14, justifyContent: 'space-between', minHeight: 64, paddingHorizontal: 15, paddingVertical: 12 },
-  contextToggleTitle: { ...type.label, color: movePalette.ink, fontSize: 13.5 },
-  contextToggleHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.56)', fontSize: 11.5, marginTop: 3 },
   capacityLabels: { flexDirection: 'row', marginTop: 15 },
   capacityLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', flex: 1, fontSize: 11, textAlign: 'center' },
   capacityLabelActive: { color: movePalette.green, fontFamily: type.label.fontFamily },

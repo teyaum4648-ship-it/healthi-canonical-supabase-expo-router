@@ -4,7 +4,9 @@ import { barcodeLookupCandidates, canonicalBarcodeIdentity, validateBarcode } fr
 import { normalizeOpenFoodFactsProduct } from '../../../src/features/nutrition/productLookup/normalizeProduct';
 import { lookupOpenFoodFactsProduct, searchOpenFoodFactsProducts } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
+import { buildProductQualityScorePresentation } from '../../../src/features/nutrition/productLookup/productQualityPresentation';
 import { resolveIngredientEvidence } from '../../../src/features/nutrition/productLookup/ingredientEvidenceResolver';
+import { ProviderRequestScheduler } from '../../../src/features/nutrition/productLookup/productRequestScheduler';
 
 const completeProduct = {
   code: '3017620422003',
@@ -31,6 +33,35 @@ const completeProduct = {
 };
 
 describe('product lookup and quality', () => {
+  it('renders bounded Estimated and Provisional score presentations without hiding low-confidence scores', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Whole oat cereal', categories_tags: ['cereal'], ingredients_text: 'oats, seeds',
+      serving_size: '40 g', serving_quantity: 40,
+      nutriments: { 'energy-kcal_serving': 160, proteins_serving: 6, fiber_serving: 4, sugars_serving: 2, sodium_serving: 0.1 }
+    })!;
+    const quality = calculateProductQuality(product);
+    expect(quality.central_score).toEqual(expect.any(Number));
+    const centralScore = quality.central_score!;
+    for (const result_state of ['estimated', 'provisional'] as const) {
+      const presentation = buildProductQualityScorePresentation({
+        ...quality,
+        result_state,
+        score: centralScore,
+        confidence: 'low',
+        estimated_score_range: [Math.max(0, centralScore - 10), Math.min(100, centralScore + 10)],
+        estimated_grade_range: ['B', 'C']
+      });
+      expect(presentation).toMatchObject({
+        grade: expect.any(String),
+        scoreLine: quality.score_scope === 'supported_evidence' ? `Supported-evidence score ${centralScore}` : `Score ${centralScore}`,
+        stateLine: quality.grade_certainty?.state === 'stable' && result_state === 'estimated'
+          ? 'Estimated'
+          : 'Provisional',
+        confidenceLine: 'Confidence: Low'
+      });
+      expect(presentation.rangeLine).toContain('Deterministic range');
+    }
+  });
   it('normalizes an Open Food Facts response into a Healthi product snapshot', () => {
     const product = normalizeOpenFoodFactsProduct('3017620422003', completeProduct);
 
@@ -93,6 +124,31 @@ describe('product lookup and quality', () => {
     expect(result).toMatchObject({ status: 'found', product: { name: 'Hazelnut spread' } });
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(fetcher.mock.calls[1]?.[0]).toBe(fetcher.mock.calls[0]?.[0]);
+  });
+
+  it('honors Retry-After through the shared scheduler and retries only once', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: (name: string) => name.toLowerCase() === 'retry-after' ? '2' : null },
+        json: async () => ({})
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 1, product: completeProduct }) });
+    let now = 0;
+    const scheduler = new ProviderRequestScheduler({
+      minimumIntervalMs: 0,
+      now: () => now,
+      sleep: async (milliseconds) => { now += milliseconds; }
+    });
+    const schedule = vi.spyOn(scheduler, 'schedule');
+    const defer = vi.spyOn(scheduler, 'defer');
+
+    await expect(lookupOpenFoodFactsProduct('3017620422003', { fetcher, scheduler }))
+      .resolves.toMatchObject({ status: 'found' });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(schedule).toHaveBeenCalledTimes(2);
+    expect(defer).toHaveBeenCalledWith(2_000);
   });
 
   it('does not retry a permanent provider rejection', async () => {
@@ -199,15 +255,80 @@ describe('product lookup and quality', () => {
     const estimated = calculateProductQuality(estimatedProduct);
     const unresolved = calculateProductQuality(unresolvedProduct);
     expect(final).toMatchObject({ result_state: 'final', score: expect.any(Number), letter_grade: expect.any(String) });
-    expect(estimated).toMatchObject({ result_state: 'estimated', score: null, grade_label: 'Estimated grade' });
-    expect(estimated.letter_grade).not.toBe('A');
-    expect(estimated.estimated_grade_range).not.toBeNull();
+    expect(estimated).toMatchObject({
+      result_state: 'more_data_needed',
+      score: null,
+      central_score: null,
+      grade_label: 'More data needed',
+      score_eligibility: { eligible: false, supportedDimensionCount: 1 }
+    });
+    expect(estimated.estimated_grade_range).toBeNull();
     expect(estimated.missing_evidence).toContain('Complete package ingredient details are unavailable.');
     expect(unresolved).toMatchObject({ result_state: 'more_data_needed', score: null, letter_grade: null, grade_label: 'More data needed' });
     expect(JSON.stringify(unresolved)).not.toContain('Calibrating');
     expect(unresolved.considerations).toContain('There is not enough reliable category information to assign a grade yet.');
     expect(unresolved.missing_evidence).toContain('A reliable product category could not be resolved.');
     expect(unresolved.considerations.join(' ').toLowerCase()).not.toMatch(/uses the overall label pattern|the score uses/);
+  });
+
+  it('resolves supported beverages with complete formulation evidence even when ordinary food macros are absent', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Zero sugar carbonated soft drink',
+      categories_tags: ['en:carbonated-drinks', 'en:artificially-sweetened-beverages', 'en:diet-sodas'],
+      ingredients_text_en: 'carbonated water, caramel color, phosphoric acid, aspartame, caffeine, potassium benzoate, natural flavor, acesulfame potassium',
+      serving_size: '1 can (355 ml)',
+      serving_quantity: 355,
+      nutriments: { sugars_serving: 0, sodium_serving: 0.035 }
+    })!;
+    const quality = calculateProductQuality(product);
+
+    expect(product.evidence_confidence?.nutrition).toBe('medium');
+    expect(product.reason_codes).toContain('nutrition_calibrating');
+    expect(quality).toMatchObject({
+      result_state: 'estimated',
+      category_id: 'soda',
+      score: expect.any(Number),
+      absolute_score: expect.any(Number),
+      letter_grade: expect.any(String)
+    });
+    expect(quality.reason_codes).not.toContain('nutrition_calibrating');
+    expect(quality.missing_evidence).not.toContain('Nutrition details are incomplete.');
+  });
+
+  it('maps directly supported unknown-category products to bounded provisional results', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Unclassified pantry item',
+      ingredients_text_en: 'water, oats, sea salt',
+      serving_size: '30 g',
+      serving_quantity: 30,
+      nutriments: { 'energy-kcal_serving': 100 }
+    })!;
+    const quality = calculateProductQuality(product);
+
+    expect(quality).toMatchObject({
+      result_state: 'provisional',
+      score: expect.any(Number),
+      letter_grade: expect.any(String),
+      grade_label: 'Grade uncertain',
+      grade_certainty: { state: 'unresolved' },
+      category_comparison_available: false,
+      generalized_fallback_used: true,
+      score_eligibility: { eligible: true }
+    });
+    expect(quality.reason_codes).not.toContain('nutrition_calibrating');
+    expect(quality.scoring_reason_codes).toContain('generalized_evidence_fallback');
+    expect(quality.estimated_score_range).not.toBeNull();
+    expect(quality.missing_evidence).toContain('Category-specific comparison is unavailable.');
+    expect(quality.summary).not.toMatch(/calibrating/i);
+    expect(quality.considerations.join(' ')).not.toMatch(/calibrating/i);
+    expect(buildProductQualityScorePresentation(quality)).toMatchObject({
+      scoreLine: `Supported-evidence score ${quality.score}`,
+      stateLine: 'Provisional',
+      rangeLine: expect.stringContaining('Deterministic range'),
+      confidenceLine: expect.stringMatching(/^Confidence:/),
+      supportedDimensionsLine: expect.stringContaining('Supported dimensions:'),
+      contextLine: 'This center summarizes supported dimensions only; missing material dimensions remain in the range.'
+    });
   });
 
   it('resolves localized ingredient text without discarding alternate provider fields', () => {
@@ -342,7 +463,7 @@ describe('product lookup and quality', () => {
     });
 
     expect(supportive.label).toBe('supportive');
-    expect(watch.label).toBe('watch');
+    expect(watch.considerations.length).toBeGreaterThan(0);
     expect(supportive.score!).toBeGreaterThan(steady.score!);
     expect(steady.score!).toBeGreaterThan(watch.score!);
     expect(steady.category_comparison_available).toBe(false);
@@ -363,13 +484,13 @@ describe('product lookup and quality', () => {
     const product = normalizeOpenFoodFactsProduct('12345678', {
       product_name: 'Sea salt tortilla chips',
       categories_tags: ['chips'],
-      serving_size: '28 g',
+      serving_size: '50 g',
       ingredients_text: 'Corn, avocado oil, sea salt',
       nutriments: {
         'energy-kcal_serving': 260,
         proteins_serving: 2,
         carbohydrates_serving: 30,
-        fat_serving: 8,
+        fat_serving: 14,
         fiber_serving: 1,
         sugars_serving: 0,
         sodium_serving: 0.18
@@ -380,6 +501,105 @@ describe('product lookup and quality', () => {
     for (const legacyReason of ['protein_low', 'fiber_low', 'added_sugar_high', 'sodium_high', 'processing_level_high'] as const) {
       expect(scannerReasons).not.toContain(legacyReason);
     }
+  });
+
+  it('keeps a small near-zero macro-energy discrepancy scoreable', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Citrus sparkling water',
+      categories_tags: ['en:waters', 'en:sparkling-waters'],
+      ingredients_text: 'carbonated water, citrus juice',
+      serving_size: '1 can (355 ml)',
+      serving_quantity: 355,
+      nutriments: {
+        'energy-kcal_serving': 3,
+        proteins_serving: 0,
+        carbohydrates_serving: 0,
+        fat_serving: 0,
+        sugars_serving: 0,
+        sodium_serving: 0
+      }
+    })!;
+    const quality = calculateProductQuality(product);
+    const macroObservations = product.nutrient_evidence?.observations.filter((item) => (
+      ['calories', 'protein_g', 'carbs_g', 'fat_g'].includes(item.nutrient) && item.basis === 'per_serving'
+    )) ?? [];
+
+    expect(product.calories_per_serving).toBe(3);
+    expect(macroObservations.every((item) => item.plausibilityFlags.length === 0)).toBe(true);
+    expect(macroObservations.some((item) => item.plausibilityNotes.some((note) => (
+      note.includes('discrepancy 3 kcal') && note.includes('tolerance 10 kcal')
+    )))).toBe(true);
+    expect(quality).toMatchObject({
+      category_id: 'sparkling_water',
+      score: expect.any(Number),
+      result_state: expect.stringMatching(/^(final|estimated|provisional)$/)
+    });
+  });
+
+  it('contains an impossible macro set while retaining unrelated evidence for a bounded result', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Seasoned whole grain snack',
+      categories_tags: ['en:snacks', 'en:chips'],
+      ingredients_text: 'whole grain, oil, seeds, seasoning',
+      serving_size: '30 g',
+      serving_quantity: 30,
+      nutriments: {
+        'energy-kcal_serving': 100,
+        proteins_serving: 30,
+        carbohydrates_serving: 50,
+        fat_serving: 20,
+        fiber_serving: 3,
+        sugars_serving: 2,
+        sodium_serving: 0.1
+      }
+    })!;
+    const quality = calculateProductQuality(product);
+    const rejectedCore = product.nutrient_evidence?.observations.filter((item) => (
+      ['calories', 'protein_g', 'carbs_g', 'fat_g'].includes(item.nutrient) && item.basis === 'per_serving'
+    )) ?? [];
+
+    expect(rejectedCore).toHaveLength(4);
+    expect(rejectedCore.every((item) => (
+      item.plausibilityFlags.includes('macronutrient_energy_mismatch') && item.selectedFor.length === 0
+    ))).toBe(true);
+    expect(product).toMatchObject({
+      calories_per_serving: null,
+      protein_g: null,
+      carbs_g: null,
+      fat_g: null,
+      fiber_g: 3,
+      sugar_g: 2,
+      sodium_mg: 100
+    });
+    expect(quality).toMatchObject({
+      score: expect.any(Number),
+      result_state: expect.stringMatching(/^(estimated|provisional)$/),
+      score_eligibility: { eligible: true }
+    });
+    expect((quality.missing_evidence ?? []).join(' ')).toMatch(/nutrition|nutrient|macro/i);
+  });
+
+  it('keeps more data needed when unsafe macros leave too little material evidence', () => {
+    const product = normalizeOpenFoodFactsProduct('12345678', {
+      product_name: 'Generic packaged item',
+      categories_tags: ['en:snacks'],
+      serving_size: '30 g',
+      serving_quantity: 30,
+      nutriments: {
+        'energy-kcal_serving': 100,
+        proteins_serving: 30,
+        carbohydrates_serving: 50,
+        fat_serving: 20
+      }
+    })!;
+    const quality = calculateProductQuality(product);
+
+    expect(product.calories_per_serving).toBeNull();
+    expect(quality).toMatchObject({
+      score: null,
+      result_state: 'more_data_needed',
+      score_eligibility: { eligible: false }
+    });
   });
 
   it('rejects empty and malformed manual barcodes safely', () => {
@@ -402,7 +622,7 @@ describe('product lookup and quality', () => {
     for (const term of blockedTerms) expect(output).not.toContain(term);
   });
 
-  it('keeps internal score mechanics out of user-facing product output', () => {
+  it('keeps internal score mechanics in a non-rendered review trace', () => {
     const product = normalizeOpenFoodFactsProduct('12345678', {
       product_name: 'Organic almond milk',
       categories_tags: ['plant milks'],
@@ -419,10 +639,23 @@ describe('product lookup and quality', () => {
       }
     })!;
     const quality = calculateProductQuality(product);
-    expect(quality).toMatchObject({ score: 89, letter_grade: 'B' });
+    expect(quality).toMatchObject({
+      score: expect.any(Number),
+      absolute_score: expect.any(Number),
+      letter_grade: expect.any(String),
+      engine_version: 'product_quality_v5'
+    });
     const output = JSON.stringify(quality).toLowerCase();
-    for (const internalTerm of ['raw score', 'eligibility', 'dimensions', 'gate', 'ledger', 'policy']) {
-      expect(output).not.toContain(internalTerm);
+    expect(quality.dimensions).toHaveLength(5);
+    expect(quality.review_trace).toMatchObject({
+      engine_version: 'product_quality_v5',
+      category_resolution: { selectedCategoryId: 'plant_milk' },
+      score_ledger: expect.any(Array)
+    });
+    const userCopy = [quality.summary, ...quality.positives, ...quality.considerations].join(' ').toLowerCase();
+    for (const internalTerm of ['raw score', 'eligibility', 'gate', 'ledger', 'policy']) {
+      expect(userCopy).not.toContain(internalTerm);
     }
+    expect(output).toContain('review_trace');
   });
 });

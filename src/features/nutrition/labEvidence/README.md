@@ -4,6 +4,12 @@ Lab Evidence is independent from Product Quality and from Regulatory Status.
 Absence, unavailability, certification, or an alert never changes a Product
 Quality score.
 
+The client feature is disabled by default. It is included in the scanner only
+when `EXPO_PUBLIC_LAB_EVIDENCE_ENABLED=true` is explicitly configured in an
+environment whose exact-product lookup has passed standalone and integrated
+acceptance. When disabled, the scanner makes no Lab Evidence request and shows
+no Lab Evidence state.
+
 ## Runtime resolution
 
 The authenticated mobile client sends normalized product identity and optional
