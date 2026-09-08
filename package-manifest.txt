@@ -1,0 +1,57 @@
+Healthi Repo Package Manifest
+
+Root:
+- README.md
+- AGENTS.md
+- .env.example
+- package.json
+- tsconfig.json
+- package-manifest.txt
+
+Docs:
+- docs/PRODUCT_REQUIREMENTS.md
+- docs/BUILD_PHASES.md
+- docs/ARCHITECTURE.md
+- docs/DATA_MODEL.md
+- docs/ENGINE_RULES.md
+- docs/SAFETY_LANGUAGE.md
+- docs/AI_RULES.md
+- docs/CODEX_PROMPTS.md
+- docs/ACCEPTANCE_TESTS.md
+- docs/FEATURE_SPEC_MOVEMENT_TRAINING.md
+- docs/FEATURE_SPEC_FOOD_SHOPPING.md
+- docs/FEATURE_SPEC_MORNING_BRIEFING.md
+- docs/FOUNDER_NOTES.md
+- docs/PRIVACY_CONSENT.md
+- docs/SUPABASE_NOTES.md
+- docs/IMPLEMENTATION_CHECKLIST.md
+
+Supabase:
+- supabase/migrations/0001_initial_schema.sql
+- supabase/functions/README.md
+
+Type scaffolds:
+- src/constants/reasonCodes.ts
+- src/constants/goals.ts
+- src/constants/movementPatterns.ts
+- src/types/common.ts
+- src/types/metrics.ts
+- src/types/readiness.ts
+- src/types/training.ts
+- src/types/food.ts
+- src/types/shopping.ts
+- src/types/ai.ts
+
+Engine notes:
+- src/engines/README.md
+- src/engines/readiness/README.md
+- src/engines/training/README.md
+- src/engines/food/README.md
+- src/engines/circadian/README.md
+- src/engines/safety/README.md
+
+Acceptance test scaffolds:
+- tests/engine_scenarios.json
+- tests/engines/readiness/readiness.acceptance.md
+- tests/engines/training/training.acceptance.md
+- tests/engines/food/food.acceptance.md

@@ -1,0 +1,4176 @@
+import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import {
+  calculateFoodPatternProfile,
+  calculateFoodQuality,
+  calculateFoodResponse,
+  calculateNutrientSummary,
+  generateNutritionReadinessSignal,
+  getFoodPatternResultCopy,
+  type FoodPatternProfile,
+  type FoodQualityFlag,
+  type MealLog,
+  type MealType,
+  type NutritionTargets
+} from '../../../src/engines/nutrition';
+import { featureFlags } from '../../../src/config/featureFlags';
+import { useAuth } from '../../../src/features/auth/AuthProvider';
+import {
+  initialLabEvidenceClientState,
+  labEvidenceClientStateCopy,
+  labEvidenceStatusCopy,
+  lookupLabEvidenceState,
+  type LabEvidenceClientState
+} from '../../../src/features/nutrition/labEvidence/labEvidenceClient';
+import { formatLabAnalyte } from '../../../src/features/nutrition/labEvidence/labEvidenceMatcher';
+import { toLabEvidenceReferenceSnapshot } from '../../../src/features/nutrition/labEvidence/resolution';
+import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
+import {
+  getActiveFoodPatternProfile,
+  getRecentPostMealResponseLogs,
+  replaceActiveFoodPatternProfile,
+  savePostMealResponseLog,
+  type FoodPersonalizationSupabaseClient,
+  type PostMealResponseLogInput,
+  type PostMealResponseLogRow
+} from '../../../src/features/nutrition/foodPersonalizationPersistence';
+import {
+  createEmptyManualMealForm,
+  createEmptyResponseLogForm,
+  demoModeLabel,
+  foodPatternDraftToAnswers,
+  foodPatternQuestions,
+  manualMealFormToMealLog,
+  mealTypes,
+  qualityFlagOptions,
+  responseLogFormToInput,
+  type FoodPatternAnswerDraft,
+  type ManualMealFormState,
+  type ResponseLogFormState
+} from '../../../src/features/nutrition/foodTabForms';
+import {
+  buildAdaptiveDietPresentation,
+  type AdaptiveDietDestination
+} from '../../../src/features/nutrition/adaptiveDietPresentation';
+import {
+  appendLocalDemoMealLog,
+  appendLocalDemoMealLogItems,
+  appendLocalDemoPostMealResponse,
+  cacheLocalDemoUserFoodProduct,
+  getLocalDemoNutritionState,
+  saveLocalDemoFoodPatternProfile,
+  saveLocalDemoMealLogs,
+  updateLocalDemoUserFoodProduct
+} from '../../../src/features/nutrition/localDemoNutritionStore';
+import {
+  addMealBuilderItem,
+  calculateMealBuilderTotals,
+  createEmptyManualProductForm,
+  createEmptyMealBuilder,
+  mealBuilderItemToPersistenceInput,
+  mealBuilderToAggregateMealLog,
+  removeMealBuilderItem,
+  updateMealBuilderItemServings,
+  userFoodProductRowToSnapshot,
+  validateManualProductForm,
+  type ManualProductFormState,
+  type MealBuilderState
+} from '../../../src/features/nutrition/mealBuilder';
+import {
+  saveMealLogItems,
+  toMealLogItemInsert,
+  getMealLogItemsForDate,
+  type MealItemSupabaseClient,
+  type MealLogItemRow
+} from '../../../src/features/nutrition/mealItemPersistence';
+import {
+  getActiveNutritionTarget,
+  getMealLogsForDate,
+  saveMealLog,
+  type MealLogRow,
+  type NutritionSupabaseClient,
+  type NutritionTargetRow
+} from '../../../src/features/nutrition/persistence';
+import {
+  barcodeLookupCandidates,
+  normalizeBarcode,
+  shouldProcessBarcodeScan,
+  type BarcodeScanStamp
+} from '../../../src/features/nutrition/productLookup/barcodeUtils';
+import { searchOpenFoodFactsProducts } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
+import { lookupResolvedProduct } from '../../../src/features/nutrition/productLookup/productResolverClient';
+import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
+import { buildProductQualityScorePresentation } from '../../../src/features/nutrition/productLookup/productQualityPresentation';
+import { mergeProductSnapshots } from '../../../src/features/nutrition/productLookup/mergeProductEvidence';
+import {
+  derivePrimaryScannerState,
+  type PrimaryScannerState
+} from '../../../src/features/nutrition/productLookup/scannerState';
+import type { HealthiProductSnapshot } from '../../../src/features/nutrition/productLookup/productLookupTypes';
+import {
+  getRecentUserFoodProducts,
+  getSavedUserFoodProducts,
+  markUserFoodProductSaved,
+  upsertUserFoodProductFromSnapshot,
+  productSnapshotValue,
+  shouldRefreshCachedProduct,
+  updateUserFoodProductLastUsed,
+  type ProductLibrarySupabaseClient,
+  type UserFoodProductRow
+} from '../../../src/features/nutrition/productLibraryPersistence';
+import {
+  normalizeServingQuantity,
+  scannedProductToMealLog
+} from '../../../src/features/nutrition/scannedMealLogMapper';
+import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
+import {
+  colors,
+  colors as themeColors,
+  fonts as themeFonts,
+  hairlineWidth,
+  palette,
+  type as themeType
+} from '../../../src/styles/theme';
+
+const C = {
+  bg: themeColors.background,
+  card: themeColors.surface,
+  hairline: themeColors.hairline,
+  gold: themeColors.accent,
+  goldSoft: themeColors.accentMid,
+  lavender: themeColors.accentMid,
+  teal: themeColors.accentSoft,
+  ink: themeColors.text,
+  sub: themeColors.textMuted,
+  muted: themeColors.textFaint
+} as const;
+
+const serif = themeFonts.display;
+const serifLight = themeFonts.displayLight;
+const serifItalic = themeFonts.displayItalic;
+const sans = themeFonts.body;
+const sansMedium = themeFonts.bodyMedium;
+
+const defaultTargets: NutritionTargets = {
+  calories_target: 2300,
+  protein_g_target: 160,
+  carbs_g_target: 240,
+  fat_g_target: 80,
+  fiber_g_target: 30,
+  sodium_mg_limit: 2300,
+  confidence: 'low',
+  basis: ['default']
+};
+
+const dietTabs = ['Today', 'Timeline', 'Nutrients', 'Profile'] as const;
+type DietTab = typeof dietTabs[number];
+type Segment = DietTab | 'Build Meal' | 'Log Meal' | 'Response Log' | 'Food Pattern Test' | 'Insights';
+
+function dateKey(value: string): string {
+  return value.slice(0, 10);
+}
+
+function formatClock(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function confidenceLabel(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function displayLabel(value: string): string {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatProductAmount(value: number | null | undefined, suffix = ''): string {
+  if (typeof value !== 'number') return '-';
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded}${suffix}`;
+}
+
+function confidenceText(confidence: string): string {
+  return `Confidence: ${confidence}`;
+}
+
+function remoteEnabled(sessionUserId?: string | null): boolean {
+  return Boolean(isSupabaseConfigured && sessionUserId && sessionUserId !== 'demo-user');
+}
+
+function mealRowToMealLog(row: MealLogRow): MealLog {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    logged_at: row.logged_at,
+    meal_type: row.meal_type,
+    name: row.name,
+    source: row.source,
+    source_confidence: row.source_confidence,
+    calories: row.calories,
+    protein_g: row.protein_g,
+    carbs_g: row.carbs_g,
+    fat_g: row.fat_g,
+    fiber_g: row.fiber_g,
+    sugar_g: row.sugar_g,
+    sodium_mg: row.sodium_mg,
+    ingredients: row.ingredients,
+    quality_flags: row.quality_flags,
+    user_response: row.user_response,
+    corrected_by_user: row.corrected_by_user,
+    confirmed_by_user: row.confirmed_by_user,
+    reason_codes: row.reason_codes,
+    created_at: row.created_at
+  };
+}
+
+function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets {
+  if (!row) return defaultTargets;
+
+  return {
+    calories_target: row.calories_target,
+    protein_g_target: row.protein_g_target,
+    carbs_g_target: row.carbs_g_target,
+    fat_g_target: row.fat_g_target,
+    fiber_g_target: row.fiber_g_target,
+    sodium_mg_limit: row.sodium_mg_limit,
+    confidence: row.confidence,
+    basis: row.basis
+  };
+}
+
+function createLocalDemoProductRow(
+  snapshot: HealthiProductSnapshot,
+  source: UserFoodProductRow['source'],
+  isSaved = false
+): UserFoodProductRow {
+  const now = new Date().toISOString();
+  const quality = calculateProductQuality(snapshot);
+
+  return {
+    id: `local-food-product-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    user_id: 'demo-user',
+    barcode: snapshot.barcode.trim() || null,
+    provider: snapshot.provider,
+    provider_product_id: snapshot.provider_product_id ?? null,
+    name: snapshot.name,
+    brand: snapshot.brand ?? null,
+    serving_size: snapshot.serving_size ?? null,
+    serving_quantity_g: snapshot.serving_quantity_g ?? null,
+    calories_per_serving: snapshot.calories_per_serving ?? null,
+    protein_g: snapshot.protein_g ?? null,
+    carbs_g: snapshot.carbs_g ?? null,
+    fat_g: snapshot.fat_g ?? null,
+    fiber_g: snapshot.fiber_g ?? null,
+    sugar_g: snapshot.sugar_g ?? null,
+    sodium_mg: snapshot.sodium_mg ?? null,
+    saturated_fat_g: snapshot.saturated_fat_g ?? null,
+    ingredients_text: snapshot.ingredients_text ?? null,
+    quality_label: quality.label,
+    quality_score: quality.score,
+    quality_confidence: quality.confidence,
+    quality_flags: [...snapshot.quality_flags],
+    quality_reason_codes: [...quality.reason_codes],
+    quality_snapshot: productSnapshotValue(snapshot, quality),
+    lab_evidence_state: snapshot.lab_evidence_reference
+      ? JSON.parse(JSON.stringify(snapshot.lab_evidence_reference))
+      : null,
+    is_saved: isSaved,
+    last_used_at: now,
+    last_scanned_at: source === 'scanner' ? now : null,
+    source,
+    source_confidence: snapshot.confidence,
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function profileRowToProfile(row: NonNullable<Awaited<ReturnType<typeof getActiveFoodPatternProfile>>>): FoodPatternProfile {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    source: row.source,
+    confidence: row.confidence,
+    pattern_label: row.pattern_label,
+    scores: row.scores,
+    macro_tendency: row.macro_tendency,
+    meal_timing_tendency: row.meal_timing_tendency,
+    response_tendencies: row.response_tendencies,
+    reason_codes: row.reason_codes
+  };
+}
+
+function applyResponseToMealLogs(meals: MealLog[], response: PostMealResponseLogInput): MealLog[] {
+  return meals.map((meal) =>
+    meal.id === response.meal_log_id
+      ? {
+          ...meal,
+          user_response: {
+            digestion: response.digestion,
+            energy: response.energy,
+            appetite: response.appetite,
+            cravings: response.cravings,
+            notes: response.notes
+          }
+        }
+      : meal
+  );
+}
+
+function createLocalDemoResponseRow(response: PostMealResponseLogInput, userId = 'demo-user'): PostMealResponseLogRow {
+  const now = new Date().toISOString();
+
+  return {
+    id: `local-response-${Date.now()}`,
+    user_id: userId,
+    meal_log_id: response.meal_log_id ?? null,
+    responded_at: response.responded_at,
+    minutes_after_meal: response.minutes_after_meal ?? null,
+    overall_score: response.overall_score,
+    digestion: response.digestion ?? null,
+    energy: response.energy ?? null,
+    appetite: response.appetite ?? null,
+    focus: response.focus ?? null,
+    cravings: response.cravings ?? null,
+    notes: response.notes ?? null,
+    confidence: response.confidence,
+    reason_codes: [...response.reason_codes],
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function SectionTitle({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
+  return (
+    <View style={styles.sectionTitle}>
+      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      <Text style={styles.title}>{title}</Text>
+      {body ? <Text style={styles.body}>{body}</Text> : null}
+    </View>
+  );
+}
+
+function Card({ children, style }: { children: React.ReactNode; style?: object }) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+function Chip({
+  label,
+  selected,
+  onPress
+}: {
+  label: string;
+  selected?: boolean;
+  onPress: () => void;
+  /** Legacy prop - every tone now resolves to the single jade accent. */
+  tone?: 'gold' | 'lavender' | 'teal';
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.chip, selected && styles.chipSelected, pressed && styles.pressed]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType = 'default',
+  multiline,
+  onSubmitEditing,
+  returnKeyType,
+  style
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder?: string;
+  keyboardType?: 'default' | 'numeric';
+  multiline?: boolean;
+  onSubmitEditing?: () => void;
+  returnKeyType?: 'done' | 'next' | 'search';
+  style?: object;
+}) {
+  return (
+    <View style={[styles.field, style]}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        keyboardType={keyboardType}
+        multiline={multiline}
+        onChangeText={onChangeText}
+        onSubmitEditing={onSubmitEditing}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textFaint}
+        returnKeyType={returnKeyType}
+        style={[styles.input, multiline && styles.textarea]}
+        value={value}
+      />
+    </View>
+  );
+}
+
+function PrimaryButton({
+  label,
+  onPress,
+  disabled,
+  loading
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [styles.primaryButton, (disabled || loading) && styles.disabled, pressed && styles.pressed]}
+    >
+      {loading ? <ActivityIndicator color={colors.textInverse} /> : <Text style={styles.primaryButtonText}>{label}</Text>}
+    </Pressable>
+  );
+}
+
+function Metric({ label, value, tone = colors.text }: { label: string; value: string; tone?: string }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.metricValue, { color: tone }]}>{value}</Text>
+    </View>
+  );
+}
+
+function TrackerProgress({
+  label,
+  current,
+  target,
+  unit = 'g'
+}: {
+  label: string;
+  current: number | null | undefined;
+  target: number | null | undefined;
+  unit?: string;
+}) {
+  const progress = typeof current === 'number' && typeof target === 'number' && target > 0
+    ? Math.max(0, Math.min(current / target, 1))
+    : 0;
+  const value = typeof current !== 'number'
+    ? 'Not reported'
+    : typeof target === 'number'
+      ? `${Math.round(current)} / ${Math.round(target)} ${unit}`
+      : `${Math.round(current)} ${unit}`;
+
+  return (
+    <View style={styles.trackerProgress}>
+      <View style={styles.adaptiveSectionHeading}>
+        <Text style={styles.trackerProgressLabel}>{label}</Text>
+        <Text style={styles.adaptiveMonoStrong}>{value}</Text>
+      </View>
+      <View style={styles.trackerRail}>
+        <View style={[styles.trackerFill, { width: `${Math.round(progress * 100)}%` }]} />
+      </View>
+    </View>
+  );
+}
+
+export default function FoodScreen() {
+  const { session } = useAuth();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [activeSegment, setActiveSegment] = useState<Segment>('Today');
+  const [expandedLane, setExpandedLane] = useState<string | null>(null);
+  const [nutrientQuery, setNutrientQuery] = useState('');
+  const [meals, setMeals] = useState<MealLog[]>([]);
+  const [responses, setResponses] = useState<PostMealResponseLogRow[]>([]);
+  const [targets, setTargets] = useState<NutritionTargets>(defaultTargets);
+  const [activeProfile, setActiveProfile] = useState<FoodPatternProfile | null>(null);
+  const [mealForm, setMealForm] = useState<ManualMealFormState>(() => createEmptyManualMealForm());
+  const [responseForm, setResponseForm] = useState<ResponseLogFormState>(() => createEmptyResponseLogForm());
+  const [testAnswers, setTestAnswers] = useState<FoodPatternAnswerDraft>({});
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [testResult, setTestResult] = useState<FoodPatternProfile | null>(null);
+  const [status, setStatus] = useState('Food response is still calibrating.');
+  const [isLoadingRemote, setIsLoadingRemote] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scannerProduct, setScannerProduct] = useState<HealthiProductSnapshot | null>(null);
+  const [showBetterOptions, setShowBetterOptions] = useState(false);
+  const [showProductEvidence, setShowProductEvidence] = useState(false);
+  const [showLabEvidence, setShowLabEvidence] = useState(false);
+  const [showCertifications, setShowCertifications] = useState(false);
+  const [showRegulatoryStatus, setShowRegulatoryStatus] = useState(false);
+  const [showEvidenceContext, setShowEvidenceContext] = useState(false);
+  const [labEvidenceState, setLabEvidenceState] = useState<LabEvidenceClientState>(() => (
+    initialLabEvidenceClientState(featureFlags.labEvidence)
+  ));
+  const [scannerLookupState, setScannerLookupState] = useState<PrimaryScannerState>('idle');
+  const [scannerLotNumber, setScannerLotNumber] = useState('');
+  const [scannerMessage, setScannerMessage] = useState('Scan a barcode or enter its numbers below.');
+  const [scannerMealType, setScannerMealType] = useState<MealType>('unknown');
+  const [scannerServingQuantity, setScannerServingQuantity] = useState('1');
+  const [scannerMealName, setScannerMealName] = useState('');
+  const [isLookingUpProduct, setIsLookingUpProduct] = useState(false);
+  const [isSavingScannedMeal, setIsSavingScannedMeal] = useState(false);
+  const [scannerDestination, setScannerDestination] = useState<'log' | 'builder'>('log');
+  const [mealBuilder, setMealBuilder] = useState<MealBuilderState>(() => createEmptyMealBuilder());
+  const [manualProductForm, setManualProductForm] = useState<ManualProductFormState>(() => createEmptyManualProductForm());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<HealthiProductSnapshot[]>([]);
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const [builderMessage, setBuilderMessage] = useState('Add foods to build one meal with clear totals.');
+  const [isSavingBuilder, setIsSavingBuilder] = useState(false);
+  const [productLibrary, setProductLibrary] = useState<UserFoodProductRow[]>([]);
+  const [mealLogItems, setMealLogItems] = useState<MealLogItemRow[]>([]);
+  const lastBarcodeScan = useRef<BarcodeScanStamp | null>(null);
+  const lookupInFlight = useRef(false);
+  const lookupRequestId = useRef(0);
+
+  const userId = session?.user.id ?? null;
+  const canUseRemote = remoteEnabled(userId);
+  const today = dateKey(new Date().toISOString());
+  const protocolScopeValue = useMemo(() => protocolScope(userId), [userId]);
+  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
+  const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
+  const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
+  const todayMeals = useMemo(() => meals.filter((meal) => dateKey(meal.logged_at) === today), [meals, today]);
+
+  const nutrientSummary = useMemo(
+    () => calculateNutrientSummary({ date: today, meals: todayMeals, targets }),
+    [today, todayMeals, targets]
+  );
+  const foodQuality = useMemo(
+    () => calculateFoodQuality({ date: today, meals: todayMeals, nutrientSummary }),
+    [today, todayMeals, nutrientSummary]
+  );
+  const foodResponse = useMemo(() => calculateFoodResponse({ date: today, meals: todayMeals }), [today, todayMeals]);
+  const readinessSignal = useMemo(
+    () => generateNutritionReadinessSignal({ date: today, nutrientSummary, foodQuality, foodResponse }),
+    [today, nutrientSummary, foodQuality, foodResponse]
+  );
+  const profileCopy = activeProfile ? getFoodPatternResultCopy(activeProfile) : null;
+  const testCopy = testResult ? getFoodPatternResultCopy(testResult) : null;
+  const currentQuestion = foodPatternQuestions[questionIndex];
+  const productQuality = useMemo(
+    () => scannerProduct ? calculateProductQuality(scannerProduct) : null,
+    [scannerProduct]
+  );
+  const primaryScannerState = derivePrimaryScannerState({
+    lookupState: scannerLookupState,
+    hasProduct: Boolean(scannerProduct),
+    qualityResultState: productQuality?.result_state
+  });
+  const labEvidenceResolution = labEvidenceState.resolution;
+  const isLookingUpLabEvidence = labEvidenceState.state === 'checking';
+  const labEvidenceLookupCompleted = Boolean(
+    featureFlags.labEvidence
+      && labEvidenceResolution
+      && (labEvidenceState.state === 'available' || labEvidenceState.state === 'none_found')
+  );
+  const mealBuilderTotals = useMemo(() => calculateMealBuilderTotals(mealBuilder.items), [mealBuilder.items]);
+  const savedProducts = useMemo(() => productLibrary.filter((product) => product.is_saved), [productLibrary]);
+  const adaptiveDiet = useMemo(
+    () => buildAdaptiveDietPresentation({
+      summary: nutrientSummary,
+      targets,
+      quality: foodQuality,
+      response: foodResponse,
+      readiness: readinessSignal,
+      responseCount: responses.length
+    }),
+    [foodQuality, foodResponse, nutrientSummary, readinessSignal, responses.length, targets]
+  );
+  const filteredAdaptiveNutrients = useMemo(() => {
+    const query = nutrientQuery.trim().toLowerCase();
+    return query
+      ? adaptiveDiet.nutrients.filter((nutrient) => nutrient.name.toLowerCase().includes(query))
+      : adaptiveDiet.nutrients;
+  }, [adaptiveDiet.nutrients, nutrientQuery]);
+
+  useEffect(() => {
+    setShowBetterOptions(false);
+    setShowProductEvidence(false);
+    setShowLabEvidence(false);
+    setShowCertifications(false);
+    setShowRegulatoryStatus(false);
+    setShowEvidenceContext(false);
+  }, [scannerProduct?.barcode]);
+
+  useEffect(() => {
+    if (!canUseRemote || !userId) return;
+
+    let isMounted = true;
+    const nutritionClient = supabase as unknown as NutritionSupabaseClient;
+    const foodClient = supabase as unknown as FoodPersonalizationSupabaseClient;
+    const productClient = supabase as unknown as ProductLibrarySupabaseClient;
+    const itemClient = supabase as unknown as MealItemSupabaseClient;
+
+    setIsLoadingRemote(true);
+    Promise.all([
+      getMealLogsForDate(nutritionClient, userId, today),
+      getActiveNutritionTarget(nutritionClient, userId),
+      getActiveFoodPatternProfile(foodClient, userId),
+      getRecentPostMealResponseLogs(foodClient, userId, 20)
+    ])
+      .then(([mealRows, targetRow, profileRow, responseRows]) => {
+        if (!isMounted) return;
+        setMeals(mealRows.map(mealRowToMealLog));
+        setTargets(targetRowToTarget(targetRow));
+        setActiveProfile(profileRow ? profileRowToProfile(profileRow) : null);
+        setResponses(responseRows);
+        setStatus('Based on available data.');
+      })
+      .catch(() => {
+        if (isMounted) setStatus('Remote food data could not load. This preview is local for now.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingRemote(false);
+      });
+
+    // The V2 detail tables can be migrated independently from existing meal logs.
+    // Keep the established Food tab usable when a local Supabase project has not applied 0007 yet.
+    Promise.all([
+      getRecentUserFoodProducts(productClient, userId, 18),
+      getSavedUserFoodProducts(productClient, userId, 30),
+      getMealLogItemsForDate(itemClient, userId, today)
+    ])
+      .then(([recentProducts, savedProducts, savedItems]) => {
+        if (!isMounted) return;
+        const mergedProducts = [...recentProducts, ...savedProducts].filter(
+          (product, index, list) => list.findIndex((candidate) => candidate.id === product.id) === index
+        );
+        setProductLibrary(mergedProducts);
+        setMealLogItems(savedItems);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setProductLibrary([]);
+        setMealLogItems([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canUseRemote, today, userId]);
+
+  useEffect(() => {
+    if (canUseRemote) return;
+
+    let isMounted = true;
+    setIsLoadingRemote(true);
+
+    getLocalDemoNutritionState()
+      .then((state) => {
+        if (!isMounted) return;
+        setMeals(state.mealLogs);
+        setResponses(state.postMealResponses);
+        setActiveProfile(state.foodPatternProfile);
+        setProductLibrary(state.userFoodProducts);
+        setMealLogItems(state.mealLogItems);
+        setStatus(state.mealLogs.length > 0 ? 'Loaded local demo food data.' : 'Food response is still calibrating.');
+      })
+      .catch(() => {
+        if (isMounted) setStatus('Local demo food data could not load.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingRemote(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canUseRemote]);
+
+  function updateMealForm<K extends keyof ManualMealFormState>(key: K, value: ManualMealFormState[K]) {
+    setMealForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateResponseForm<K extends keyof ResponseLogFormState>(key: K, value: ResponseLogFormState[K]) {
+    setResponseForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleQualityFlag(flag: FoodQualityFlag) {
+    updateMealForm(
+      'quality_flags',
+      mealForm.quality_flags.includes(flag)
+        ? mealForm.quality_flags.filter((current) => current !== flag)
+        : [...mealForm.quality_flags, flag]
+    );
+  }
+
+  async function cacheProductSnapshot(
+    snapshot: HealthiProductSnapshot,
+    source: UserFoodProductRow['source']
+  ): Promise<UserFoodProductRow | null> {
+    const now = new Date().toISOString();
+    const quality = calculateProductQuality(snapshot);
+
+    try {
+      if (canUseRemote && userId) {
+        const product = await upsertUserFoodProductFromSnapshot(
+          supabase as unknown as ProductLibrarySupabaseClient,
+          userId,
+          {
+            ...snapshot,
+            quality,
+            source,
+            last_used_at: now,
+            last_scanned_at: source === 'scanner' ? now : null
+          }
+        );
+        setProductLibrary((current) => [product, ...current.filter((item) => item.id !== product.id)]);
+        return product;
+      }
+
+      const product = createLocalDemoProductRow(snapshot, source);
+      const nextProducts = await cacheLocalDemoUserFoodProduct(product);
+      setProductLibrary(nextProducts);
+      return nextProducts.find((item) => item.id === product.id) ?? product;
+    } catch {
+      return null;
+    }
+  }
+
+  async function addSnapshotToMealBuilder(
+    snapshot: HealthiProductSnapshot,
+    source: 'manual' | 'scanner' | 'search' | 'saved_food',
+    servings = 1
+  ) {
+    const product = await cacheProductSnapshot(snapshot, source === 'scanner' ? 'scanner' : snapshot.provider);
+    setMealBuilder((current) => addMealBuilderItem(current, {
+      snapshot,
+      productId: product?.id ?? null,
+      source,
+      servings
+    }));
+    setBuilderMessage(product
+      ? `${snapshot.name} is in this meal.`
+      : `${snapshot.name} is in this meal. Product library sync can retry later.`);
+  }
+
+  async function handleSearchProducts() {
+    setIsSearchingProducts(true);
+    const result = await searchOpenFoodFactsProducts(searchQuery);
+    setSearchResults(result.products);
+    setBuilderMessage(result.status === 'found' ? 'Choose a result to add it to this meal.' : result.message);
+    setIsSearchingProducts(false);
+  }
+
+  async function handleAddManualProduct() {
+    const validation = validateManualProductForm(manualProductForm);
+    if (!validation.valid) {
+      setBuilderMessage(validation.message);
+      return;
+    }
+    await addSnapshotToMealBuilder(validation.snapshot, 'manual');
+    setManualProductForm(createEmptyManualProductForm());
+  }
+
+  async function handleToggleSavedProduct(product: UserFoodProductRow) {
+    try {
+      const nextSaved = !product.is_saved;
+      if (canUseRemote && userId) {
+        const saved = await markUserFoodProductSaved(
+          supabase as unknown as ProductLibrarySupabaseClient,
+          userId,
+          product.id,
+          nextSaved
+        );
+        setProductLibrary((current) => current.map((item) => item.id === saved.id ? saved : item));
+      } else {
+        const nextProducts = await updateLocalDemoUserFoodProduct(product.id, { is_saved: nextSaved });
+        setProductLibrary(nextProducts);
+      }
+    } catch {
+      setBuilderMessage('This saved-food change could not sync yet. Your meal is unchanged.');
+    }
+  }
+
+  async function handleSaveBuiltMeal() {
+    if (mealBuilder.items.length === 0) {
+      setBuilderMessage('Add at least one food before saving this meal.');
+      return;
+    }
+
+    setIsSavingBuilder(true);
+    const loggedAt = new Date().toISOString();
+    const meal = mealBuilderToAggregateMealLog(mealBuilder, loggedAt, !canUseRemote);
+
+    try {
+      if (canUseRemote && userId) {
+        const savedMeal = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
+        const nextMeal = mealRowToMealLog(savedMeal);
+        setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: savedMeal.id }));
+
+        try {
+          const savedItems = await saveMealLogItems(
+            supabase as unknown as MealItemSupabaseClient,
+            userId,
+            mealBuilder.items.map((item) => mealBuilderItemToPersistenceInput(item, savedMeal.id, loggedAt, mealBuilder.meal_type))
+          );
+          setMealLogItems((current) => [...savedItems, ...current]);
+          await Promise.all(
+            mealBuilder.items
+              .filter((item) => item.food_product_id)
+              .map((item) => updateUserFoodProductLastUsed(
+                supabase as unknown as ProductLibrarySupabaseClient,
+                userId,
+                item.food_product_id as string,
+                loggedAt
+              ).catch(() => null))
+          );
+          setStatus('Meal saved. Today’s fueling totals have been updated.');
+        } catch {
+          setStatus('Meal saved. Item detail will retry when product storage is available.');
+        }
+      } else {
+        const localMeal = { ...meal, id: `local-built-meal-${Date.now()}` };
+        const localItems = mealBuilder.items.map((item, index) => ({
+          ...toMealLogItemInsert(
+            mealBuilderItemToPersistenceInput(item, localMeal.id ?? null, loggedAt, mealBuilder.meal_type, true),
+            'demo-user'
+          ),
+          id: `local-built-meal-item-${Date.now()}-${index + 1}`,
+          created_at: loggedAt,
+          updated_at: loggedAt
+        }));
+        await Promise.all([
+          appendLocalDemoMealLog(localMeal),
+          appendLocalDemoMealLogItems(localItems)
+        ]);
+        setMeals((current) => [localMeal, ...current.filter((item) => item.id !== localMeal.id)]);
+        setMealLogItems((current) => [...localItems, ...current]);
+        setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
+        setStatus('Meal saved locally. Today’s fueling totals have been updated.');
+      }
+
+      setMealBuilder(createEmptyMealBuilder());
+      setSearchResults([]);
+      setSearchQuery('');
+      setBuilderMessage('Meal saved. Build another meal whenever you are ready.');
+      setActiveSegment('Today');
+    } catch {
+      setBuilderMessage('This meal could not be saved. Your items are still here so you can try again.');
+    } finally {
+      setIsSavingBuilder(false);
+    }
+  }
+
+  async function handleAddScannerProductToBuilder() {
+    if (!scannerProduct) return;
+    const servingQuantity = normalizeServingQuantity(scannerServingQuantity);
+    if (servingQuantity === null) {
+      setScannerMessage('Enter a serving quantity greater than 0 and no more than 20.');
+      return;
+    }
+
+    await addSnapshotToMealBuilder({
+      ...scannerProduct,
+      lab_evidence_reference: labEvidenceResolution
+        ? toLabEvidenceReferenceSnapshot(labEvidenceResolution)
+        : scannerProduct.lab_evidence_reference
+    }, 'scanner', servingQuantity);
+    setScannerProduct(null);
+    setBarcodeInput('');
+    setScannerServingQuantity('1');
+    closeScanner();
+    setActiveSegment('Build Meal');
+  }
+
+  function openScanner(destination: 'log' | 'builder' = 'log') {
+    setScannerDestination(destination);
+    setScannerOpen(true);
+    setCameraOpen(false);
+    setScannerMessage('Scan a barcode or enter its numbers below.');
+    setScannerLookupState('idle');
+    setLabEvidenceState(initialLabEvidenceClientState(featureFlags.labEvidence));
+    setScannerLotNumber('');
+  }
+
+  function closeScanner() {
+    lookupRequestId.current += 1;
+    lookupInFlight.current = false;
+    setScannerOpen(false);
+    setCameraOpen(false);
+    setIsLookingUpProduct(false);
+  }
+
+  async function handleStartCamera() {
+    try {
+      const cameraAvailable = await CameraView.isAvailableAsync();
+      if (!cameraAvailable) {
+        setScannerMessage('A camera is not available here. Enter the barcode manually below.');
+        setCameraOpen(false);
+        return;
+      }
+
+      if (cameraPermission?.granted) {
+        setScannerMessage('Starting camera...');
+        setCameraOpen(true);
+        return;
+      }
+
+      const nextPermission = await requestCameraPermission();
+      if (nextPermission.granted) {
+        setScannerMessage('Starting camera...');
+        setCameraOpen(true);
+      } else {
+        setScannerMessage('Camera access is unavailable. Enter the barcode manually below.');
+        setCameraOpen(false);
+      }
+    } catch {
+      setScannerMessage('The camera could not start here. Enter the barcode manually below.');
+      setCameraOpen(false);
+    }
+  }
+
+  async function resolveEvidenceForProduct(product: HealthiProductSnapshot, requestId: number) {
+    if (!featureFlags.labEvidence) return;
+    const previous = labEvidenceState;
+    setLabEvidenceState((current) => ({ ...current, state: 'checking' }));
+    const resolution = await lookupLabEvidenceState({
+      enabled: true,
+      client: canUseRemote ? supabase : null,
+      product,
+      lotNumber: scannerLotNumber.trim() || null,
+      configured: canUseRemote,
+      previous
+    });
+    if (lookupRequestId.current === requestId) setLabEvidenceState(resolution);
+  }
+
+  async function presentScannerProduct(
+    product: HealthiProductSnapshot,
+    requestId: number,
+    message: string
+  ) {
+    const currentProduct = {
+      ...product,
+      lab_evidence: undefined,
+      lab_evidence_resolution: undefined
+    };
+    setBarcodeInput(currentProduct.barcode);
+    setScannerProduct(currentProduct);
+    setScannerMealName(currentProduct.name);
+    setScannerServingQuantity('1');
+    setScannerLookupState('product_available');
+    setScannerMessage(message);
+    void resolveEvidenceForProduct(currentProduct, requestId);
+  }
+
+  function setIdentityUnresolved(message: string) {
+    setScannerLookupState('product_not_found');
+    setScannerMessage(message);
+  }
+
+  function setProviderUnavailable(message: string) {
+    setScannerLookupState('provider_temporarily_unavailable');
+    setScannerMessage(message);
+  }
+
+  async function handleProductLookup(value = barcodeInput) {
+    if (lookupInFlight.current) return;
+    Keyboard.dismiss();
+    lookupInFlight.current = true;
+    const requestId = lookupRequestId.current + 1;
+    lookupRequestId.current = requestId;
+    const existingProduct = scannerProduct;
+    const candidates = barcodeLookupCandidates(value);
+    const existingMatches = Boolean(existingProduct?.barcode && candidates.includes(existingProduct.barcode));
+    setIsLookingUpProduct(true);
+    setScannerLookupState('resolving_identity');
+    setCameraOpen(false);
+    if (!existingMatches) {
+      setScannerProduct(null);
+      setLabEvidenceState(initialLabEvidenceClientState(featureFlags.labEvidence));
+    }
+    setScannerMessage(existingMatches ? 'Refreshing available label data…' : 'Looking up available label data…');
+
+    try {
+      const cached = productLibrary.find((product) => product.barcode && candidates.includes(product.barcode));
+      if (cached && !shouldRefreshCachedProduct(cached)) {
+        const snapshot = userFoodProductRowToSnapshot(cached);
+        await presentScannerProduct(snapshot, requestId, 'Saved product found. Review the label data before adding it.');
+        return;
+      }
+
+      setScannerLookupState('resolving_product_data');
+      const result = await lookupResolvedProduct({
+        barcode: value,
+        client: isSupabaseConfigured ? supabase : null,
+        configured: isSupabaseConfigured
+      });
+      if (lookupRequestId.current !== requestId) return;
+      if (result.status === 'found') {
+        const refreshedProduct = cached
+          ? mergeProductSnapshots(userFoodProductRowToSnapshot(cached), result.product).snapshot
+          : result.product;
+        await presentScannerProduct(refreshedProduct, requestId, 'Product found. Review the available label data before adding it.');
+      } else {
+        if (cached) {
+          const snapshot = userFoodProductRowToSnapshot(cached);
+          await presentScannerProduct(snapshot, requestId, 'Using saved label data because refreshed provider data is unavailable.');
+        } else if (existingMatches && existingProduct) {
+          setScannerLookupState('product_available');
+          setScannerMessage('Keeping the current Product Quality result because refreshed provider data is unavailable.');
+        } else if (result.status === 'provider_unavailable') setProviderUnavailable(result.message);
+        else setIdentityUnresolved(result.message);
+      }
+    } catch {
+      if (lookupRequestId.current === requestId) {
+        if (existingMatches && existingProduct) {
+          setScannerLookupState('product_available');
+          setScannerMessage('Keeping the current Product Quality result because refresh could not finish.');
+        } else {
+          setScannerLookupState('fatal_configuration_error');
+          setScannerMessage('Product lookup could not finish. Try again or enter the food manually.');
+        }
+      }
+    } finally {
+      if (lookupRequestId.current === requestId) {
+        lookupInFlight.current = false;
+        setIsLookingUpProduct(false);
+      }
+    }
+  }
+
+  function handleBarcodeScanned(result: BarcodeScanningResult) {
+    if (lookupInFlight.current) return;
+    const scannedAt = Date.now();
+    const barcode = normalizeBarcode(result.data);
+    if (!shouldProcessBarcodeScan(lastBarcodeScan.current, barcode, scannedAt)) return;
+
+    lastBarcodeScan.current = { barcode, scannedAt };
+    setBarcodeInput(barcode);
+    void handleProductLookup(barcode);
+  }
+
+  async function handleSaveScannedMeal() {
+    if (!scannerProduct) return;
+
+    const servingQuantity = normalizeServingQuantity(scannerServingQuantity);
+    if (servingQuantity === null) {
+      setScannerMessage('Enter a serving quantity greater than 0 and no more than 20.');
+      return;
+    }
+
+    setIsSavingScannedMeal(true);
+    const now = new Date().toISOString();
+    const meal = scannedProductToMealLog({
+      snapshot: scannerProduct,
+      servingQuantity,
+      loggedAt: now,
+      mealType: scannerMealType,
+      mealNameOverride: scannerMealName
+    });
+
+    try {
+      await cacheProductSnapshot({
+        ...scannerProduct,
+        lab_evidence_reference: labEvidenceResolution
+          ? toLabEvidenceReferenceSnapshot(labEvidenceResolution)
+          : scannerProduct.lab_evidence_reference
+      }, 'scanner');
+      if (canUseRemote && userId) {
+        const saved = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
+        const nextMeal = mealRowToMealLog(saved);
+        setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: saved.id }));
+        setStatus('Product added. Today’s fueling signal has been updated.');
+      } else {
+        const localMeal = { ...meal, id: `local-scanned-meal-${Date.now()}` };
+        await appendLocalDemoMealLog(localMeal);
+        setMeals((current) => [localMeal, ...current.filter((item) => item.id !== localMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
+        setStatus('Product added locally. Food response is still calibrating.');
+      }
+
+      setScannerProduct(null);
+      setBarcodeInput('');
+      setScannerMealName('');
+      setScannerServingQuantity('1');
+      setScannerMealType('unknown');
+      closeScanner();
+      setActiveSegment('Today');
+    } catch {
+      setScannerMessage('This meal could not be saved. Your product snapshot is still here so you can try again.');
+    } finally {
+      setIsSavingScannedMeal(false);
+    }
+  }
+
+  async function handleSaveMeal() {
+    setIsSaving(true);
+    const now = new Date().toISOString();
+    const meal = manualMealFormToMealLog(mealForm, now);
+
+    try {
+      if (canUseRemote && userId) {
+        const saved = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
+        const nextMeal = mealRowToMealLog(saved);
+        setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
+        setResponseForm((current) => ({ ...current, meal_log_id: nextMeal.id ?? null }));
+        setStatus('Meal logged. Today’s fueling signal has been updated.');
+      } else {
+        const localMeal = { ...meal, id: `local-meal-${Date.now()}` };
+        await appendLocalDemoMealLog(localMeal);
+        setMeals((current) => [localMeal, ...current]);
+        setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
+        setStatus('Meal logged locally. Food response is still calibrating.');
+      }
+
+      setMealForm(createEmptyManualMealForm());
+      setActiveSegment('Today');
+    } catch {
+      const localMeal = { ...meal, id: `local-meal-${Date.now()}` };
+      if (!canUseRemote) {
+        await appendLocalDemoMealLog(localMeal);
+      }
+      setMeals((current) => [localMeal, ...current]);
+      setStatus('Meal saved locally. Remote sync can retry later.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleSaveResponse() {
+    setIsSaving(true);
+    const response = responseLogFormToInput(responseForm);
+    const nextMeals = applyResponseToMealLogs(meals, response);
+
+    setMeals(nextMeals);
+
+    try {
+      if (canUseRemote && userId) {
+        const saved = await savePostMealResponseLog(supabase as unknown as FoodPersonalizationSupabaseClient, userId, response);
+        setResponses((current) => [saved, ...current]);
+        setStatus('Response logged. Healthi has one more food response signal.');
+      } else {
+        const localResponse = createLocalDemoResponseRow(response);
+        await Promise.all([
+          saveLocalDemoMealLogs(nextMeals),
+          appendLocalDemoPostMealResponse(localResponse)
+        ]);
+        setResponses((current) => [localResponse, ...current]);
+        setStatus('Response logged locally. Insights will sharpen as you add more.');
+      }
+
+      setResponseForm(createEmptyResponseLogForm());
+      setActiveSegment('Today');
+    } catch {
+      if (!canUseRemote) {
+        await saveLocalDemoMealLogs(nextMeals);
+      }
+      setStatus('Response saved locally. Remote sync can retry later.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleAnswer(value: string | null) {
+    setTestAnswers((current) => ({ ...current, [currentQuestion.id]: value }));
+    setQuestionIndex((current) => Math.min(current + 1, foodPatternQuestions.length - 1));
+  }
+
+  async function handleRunPatternTest() {
+    const profile = calculateFoodPatternProfile({
+      answers: foodPatternDraftToAnswers(testAnswers),
+      now: new Date().toISOString()
+    });
+    setTestResult(profile);
+    setActiveProfile(profile);
+    setStatus('Your Food Pattern Profile is ready.');
+
+    if (!canUseRemote || !userId) {
+      await saveLocalDemoFoodPatternProfile(profile);
+      return;
+    }
+
+    try {
+      const saved = await replaceActiveFoodPatternProfile(supabase as unknown as FoodPersonalizationSupabaseClient, userId, profile);
+      setActiveProfile(profileRowToProfile(saved));
+      setStatus('Your Food Pattern Profile was saved.');
+    } catch {
+      setStatus('Food Pattern Profile saved locally. Remote sync can retry later.');
+    }
+  }
+
+  function openAdaptiveDestination(destination: AdaptiveDietDestination) {
+    closeScanner();
+    setActiveSegment(destination);
+  }
+
+  function renderScanner() {
+    const qualityPresentation = productQuality ? buildProductQualityScorePresentation(productQuality) : null;
+    return (
+      <View style={styles.stack}>
+        <View style={styles.scannerHeading}>
+          <View style={styles.scannerHeadingCopy}>
+            <Text style={styles.eyebrow}>Packaged food</Text>
+            <Text style={styles.title}>Scan Food</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Close scanner"
+            accessibilityRole="button"
+            onPress={closeScanner}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          >
+            <Ionicons color={colors.textMuted} name="close" size={22} />
+          </Pressable>
+        </View>
+
+        <Card>
+          <View style={styles.scannerIntroRow}>
+            <View style={styles.scannerIcon}>
+              <Ionicons color={colors.accent} name="barcode-outline" size={24} />
+            </View>
+            <View style={styles.scannerHeadingCopy}>
+              <Text style={styles.cardTitle}>Barcode scanner</Text>
+              <Text style={styles.body}>
+                Healthi uses the camera to scan product barcodes. You can also enter a barcode manually.
+              </Text>
+            </View>
+          </View>
+
+          {cameraOpen && cameraPermission?.granted ? (
+            <View style={styles.cameraShell}>
+              <CameraView
+                active={cameraOpen}
+                barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'itf14'] }}
+                facing="back"
+                onBarcodeScanned={isLookingUpProduct ? undefined : handleBarcodeScanned}
+                onCameraReady={() => setScannerMessage('Center the product barcode inside the frame.')}
+                onMountError={() => {
+                  setCameraOpen(false);
+                  setScannerMessage('The camera could not start here. Enter the barcode manually below.');
+                }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View pointerEvents="none" style={styles.scanFrame} />
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setCameraOpen(false);
+                  setScannerMessage('Camera paused. Enter a barcode or start the camera again.');
+                }}
+                style={({ pressed }) => [styles.cameraCancel, pressed && styles.pressed]}
+              >
+                <Text style={styles.cameraCancelText}>Cancel camera</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <PrimaryButton label="Use camera" onPress={() => void handleStartCamera()} />
+          )}
+
+          <View style={styles.orRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>OR ENTER MANUALLY</Text>
+            <View style={styles.orLine} />
+          </View>
+          <Field
+            keyboardType="numeric"
+            label="Barcode number"
+            onChangeText={(value) => setBarcodeInput(normalizeBarcode(value))}
+            onSubmitEditing={() => void handleProductLookup()}
+            placeholder="3017620422003"
+            returnKeyType="search"
+            value={barcodeInput}
+          />
+          <PrimaryButton
+            disabled={!barcodeInput.trim()}
+            label="Look up product"
+            loading={isLookingUpProduct}
+            onPress={() => void handleProductLookup()}
+          />
+          <Text
+            accessibilityLabel={`Scanner status: ${displayLabel(primaryScannerState)}`}
+            style={styles.scannerMessage}
+          >
+            {scannerMessage}
+          </Text>
+        </Card>
+
+        {scannerProduct && productQuality ? (
+          <Card style={styles.productCard}>
+            <View style={styles.productHeader}>
+              <View style={styles.productHeaderCopy}>
+                <Text style={styles.eyebrow}>Product Snapshot</Text>
+                <Text style={styles.productName}>{scannerProduct.name}</Text>
+                <Text style={styles.productMeta}>
+                  {[scannerProduct.brand, scannerProduct.serving_size ?? 'Serving size unavailable'].filter(Boolean).join(' · ')}
+                </Text>
+                {featureFlags.labEvidence && labEvidenceResolution?.labEvidence.some((item) =>
+                  item.provenance === 'independent'
+                  && (item.matchLevel === 'exact_lot' || item.matchLevel === 'exact_product')
+                  && item.freshness === 'current'
+                ) ? (
+                  <Text style={styles.evidenceSource}>Third-party tested</Text>
+                ) : null}
+              </View>
+              <View style={styles.qualityScore}>
+                <Text style={styles.qualityScoreValue}>
+                  {qualityPresentation?.grade ?? '—'}
+                </Text>
+                <Text style={styles.qualityScoreLabel}>
+                  {qualityPresentation ? `${qualityPresentation.scoreLine.toUpperCase()}${qualityPresentation.stateLine === 'Final' ? '' : ` · ${qualityPresentation.stateLine.toUpperCase()}`}` : 'MORE DATA NEEDED'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.productMetrics}>
+              <Metric label="Calories" value={formatProductAmount(scannerProduct.calories_per_serving)} tone={colors.accent} />
+              <Metric label="Protein" value={formatProductAmount(scannerProduct.protein_g, 'g')} />
+              <Metric label="Carbs" value={formatProductAmount(scannerProduct.carbs_g, 'g')} />
+              <Metric label="Fat" value={formatProductAmount(scannerProduct.fat_g, 'g')} />
+              <Metric label="Fiber" value={formatProductAmount(scannerProduct.fiber_g, 'g')} />
+              <Metric label="Sugar" value={formatProductAmount(scannerProduct.sugar_g, 'g')} />
+              <Metric label="Sodium" value={formatProductAmount(scannerProduct.sodium_mg, 'mg')} />
+            </View>
+
+            <View style={styles.qualityPanel}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.cardTitle}>Food Quality Signal</Text>
+                <Text style={styles.qualityLabel}>
+                  {productQuality.grade_certainty?.state === 'unresolved'
+                    ? `Grade uncertain · Confidence: ${displayLabel(productQuality.confidence)}`
+                    : productQuality.result_state === 'estimated'
+                    ? `Estimated · Confidence: ${displayLabel(productQuality.confidence)}`
+                    : productQuality.result_state === 'provisional'
+                      ? `Provisional · Confidence: ${displayLabel(productQuality.confidence)}`
+                    : productQuality.result_state === 'more_data_needed'
+                      ? 'More data needed'
+                      : productQuality.letter_grade
+                    ? `${productQuality.letter_grade} · ${productQuality.grade_label ?? displayLabel(productQuality.label)}`
+                    : 'More data needed'}
+                </Text>
+              </View>
+              <Text style={styles.body}>{productQuality.summary}</Text>
+              {qualityPresentation?.rangeLine ? (
+                <Text style={styles.confidenceLine}>
+                  {qualityPresentation.rangeLine} · {qualityPresentation.confidenceLine}
+                </Text>
+              ) : null}
+              {qualityPresentation?.gradeCertaintyLine ? (
+                <Text style={styles.confidenceLine}>{qualityPresentation.gradeCertaintyLine}</Text>
+              ) : null}
+              {qualityPresentation?.supportedDimensionsLine ? (
+                <Text style={styles.confidenceLine}>{qualityPresentation.supportedDimensionsLine}</Text>
+              ) : null}
+              {qualityPresentation?.contextLine ? (
+                <Text style={styles.confidenceLine}>{qualityPresentation.contextLine}</Text>
+              ) : null}
+              {productQuality.positives.length > 0 ? (
+                <View style={styles.signalSection}>
+                  <Text style={styles.signalSectionTitle}>WHAT HELPS</Text>
+                  {productQuality.positives.slice(0, 4).map((item) => (
+                    <View key={item} style={styles.signalReasonRow}>
+                      <View style={styles.signalReasonDot} />
+                      <Text style={styles.signalReasonText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {productQuality.considerations.length > 0 ? (
+                <View style={styles.signalSection}>
+                  <Text style={styles.signalSectionTitle}>WHAT TO CONSIDER</Text>
+                  {productQuality.considerations.slice(0, 5).map((item) => (
+                    <View key={item} style={styles.signalReasonRow}>
+                      <View style={[styles.signalReasonDot, styles.considerationDot]} />
+                      <Text style={styles.signalReasonText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {(productQuality.missing_evidence?.length ?? 0) > 0 && productQuality.result_state !== 'final' ? (
+                <View style={styles.signalSection}>
+                  <Text style={styles.signalSectionTitle}>AVAILABLE DATA NOTE</Text>
+                  {productQuality.missing_evidence?.slice(0, 3).map((item) => (
+                    <Text key={item} style={styles.signalReasonText}>{item}</Text>
+                  ))}
+                </View>
+              ) : null}
+              <Text style={styles.confidenceLine}>
+                Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {displayLabel(productQuality.confidence)}
+                {productQuality.evidence_confidence
+                  ? ` · Ingredients: ${displayLabel(productQuality.evidence_confidence.ingredients)}`
+                  : ''}
+              </Text>
+            </View>
+
+            {(productQuality.better_options?.length ?? 0) > 0 ? (
+              <View style={styles.disclosureBlock}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showBetterOptions }}
+                  onPress={() => setShowBetterOptions((current) => !current)}
+                  style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+                >
+                  <View style={styles.disclosureTitleRow}>
+                    <Ionicons color={colors.accent} name="swap-horizontal-outline" size={18} />
+                    <Text style={styles.disclosureTitle}>{productQuality.better_options?.[0]?.title ?? 'What to Compare'}</Text>
+                  </View>
+                  <Ionicons
+                    color={C.muted}
+                    name={showBetterOptions ? 'chevron-up-outline' : 'chevron-down-outline'}
+                    size={18}
+                  />
+                </Pressable>
+                {showBetterOptions ? productQuality.better_options?.map((option) => (
+                  <View key={option.title} style={styles.disclosureContent}>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.signalReasonText}>{option.summary}</Text>
+                    {option.criteria.map((criterion) => (
+                      <View key={criterion} style={styles.signalReasonRow}>
+                        <Ionicons color={colors.accentMid} name="checkmark-circle-outline" size={16} />
+                        <Text style={styles.signalReasonText}>{criterion}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )) : null}
+              </View>
+            ) : null}
+
+            {(productQuality.evidence_refs?.length ?? 0) > 0 ? (
+              <View style={styles.disclosureBlock}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showProductEvidence }}
+                  onPress={() => setShowProductEvidence((current) => !current)}
+                  style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+                >
+                  <View style={styles.disclosureTitleRow}>
+                    <Ionicons color={colors.accent} name="information-circle-outline" size={19} />
+                    <Text style={styles.disclosureTitle}>How this is grounded</Text>
+                  </View>
+                  <Ionicons
+                    color={C.muted}
+                    name={showProductEvidence ? 'chevron-up-outline' : 'chevron-down-outline'}
+                    size={18}
+                  />
+                </Pressable>
+                {showProductEvidence ? productQuality.evidence_refs?.map((reference) => (
+                  <View key={reference.id} style={styles.evidenceItem}>
+                    <Text style={styles.optionTitle}>{reference.title}</Text>
+                    <Text style={styles.evidenceSource}>{reference.source}{reference.year ? ` · ${reference.year}` : ''}</Text>
+                    <Text style={styles.signalReasonText}>{reference.summary}</Text>
+                  </View>
+                )) : null}
+              </View>
+            ) : null}
+
+            {featureFlags.labEvidence ? <>
+              <View style={styles.productFormDivider} />
+              <Field
+                label="Lot number (optional)"
+                onChangeText={setScannerLotNumber}
+                placeholder="Use the package lot code"
+                value={scannerLotNumber}
+              />
+              <PrimaryButton
+                disabled={isLookingUpLabEvidence}
+                label={scannerLotNumber.trim() ? 'Refresh evidence for this lot' : 'Continue without lot number'}
+                loading={isLookingUpLabEvidence}
+                onPress={() => void resolveEvidenceForProduct(scannerProduct, lookupRequestId.current)}
+              />
+
+              <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showLabEvidence }}
+                onPress={() => setShowLabEvidence((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="flask-outline" size={19} />
+                  <View style={styles.productHeaderCopy}>
+                    <Text style={styles.disclosureTitle}>Lab Evidence</Text>
+                    <Text style={styles.evidenceSource}>
+                      {isLookingUpLabEvidence
+                        ? 'Checking current evidence...'
+                        : labEvidenceResolution
+                          ? labEvidenceStatusCopy(labEvidenceResolution).title
+                          : labEvidenceClientStateCopy(labEvidenceState).title}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons color={C.muted} name={showLabEvidence ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showLabEvidence ? (
+                <View style={styles.disclosureContent}>
+                  <Text style={styles.signalReasonText}>
+                    {labEvidenceResolution
+                      ? labEvidenceStatusCopy(labEvidenceResolution).detail
+                      : labEvidenceClientStateCopy(labEvidenceState).detail}
+                  </Text>
+                  {labEvidenceState.state === 'unavailable' ? (
+                    <PrimaryButton
+                      label="Try again"
+                      loading={isLookingUpLabEvidence}
+                      onPress={() => void resolveEvidenceForProduct(scannerProduct, lookupRequestId.current)}
+                    />
+                  ) : null}
+                  {labEvidenceResolution?.labEvidence.map((record) => (
+                    <View key={record.evidenceId} style={styles.evidenceItem}>
+                      <Text style={styles.optionTitle}>{record.sourceName}</Text>
+                      <Text style={styles.evidenceSource}>
+                        {[displayLabel(record.matchLevel), displayLabel(record.provenance), record.sampleDate ? `Sampled ${record.sampleDate}` : null, record.publicationDate ? `Published ${record.publicationDate}` : null].filter(Boolean).join(' · ')}
+                      </Text>
+                      <Text style={styles.signalReasonText}>{record.matchReason}</Text>
+                      {record.laboratory ? <Text style={styles.signalReasonText}>Laboratory: {record.laboratory}</Text> : null}
+                      {record.testingMethod ? <Text style={styles.signalReasonText}>Method: {record.testingMethod}</Text> : null}
+                      {record.analytes.map((analyte) => (
+                        <View key={`${record.evidenceId}-${analyte.canonicalAnalyteId ?? analyte.analyte}`} style={styles.evidenceItem}>
+                          <Text style={styles.optionTitle}>{analyte.analyte}</Text>
+                          <Text style={styles.signalReasonText}>{formatLabAnalyte(analyte)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                  {labEvidenceLookupCompleted && labEvidenceResolution?.labEvidence.length === 0 ? (
+                    <Text style={styles.evidenceSource}>No product-specific numeric lab record is available in the current response.</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              </View>
+
+              {labEvidenceLookupCompleted ? <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showCertifications }}
+                onPress={() => setShowCertifications((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="ribbon-outline" size={19} />
+                  <Text style={styles.disclosureTitle}>Certifications</Text>
+                </View>
+                <Ionicons color={C.muted} name={showCertifications ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showCertifications ? (
+                <View style={styles.disclosureContent}>
+                  {labEvidenceResolution?.certifications.length ? labEvidenceResolution.certifications.map((certification) => (
+                    <View key={certification.certificationId} style={styles.evidenceItem}>
+                      <Text style={styles.optionTitle}>{certification.certificationName}</Text>
+                      <Text style={styles.evidenceSource}>{certification.certifyingBody} · {displayLabel(certification.scope)}</Text>
+                      <Text style={styles.signalReasonText}>{certification.matchReason}</Text>
+                    </View>
+                  )) : <Text style={styles.signalReasonText}>No current certification was found in the sources checked. Certification is separate from numeric lab testing.</Text>}
+                </View>
+              ) : null}
+              </View> : null}
+
+              {labEvidenceLookupCompleted ? <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showRegulatoryStatus }}
+                onPress={() => setShowRegulatoryStatus((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="document-text-outline" size={19} />
+                  <Text style={styles.disclosureTitle}>Regulatory Status</Text>
+                </View>
+                <Ionicons color={C.muted} name={showRegulatoryStatus ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showRegulatoryStatus ? (
+                <View style={styles.disclosureContent}>
+                  {labEvidenceResolution?.regulatoryAlerts.length ? labEvidenceResolution.regulatoryAlerts.map((alert) => (
+                    <View key={alert.alertId} style={styles.evidenceItem}>
+                      <Text style={styles.optionTitle}>{alert.title}</Text>
+                      <Text style={styles.evidenceSource}>{alert.authority} · {displayLabel(alert.status)} · {displayLabel(alert.matchLevel)}</Text>
+                      <Text style={styles.signalReasonText}>{alert.matchReason}</Text>
+                    </View>
+                  )) : <Text style={styles.signalReasonText}>No matching official alert was found in the sources checked. Source coverage may be incomplete.</Text>}
+                </View>
+              ) : null}
+              </View> : null}
+
+              {labEvidenceLookupCompleted ? <View style={styles.disclosureBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showEvidenceContext }}
+                onPress={() => setShowEvidenceContext((current) => !current)}
+                style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.disclosureTitleRow}>
+                  <Ionicons color={colors.accent} name="layers-outline" size={19} />
+                  <Text style={styles.disclosureTitle}>Evidence Context</Text>
+                </View>
+                <Ionicons color={C.muted} name={showEvidenceContext ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
+              </Pressable>
+              {showEvidenceContext ? (
+                <View style={styles.disclosureContent}>
+                  {[...(labEvidenceResolution?.relatedEvidence ?? []), ...(labEvidenceResolution?.categoryContext ?? [])].length
+                    ? [...(labEvidenceResolution?.relatedEvidence ?? []), ...(labEvidenceResolution?.categoryContext ?? [])].map((context) => (
+                      <View key={context.contextId} style={styles.evidenceItem}>
+                        <Text style={styles.optionTitle}>{context.title}</Text>
+                        <Text style={styles.evidenceSource}>{context.sourceName} · {displayLabel(context.scope)}</Text>
+                        <Text style={styles.signalReasonText}>{context.summary}</Text>
+                        <Text style={styles.evidenceSource}>{context.matchReason}</Text>
+                      </View>
+                    ))
+                    : <Text style={styles.signalReasonText}>No related or category context was found. Category context, when available, is not testing of the scanned product.</Text>}
+                </View>
+              ) : null}
+              </View> : null}
+            </> : null}
+
+            <View style={styles.personalResponseNote}>
+              <Ionicons color={colors.accentMid} name="pulse-outline" size={18} />
+              <Text style={styles.personalResponseText}>
+                Food quality is only one signal. Your personal food response can change how Healthi recommends this product for you.
+              </Text>
+            </View>
+
+            <View style={styles.productFormDivider} />
+            <Text style={styles.cardTitle}>Add to Meal</Text>
+            <View style={styles.twoCol}>
+              <Field
+                keyboardType="numeric"
+                label="Servings"
+                onChangeText={setScannerServingQuantity}
+                style={styles.fieldHalf}
+                value={scannerServingQuantity}
+              />
+              <Field
+                label="Meal name"
+                onChangeText={setScannerMealName}
+                style={styles.fieldHalf}
+                value={scannerMealName}
+              />
+            </View>
+            <Text style={styles.fieldLabel}>Meal type</Text>
+            <View style={styles.chipWrap}>
+              {mealTypes.map((type) => (
+                <Chip
+                  key={type}
+                  label={displayLabel(type)}
+                  onPress={() => setScannerMealType(type)}
+                  selected={scannerMealType === type}
+                />
+              ))}
+            </View>
+            <PrimaryButton
+              label={scannerDestination === 'builder' ? 'Add to Meal Builder' : 'Log this food now'}
+              loading={isSavingScannedMeal}
+              onPress={() => void (scannerDestination === 'builder' ? handleAddScannerProductToBuilder() : handleSaveScannedMeal())}
+            />
+            {scannerDestination !== 'builder' ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void handleAddScannerProductToBuilder()}
+                style={({ pressed }) => [styles.inlineTextButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.inlineTextButtonText}>Add to Meal Builder instead</Text>
+              </Pressable>
+            ) : null}
+          </Card>
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderToday() {
+    const recentMeal = todayMeals
+      .slice()
+      .sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0] ?? null;
+
+    return (
+      <View style={styles.adaptivePage}>
+        {protocolNourishment.length > 0 ? (
+          <View style={styles.adaptiveSection}>
+            <Text style={styles.adaptiveSectionLabel}>From today’s protocol</Text>
+            {protocolNourishment.map((action) => (
+              <View key={action.id} style={styles.adaptiveReasonRow}>
+                <View style={styles.adaptiveReasonDot} />
+                <Text style={styles.adaptiveReasonText}>{action.title}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <View style={[styles.adaptiveSection, styles.trackerCard]}>
+          <View style={styles.adaptiveSectionHeading}>
+            <View>
+              <Text style={styles.adaptiveSectionLabel}>Daily nutrition tracker</Text>
+              <Text style={styles.trackerTitle}>Today at a glance</Text>
+            </View>
+            <Text style={styles.adaptiveMono}>{todayMeals.length} meal{todayMeals.length === 1 ? '' : 's'}</Text>
+          </View>
+
+          <View style={styles.trackerEnergyRow}>
+            <View>
+              <Text style={styles.trackerEnergyValue}>{typeof nutrientSummary.calories === 'number' ? Math.round(nutrientSummary.calories) : '—'}</Text>
+              <Text style={styles.trackerEnergyLabel}>calories logged</Text>
+            </View>
+            <Text style={styles.trackerEnergyTarget}>
+              {typeof targets.calories_target === 'number' ? `${Math.round(targets.calories_target)} working target` : 'No working target'}
+            </Text>
+          </View>
+
+          <View style={styles.trackerMacroList}>
+            <TrackerProgress current={nutrientSummary.protein_g} label="Protein" target={targets.protein_g_target} />
+            <TrackerProgress current={nutrientSummary.carbs_g} label="Carbohydrate" target={targets.carbs_g_target} />
+            <TrackerProgress current={nutrientSummary.fat_g} label="Fat" target={targets.fat_g_target} />
+            <TrackerProgress current={nutrientSummary.fiber_g} label="Fiber" target={targets.fiber_g_target} />
+          </View>
+
+          <View style={styles.trackerMicroBlock}>
+            <Text style={styles.trackerMicroHeading}>Micronutrients reported</Text>
+            <View style={styles.trackerMicroGrid}>
+              <View style={styles.trackerMicroItem}>
+                <Text style={styles.trackerMicroValue}>{typeof nutrientSummary.sodium_mg === 'number' ? `${Math.round(nutrientSummary.sodium_mg)} mg` : '—'}</Text>
+                <Text style={styles.trackerMicroLabel}>Sodium</Text>
+              </View>
+              {['Potassium', 'Calcium', 'Iron'].map((label) => (
+                <View key={label} style={styles.trackerMicroItem}>
+                  <Text style={styles.trackerMicroUnavailable}>Not reported</Text>
+                  <Text style={styles.trackerMicroLabel}>{label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.adaptiveSafetyNote}>Missing label fields stay unreported; Healthi does not treat them as zero.</Text>
+          </View>
+
+          <View style={styles.trackerActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setActiveSegment('Build Meal')}
+              style={({ pressed }) => [styles.trackerSearchButton, pressed && styles.pressed]}
+            >
+              <Ionicons color="#1C4235" name="search" size={17} />
+              <Text style={styles.trackerSearchText}>Look up food</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => openScanner()}
+              style={({ pressed }) => [styles.trackerScanButton, pressed && styles.pressed]}
+            >
+              <Ionicons color="#FAF9F5" name="barcode-outline" size={17} />
+              <Text style={styles.trackerScanText}>Scan food</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.adaptiveHero}>
+          <Text style={styles.adaptiveSectionLabel}>Nutrition · Today</Text>
+          <Text style={styles.adaptiveKicker}>{adaptiveDiet.verdict.kicker}</Text>
+          <Text style={styles.adaptiveVerdict}>{adaptiveDiet.verdict.line}</Text>
+          <View style={styles.adaptiveReasonList}>
+            {adaptiveDiet.verdict.reasons.map((reason) => (
+              <View key={reason} style={styles.adaptiveReasonRow}>
+                <View style={styles.adaptiveReasonDot} />
+                <Text style={styles.adaptiveReasonText}>{reason}</Text>
+              </View>
+            ))}
+          </View>
+          <View
+            accessibilityLabel={`Confidence ${adaptiveDiet.verdict.confidence}`}
+            style={styles.adaptiveConfidenceRow}
+          >
+            <Text style={styles.adaptiveConfidenceLabel}>Confidence</Text>
+            <View style={styles.adaptiveConfidenceSegments}>
+              {[0, 1, 2].map((segment) => {
+                const filled = segment < ({ low: 1, medium: 2, high: 3 }[adaptiveDiet.verdict.confidence]);
+                return <View key={segment} style={[styles.adaptiveConfidenceSegment, filled && styles.adaptiveConfidenceSegmentFilled]} />;
+              })}
+            </View>
+            <Text style={styles.adaptiveConfidenceValue}>{confidenceLabel(adaptiveDiet.verdict.confidence)}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => openAdaptiveDestination(adaptiveDiet.priorities[0]?.destination ?? 'Nutrients')}
+            style={({ pressed }) => [styles.adaptivePrimaryButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.adaptivePrimaryButtonText}>{adaptiveDiet.verdict.cta}</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <View style={styles.adaptiveSectionHeading}>
+            <Text style={styles.adaptiveSectionLabel}>Priorities</Text>
+            <Text style={styles.adaptiveSectionAside}>At most three</Text>
+          </View>
+          <View style={styles.adaptivePriorityList}>
+            {adaptiveDiet.priorities.map((priority) => (
+              <View key={priority.id} style={styles.adaptivePriority}>
+                <View style={styles.adaptiveSectionHeading}>
+                  <Text style={[styles.adaptivePriorityTag, priority.tag === 'Act now' && styles.adaptivePriorityTagUrgent]}>{priority.tag}</Text>
+                  <Text style={styles.adaptiveMono}>{priority.horizon}</Text>
+                </View>
+                <Text style={styles.adaptivePriorityTitle}>{priority.title}</Text>
+                <Text style={styles.adaptivePriorityReason}>{priority.reason}</Text>
+                <View style={styles.adaptivePriorityActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => openAdaptiveDestination(priority.destination)}
+                    style={({ pressed }) => [styles.adaptiveInlineAction, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.adaptiveInlineActionText}>{priority.action}</Text>
+                  </Pressable>
+                  <Text style={styles.adaptivePriorityConfidence}>{confidenceLabel(priority.confidence)} confidence</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <Text style={styles.adaptiveSectionLabel}>Adaptive nutrient field</Text>
+          <Text style={styles.adaptiveSectionVoice}>Navigation groups, not diagnoses.</Text>
+          <View style={styles.adaptiveLaneList}>
+            {adaptiveDiet.lanes.map((lane) => {
+              const open = expandedLane === lane.id;
+              return (
+                <View key={lane.id} style={styles.adaptiveLane}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: open }}
+                    onPress={() => setExpandedLane((current) => current === lane.id ? null : lane.id)}
+                    style={({ pressed }) => [styles.adaptiveLaneButton, pressed && styles.pressed]}
+                  >
+                    <View style={styles.adaptiveSectionHeading}>
+                      <Text style={styles.adaptiveLaneName}>{lane.name}</Text>
+                      <Text style={[styles.adaptiveLaneState, lane.state === 'Underrepresented' && styles.adaptiveLaneStateWarm]}>{lane.state}</Text>
+                    </View>
+                    <View style={styles.adaptiveLaneTrackRow}>
+                      <View style={[styles.adaptiveLaneTrack, lane.state === 'Limited data' && styles.adaptiveLaneTrackLimited]}>
+                        <View style={[styles.adaptiveLaneFill, { width: `${lane.progress}%` }]} />
+                      </View>
+                      <Text style={styles.adaptiveLaneMeta}>{confidenceLabel(lane.confidence)} · {lane.horizon}</Text>
+                    </View>
+                  </Pressable>
+                  {open ? <Text style={styles.adaptiveLaneDetail}>{lane.detail}</Text> : null}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <Text style={styles.adaptiveSectionLabel}>Coverage builder</Text>
+          <Text style={styles.adaptiveCoverageLabel}>Current need</Text>
+          <Text style={styles.adaptiveCoverageNeed}>{adaptiveDiet.coverage.need}</Text>
+          <View style={styles.adaptiveInsetCard}>
+            <Text style={styles.adaptiveCoverageLabel}>Suggested addition</Text>
+            <Text style={styles.adaptiveCoverageSuggestion}>{adaptiveDiet.coverage.suggestion}</Text>
+            <Text style={styles.adaptivePriorityReason}>{adaptiveDiet.coverage.explanation}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => openAdaptiveDestination(adaptiveDiet.coverage.destination)}
+              style={({ pressed }) => [styles.adaptivePrimaryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.adaptivePrimaryButtonText}>{adaptiveDiet.coverage.action}</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {recentMeal ? (
+          <View style={styles.adaptiveSection}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                updateResponseForm('meal_log_id', recentMeal.id ?? null);
+                setActiveSegment('Response Log');
+              }}
+              style={({ pressed }) => [styles.adaptiveRecent, pressed && styles.pressed]}
+            >
+              <View style={styles.adaptiveRecentCopy}>
+                <Text numberOfLines={1} style={styles.adaptiveRecentTitle}>{recentMeal.name} · <Text style={styles.adaptiveMono}>{formatClock(recentMeal.logged_at)}</Text></Text>
+                <Text style={styles.adaptivePriorityReason}>Add or review your response to this meal</Text>
+              </View>
+              <Ionicons color="#1C4235" name="arrow-forward" size={18} />
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderTimeline() {
+    const timelineMeals = todayMeals
+      .slice()
+      .sort((left, right) => left.logged_at.localeCompare(right.logged_at));
+    const todayLabel = new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+    return (
+      <View style={styles.adaptivePage}>
+        <View style={styles.adaptiveHero}>
+          <View style={styles.adaptiveSectionHeading}>
+            <View>
+              <Text style={styles.adaptiveSectionLabel}>Timeline</Text>
+              <Text style={styles.adaptiveViewTitle}>Meals + responses</Text>
+            </View>
+            <Text style={styles.adaptiveMono}>{todayLabel}</Text>
+          </View>
+          <View style={styles.adaptiveTimeline}>
+            {timelineMeals.length > 0 ? timelineMeals.map((meal) => {
+              const linkedResponse = responses.find((response) => response.meal_log_id === meal.id);
+              return (
+                <View key={meal.id ?? `${meal.name}-${meal.logged_at}`} style={styles.adaptiveTimelineEvent}>
+                  <Text style={styles.adaptiveTimelineTime}>{formatClock(meal.logged_at)}</Text>
+                  <View style={styles.adaptiveTimelineMarker} />
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      updateResponseForm('meal_log_id', meal.id ?? null);
+                      setActiveSegment('Response Log');
+                    }}
+                    style={({ pressed }) => [styles.adaptiveTimelineCopy, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.adaptiveTimelineTitle}>{meal.name}</Text>
+                    <Text style={styles.adaptivePriorityReason}>
+                      {displayLabel(meal.meal_type)} · {linkedResponse ? 'Response logged' : 'Add personal response'}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            }) : (
+              <View style={styles.adaptiveEmpty}>
+                <Text style={styles.adaptiveCoverageSuggestion}>Nothing logged yet</Text>
+                <Text style={styles.adaptivePriorityReason}>Meals will appear here in time order without turning the day into a scorecard.</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setActiveSegment('Log Meal')}
+                  style={({ pressed }) => [styles.adaptivePrimaryButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.adaptivePrimaryButtonText}>Log a meal</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+          {timelineMeals.length > 0 ? (
+            <View style={styles.adaptiveTimelineNote}>
+              <Text style={styles.adaptiveSectionVoice}>
+                {responses.length > 0
+                  ? `${responses.length} recent response${responses.length === 1 ? '' : 's'} add personal context to your meal history.`
+                  : 'Add an optional response after a meal to connect food with how you felt.'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  function renderNutrients() {
+    return (
+      <View style={styles.adaptivePage}>
+        <View style={styles.adaptiveHero}>
+          <Text style={styles.adaptiveSectionLabel}>Nutrients</Text>
+          <Text style={styles.adaptiveViewTitle}>Full spectrum, honestly reported</Text>
+          <TextInput
+            accessibilityLabel="Search nutrients"
+            onChangeText={setNutrientQuery}
+            placeholder="Search nutrients"
+            placeholderTextColor="#7A807C"
+            style={styles.adaptiveSearch}
+            value={nutrientQuery}
+          />
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <Text style={styles.adaptiveSectionLabel}>Nutrient data confidence</Text>
+          <Text style={styles.adaptivePriorityReason}>How well today’s meal records report each available nutrient.</Text>
+          <View style={styles.adaptiveConfidenceSummary}>
+            <Text style={styles.adaptiveConfidenceValue}>{confidenceLabel(nutrientSummary.confidence)} confidence</Text>
+            <Text style={styles.adaptivePriorityReason}>
+              Missing nutrient fields lower confidence; they do not automatically lower your result.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <Text style={styles.adaptiveSectionLabel}>Reported today</Text>
+          {filteredAdaptiveNutrients.length > 0 ? filteredAdaptiveNutrients.map((nutrient) => (
+            <View key={nutrient.id} style={styles.adaptiveNutrientRow}>
+              <View style={styles.adaptiveNutrientCopy}>
+                <Text style={styles.adaptiveLaneName}>{nutrient.name}</Text>
+                <Text style={styles.adaptiveNutrientContext}>{nutrient.context}</Text>
+              </View>
+              <View style={styles.adaptiveNutrientValue}>
+                <Text style={styles.adaptiveMonoStrong}>{nutrient.amount}</Text>
+                <Text style={styles.adaptivePriorityConfidence}>{confidenceLabel(nutrient.confidence)}</Text>
+              </View>
+            </View>
+          )) : <Text style={styles.adaptivePriorityReason}>No matching nutrient is available in today’s record.</Text>}
+        </View>
+      </View>
+    );
+  }
+
+  function renderProfile() {
+    const foundationState = activeProfile ? confidenceLabel(activeProfile.confidence) : 'Calibrating';
+    return (
+      <View style={styles.adaptivePage}>
+        <View style={styles.adaptiveHero}>
+          <Text style={styles.adaptiveSectionLabel}>Nutrition foundation</Text>
+          <View style={styles.adaptiveFoundationMeta}>
+            <View style={styles.adaptiveFoundationBadge}>
+              <Text style={styles.adaptiveFoundationBadgeText}>{foundationState}</Text>
+            </View>
+            <Text style={styles.adaptiveSectionAside}>Long-term view</Text>
+          </View>
+          <Text style={styles.adaptiveProfileLead}>
+            {profileCopy?.summary ?? 'Your nutrition foundation will take shape from the Food Pattern Test, meal logs, and optional responses.'}
+          </Text>
+          <View style={styles.adaptiveInsetCard}>
+            <Text style={styles.adaptiveCoverageLabel}>Most useful adjustment</Text>
+            <Text style={styles.adaptiveCoverageSuggestion}>
+              {adaptiveDiet.priorities[0]?.title ?? 'Keep building consistent meal context'}
+            </Text>
+          </View>
+          <View style={styles.adaptiveContributorList}>
+            {[
+              ['Meal coverage', `${nutrientSummary.meal_count} today`],
+              ['Food quality', displayLabel(foodQuality.label)],
+              ['Personal response', displayLabel(foodResponse.label)],
+              ['Pattern profile', activeProfile ? displayLabel(activeProfile.pattern_label) : 'Not available'],
+              ['Data confidence', confidenceLabel(readinessSignal.confidence)]
+            ].map(([label, value]) => (
+              <View key={label} style={styles.adaptiveContributorRow}>
+                <Text style={styles.adaptiveContributorLabel}>{label}</Text>
+                <Text style={styles.adaptiveContributorValue}>{value}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <Text style={styles.adaptiveSectionLabel}>Personalization</Text>
+          <View style={styles.adaptiveInsetCard}>
+            <Text style={styles.adaptiveCoverageLabel}>{activeProfile ? 'Refresh your context' : 'Build your starting profile'}</Text>
+            <Text style={styles.adaptiveCoverageSuggestion}>
+              {activeProfile ? 'Update your Food Pattern Profile when your routine changes.' : 'Answer a short set of questions to establish a conservative starting pattern.'}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setActiveSegment('Food Pattern Test')}
+              style={({ pressed }) => [styles.adaptivePrimaryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.adaptivePrimaryButtonText}>{activeProfile ? 'Review Food Pattern Test' : 'Start Food Pattern Test'}</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.adaptiveSection}>
+          <Text style={styles.adaptiveSectionLabel}>Personal response</Text>
+          <Text style={styles.adaptivePriorityReason}>Optional check-ins stay separate from Product Quality and help describe personal fit over time.</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setActiveSegment('Response Log')}
+            style={({ pressed }) => [styles.adaptiveSecondaryButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.adaptiveSecondaryButtonText}>Add a post-meal response</Text>
+          </Pressable>
+          <Text style={styles.adaptiveSafetyNote}>Observed patterns are general wellness context, not diagnoses.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  function renderMealBuilder() {
+    const recentProducts = productLibrary
+      .slice()
+      .sort((left, right) => (right.last_used_at ?? right.updated_at).localeCompare(left.last_used_at ?? left.updated_at))
+      .slice(0, 6);
+
+    return (
+      <View style={styles.stack}>
+        <SectionTitle
+          eyebrow="Meal builder"
+          title="Build Meal"
+          body="Add foods, adjust servings, then save one complete meal to today."
+        />
+
+        <Card style={styles.builderCard}>
+          <Field
+            label="Meal name"
+            onChangeText={(value) => setMealBuilder((current) => ({ ...current, name: value }))}
+            placeholder="Lunch bowl"
+            value={mealBuilder.name}
+          />
+          <Text style={styles.fieldLabel}>Meal type</Text>
+          <View style={styles.chipWrap}>
+            {mealTypes.map((type) => (
+              <Chip
+                key={type}
+                label={displayLabel(type)}
+                onPress={() => setMealBuilder((current) => ({ ...current, meal_type: type }))}
+                selected={mealBuilder.meal_type === type}
+              />
+            ))}
+          </View>
+          <Text style={styles.builderMessage}>{builderMessage}</Text>
+        </Card>
+
+        <Card>
+          <View style={styles.rowBetween}>
+            <View>
+              <Text style={styles.cardTitle}>Add Food</Text>
+              <Text style={styles.body}>Scan a package, search label data, or enter nutrition facts.</Text>
+            </View>
+            <View style={styles.scannerIcon}>
+              <Ionicons color={colors.accent} name="add" size={22} />
+            </View>
+          </View>
+          <PrimaryButton label="Scan Food" onPress={() => openScanner('builder')} />
+          <View style={styles.searchRow}>
+            <TextInput
+              onChangeText={setSearchQuery}
+              placeholder="Search packaged foods"
+              placeholderTextColor={colors.textFaint}
+              style={[styles.input, styles.searchInput]}
+              value={searchQuery}
+            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSearchingProducts || searchQuery.trim().length < 2}
+              onPress={() => void handleSearchProducts()}
+              style={({ pressed }) => [styles.searchButton, (isSearchingProducts || searchQuery.trim().length < 2) && styles.disabled, pressed && styles.pressed]}
+            >
+              {isSearchingProducts ? <ActivityIndicator color={palette.paper} /> : <Ionicons color={palette.paper} name="search" size={18} />}
+            </Pressable>
+          </View>
+          {searchResults.map((product) => {
+            const quality = calculateProductQuality(product);
+            return (
+              <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.libraryRow}>
+                <View style={styles.libraryCopy}>
+                  <Text numberOfLines={1} style={styles.libraryName}>{product.name}</Text>
+                  <Text numberOfLines={1} style={styles.libraryMeta}>{[product.brand, product.serving_size].filter(Boolean).join(' · ') || 'Available label data'}</Text>
+                  <Text style={styles.librarySignal}>{displayLabel(quality.label)} · {formatProductAmount(product.calories_per_serving)} cal</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void addSnapshotToMealBuilder(product, 'search')}
+                  style={({ pressed }) => [styles.addIconButton, pressed && styles.pressed]}
+                >
+                  <Ionicons color={colors.accent} name="add" size={20} />
+                </Pressable>
+              </View>
+            );
+          })}
+        </Card>
+
+        {recentProducts.length > 0 || savedProducts.length > 0 ? (
+          <Card>
+            <Text style={styles.cardTitle}>Recent Foods</Text>
+            <Text style={styles.body}>Reuse foods from your recent scans and meal builds.</Text>
+            <View style={styles.libraryList}>
+              {recentProducts.map((product) => {
+                const snapshot = userFoodProductRowToSnapshot(product);
+                return (
+                  <View key={product.id} style={styles.libraryRow}>
+                    <View style={styles.libraryCopy}>
+                      <Text numberOfLines={1} style={styles.libraryName}>{product.name}</Text>
+                      <Text numberOfLines={1} style={styles.libraryMeta}>{[product.brand, product.serving_size].filter(Boolean).join(' · ') || 'Saved nutrition facts'}</Text>
+                      <Text style={styles.librarySignal}>{displayLabel(product.quality_label ?? 'calibrating')} · {formatProductAmount(product.calories_per_serving)} cal</Text>
+                    </View>
+                    <Pressable
+                      accessibilityLabel={product.is_saved ? `Remove ${product.name} from saved foods` : `Save ${product.name}`}
+                      accessibilityRole="button"
+                      onPress={() => void handleToggleSavedProduct(product)}
+                      style={({ pressed }) => [styles.smallIconButton, pressed && styles.pressed]}
+                    >
+                      <Ionicons color={product.is_saved ? colors.accent : colors.textFaint} name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={18} />
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel={`Add ${product.name} to meal`}
+                      accessibilityRole="button"
+                      onPress={() => void addSnapshotToMealBuilder(snapshot, product.is_saved ? 'saved_food' : 'search')}
+                      style={({ pressed }) => [styles.addIconButton, pressed && styles.pressed]}
+                    >
+                      <Ionicons color={colors.accent} name="add" size={20} />
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+            {savedProducts.length > 0 ? <Text style={styles.confidenceLine}>{savedProducts.length} saved food{savedProducts.length === 1 ? '' : 's'} ready to reuse.</Text> : null}
+          </Card>
+        ) : null}
+
+        <Card>
+          <Text style={styles.cardTitle}>Add Manual Food</Text>
+          <Text style={styles.body}>Useful when label data is missing or you are logging a simple food.</Text>
+          <Field
+            label="Food name"
+            onChangeText={(value) => setManualProductForm((current) => ({ ...current, name: value }))}
+            placeholder="Greek yogurt"
+            value={manualProductForm.name}
+          />
+          <View style={styles.twoCol}>
+            <Field label="Brand" onChangeText={(value) => setManualProductForm((current) => ({ ...current, brand: value }))} style={styles.fieldHalf} value={manualProductForm.brand} />
+            <Field label="Serving size" onChangeText={(value) => setManualProductForm((current) => ({ ...current, serving_size: value }))} placeholder="170 g" style={styles.fieldHalf} value={manualProductForm.serving_size} />
+            <Field keyboardType="numeric" label="Calories" onChangeText={(value) => setManualProductForm((current) => ({ ...current, calories: value }))} style={styles.fieldHalf} value={manualProductForm.calories} />
+            <Field keyboardType="numeric" label="Protein g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, protein_g: value }))} style={styles.fieldHalf} value={manualProductForm.protein_g} />
+            <Field keyboardType="numeric" label="Carbs g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, carbs_g: value }))} style={styles.fieldHalf} value={manualProductForm.carbs_g} />
+            <Field keyboardType="numeric" label="Fat g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, fat_g: value }))} style={styles.fieldHalf} value={manualProductForm.fat_g} />
+            <Field keyboardType="numeric" label="Fiber g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, fiber_g: value }))} style={styles.fieldHalf} value={manualProductForm.fiber_g} />
+            <Field keyboardType="numeric" label="Sugar g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, sugar_g: value }))} style={styles.fieldHalf} value={manualProductForm.sugar_g} />
+            <Field keyboardType="numeric" label="Sodium mg" onChangeText={(value) => setManualProductForm((current) => ({ ...current, sodium_mg: value }))} style={styles.fieldHalf} value={manualProductForm.sodium_mg} />
+          </View>
+          <PrimaryButton label="Add to Meal" onPress={() => void handleAddManualProduct()} />
+        </Card>
+
+        <Card style={styles.mealContentsCard}>
+          <View style={styles.rowBetween}>
+            <View>
+              <Text style={styles.cardTitle}>This Meal</Text>
+              <Text style={styles.body}>{mealBuilder.items.length === 0 ? 'No foods added yet.' : `${mealBuilder.items.length} food${mealBuilder.items.length === 1 ? '' : 's'} ready to save.`}</Text>
+            </View>
+            <Text style={styles.qualityLabel}>{mealBuilder.items.length} item{mealBuilder.items.length === 1 ? '' : 's'}</Text>
+          </View>
+          {mealBuilder.items.map((item) => (
+            <View key={item.id} style={styles.builderItemRow}>
+              <View style={styles.builderItemCopy}>
+                <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
+                <Text style={styles.libraryMeta}>{[item.snapshot.brand, item.snapshot.serving_size].filter(Boolean).join(' · ') || 'Nutrition facts added'}</Text>
+                <Text style={styles.librarySignal}>{displayLabel(item.quality.label)} · {formatProductAmount(item.snapshot.calories_per_serving, ' cal')} per serving</Text>
+              </View>
+              <TextInput
+                keyboardType="numeric"
+                onChangeText={(value) => setMealBuilder((current) => updateMealBuilderItemServings(current, item.id, value))}
+                style={styles.servingsInput}
+                value={String(item.servings)}
+              />
+              <Pressable
+                accessibilityLabel={`Remove ${item.snapshot.name} from meal`}
+                accessibilityRole="button"
+                onPress={() => setMealBuilder((current) => removeMealBuilderItem(current, item.id))}
+                style={({ pressed }) => [styles.smallIconButton, pressed && styles.pressed]}
+              >
+                <Ionicons color={colors.textMuted} name="close" size={18} />
+              </Pressable>
+            </View>
+          ))}
+          <View style={styles.productFormDivider} />
+          <View style={styles.metricGrid}>
+            <Metric label="Calories" value={formatProductAmount(mealBuilderTotals.calories)} tone={colors.accent} />
+            <Metric label="Protein" value={formatProductAmount(mealBuilderTotals.protein_g, 'g')} />
+            <Metric label="Carbs" value={formatProductAmount(mealBuilderTotals.carbs_g, 'g')} />
+            <Metric label="Fat" value={formatProductAmount(mealBuilderTotals.fat_g, 'g')} />
+            <Metric label="Fiber" value={formatProductAmount(mealBuilderTotals.fiber_g, 'g')} />
+            <Metric label="Sodium" value={formatProductAmount(mealBuilderTotals.sodium_mg, 'mg')} />
+          </View>
+          <Text style={styles.confidenceLine}>Based on available label data. Macro targets are optional and can be adjusted later.</Text>
+          <PrimaryButton label="Save Meal" loading={isSavingBuilder} onPress={() => void handleSaveBuiltMeal()} />
+        </Card>
+      </View>
+    );
+  }
+
+  function renderLogMeal() {
+    return (
+      <View style={styles.stack}>
+        <SectionTitle
+          body="Add nutrition facts manually, or scan a packaged food."
+          eyebrow="Manual"
+          title="Log a meal"
+        />
+        <Card>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => openScanner()}
+            style={({ pressed }) => [styles.scannerShortcut, pressed && styles.pressed]}
+          >
+            <Ionicons color={colors.accent} name="barcode-outline" size={20} />
+            <Text style={styles.scannerShortcutText}>Scan Food</Text>
+            <Ionicons color={colors.textFaint} name="chevron-forward" size={18} />
+          </Pressable>
+          <Field label="Meal name" onChangeText={(value) => updateMealForm('name', value)} placeholder="Lunch bowl" value={mealForm.name} />
+          <Text style={styles.fieldLabel}>Meal type</Text>
+          <View style={styles.chipWrap}>
+            {mealTypes.map((type) => (
+              <Chip
+                key={type}
+                label={displayLabel(type)}
+                onPress={() => updateMealForm('meal_type', type)}
+                selected={mealForm.meal_type === type}
+              />
+            ))}
+          </View>
+          <View style={styles.twoCol}>
+            <Field keyboardType="numeric" label="Calories" onChangeText={(value) => updateMealForm('calories', value)} style={styles.fieldHalf} value={mealForm.calories} />
+            <Field keyboardType="numeric" label="Protein g" onChangeText={(value) => updateMealForm('protein_g', value)} style={styles.fieldHalf} value={mealForm.protein_g} />
+            <Field keyboardType="numeric" label="Carbs g" onChangeText={(value) => updateMealForm('carbs_g', value)} style={styles.fieldHalf} value={mealForm.carbs_g} />
+            <Field keyboardType="numeric" label="Fat g" onChangeText={(value) => updateMealForm('fat_g', value)} style={styles.fieldHalf} value={mealForm.fat_g} />
+            <Field keyboardType="numeric" label="Fiber g" onChangeText={(value) => updateMealForm('fiber_g', value)} style={styles.fieldHalf} value={mealForm.fiber_g} />
+            <Field keyboardType="numeric" label="Sugar g" onChangeText={(value) => updateMealForm('sugar_g', value)} style={styles.fieldHalf} value={mealForm.sugar_g} />
+            <Field keyboardType="numeric" label="Sodium mg" onChangeText={(value) => updateMealForm('sodium_mg', value)} style={styles.fieldHalf} value={mealForm.sodium_mg} />
+          </View>
+          <Text style={styles.fieldLabel}>Quality flags</Text>
+          <View style={styles.chipWrap}>
+            {qualityFlagOptions.map((option) => (
+              <Chip
+                key={option.value}
+                label={option.label}
+                onPress={() => toggleQualityFlag(option.value)}
+                selected={mealForm.quality_flags.includes(option.value)}
+                tone="lavender"
+              />
+            ))}
+          </View>
+          <PrimaryButton label="Save meal" loading={isSaving} onPress={handleSaveMeal} />
+        </Card>
+      </View>
+    );
+  }
+
+  function renderResponseLog() {
+    return (
+      <View style={styles.stack}>
+        <SectionTitle
+          body="Rate how you felt after eating. These signals stay general and improve with repetition."
+          eyebrow="Post-meal"
+          title="Response Log"
+        />
+        <Card>
+          <Text style={styles.fieldLabel}>Link to meal</Text>
+          <View style={styles.chipWrap}>
+            {todayMeals.length > 0 ? (
+              todayMeals.map((meal) => (
+                <Chip
+                  key={meal.id ?? meal.name}
+                  label={meal.name}
+                  onPress={() => updateResponseForm('meal_log_id', meal.id ?? null)}
+                  selected={responseForm.meal_log_id === meal.id}
+                  tone="teal"
+                />
+              ))
+            ) : (
+              <Text style={styles.body}>No meal logged yet. You can still save a response as local context.</Text>
+            )}
+          </View>
+          <View style={styles.twoCol}>
+            <Field
+              keyboardType="numeric"
+              label="Overall 1-10"
+              onChangeText={(value) => updateResponseForm('overall_score', value)}
+              style={styles.fieldHalf}
+              value={responseForm.overall_score}
+            />
+            <Field
+              keyboardType="numeric"
+              label="Minutes after meal"
+              onChangeText={(value) => updateResponseForm('minutes_after_meal', value)}
+              style={styles.fieldHalf}
+              value={responseForm.minutes_after_meal}
+            />
+          </View>
+          <ChoiceRow
+            label="Digestion"
+            options={['good', 'neutral', 'heavy', 'uncomfortable']}
+            selected={responseForm.digestion ?? 'neutral'}
+            onSelect={(value) => updateResponseForm('digestion', value as ResponseLogFormState['digestion'])}
+          />
+          <ChoiceRow
+            label="Energy"
+            options={['better', 'steady', 'dip']}
+            selected={responseForm.energy ?? 'steady'}
+            onSelect={(value) => updateResponseForm('energy', value as ResponseLogFormState['energy'])}
+          />
+          <ChoiceRow
+            label="Appetite"
+            options={['stable', 'hungry_soon', 'overfull']}
+            selected={responseForm.appetite ?? 'stable'}
+            onSelect={(value) => updateResponseForm('appetite', value as ResponseLogFormState['appetite'])}
+          />
+          <ChoiceRow
+            label="Focus"
+            options={['clear', 'neutral', 'foggy']}
+            selected={responseForm.focus ?? 'neutral'}
+            onSelect={(value) => updateResponseForm('focus', value as ResponseLogFormState['focus'])}
+          />
+          <ChoiceRow
+            label="Cravings"
+            options={['none', 'mild', 'strong']}
+            selected={responseForm.cravings ?? 'none'}
+            onSelect={(value) => updateResponseForm('cravings', value as ResponseLogFormState['cravings'])}
+          />
+          <Field label="Notes" multiline onChangeText={(value) => updateResponseForm('notes', value)} value={responseForm.notes} />
+          <PrimaryButton label="Save response" loading={isSaving} onPress={handleSaveResponse} />
+        </Card>
+      </View>
+    );
+  }
+
+  function renderPatternTest() {
+    return (
+      <View style={styles.stack}>
+        <SectionTitle
+          body="Your Food Pattern Profile starts with answers, then improves with meal logs and responses."
+          eyebrow="Profile"
+          title="Food Pattern Test"
+        />
+        <Card>
+          <View style={styles.rowBetween}>
+            <Text style={styles.progressText}>
+              {questionIndex + 1} / {foodPatternQuestions.length}
+            </Text>
+            <Text style={styles.modeText}>{Object.values(testAnswers).filter(Boolean).length} answered</Text>
+          </View>
+          <Text style={styles.questionText}>{currentQuestion.prompt}</Text>
+          <View style={styles.stackSmall}>
+            {currentQuestion.options.map((option) => (
+              <Pressable
+                accessibilityRole="button"
+                key={option.value}
+                onPress={() => handleAnswer(option.value)}
+                style={[
+                  styles.answerButton,
+                  testAnswers[currentQuestion.id] === option.value && styles.answerButtonSelected
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.answerText,
+                    testAnswers[currentQuestion.id] === option.value && { color: colors.accent }
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.actionRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setQuestionIndex((current) => Math.max(0, current - 1))}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>Back</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => handleAnswer(null)} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Skip</Text>
+            </Pressable>
+          </View>
+          <PrimaryButton label="Generate profile" loading={isSaving} onPress={handleRunPatternTest} />
+        </Card>
+
+        {testCopy ? (
+          <Card>
+            <Text style={styles.eyebrow}>Result</Text>
+            <Text style={styles.cardTitle}>{testCopy.title}</Text>
+            <Text style={styles.body}>{testCopy.summary}</Text>
+            <Text style={styles.body}>{testCopy.confidence_note}</Text>
+            <View style={styles.reasonList}>
+              {testResult?.reason_codes.slice(0, 4).map((reason) => (
+                <View key={reason} style={styles.reasonPill}>
+                  <Text style={styles.reasonText}>{displayLabel(reason)}</Text>
+                </View>
+              ))}
+            </View>
+          </Card>
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderInsights() {
+    return (
+      <View style={styles.stack}>
+        <SectionTitle
+          body="Insights will sharpen as you log meals and post-meal responses."
+          eyebrow="Food intelligence"
+          title="Insights"
+        />
+        <Card>
+          <Text style={styles.cardTitle}>{profileCopy?.title ?? 'Food Pattern Profile calibrating'}</Text>
+          <Text style={styles.body}>
+            {profileCopy?.summary ??
+              'Healthi does not have enough food pattern signal yet. Take the Food Pattern Test or log a few meals.'}
+          </Text>
+          <View style={styles.signalGrid}>
+            <Metric label="Responses" value={`${responses.length}`} tone={colors.accent} />
+            <Metric label="Readiness" value={displayLabel(readinessSignal.label)} tone={colors.accentMid} />
+            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={colors.accentMid} />
+            <Metric label="Source" value={confidenceText(readinessSignal.confidence)} tone={colors.textMuted} />
+          </View>
+        </Card>
+        <Card>
+          <Text style={styles.cardTitle}>Current summary</Text>
+          <Text style={styles.body}>{readinessSignal.summary}</Text>
+          <Text style={styles.body}>Based on logged meals and responses. {modeLabel}.</Text>
+        </Card>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <KeyboardAvoidingView behavior={undefined} style={styles.safe}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View style={styles.adaptiveTopBar}>
+              <Text style={styles.adaptivePageLabel}>Diet</Text>
+              <View style={styles.adaptiveMode}>
+                <View style={styles.adaptiveModeDot} />
+                <Text style={styles.adaptiveModeText}>{modeLabel}</Text>
+              </View>
+            </View>
+
+            <View style={styles.adaptiveTabBar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {dietTabs.map((segment) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: activeSegment === segment }}
+                    key={segment}
+                    onPress={() => {
+                      closeScanner();
+                      setActiveSegment(segment);
+                    }}
+                    style={[styles.adaptiveTab, activeSegment === segment && styles.adaptiveTabActive]}
+                  >
+                    <Text style={[styles.adaptiveTabText, activeSegment === segment && styles.adaptiveTabTextActive]}>{segment}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+              <View style={styles.adaptiveTabBaseline} />
+            </View>
+
+            {!scannerOpen && !dietTabs.includes(activeSegment as DietTab) ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setActiveSegment('Today')}
+                style={({ pressed }) => [styles.adaptiveBack, pressed && styles.pressed]}
+              >
+                <Ionicons color="#4A5560" name="arrow-back" size={16} />
+                <Text style={styles.adaptiveBackText}>Back to Diet</Text>
+              </Pressable>
+            ) : null}
+
+            {(scannerOpen || !dietTabs.includes(activeSegment as DietTab)) ? (
+              <View style={styles.statusLine}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>{isLoadingRemote ? 'Loading available food data...' : status}</Text>
+              </View>
+            ) : null}
+
+            {scannerOpen ? renderScanner() : null}
+            {!scannerOpen && activeSegment === 'Today' ? renderToday() : null}
+            {!scannerOpen && activeSegment === 'Timeline' ? renderTimeline() : null}
+            {!scannerOpen && activeSegment === 'Nutrients' ? renderNutrients() : null}
+            {!scannerOpen && activeSegment === 'Profile' ? renderProfile() : null}
+            {!scannerOpen && activeSegment === 'Build Meal' ? renderMealBuilder() : null}
+            {!scannerOpen && activeSegment === 'Log Meal' ? renderLogMeal() : null}
+            {!scannerOpen && activeSegment === 'Response Log' ? renderResponseLog() : null}
+            {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
+            {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
+          </ScrollView>
+          {!scannerOpen && dietTabs.includes(activeSegment as DietTab) ? (
+            <View style={styles.adaptiveActionDock}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => openScanner()}
+                style={({ pressed }) => [styles.adaptiveDockButton, pressed && styles.pressed]}
+              >
+                <Ionicons color="#1C4235" name="barcode-outline" size={18} />
+                <Text style={styles.adaptiveDockText}>Scan food</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setActiveSegment('Build Meal')}
+                style={({ pressed }) => [styles.adaptiveDockAdd, pressed && styles.pressed]}
+              >
+                <Ionicons color="#1C4235" name="search" size={18} />
+                <Text style={styles.adaptiveDockText}>Search food</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function ChoiceRow({
+  label,
+  options,
+  selected,
+  onSelect
+}: {
+  label: string;
+  options: string[];
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <View style={styles.choiceRow}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.chipWrap}>
+        {options.map((option) => (
+          <Chip key={option} label={displayLabel(option)} onPress={() => onSelect(option)} selected={selected === option} tone="lavender" />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#EDEBE3'
+  },
+  safe: {
+    flex: 1
+  },
+  scroll: {
+    paddingBottom: 112
+  },
+  adaptiveTopBar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingTop: 10
+  },
+  adaptivePageLabel: {
+    color: '#1C4235',
+    fontFamily: sansMedium,
+    fontSize: 12,
+    letterSpacing: 1.9,
+    lineHeight: 16,
+    textTransform: 'uppercase'
+  },
+  trackerCard: {
+    backgroundColor: '#F8F7F2',
+    borderColor: 'rgba(28, 66, 53, 0.20)',
+    borderRadius: 22,
+    borderWidth: 1
+  },
+  trackerTitle: {
+    color: '#17221C',
+    fontFamily: serif,
+    fontSize: 26,
+    lineHeight: 32,
+    marginTop: 5
+  },
+  trackerEnergyRow: {
+    alignItems: 'flex-end',
+    borderBottomColor: 'rgba(28, 66, 53, 0.12)',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingBottom: 16
+  },
+  trackerEnergyValue: {
+    color: '#1C4235',
+    fontFamily: serif,
+    fontSize: 42,
+    lineHeight: 46
+  },
+  trackerEnergyLabel: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 12
+  },
+  trackerEnergyTarget: {
+    color: '#6E746F',
+    fontFamily: sansMedium,
+    fontSize: 10,
+    paddingBottom: 3
+  },
+  trackerMacroList: {
+    gap: 14
+  },
+  trackerProgress: {
+    gap: 7
+  },
+  trackerProgressLabel: {
+    color: '#26342D',
+    fontFamily: sansMedium,
+    fontSize: 13
+  },
+  trackerRail: {
+    backgroundColor: 'rgba(28, 66, 53, 0.10)',
+    borderRadius: 4,
+    height: 6,
+    overflow: 'hidden'
+  },
+  trackerFill: {
+    backgroundColor: '#3F7563',
+    borderRadius: 4,
+    height: 6
+  },
+  trackerMicroBlock: {
+    backgroundColor: '#EFEDE5',
+    borderRadius: 16,
+    gap: 12,
+    padding: 14
+  },
+  trackerMicroHeading: {
+    color: '#26342D',
+    fontFamily: sansMedium,
+    fontSize: 12,
+    letterSpacing: 0.3
+  },
+  trackerMicroGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  trackerMicroItem: {
+    backgroundColor: '#F8F7F2',
+    borderRadius: 12,
+    flexBasis: '47%',
+    flexGrow: 1,
+    gap: 3,
+    minHeight: 58,
+    padding: 10
+  },
+  trackerMicroValue: {
+    color: '#1C4235',
+    fontFamily: sansMedium,
+    fontSize: 13
+  },
+  trackerMicroUnavailable: {
+    color: '#7A807C',
+    fontFamily: sansMedium,
+    fontSize: 10
+  },
+  trackerMicroLabel: {
+    color: '#59635D',
+    fontFamily: sans,
+    fontSize: 11
+  },
+  trackerActions: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  trackerSearchButton: {
+    alignItems: 'center',
+    borderColor: 'rgba(28, 66, 53, 0.28)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+    minHeight: 48
+  },
+  trackerSearchText: {
+    color: '#1C4235',
+    fontFamily: sansMedium,
+    fontSize: 12
+  },
+  trackerScanButton: {
+    alignItems: 'center',
+    backgroundColor: '#1C4235',
+    borderRadius: 14,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+    minHeight: 48
+  },
+  trackerScanText: {
+    color: '#FAF9F5',
+    fontFamily: sansMedium,
+    fontSize: 12
+  },
+  adaptiveMode: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 40
+  },
+  adaptiveModeDot: {
+    backgroundColor: '#9A6B24',
+    borderRadius: 3,
+    height: 6,
+    width: 6
+  },
+  adaptiveModeText: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    lineHeight: 13,
+    textTransform: 'uppercase'
+  },
+  adaptiveTabBar: {
+    marginTop: 7,
+    paddingHorizontal: 22
+  },
+  adaptiveTab: {
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 2,
+    marginRight: 26,
+    minHeight: 42,
+    paddingBottom: 9,
+    paddingTop: 8
+  },
+  adaptiveTabActive: {
+    borderBottomColor: '#1C4235'
+  },
+  adaptiveTabText: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 15,
+    letterSpacing: -0.1,
+    lineHeight: 21
+  },
+  adaptiveTabTextActive: {
+    color: '#141F19'
+  },
+  adaptiveTabBaseline: {
+    backgroundColor: 'rgba(20,31,25,0.10)',
+    height: hairlineWidth,
+    marginTop: -1
+  },
+  adaptiveBack: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 7,
+    marginLeft: 18,
+    marginTop: 14,
+    minHeight: 42,
+    paddingHorizontal: 4
+  },
+  adaptiveBackText: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  adaptivePage: {
+    paddingBottom: 8
+  },
+  adaptiveHero: {
+    paddingBottom: 24,
+    paddingHorizontal: 22,
+    paddingTop: 26
+  },
+  adaptiveSection: {
+    borderTopColor: 'rgba(20,31,25,0.10)',
+    borderTopWidth: hairlineWidth,
+    paddingBottom: 24,
+    paddingHorizontal: 22,
+    paddingTop: 22
+  },
+  adaptiveSectionLabel: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    lineHeight: 15,
+    textTransform: 'uppercase'
+  },
+  adaptiveKicker: {
+    color: '#1C4235',
+    fontFamily: sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    lineHeight: 15,
+    marginTop: 14,
+    textTransform: 'uppercase'
+  },
+  adaptiveVerdict: {
+    color: '#141F19',
+    fontFamily: serifLight,
+    fontSize: 25,
+    letterSpacing: -0.25,
+    lineHeight: 33,
+    marginTop: 10
+  },
+  adaptiveReasonList: {
+    gap: 9,
+    marginTop: 18
+  },
+  adaptiveReasonRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 11
+  },
+  adaptiveReasonDot: {
+    backgroundColor: '#2F6B53',
+    borderRadius: 3,
+    height: 5,
+    marginTop: 8,
+    width: 5
+  },
+  adaptiveReasonText: {
+    color: '#141F19',
+    flex: 1,
+    fontFamily: sans,
+    fontSize: 14.5,
+    lineHeight: 21
+  },
+  adaptiveConfidenceRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20
+  },
+  adaptiveConfidenceLabel: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.1,
+    lineHeight: 14,
+    textTransform: 'uppercase'
+  },
+  adaptiveConfidenceSegments: {
+    flexDirection: 'row',
+    gap: 3
+  },
+  adaptiveConfidenceSegment: {
+    backgroundColor: 'rgba(20,31,25,0.14)',
+    borderRadius: 2,
+    height: 4,
+    width: 16
+  },
+  adaptiveConfidenceSegmentFilled: {
+    backgroundColor: '#141F19'
+  },
+  adaptiveConfidenceValue: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  adaptivePrimaryButton: {
+    alignItems: 'center',
+    backgroundColor: '#1C4235',
+    borderRadius: 13,
+    justifyContent: 'center',
+    marginTop: 22,
+    minHeight: 52,
+    paddingHorizontal: 18
+  },
+  adaptivePrimaryButtonText: {
+    color: '#FAF9F5',
+    fontFamily: sansMedium,
+    fontSize: 15,
+    lineHeight: 20
+  },
+  adaptiveSectionHeading: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between'
+  },
+  adaptiveSectionAside: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 11,
+    lineHeight: 15
+  },
+  adaptivePriorityList: {
+    marginTop: 16
+  },
+  adaptivePriority: {
+    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomWidth: hairlineWidth,
+    marginBottom: 18,
+    paddingBottom: 18
+  },
+  adaptivePriorityTag: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.75,
+    lineHeight: 15,
+    textTransform: 'uppercase'
+  },
+  adaptivePriorityTagUrgent: {
+    color: '#9A6B24'
+  },
+  adaptiveMono: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 11,
+    lineHeight: 15,
+    fontVariant: ['tabular-nums']
+  },
+  adaptiveMonoStrong: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 14,
+    lineHeight: 19,
+    fontVariant: ['tabular-nums']
+  },
+  adaptivePriorityTitle: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 16.5,
+    letterSpacing: -0.1,
+    lineHeight: 22,
+    marginTop: 7
+  },
+  adaptivePriorityReason: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginTop: 5
+  },
+  adaptivePriorityActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 10
+  },
+  adaptiveInlineAction: {
+    borderBottomColor: 'rgba(28,66,53,0.35)',
+    borderBottomWidth: 1,
+    justifyContent: 'center',
+    minHeight: 38
+  },
+  adaptiveInlineActionText: {
+    color: '#1C4235',
+    fontFamily: sansMedium,
+    fontSize: 13.5,
+    lineHeight: 18
+  },
+  adaptivePriorityConfidence: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    lineHeight: 14,
+    marginLeft: 'auto',
+    textTransform: 'uppercase'
+  },
+  adaptiveSectionVoice: {
+    color: '#4A5560',
+    fontFamily: serifItalic,
+    fontSize: 14,
+    fontStyle: 'italic',
+    lineHeight: 20,
+    marginTop: 8
+  },
+  adaptiveLaneList: {
+    marginTop: 17
+  },
+  adaptiveLane: {
+    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomWidth: hairlineWidth
+  },
+  adaptiveLaneButton: {
+    justifyContent: 'center',
+    minHeight: 66,
+    paddingVertical: 13
+  },
+  adaptiveLaneName: {
+    color: '#141F19',
+    flex: 1,
+    fontFamily: sansMedium,
+    fontSize: 15,
+    lineHeight: 20
+  },
+  adaptiveLaneState: {
+    color: '#2F6B53',
+    fontFamily: sansMedium,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  adaptiveLaneStateWarm: {
+    color: '#9A6B24'
+  },
+  adaptiveLaneTrackRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 9
+  },
+  adaptiveLaneTrack: {
+    backgroundColor: 'rgba(20,31,25,0.10)',
+    borderRadius: 2,
+    flex: 1,
+    height: 4,
+    overflow: 'hidden'
+  },
+  adaptiveLaneTrackLimited: {
+    borderColor: 'rgba(20,31,25,0.25)',
+    borderWidth: 1
+  },
+  adaptiveLaneFill: {
+    backgroundColor: '#2F6B53',
+    borderRadius: 2,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    top: 0
+  },
+  adaptiveLaneMeta: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+    lineHeight: 13,
+    textTransform: 'uppercase'
+  },
+  adaptiveLaneDetail: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 13,
+    lineHeight: 19,
+    paddingBottom: 15
+  },
+  adaptiveCoverageLabel: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 10.5,
+    letterSpacing: 0.9,
+    lineHeight: 14,
+    marginTop: 16,
+    textTransform: 'uppercase'
+  },
+  adaptiveCoverageNeed: {
+    color: '#141F19',
+    fontFamily: serif,
+    fontSize: 18,
+    lineHeight: 24,
+    marginTop: 6
+  },
+  adaptiveInsetCard: {
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.10)',
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 18,
+    padding: 18
+  },
+  adaptiveCoverageSuggestion: {
+    color: '#141F19',
+    fontFamily: serif,
+    fontSize: 20,
+    lineHeight: 27,
+    marginTop: 6
+  },
+  adaptiveRecent: {
+    alignItems: 'center',
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.10)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 66,
+    paddingHorizontal: 18,
+    paddingVertical: 14
+  },
+  adaptiveRecentCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  adaptiveRecentTitle: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 14.5,
+    lineHeight: 20
+  },
+  adaptiveViewTitle: {
+    color: '#141F19',
+    fontFamily: serifLight,
+    fontSize: 23,
+    lineHeight: 30,
+    marginTop: 8
+  },
+  adaptiveTimeline: {
+    marginTop: 26
+  },
+  adaptiveTimelineEvent: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    minHeight: 74,
+    position: 'relative'
+  },
+  adaptiveTimelineTime: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 12,
+    lineHeight: 17,
+    paddingTop: 1,
+    textAlign: 'right',
+    width: 54
+  },
+  adaptiveTimelineMarker: {
+    backgroundColor: '#2F6B53',
+    borderColor: '#EDEBE3',
+    borderRadius: 6,
+    borderWidth: 2,
+    height: 12,
+    marginHorizontal: 13,
+    marginTop: 3,
+    width: 12
+  },
+  adaptiveTimelineCopy: {
+    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomWidth: hairlineWidth,
+    flex: 1,
+    minHeight: 64,
+    paddingBottom: 14
+  },
+  adaptiveTimelineTitle: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 15,
+    lineHeight: 20
+  },
+  adaptiveTimelineNote: {
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.10)',
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 16
+  },
+  adaptiveEmpty: {
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.10)',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20
+  },
+  adaptiveSearch: {
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.12)',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 15,
+    height: 46,
+    marginTop: 18,
+    paddingHorizontal: 16
+  },
+  adaptiveConfidenceSummary: {
+    borderTopColor: 'rgba(20,31,25,0.08)',
+    borderTopWidth: hairlineWidth,
+    marginTop: 16,
+    paddingTop: 15
+  },
+  adaptiveNutrientRow: {
+    alignItems: 'center',
+    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 74,
+    paddingVertical: 12
+  },
+  adaptiveNutrientCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  adaptiveNutrientContext: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginTop: 3
+  },
+  adaptiveNutrientValue: {
+    alignItems: 'flex-end'
+  },
+  adaptiveFoundationMeta: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14
+  },
+  adaptiveFoundationBadge: {
+    borderColor: 'rgba(28,66,53,0.40)',
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4
+  },
+  adaptiveFoundationBadgeText: {
+    color: '#1C4235',
+    fontFamily: sansMedium,
+    fontSize: 10.5,
+    letterSpacing: 0.8,
+    lineHeight: 14,
+    textTransform: 'uppercase'
+  },
+  adaptiveProfileLead: {
+    color: '#141F19',
+    fontFamily: serifLight,
+    fontSize: 19,
+    lineHeight: 29,
+    marginTop: 14
+  },
+  adaptiveContributorList: {
+    backgroundColor: 'rgba(20,31,25,0.08)',
+    borderRadius: 12,
+    gap: 1,
+    marginTop: 18,
+    overflow: 'hidden'
+  },
+  adaptiveContributorRow: {
+    alignItems: 'center',
+    backgroundColor: '#EDEBE3',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingVertical: 12
+  },
+  adaptiveContributorLabel: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 13.5,
+    lineHeight: 18
+  },
+  adaptiveContributorValue: {
+    color: '#4A5560',
+    fontFamily: sansMedium,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  adaptiveSecondaryButton: {
+    alignItems: 'center',
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginTop: 18,
+    minHeight: 48,
+    paddingHorizontal: 16
+  },
+  adaptiveSecondaryButtonText: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 14,
+    lineHeight: 19
+  },
+  adaptiveSafetyNote: {
+    color: '#4A5560',
+    fontFamily: sans,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 12,
+    textAlign: 'center'
+  },
+  adaptiveActionDock: {
+    backgroundColor: '#EDEBE3',
+    borderTopColor: 'rgba(20,31,25,0.10)',
+    borderTopWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 10,
+    paddingBottom: 6,
+    paddingHorizontal: 22,
+    paddingTop: 9
+  },
+  adaptiveDockButton: {
+    alignItems: 'center',
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 48
+  },
+  adaptiveDockAdd: {
+    alignItems: 'center',
+    backgroundColor: '#FAF9F5',
+    borderColor: 'rgba(20,31,25,0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: 18
+  },
+  adaptiveDockText: {
+    color: '#141F19',
+    fontFamily: sansMedium,
+    fontSize: 14,
+    lineHeight: 19
+  },
+  topBar: {
+    paddingHorizontal: 26,
+    paddingTop: 22
+  },
+  pageEyebrow: {
+    ...themeType.eyebrow,
+    color: colors.textFaint
+  },
+  pageTitle: {
+    ...themeType.title,
+    color: colors.text,
+    marginTop: 7
+  },
+  wordmark: {
+    color: C.goldSoft,
+    fontFamily: serif,
+    fontSize: 28,
+    lineHeight: 34
+  },
+  topSub: {
+    color: C.sub,
+    fontFamily: sans,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
+    marginTop: 2
+  },
+  iconBubble: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(28,84,67,0.08)',
+    borderColor: 'rgba(28,84,67,0.24)',
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: 'center',
+    width: 42
+  },
+  segmentBar: {
+    marginTop: 22
+  },
+  segmentBaseline: {
+    backgroundColor: colors.hairlineSoft,
+    height: hairlineWidth
+  },
+  segment: {
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 2,
+    marginLeft: 26,
+    paddingBottom: 12
+  },
+  segmentActive: {
+    borderBottomColor: colors.accent
+  },
+  segmentText: {
+    color: C.sub,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  segmentTextActive: {
+    color: colors.text
+  },
+  statusLine: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 26,
+    paddingTop: 16
+  },
+  statusDot: {
+    backgroundColor: colors.accent,
+    borderRadius: 3,
+    height: 5,
+    width: 5
+  },
+  statusText: {
+    color: C.sub,
+    fontFamily: sans,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  stack: {
+    gap: 14,
+    marginTop: 14,
+    paddingHorizontal: 16
+  },
+  stackSmall: {
+    gap: 8
+  },
+  card: {
+    backgroundColor: C.card,
+    borderColor: C.hairline,
+    borderRadius: 26,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 18
+  },
+  heroCard: {
+    borderColor: palette.forestPale,
+    padding: 20
+  },
+  rowBetween: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  sectionTitle: {
+    gap: 6,
+    paddingHorizontal: 2
+  },
+  eyebrow: {
+    ...themeType.eyebrow,
+    color: C.gold,
+    textTransform: 'uppercase'
+  },
+  title: {
+    ...themeType.title,
+    color: C.ink,
+    fontFamily: serif
+  },
+  heroTitle: {
+    ...themeType.title,
+    color: C.ink,
+    fontFamily: serifLight,
+    fontSize: 38,
+    lineHeight: 44,
+    marginTop: 4
+  },
+  cardTitle: {
+    ...themeType.heading,
+    color: C.ink,
+    fontFamily: serif,
+    marginBottom: 8
+  },
+  body: {
+    ...themeType.body,
+    color: C.sub
+  },
+  modePill: {
+    backgroundColor: palette.forestWash,
+    borderColor: palette.forestPale,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  modeText: {
+    color: C.lavender,
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 18
+  },
+  signalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 12,
+    marginTop: 10
+  },
+  metric: {
+    backgroundColor: 'rgba(246,244,238,0.72)',
+    borderColor: C.hairline,
+    borderRadius: 18,
+    borderWidth: 1,
+    minWidth: '30%',
+    padding: 12
+  },
+  metricLabel: {
+    color: C.muted,
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight,
+    letterSpacing: 1.3,
+    marginBottom: 6,
+    textTransform: 'uppercase'
+  },
+  metricValue: {
+    ...themeType.number,
+    color: C.ink,
+    fontFamily: sansMedium
+  },
+  field: {
+    marginBottom: 12
+  },
+  fieldHalf: {
+    flexBasis: '47%',
+    flexGrow: 1
+  },
+  fieldLabel: {
+    color: C.sub,
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight,
+    letterSpacing: 1.2,
+    marginBottom: 8,
+    textTransform: 'uppercase'
+  },
+  input: {
+    backgroundColor: palette.paper,
+    borderColor: C.hairline,
+    borderRadius: 16,
+    borderWidth: 1,
+    color: C.ink,
+    fontFamily: sans,
+    fontSize: themeType.body.fontSize,
+    lineHeight: themeType.body.lineHeight,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 11
+  },
+  textarea: {
+    minHeight: 92,
+    textAlignVertical: 'top'
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14
+  },
+  chip: {
+    borderColor: C.hairline,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9
+  },
+  chipSelected: {
+    backgroundColor: colors.accentWash,
+    borderColor: colors.accent
+  },
+  chipText: {
+    color: C.sub,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight
+  },
+  chipTextSelected: {
+    color: colors.accent
+  },
+  twoCol: {
+    columnGap: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap'
+  },
+  primaryButton: {
+    alignItems: 'center',
+    backgroundColor: C.gold,
+    borderRadius: 18,
+    justifyContent: 'center',
+    marginTop: 8,
+    minHeight: 52,
+    paddingHorizontal: 18
+  },
+  pressed: {
+    opacity: 0.75
+  },
+  disabled: {
+    opacity: 0.55
+  },
+  primaryButtonText: {
+    color: palette.paper,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    borderColor: C.hairline,
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 44,
+    justifyContent: 'center'
+  },
+  secondaryButtonText: {
+    color: C.sub,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  choiceRow: {
+    marginBottom: 8
+  },
+  progressText: {
+    color: C.goldSoft,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
+    letterSpacing: 1.2
+  },
+  questionText: {
+    ...themeType.heading,
+    color: C.ink,
+    fontFamily: serifItalic,
+    fontSize: 24,
+    lineHeight: 31,
+    marginBottom: 16,
+    marginTop: 18
+  },
+  answerButton: {
+    backgroundColor: palette.paper,
+    borderColor: C.hairline,
+    borderRadius: 18,
+    borderWidth: 1,
+    minHeight: 50,
+    justifyContent: 'center',
+    paddingHorizontal: 15
+  },
+  answerButtonSelected: {
+    backgroundColor: palette.forestWash,
+    borderColor: palette.forestPale
+  },
+  answerText: {
+    color: C.sub,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14
+  },
+  reasonList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14
+  },
+  reasonPill: {
+    backgroundColor: palette.forestWash,
+    borderColor: palette.forestPale,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  reasonText: {
+    color: C.teal,
+    fontFamily: sansMedium,
+    fontSize: themeType.eyebrow.fontSize,
+    lineHeight: themeType.eyebrow.lineHeight
+  },
+  scannerHeading: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2
+  },
+  scannerHeadingCopy: {
+    flex: 1
+  },
+  iconButton: {
+    alignItems: 'center',
+    borderColor: C.hairline,
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44
+  },
+  scannerIntroRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12
+  },
+  scannerIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: 'center',
+    width: 48
+  },
+  cameraShell: {
+    backgroundColor: C.ink,
+    borderRadius: 20,
+    height: 320,
+    marginTop: 16,
+    overflow: 'hidden'
+  },
+  scanFrame: {
+    borderColor: palette.paper,
+    borderRadius: 16,
+    borderWidth: 2,
+    height: 112,
+    left: '12%',
+    opacity: 0.88,
+    position: 'absolute',
+    right: '12%',
+    top: 84
+  },
+  cameraCancel: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(26,33,29,0.78)',
+    borderColor: 'rgba(253,252,249,0.38)',
+    borderRadius: 16,
+    borderWidth: 1,
+    bottom: 18,
+    left: 48,
+    minHeight: 44,
+    position: 'absolute',
+    right: 48,
+    justifyContent: 'center'
+  },
+  cameraCancelText: {
+    color: palette.paper,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  orRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+    marginTop: 20
+  },
+  orLine: {
+    backgroundColor: C.hairline,
+    flex: 1,
+    height: hairlineWidth
+  },
+  orText: {
+    color: C.muted,
+    fontFamily: sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    lineHeight: 13
+  },
+  scannerMessage: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 12,
+    textAlign: 'center'
+  },
+  productCard: {
+    borderColor: palette.forestPale,
+    padding: 20
+  },
+  productHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 14,
+    justifyContent: 'space-between'
+  },
+  productHeaderCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  productName: {
+    ...themeType.heading,
+    color: C.ink,
+    fontFamily: serif,
+    fontSize: 24,
+    lineHeight: 30,
+    marginTop: 7
+  },
+  productMeta: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 5
+  },
+  qualityScore: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 36,
+    borderWidth: 1,
+    height: 72,
+    justifyContent: 'center',
+    width: 72
+  },
+  qualityScoreValue: {
+    color: colors.accent,
+    fontFamily: serif,
+    fontSize: 30,
+    lineHeight: 34
+  },
+  qualityScoreLabel: {
+    color: C.muted,
+    fontFamily: sansMedium,
+    fontSize: 7,
+    letterSpacing: 0.8,
+    lineHeight: 10
+  },
+  productMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 20
+  },
+  qualityPanel: {
+    backgroundColor: palette.ivory,
+    borderColor: C.hairline,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 18,
+    marginTop: 18,
+    padding: 15
+  },
+  qualityLabel: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
+    marginLeft: 12,
+    textAlign: 'right'
+  },
+  signalSection: {
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    marginTop: 14,
+    paddingTop: 12
+  },
+  signalSectionTitle: {
+    ...themeType.eyebrow,
+    color: C.muted,
+    fontSize: 9,
+    lineHeight: 12
+  },
+  signalReasonRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 10
+  },
+  signalReasonDot: {
+    backgroundColor: colors.accentMid,
+    borderRadius: 3,
+    height: 5,
+    marginTop: 8,
+    width: 5
+  },
+  considerationDot: {
+    backgroundColor: palette.clayDark
+  },
+  signalReasonText: {
+    ...themeType.caption,
+    color: C.sub,
+    flex: 1
+  },
+  confidenceLine: {
+    ...themeType.caption,
+    color: C.muted,
+    marginTop: 13
+  },
+  disclosureBlock: {
+    borderBottomColor: C.hairline,
+    borderBottomWidth: hairlineWidth
+  },
+  disclosureHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    paddingVertical: 9
+  },
+  disclosureTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9
+  },
+  disclosureTitle: {
+    ...themeType.label,
+    color: C.ink
+  },
+  disclosureContent: {
+    paddingBottom: 16,
+    paddingLeft: 27
+  },
+  optionTitle: {
+    ...themeType.label,
+    color: C.ink,
+    marginBottom: 4
+  },
+  evidenceItem: {
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    paddingVertical: 13,
+    paddingLeft: 27
+  },
+  evidenceSource: {
+    ...themeType.caption,
+    color: colors.accent,
+    marginBottom: 5
+  },
+  personalResponseNote: {
+    alignItems: 'flex-start',
+    backgroundColor: colors.accentWash,
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    padding: 13
+  },
+  personalResponseText: {
+    ...themeType.caption,
+    color: C.sub,
+    flex: 1
+  },
+  productFormDivider: {
+    backgroundColor: C.hairline,
+    height: hairlineWidth,
+    marginBottom: 18,
+    marginTop: 6
+  },
+  scanActionCard: {
+    borderColor: palette.forestPale
+  },
+  inlineTextButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingTop: 8
+  },
+  inlineTextButtonText: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  builderCard: {
+    borderColor: palette.forestPale
+  },
+  builderMessage: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 2
+  },
+  searchRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16
+  },
+  searchInput: {
+    flex: 1,
+    marginBottom: 0
+  },
+  searchButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: 16,
+    height: 48,
+    justifyContent: 'center',
+    width: 48
+  },
+  libraryList: {
+    marginTop: 12
+  },
+  libraryRow: {
+    alignItems: 'center',
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 72,
+    paddingVertical: 12
+  },
+  libraryCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  libraryName: {
+    color: C.ink,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  },
+  libraryMeta: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 3
+  },
+  librarySignal: {
+    color: colors.accent,
+    fontFamily: sansMedium,
+    fontSize: themeType.caption.fontSize,
+    lineHeight: themeType.caption.lineHeight,
+    marginTop: 3
+  },
+  addIconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40
+  },
+  smallIconButton: {
+    alignItems: 'center',
+    borderColor: C.hairline,
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36
+  },
+  mealContentsCard: {
+    borderColor: palette.forestPale
+  },
+  builderItemRow: {
+    alignItems: 'center',
+    borderTopColor: C.hairline,
+    borderTopWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 74,
+    paddingVertical: 12
+  },
+  builderItemCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  servingsInput: {
+    backgroundColor: palette.paper,
+    borderColor: C.hairline,
+    borderRadius: 14,
+    borderWidth: 1,
+    color: C.ink,
+    fontFamily: sansMedium,
+    minHeight: 40,
+    paddingHorizontal: 10,
+    textAlign: 'center',
+    width: 52
+  },
+  scannerShortcut: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 18,
+    minHeight: 50,
+    paddingHorizontal: 14
+  },
+  scannerShortcutText: {
+    color: colors.accent,
+    flex: 1,
+    fontFamily: sansMedium,
+    fontSize: themeType.label.fontSize,
+    lineHeight: themeType.label.lineHeight
+  }
+});

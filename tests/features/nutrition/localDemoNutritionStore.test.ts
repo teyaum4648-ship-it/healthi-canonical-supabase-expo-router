@@ -1,0 +1,351 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { FoodPatternProfile, MealLog } from '../../../src/engines/nutrition';
+import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import type { PostMealResponseLogRow } from '../../../src/features/nutrition/foodPersonalizationPersistence';
+import type { MealLogItemRow } from '../../../src/features/nutrition/mealItemPersistence';
+import type { UserFoodProductRow } from '../../../src/features/nutrition/productLibraryPersistence';
+import {
+  appendLocalDemoMealLogItems,
+  appendLocalDemoMealLog,
+  cacheLocalDemoUserFoodProduct,
+  getRecentLocalDemoUserFoodProducts,
+  getSavedLocalDemoUserFoodProducts,
+  createEmptyLocalDemoNutritionState,
+  deserializeDemoFoodPatternProfile,
+  deserializeDemoMealLogItems,
+  deserializeDemoMealLogs,
+  deserializeDemoPostMealResponses,
+  deserializeDemoUserFoodProducts,
+  serializeDemoFoodPatternProfile,
+  serializeDemoMealLogItems,
+  serializeDemoMealLogs,
+  serializeDemoPostMealResponses,
+  serializeDemoUserFoodProducts,
+  toLocalDemoMealLog
+} from '../../../src/features/nutrition/localDemoNutritionStore';
+
+const storage = vi.hoisted(() => new Map<string, string>());
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn((key: string) => Promise.resolve(storage.get(key) ?? null)),
+    setItem: vi.fn((key: string, value: string) => {
+      storage.set(key, value);
+      return Promise.resolve();
+    })
+  }
+}));
+
+function createMeal(overrides: Partial<MealLog> = {}): MealLog {
+  return {
+    id: 'local-meal-1',
+    user_id: 'demo-user',
+    logged_at: '2026-06-12T12:00:00.000Z',
+    meal_type: 'lunch',
+    name: 'Lunch bowl',
+    source: 'manual',
+    source_confidence: 'medium',
+    calories: 640,
+    protein_g: 44,
+    carbs_g: 62,
+    fat_g: 20,
+    fiber_g: 11,
+    sugar_g: 9,
+    sodium_mg: 620,
+    ingredients: ['rice', 'chicken', 'greens'],
+    quality_flags: ['balanced_meal', 'whole_food_emphasis'],
+    user_response: {
+      digestion: 'good',
+      energy: 'steady',
+      appetite: 'stable',
+      cravings: 'none',
+      notes: 'Felt steady.'
+    },
+    corrected_by_user: false,
+    confirmed_by_user: true,
+    reason_codes: ['manual_food_log'],
+    created_at: '2026-06-12T12:01:00.000Z',
+    ...overrides
+  };
+}
+
+function createResponse(overrides: Partial<PostMealResponseLogRow> = {}): PostMealResponseLogRow {
+  return {
+    id: 'local-response-1',
+    user_id: 'demo-user',
+    meal_log_id: 'local-meal-1',
+    responded_at: '2026-06-12T13:30:00.000Z',
+    minutes_after_meal: 90,
+    overall_score: 8,
+    digestion: 'good',
+    energy: 'steady',
+    appetite: 'stable',
+    focus: 'clear',
+    cravings: 'none',
+    notes: 'Smooth afternoon.',
+    confidence: 'medium',
+    reason_codes: ['post_meal_response_logged'],
+    created_at: '2026-06-12T13:31:00.000Z',
+    updated_at: '2026-06-12T13:31:00.000Z',
+    ...overrides
+  };
+}
+
+function createProfile(overrides: Partial<FoodPatternProfile> = {}): FoodPatternProfile {
+  return {
+    id: 'local-profile-1',
+    user_id: 'demo-user',
+    created_at: '2026-06-12T14:00:00.000Z',
+    updated_at: '2026-06-12T14:00:00.000Z',
+    source: 'food_pattern_test',
+    confidence: 'medium',
+    pattern_label: 'steady_balanced',
+    scores: {
+      steady_balanced: 82,
+      protein_forward: 52,
+      carb_supported: 30,
+      lighter_frequent: 40,
+      evening_sensitive: 35
+    },
+    macro_tendency: {
+      protein: 'moderate',
+      carbs: 'moderate',
+      fat: 'moderate'
+    },
+    meal_timing_tendency: {
+      breakfast: 'helpful',
+      meal_spacing: 'moderate',
+      late_meal_sensitivity: 'medium'
+    },
+    response_tendencies: {
+      digestion: 'steady',
+      energy: 'steady',
+      appetite: 'stable'
+    },
+    reason_codes: ['steady_balanced_signal', 'breakfast_helpful'],
+    ...overrides
+  };
+}
+
+function createProduct(overrides: Partial<UserFoodProductRow> = {}): UserFoodProductRow {
+  return {
+    id: 'local-product-1',
+    user_id: 'demo-user',
+    barcode: '012345678905',
+    provider: 'open_food_facts',
+    provider_product_id: '012345678905',
+    name: 'Protein oats',
+    brand: 'Test Foods',
+    serving_size: '50 g',
+    serving_quantity_g: 50,
+    calories_per_serving: 220,
+    protein_g: 14,
+    carbs_g: 31,
+    fat_g: 6,
+    fiber_g: 5,
+    sugar_g: 7,
+    sodium_mg: 180,
+    saturated_fat_g: 1,
+    ingredients_text: 'Oats, seeds, whey',
+    quality_label: 'supportive',
+    quality_score: 82,
+    quality_confidence: 'high',
+    quality_flags: ['balanced_meal'],
+    quality_reason_codes: ['product_label_data', 'fiber_supportive'],
+    quality_snapshot: { label: 'supportive', score: 82 },
+    is_saved: true,
+    last_used_at: '2026-06-12T12:00:00.000Z',
+    last_scanned_at: '2026-06-12T12:00:00.000Z',
+    source: 'scanner',
+    source_confidence: 'high',
+    created_at: '2026-06-12T12:00:00.000Z',
+    updated_at: '2026-06-12T12:00:00.000Z',
+    ...overrides
+  };
+}
+
+function createMealItem(overrides: Partial<MealLogItemRow> = {}): MealLogItemRow {
+  return {
+    id: 'local-item-1',
+    user_id: 'demo-user',
+    meal_log_id: 'local-meal-1',
+    food_product_id: 'local-product-1',
+    logged_at: '2026-06-12T12:00:00.000Z',
+    meal_type: 'lunch',
+    name: 'Protein oats',
+    brand: 'Test Foods',
+    servings: 1,
+    serving_size: '50 g',
+    serving_quantity_g: 50,
+    calories: 220,
+    protein_g: 14,
+    carbs_g: 31,
+    fat_g: 6,
+    fiber_g: 5,
+    sugar_g: 7,
+    sodium_mg: 180,
+    saturated_fat_g: 1,
+    barcode: '012345678905',
+    provider: 'open_food_facts',
+    provider_product_id: '012345678905',
+    quality_label: 'supportive',
+    quality_score: 82,
+    quality_confidence: 'high',
+    source: 'demo',
+    source_confidence: 'high',
+    reason_codes: ['product_label_data'],
+    metadata: { builder_item_id: 'item-1' },
+    created_at: '2026-06-12T12:00:00.000Z',
+    updated_at: '2026-06-12T12:00:00.000Z',
+    ...overrides
+  };
+}
+
+describe('local demo nutrition store helpers', () => {
+  beforeEach(() => {
+    storage.clear();
+  });
+
+  it('serializes and deserializes meal logs while preserving nested response data', () => {
+    const meal = createMeal();
+    const roundTrip = deserializeDemoMealLogs(serializeDemoMealLogs([meal]));
+
+    expect(roundTrip).toEqual([meal]);
+    expect(roundTrip[0]?.user_response?.energy).toBe('steady');
+    expect(roundTrip[0]?.ingredients).toEqual(['rice', 'chicken', 'greens']);
+  });
+
+  it('serializes and deserializes post-meal responses', () => {
+    const response = createResponse();
+
+    expect(deserializeDemoPostMealResponses(serializeDemoPostMealResponses([response]))).toEqual([response]);
+  });
+
+  it('serializes and deserializes the active food pattern profile', () => {
+    const profile = createProfile();
+    const roundTrip = deserializeDemoFoodPatternProfile(serializeDemoFoodPatternProfile(profile));
+
+    expect(roundTrip).toEqual(profile);
+    expect(roundTrip?.scores.steady_balanced).toBe(82);
+    expect(roundTrip?.reason_codes).toContain('steady_balanced_signal');
+  });
+
+  it('returns defaults for missing or invalid local demo data', () => {
+    expect(deserializeDemoMealLogs(null)).toEqual([]);
+    expect(deserializeDemoMealLogs('not-json')).toEqual([]);
+    expect(deserializeDemoPostMealResponses(JSON.stringify([{ id: 'missing-required-fields' }]))).toEqual([]);
+    expect(deserializeDemoFoodPatternProfile(null)).toBeNull();
+    expect(deserializeDemoUserFoodProducts(null)).toEqual([]);
+    expect(deserializeDemoMealLogItems(null)).toEqual([]);
+    expect(createEmptyLocalDemoNutritionState()).toEqual({
+      mealLogs: [],
+      postMealResponses: [],
+      foodPatternProfile: null,
+      userFoodProducts: [],
+      mealLogItems: []
+    });
+  });
+
+  it('maps a Food tab local meal into the shared store shape without mutating the source meal', () => {
+    const meal = createMeal({ id: 'local-meal-food-tab' });
+    const mapped = toLocalDemoMealLog(meal);
+
+    mapped.name = 'Edited clone';
+
+    expect(mapped.id).toBe('local-meal-food-tab');
+    expect(mapped.reason_codes).toEqual(['manual_food_log']);
+    expect(meal.name).toBe('Lunch bowl');
+  });
+
+  it('lets dashboard nutrition summary consume shared local demo meal logs', () => {
+    const summary = composeDashboardNutritionSummary({
+      date: '2026-06-12',
+      meals: deserializeDemoMealLogs(serializeDemoMealLogs([createMeal()])),
+      targets: null,
+      demoMode: true
+    });
+
+    expect(summary.meal_count).toBe(1);
+    expect(summary.calorie_label).toBe('640');
+    expect(summary.protein_label).toBe('44g');
+    expect(summary.food_response_label).toBe('Steady');
+    expect(summary.source_label).toBe('demo');
+  });
+
+  it('adds a scanned product meal to shared local demo nutrition state', async () => {
+    const scannedMeal = createMeal({
+      id: 'local-scanned-meal-1',
+      name: 'Scanned oats',
+      source: 'barcode_pending',
+      reason_codes: ['barcode_food_logged', 'product_label_data']
+    });
+
+    const next = await appendLocalDemoMealLog(scannedMeal);
+
+    expect(next).toEqual([scannedMeal]);
+    expect(deserializeDemoMealLogs(storage.get('healthi:demo:nutrition:mealLogs') ?? null)).toEqual([scannedMeal]);
+  });
+
+  it('persists reusable demo products and detailed meal items', async () => {
+    const product = createProduct();
+    const item = createMealItem();
+    const products = await cacheLocalDemoUserFoodProduct(product);
+    const items = await appendLocalDemoMealLogItems([item]);
+
+    expect(products).toEqual([product]);
+    expect(items).toEqual([item]);
+    expect(deserializeDemoUserFoodProducts(serializeDemoUserFoodProducts(products))).toEqual([product]);
+    expect(deserializeDemoMealLogItems(serializeDemoMealLogItems(items))).toEqual([item]);
+  });
+
+  it('returns saved and recent demo foods in a stable order', async () => {
+    await cacheLocalDemoUserFoodProduct(createProduct({ id: 'older', is_saved: false, last_used_at: '2026-06-12T08:00:00.000Z' }));
+    await cacheLocalDemoUserFoodProduct(createProduct({ id: 'newer', barcode: '123456789012', is_saved: true, last_used_at: '2026-06-12T13:00:00.000Z' }));
+
+    await expect(getRecentLocalDemoUserFoodProducts()).resolves.toMatchObject([{ id: 'newer' }, { id: 'older' }]);
+    await expect(getSavedLocalDemoUserFoodProducts()).resolves.toMatchObject([{ id: 'newer' }]);
+  });
+
+  it('does not introduce blocked language in local demo nutrition payloads', () => {
+    const output = JSON.stringify({
+      meal: createMeal(),
+      response: createResponse(),
+      profile: createProfile()
+    }).toLowerCase();
+    const blockedTerms = [
+      'diag' + 'nosis',
+      'diag' + 'nose',
+      'treat' + 'ment',
+      'c' + 'ure',
+      'pre' + 'scribe',
+      'pre' + 'scription',
+      'ad' + 'renal',
+      'h' + 'pa',
+      'cor' + 'tisol',
+      'hor' + 'mone',
+      'clin' + 'ical',
+      'medical ' + 'decision',
+      'dys' + 'regulated',
+      'dys' + 'function',
+      'de' + 'tox',
+      'tox' + 'in',
+      'tox' + 'ic',
+      'clean' + 'se',
+      'cheat ' + 'meal',
+      'guilt-' + 'free',
+      'bad ' + 'food',
+      'metabolic ' + 'type',
+      'metabolic ' + 'typing',
+      'che' + 'k',
+      'h' + 'lc',
+      '4 doc' + 'tors',
+      'primal ' + 'pattern',
+      'work-' + 'in'
+    ];
+
+    for (const term of blockedTerms) {
+      expect(output).not.toContain(term);
+    }
+  });
+});
