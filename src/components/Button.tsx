@@ -7,6 +7,11 @@ import {
 } from 'react-native';
 
 import { colors, fonts, radii, spacing } from '../styles/theme';
+import {
+  colors as mobileColors,
+  fonts as mobileFonts,
+  radii as mobileRadii
+} from '../styles/mobileTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -14,6 +19,7 @@ type ButtonProps = PressableProps & {
   label: string;
   isLoading?: boolean;
   variant?: ButtonVariant;
+  appearance?: 'default' | 'mobile';
 };
 
 export function Button({
@@ -21,10 +27,12 @@ export function Button({
   disabled,
   isLoading = false,
   variant = 'primary',
+  appearance = 'default',
   style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || isLoading;
+  const usesMobileTheme = appearance === 'mobile';
 
   return (
     <Pressable
@@ -33,6 +41,8 @@ export function Button({
       style={(state) => [
         styles.base,
         styles[variant],
+        usesMobileTheme ? mobileStyles.base : null,
+        usesMobileTheme ? mobileStyles[variant] : null,
         state.pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
         typeof style === 'function' ? style(state) : style
@@ -40,9 +50,16 @@ export function Button({
       {...props}
     >
       {isLoading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.primaryText : colors.primary} />
+        <ActivityIndicator color={variant === 'primary' ? (usesMobileTheme ? mobileColors.primaryText : colors.primaryText) : (usesMobileTheme ? mobileColors.primary : colors.primary)} />
       ) : (
-        <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : null]}>
+        <Text
+          style={[
+            styles.label,
+            variant === 'primary' ? styles.primaryLabel : null,
+            usesMobileTheme ? mobileStyles.label : null,
+            usesMobileTheme && variant === 'primary' ? mobileStyles.primaryLabel : null
+          ]}
+        >
           {label}
         </Text>
       )}
@@ -91,5 +108,36 @@ const styles = StyleSheet.create({
   },
   primaryLabel: {
     color: colors.primaryText
+  }
+});
+
+const mobileStyles = StyleSheet.create({
+  base: {
+    borderRadius: mobileRadii.md,
+    minHeight: 52,
+    paddingHorizontal: 20
+  },
+  primary: {
+    backgroundColor: mobileColors.primary,
+    shadowOpacity: 0
+  },
+  secondary: {
+    backgroundColor: mobileColors.surfaceInset,
+    borderColor: mobileColors.borderStrong
+  },
+  danger: {
+    backgroundColor: mobileColors.surfaceInset,
+    borderColor: mobileColors.danger
+  },
+  label: {
+    color: mobileColors.text,
+    fontFamily: mobileFonts.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+    textTransform: 'none'
+  },
+  primaryLabel: {
+    color: mobileColors.primaryText
   }
 });

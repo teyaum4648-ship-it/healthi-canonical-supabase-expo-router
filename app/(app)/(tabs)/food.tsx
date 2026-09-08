@@ -144,7 +144,7 @@ import {
   hairlineWidth,
   palette,
   type as themeType
-} from '../../../src/styles/theme';
+} from '../../../src/styles/mobileTheme';
 
 const C = {
   bg: themeColors.background,
@@ -1765,7 +1765,7 @@ export default function FoodScreen() {
               onPress={() => setActiveSegment('Build Meal')}
               style={({ pressed }) => [styles.trackerSearchButton, pressed && styles.pressed]}
             >
-              <Ionicons color="#1C4235" name="search" size={17} />
+              <Ionicons color="#0A84FF" name="search" size={17} />
               <Text style={styles.trackerSearchText}>Look up food</Text>
             </Pressable>
             <Pressable
@@ -1773,7 +1773,7 @@ export default function FoodScreen() {
               onPress={() => openScanner()}
               style={({ pressed }) => [styles.trackerScanButton, pressed && styles.pressed]}
             >
-              <Ionicons color="#FAF9F5" name="barcode-outline" size={17} />
+              <Ionicons color="#FFFFFF" name="barcode-outline" size={17} />
               <Text style={styles.trackerScanText}>Scan food</Text>
             </Pressable>
           </View>
@@ -1906,7 +1906,7 @@ export default function FoodScreen() {
                 <Text numberOfLines={1} style={styles.adaptiveRecentTitle}>{recentMeal.name} · <Text style={styles.adaptiveMono}>{formatClock(recentMeal.logged_at)}</Text></Text>
                 <Text style={styles.adaptivePriorityReason}>Add or review your response to this meal</Text>
               </View>
-              <Ionicons color="#1C4235" name="arrow-forward" size={18} />
+              <Ionicons color="#0A84FF" name="arrow-forward" size={18} />
             </Pressable>
           </View>
         ) : null}
@@ -1990,7 +1990,7 @@ export default function FoodScreen() {
             accessibilityLabel="Search nutrients"
             onChangeText={setNutrientQuery}
             placeholder="Search nutrients"
-            placeholderTextColor="#7A807C"
+            placeholderTextColor="#6E6E73"
             style={styles.adaptiveSearch}
             value={nutrientQuery}
           />
@@ -2156,7 +2156,7 @@ export default function FoodScreen() {
               onPress={() => void handleSearchProducts()}
               style={({ pressed }) => [styles.searchButton, (isSearchingProducts || searchQuery.trim().length < 2) && styles.disabled, pressed && styles.pressed]}
             >
-              {isSearchingProducts ? <ActivityIndicator color={palette.paper} /> : <Ionicons color={palette.paper} name="search" size={18} />}
+              {isSearchingProducts ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons color="#FFFFFF" name="search" size={18} />}
             </Pressable>
           </View>
           {searchResults.map((product) => {
@@ -2564,7 +2564,7 @@ export default function FoodScreen() {
                 onPress={() => setActiveSegment('Today')}
                 style={({ pressed }) => [styles.adaptiveBack, pressed && styles.pressed]}
               >
-                <Ionicons color="#4A5560" name="arrow-back" size={16} />
+                <Ionicons color="#A1A1A6" name="arrow-back" size={16} />
                 <Text style={styles.adaptiveBackText}>Back to Diet</Text>
               </Pressable>
             ) : null}
@@ -2594,7 +2594,7 @@ export default function FoodScreen() {
                 onPress={() => openScanner()}
                 style={({ pressed }) => [styles.adaptiveDockButton, pressed && styles.pressed]}
               >
-                <Ionicons color="#1C4235" name="barcode-outline" size={18} />
+                <Ionicons color="#0A84FF" name="barcode-outline" size={18} />
                 <Text style={styles.adaptiveDockText}>Scan food</Text>
               </Pressable>
               <Pressable
@@ -2602,7 +2602,7 @@ export default function FoodScreen() {
                 onPress={() => setActiveSegment('Build Meal')}
                 style={({ pressed }) => [styles.adaptiveDockAdd, pressed && styles.pressed]}
               >
-                <Ionicons color="#1C4235" name="search" size={18} />
+                <Ionicons color="#0A84FF" name="search" size={18} />
                 <Text style={styles.adaptiveDockText}>Search food</Text>
               </Pressable>
             </View>
@@ -2639,7 +2639,7 @@ function ChoiceRow({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#EDEBE3'
+    backgroundColor: '#000000'
   },
   safe: {
     flex: 1
@@ -2655,7 +2655,7 @@ const styles = StyleSheet.create({
     paddingTop: 10
   },
   adaptivePageLabel: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 1.9,
@@ -2663,13 +2663,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   trackerCard: {
-    backgroundColor: '#F8F7F2',
-    borderColor: 'rgba(28, 66, 53, 0.20)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(10, 132, 255, 0.20)',
     borderRadius: 22,
     borderWidth: 1
   },
   trackerTitle: {
-    color: '#17221C',
+    color: '#F5F5F7',
     fontFamily: serif,
     fontSize: 26,
     lineHeight: 32,
@@ -2677,27 +2677,27 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(28, 66, 53, 0.12)',
+    borderBottomColor: 'rgba(10, 132, 255, 0.12)',
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
   },
   trackerEnergyLabel: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
     fontSize: 12
   },
   trackerEnergyTarget: {
-    color: '#6E746F',
+    color: '#8E8E93',
     fontFamily: sansMedium,
-    fontSize: 10,
+    fontSize: 12,
     paddingBottom: 3
   },
   trackerMacroList: {
@@ -2707,29 +2707,29 @@ const styles = StyleSheet.create({
     gap: 7
   },
   trackerProgressLabel: {
-    color: '#26342D',
+    color: '#D1D1D6',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(28, 66, 53, 0.10)',
+    backgroundColor: 'rgba(10, 132, 255, 0.10)',
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
   },
   trackerFill: {
-    backgroundColor: '#3F7563',
+    backgroundColor: '#5AC8FA',
     borderRadius: 4,
     height: 6
   },
   trackerMicroBlock: {
-    backgroundColor: '#EFEDE5',
+    backgroundColor: '#1C1C1E',
     borderRadius: 16,
     gap: 12,
     padding: 14
   },
   trackerMicroHeading: {
-    color: '#26342D',
+    color: '#D1D1D6',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.3
@@ -2740,7 +2740,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   trackerMicroItem: {
-    backgroundColor: '#F8F7F2',
+    backgroundColor: '#121214',
     borderRadius: 12,
     flexBasis: '47%',
     flexGrow: 1,
@@ -2749,17 +2749,17 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerMicroUnavailable: {
-    color: '#7A807C',
+    color: '#6E6E73',
     fontFamily: sansMedium,
     fontSize: 10
   },
   trackerMicroLabel: {
-    color: '#59635D',
+    color: '#A1A1A6',
     fontFamily: sans,
     fontSize: 11
   },
@@ -2769,7 +2769,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(28, 66, 53, 0.28)',
+    borderColor: 'rgba(10, 132, 255, 0.28)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2779,13 +2779,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#1C4235',
+    backgroundColor: '#0A84FF',
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2794,7 +2794,7 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerScanText: {
-    color: '#FAF9F5',
+    color: '#FFFFFF',
     fontFamily: sansMedium,
     fontSize: 12
   },
@@ -2805,15 +2805,15 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   adaptiveModeDot: {
-    backgroundColor: '#9A6B24',
+    backgroundColor: '#FFD479',
     borderRadius: 3,
     height: 6,
     width: 6
   },
   adaptiveModeText: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.8,
     lineHeight: 13,
     textTransform: 'uppercase'
@@ -2826,25 +2826,25 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
     borderBottomWidth: 2,
     marginRight: 26,
-    minHeight: 42,
+    minHeight: 44,
     paddingBottom: 9,
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#1C4235'
+    borderBottomColor: '#0A84FF'
   },
   adaptiveTabText: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 15,
     letterSpacing: -0.1,
     lineHeight: 21
   },
   adaptiveTabTextActive: {
-    color: '#141F19'
+    color: '#F5F5F7'
   },
   adaptiveTabBaseline: {
-    backgroundColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: 'rgba(255, 255, 255,0.10)',
     height: hairlineWidth,
     marginTop: -1
   },
@@ -2855,11 +2855,11 @@ const styles = StyleSheet.create({
     gap: 7,
     marginLeft: 18,
     marginTop: 14,
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 4
   },
   adaptiveBackText: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 13,
     lineHeight: 18
@@ -2873,31 +2873,31 @@ const styles = StyleSheet.create({
     paddingTop: 26
   },
   adaptiveSection: {
-    borderTopColor: 'rgba(20,31,25,0.10)',
+    borderTopColor: 'rgba(255, 255, 255,0.10)',
     borderTopWidth: hairlineWidth,
     paddingBottom: 24,
     paddingHorizontal: 22,
     paddingTop: 22
   },
   adaptiveSectionLabel: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.5,
     lineHeight: 15,
     textTransform: 'uppercase'
   },
   adaptiveKicker: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: sansMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.5,
     lineHeight: 15,
     marginTop: 14,
     textTransform: 'uppercase'
   },
   adaptiveVerdict: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: serifLight,
     fontSize: 25,
     letterSpacing: -0.25,
@@ -2914,14 +2914,14 @@ const styles = StyleSheet.create({
     gap: 11
   },
   adaptiveReasonDot: {
-    backgroundColor: '#2F6B53',
+    backgroundColor: '#5AC8FA',
     borderRadius: 3,
     height: 5,
     marginTop: 8,
     width: 5
   },
   adaptiveReasonText: {
-    color: '#141F19',
+    color: '#F5F5F7',
     flex: 1,
     fontFamily: sans,
     fontSize: 14.5,
@@ -2934,9 +2934,9 @@ const styles = StyleSheet.create({
     marginTop: 20
   },
   adaptiveConfidenceLabel: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.1,
     lineHeight: 14,
     textTransform: 'uppercase'
@@ -2946,23 +2946,23 @@ const styles = StyleSheet.create({
     gap: 3
   },
   adaptiveConfidenceSegment: {
-    backgroundColor: 'rgba(20,31,25,0.14)',
+    backgroundColor: 'rgba(255, 255, 255,0.14)',
     borderRadius: 2,
     height: 4,
     width: 16
   },
   adaptiveConfidenceSegmentFilled: {
-    backgroundColor: '#141F19'
+    backgroundColor: '#F5F5F7'
   },
   adaptiveConfidenceValue: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#1C4235',
+    backgroundColor: '#0A84FF',
     borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
@@ -2970,7 +2970,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptivePrimaryButtonText: {
-    color: '#FAF9F5',
+    color: '#FFFFFF',
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
@@ -2982,47 +2982,47 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   adaptiveSectionAside: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 15
   },
   adaptivePriorityList: {
     marginTop: 16
   },
   adaptivePriority: {
-    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth,
     marginBottom: 18,
     paddingBottom: 18
   },
   adaptivePriorityTag: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.75,
     lineHeight: 15,
     textTransform: 'uppercase'
   },
   adaptivePriorityTagUrgent: {
-    color: '#9A6B24'
+    color: '#FFD479'
   },
   adaptiveMono: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 15,
     fontVariant: ['tabular-nums']
   },
   adaptiveMonoStrong: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19,
     fontVariant: ['tabular-nums']
   },
   adaptivePriorityTitle: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 16.5,
     letterSpacing: -0.1,
@@ -3030,7 +3030,7 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   adaptivePriorityReason: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
     fontSize: 13.5,
     lineHeight: 20,
@@ -3043,28 +3043,28 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(28,66,53,0.35)',
+    borderBottomColor: 'rgba(10, 132, 255,0.35)',
     borderBottomWidth: 1,
     justifyContent: 'center',
-    minHeight: 38
+    minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptivePriorityConfidence: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.6,
     lineHeight: 14,
     marginLeft: 'auto',
     textTransform: 'uppercase'
   },
   adaptiveSectionVoice: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: serifItalic,
     fontSize: 14,
     fontStyle: 'italic',
@@ -3075,7 +3075,7 @@ const styles = StyleSheet.create({
     marginTop: 17
   },
   adaptiveLane: {
-    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth
   },
   adaptiveLaneButton: {
@@ -3084,20 +3084,20 @@ const styles = StyleSheet.create({
     paddingVertical: 13
   },
   adaptiveLaneName: {
-    color: '#141F19',
+    color: '#F5F5F7',
     flex: 1,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveLaneState: {
-    color: '#2F6B53',
+    color: '#5AC8FA',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveLaneStateWarm: {
-    color: '#9A6B24'
+    color: '#FFD479'
   },
   adaptiveLaneTrackRow: {
     alignItems: 'center',
@@ -3106,18 +3106,18 @@ const styles = StyleSheet.create({
     marginTop: 9
   },
   adaptiveLaneTrack: {
-    backgroundColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 2,
     flex: 1,
     height: 4,
     overflow: 'hidden'
   },
   adaptiveLaneTrackLimited: {
-    borderColor: 'rgba(20,31,25,0.25)',
+    borderColor: 'rgba(255, 255, 255,0.25)',
     borderWidth: 1
   },
   adaptiveLaneFill: {
-    backgroundColor: '#2F6B53',
+    backgroundColor: '#5AC8FA',
     borderRadius: 2,
     bottom: 0,
     left: 0,
@@ -3125,46 +3125,46 @@ const styles = StyleSheet.create({
     top: 0
   },
   adaptiveLaneMeta: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
-    fontSize: 9.5,
+    fontSize: 12,
     letterSpacing: 0.5,
     lineHeight: 13,
     textTransform: 'uppercase'
   },
   adaptiveLaneDetail: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 19,
     paddingBottom: 15
   },
   adaptiveCoverageLabel: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
-    fontSize: 10.5,
+    fontSize: 12,
     letterSpacing: 0.9,
     lineHeight: 14,
     marginTop: 16,
     textTransform: 'uppercase'
   },
   adaptiveCoverageNeed: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: serif,
     fontSize: 18,
     lineHeight: 24,
     marginTop: 6
   },
   adaptiveInsetCard: {
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     marginTop: 18,
     padding: 18
   },
   adaptiveCoverageSuggestion: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: serif,
     fontSize: 20,
     lineHeight: 27,
@@ -3172,8 +3172,8 @@ const styles = StyleSheet.create({
   },
   adaptiveRecent: {
     alignItems: 'center',
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3187,13 +3187,13 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveRecentTitle: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 14.5,
     lineHeight: 20
   },
   adaptiveViewTitle: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: serifLight,
     fontSize: 23,
     lineHeight: 30,
@@ -3209,7 +3209,7 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   adaptiveTimelineTime: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 17,
@@ -3218,8 +3218,8 @@ const styles = StyleSheet.create({
     width: 54
   },
   adaptiveTimelineMarker: {
-    backgroundColor: '#2F6B53',
-    borderColor: '#EDEBE3',
+    backgroundColor: '#5AC8FA',
+    borderColor: '#000000',
     borderRadius: 6,
     borderWidth: 2,
     height: 12,
@@ -3228,39 +3228,39 @@ const styles = StyleSheet.create({
     width: 12
   },
   adaptiveTimelineCopy: {
-    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth,
     flex: 1,
     minHeight: 64,
     paddingBottom: 14
   },
   adaptiveTimelineTitle: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveTimelineNote: {
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 8,
     padding: 16
   },
   adaptiveEmpty: {
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     padding: 20
   },
   adaptiveSearch: {
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.12)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.12)',
     borderRadius: 12,
     borderWidth: 1,
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 15,
     height: 46,
@@ -3268,14 +3268,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveConfidenceSummary: {
-    borderTopColor: 'rgba(20,31,25,0.08)',
+    borderTopColor: 'rgba(255, 255, 255,0.08)',
     borderTopWidth: hairlineWidth,
     marginTop: 16,
     paddingTop: 15
   },
   adaptiveNutrientRow: {
     alignItems: 'center',
-    borderBottomColor: 'rgba(20,31,25,0.07)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 12,
@@ -3287,9 +3287,9 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveNutrientContext: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
-    fontSize: 11.5,
+    fontSize: 13,
     lineHeight: 16,
     marginTop: 3
   },
@@ -3303,29 +3303,29 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(28,66,53,0.40)',
+    borderColor: 'rgba(10, 132, 255,0.40)',
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#1C4235',
+    color: '#0A84FF',
     fontFamily: sansMedium,
-    fontSize: 10.5,
+    fontSize: 12,
     letterSpacing: 0.8,
     lineHeight: 14,
     textTransform: 'uppercase'
   },
   adaptiveProfileLead: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: serifLight,
     fontSize: 19,
     lineHeight: 29,
     marginTop: 14
   },
   adaptiveContributorList: {
-    backgroundColor: 'rgba(20,31,25,0.08)',
+    backgroundColor: 'rgba(255, 255, 255,0.08)',
     borderRadius: 12,
     gap: 1,
     marginTop: 18,
@@ -3333,28 +3333,28 @@ const styles = StyleSheet.create({
   },
   adaptiveContributorRow: {
     alignItems: 'center',
-    backgroundColor: '#EDEBE3',
+    backgroundColor: '#000000',
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
     paddingVertical: 12
   },
   adaptiveContributorLabel: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptiveContributorValue: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveSecondaryButton: {
     alignItems: 'center',
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.15)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.15)',
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -3363,13 +3363,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveSecondaryButtonText: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
   },
   adaptiveSafetyNote: {
-    color: '#4A5560',
+    color: '#A1A1A6',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 18,
@@ -3377,8 +3377,8 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   adaptiveActionDock: {
-    backgroundColor: '#EDEBE3',
-    borderTopColor: 'rgba(20,31,25,0.10)',
+    backgroundColor: '#000000',
+    borderTopColor: 'rgba(255, 255, 255,0.10)',
     borderTopWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 10,
@@ -3388,8 +3388,8 @@ const styles = StyleSheet.create({
   },
   adaptiveDockButton: {
     alignItems: 'center',
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.15)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.15)',
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
@@ -3400,8 +3400,8 @@ const styles = StyleSheet.create({
   },
   adaptiveDockAdd: {
     alignItems: 'center',
-    backgroundColor: '#FAF9F5',
-    borderColor: 'rgba(20,31,25,0.15)',
+    backgroundColor: '#121214',
+    borderColor: 'rgba(255, 255, 255,0.15)',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3411,7 +3411,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptiveDockText: {
-    color: '#141F19',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
@@ -3444,8 +3444,8 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(28,84,67,0.08)',
-    borderColor: 'rgba(28,84,67,0.24)',
+    backgroundColor: 'rgba(10, 132, 255,0.08)',
+    borderColor: 'rgba(10, 132, 255,0.24)',
     borderRadius: 18,
     borderWidth: 1,
     height: 42,
@@ -3582,7 +3582,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   metric: {
-    backgroundColor: 'rgba(246,244,238,0.72)',
+    backgroundColor: '#1C1C1E',
     borderColor: C.hairline,
     borderRadius: 18,
     borderWidth: 1,
@@ -3683,7 +3683,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   primaryButtonText: {
-    color: palette.paper,
+    color: '#FFFFFF',
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3800,7 +3800,7 @@ const styles = StyleSheet.create({
     width: 48
   },
   cameraShell: {
-    backgroundColor: C.ink,
+    backgroundColor: '#000000',
     borderRadius: 20,
     height: 320,
     marginTop: 16,
@@ -3831,7 +3831,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   cameraCancelText: {
-    color: palette.paper,
+    color: '#FFFFFF',
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3851,7 +3851,7 @@ const styles = StyleSheet.create({
   orText: {
     color: C.muted,
     fontFamily: sansMedium,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 1.2,
     lineHeight: 13
   },
@@ -3943,7 +3943,7 @@ const styles = StyleSheet.create({
   signalSectionTitle: {
     ...themeType.eyebrow,
     color: C.muted,
-    fontSize: 9,
+    fontSize: 12,
     lineHeight: 12
   },
   signalReasonRow: {
@@ -4113,18 +4113,18 @@ const styles = StyleSheet.create({
     borderColor: palette.forestPale,
     borderRadius: 16,
     borderWidth: 1,
-    height: 40,
+    height: 44,
     justifyContent: 'center',
-    width: 40
+    width: 44
   },
   smallIconButton: {
     alignItems: 'center',
     borderColor: C.hairline,
     borderRadius: 14,
     borderWidth: 1,
-    height: 36,
+    height: 44,
     justifyContent: 'center',
-    width: 36
+    width: 44
   },
   mealContentsCard: {
     borderColor: palette.forestPale
@@ -4149,7 +4149,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: C.ink,
     fontFamily: sansMedium,
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: 10,
     textAlign: 'center',
     width: 52
