@@ -164,6 +164,7 @@ const serifLight = themeFonts.displayLight;
 const serifItalic = themeFonts.displayItalic;
 const sans = themeFonts.body;
 const sansMedium = themeFonts.bodyMedium;
+const productQualityExperimentEnabled = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT === 'v5_two_axis';
 
 const defaultTargets: NutritionTargets = {
   calories_target: 2300,
@@ -1229,8 +1230,20 @@ export default function FoodScreen() {
 
   function renderScanner() {
     const qualityPresentation = productQuality ? buildProductQualityScorePresentation(productQuality) : null;
+    const experimentalAggregation = productQualityExperimentEnabled
+      ? productQuality?.dimension_aggregation
+      : null;
     return (
       <View style={styles.stack}>
+        {productQualityExperimentEnabled ? (
+          <View style={styles.scoringLabBanner}>
+            <Ionicons color={colors.accent} name="flask-outline" size={18} />
+            <View style={styles.scannerHeadingCopy}>
+              <Text style={styles.scoringLabBannerTitle}>Temporary scoring lab</Text>
+              <Text style={styles.scoringLabBannerText}>The ZIP-based V5 model is active in this preview only.</Text>
+            </View>
+          </View>
+        ) : null}
         <View style={styles.scannerHeading}>
           <View style={styles.scannerHeadingCopy}>
             <Text style={styles.eyebrow}>Packaged food</Text>
@@ -1353,6 +1366,49 @@ export default function FoodScreen() {
               <Metric label="Sugar" value={formatProductAmount(scannerProduct.sugar_g, 'g')} />
               <Metric label="Sodium" value={formatProductAmount(scannerProduct.sodium_mg, 'mg')} />
             </View>
+
+            {experimentalAggregation ? (
+              <View style={styles.scoringLabPanel}>
+                <Text style={styles.eyebrow}>EXPERIMENTAL V5 · TWO AXIS</Text>
+                <Text style={styles.cardTitle}>Contribution and formulation load</Text>
+                <View style={styles.scoringLabAxisRow}>
+                  <View style={styles.scoringLabAxisCell}>
+                    <Text style={styles.scoringLabAxisValue}>
+                      {typeof experimentalAggregation.contribution === 'number'
+                        ? Math.round(experimentalAggregation.contribution)
+                        : '—'}
+                    </Text>
+                    <Text style={styles.scoringLabAxisLabel}>CONTRIBUTION</Text>
+                  </View>
+                  <View style={styles.scoringLabAxisDivider} />
+                  <View style={styles.scoringLabAxisCell}>
+                    <Text style={styles.scoringLabAxisValue}>
+                      {typeof experimentalAggregation.load === 'number'
+                        ? Math.round(experimentalAggregation.load)
+                        : '—'}
+                    </Text>
+                    <Text style={styles.scoringLabAxisLabel}>FORMULATION LOAD</Text>
+                  </View>
+                  <View style={styles.scoringLabAxisDivider} />
+                  <View style={styles.scoringLabAxisCell}>
+                    <Text style={styles.scoringLabAxisValue}>{experimentalAggregation.tier?.tier ?? '—'}</Text>
+                    <Text style={styles.scoringLabAxisLabel}>MODEL REGION</Text>
+                  </View>
+                </View>
+                {experimentalAggregation.tier?.rationale ? (
+                  <Text style={styles.body}>{experimentalAggregation.tier.rationale}</Text>
+                ) : null}
+                <Text style={styles.confidenceLine}>
+                  Public grade: {productQuality.letter_grade ?? 'unresolved'} · Required bands remain A 90–100, B 80–89, C 70–79, D 60–69, F below 60.
+                </Text>
+                {experimentalAggregation.tier?.tier && productQuality.letter_grade
+                  && experimentalAggregation.tier.tier !== productQuality.letter_grade ? (
+                  <Text style={styles.scoringLabMismatch}>
+                    Review flag: the ZIP model region and its numeric-score grade disagree.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={styles.qualityPanel}>
               <View style={styles.rowBetween}>
@@ -3925,6 +3981,66 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     marginTop: 18,
     padding: 15
+  },
+  scoringLabBanner: {
+    alignItems: 'center',
+    backgroundColor: colors.accentWash,
+    borderColor: palette.forestPale,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  scoringLabBannerTitle: {
+    ...themeType.label,
+    color: C.ink
+  },
+  scoringLabBannerText: {
+    ...themeType.caption,
+    color: C.sub,
+    marginTop: 2
+  },
+  scoringLabPanel: {
+    backgroundColor: palette.ivory,
+    borderColor: colors.accentMid,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 18,
+    padding: 15
+  },
+  scoringLabAxisRow: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    marginVertical: 14
+  },
+  scoringLabAxisCell: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 4
+  },
+  scoringLabAxisDivider: {
+    backgroundColor: C.hairline,
+    width: hairlineWidth
+  },
+  scoringLabAxisValue: {
+    color: C.ink,
+    fontFamily: serif,
+    fontSize: 28,
+    lineHeight: 32
+  },
+  scoringLabAxisLabel: {
+    ...themeType.eyebrow,
+    color: C.muted,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: 'center'
+  },
+  scoringLabMismatch: {
+    ...themeType.caption,
+    color: palette.clayDark,
+    marginTop: 8
   },
   qualityLabel: {
     color: colors.accent,

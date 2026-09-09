@@ -77,6 +77,18 @@ export type ProductDimensionScore = {
     conditionalCentralScore: number | null;
     scoreScope: ProductScoreScope;
     materialUnknownDimensions: ProductScoreDimensionId[];
+    /** Weighted mean before the cap layer is applied. */
+    weightedMeanBeforeCap?: number;
+    /** Hard ceiling applied to the score, or null when nothing capped it. */
+    appliedCap?: number | null;
+    /** Human-readable reasons for each applicable cap. */
+    capReasons?: string[];
+    /** What the food provides, 0-100. Null when evidence is too thin. */
+    contribution?: number | null;
+    /** What the food costs, 0-100. Higher is more burden. */
+    load?: number | null;
+    /** Tier resolved from the (contribution, load) region. */
+    tier?: { tier: string; verdict: string; rationale: string };
   };
 };
 

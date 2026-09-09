@@ -9,6 +9,7 @@ import {
 import { ingredientTextForMatching, parseIngredients } from './ingredientParser';
 import { resolveProductEvidence, type ProductEvidenceRef } from './evidence';
 import { scoreProductDimensionsV5 } from './kernelV5';
+import { scoreProductDimensionsV5 as scoreProductDimensionsV5Experimental } from './kernelV5Experimental';
 import {
   getCategoryProfile,
   type CategoryProfile,
@@ -984,7 +985,10 @@ export function scoreProductLabel(input: ProductScoringInput): ProductScoringRes
     ...categoryLedger(profile, input, ingredients, tokens, basis, tokens.length > 0)
   ] : [];
   const ledger = legacyLedgerAsContext(legacyLedger);
-  const dimensionScore = scoreProductDimensionsV5({ input, archetype, basis, sourceConfidence: source, profile });
+  const dimensionScorer = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT === 'v5_two_axis'
+    ? scoreProductDimensionsV5Experimental
+    : scoreProductDimensionsV5;
+  const dimensionScore = dimensionScorer({ input, archetype, basis, sourceConfidence: source, profile });
   const scoreEligibilityResult = scoreEligibility(input, basis, profile, dimensionScore);
   if (!scoreEligibilityResult.eligible || dimensionScore.score === null) {
     return unresolvedResult(input, resolution, source, basis, archetype, dimensionScore, scoreEligibilityResult);
