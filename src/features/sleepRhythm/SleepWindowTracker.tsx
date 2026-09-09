@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { SleepSession } from '../../engines/circadian';
-import { fonts } from '../../styles/theme';
+import { fonts } from '../../styles/mobileTheme';
 import {
   SLEEP_WINDOW_TIMELINE,
   adjustSleepWindowClock,
