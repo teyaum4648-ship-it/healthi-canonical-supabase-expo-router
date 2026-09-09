@@ -88,6 +88,19 @@ function completeBriefing() {
 }
 
 describe('composeMorningBriefing', () => {
+  it('does not turn a default circadian schedule into observed recovery for a fresh profile', () => {
+    const clockOnly = generateCircadianBriefing({
+      date, timezone: 'UTC', recentSleepSessions: [],
+      sleepNeed: createDefaultSleepNeedEstimate(`${date}T12:00:00.000Z`), now: `${date}T09:00:00.000Z`
+    });
+    const empty = composeMorningBriefing({ date });
+    const fresh = composeMorningBriefing({ date, rhythm: { briefing: clockOnly, recent_sleep_session: null } });
+    expect(fresh.readiness.score).toBe(empty.readiness.score);
+    expect(fresh.readiness.missing_data).toContain('recovery_rhythm');
+    expect(fresh.driver_cards.find((driver) => driver.domain === 'recovery_rhythm')?.status).toBe('calibrating');
+    expect(fresh.confidence).toBe('low');
+  });
+
   it('maps rhythm, nutrition, movement, and schedule into one briefing', () => {
     const briefing = completeBriefing();
     expect(briefing.readiness.missing_data).toEqual([]);

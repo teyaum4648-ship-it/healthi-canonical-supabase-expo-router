@@ -8,18 +8,17 @@ import {
   type SleepSession
 } from '../../../src/engines/circadian';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { loadSleepHistory, saveSleepForSource } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import { SleepExperience } from '../../../src/features/sleepRhythm/SleepExperience';
-import {
-  getActiveSleepNeedEstimate,
-  getRecentSleepSessions,
-  saveSleepSession,
-  type SleepRhythmSupabaseClient
-} from '../../../src/features/sleepRhythm/persistence';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import {
   createDefaultSleepNeedEstimate,
-  createDemoSleepSessions,
   createManualSleepSession
 } from '../../../src/features/sleepRhythm/rhythmInputs';
+import {
+  sleepWindowToSession,
+  type SleepWindowRecord
+} from '../../../src/features/sleepRhythm/sleepWindowEngine';
 import { supabase } from '../../../src/lib/supabase';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
@@ -43,10 +42,10 @@ function boundedQuality(value: string): number | null {
 }
 
 export default function RhythmScreen() {
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const [now, setNow] = useState(() => new Date().toISOString());
   const today = now.slice(0, 10);
-  const [sleepSessions, setSleepSessions] = useState<SleepSession[]>(() => createDemoSleepSessions(today));
+  const [sleepSessions, setSleepSessions] = useState<SleepSession[]>([]);
   const [sleepNeed, setSleepNeed] = useState<SleepNeedEstimate>(() => createDefaultSleepNeedEstimate(now));
   const [dataMode, setDataMode] = useState<RhythmDataMode>('demo');
   const [isLoading, setIsLoading] = useState(true);
@@ -66,25 +65,12 @@ export default function RhythmScreen() {
 
     async function loadSleepRhythmData() {
       const userId = user?.id;
-      if (!isUuid(userId)) {
-        if (isMounted) {
-          setSleepSessions(createDemoSleepSessions(today));
-          setSleepNeed(createDefaultSleepNeedEstimate(now));
-          setDataMode('demo');
-          setIsLoading(false);
-        }
-        return;
-      }
-
       try {
         const client = supabase as unknown as SleepRhythmSupabaseClient;
-        const [recentSessions, activeNeed] = await Promise.all([
-          getRecentSleepSessions(client, userId, 21),
-          getActiveSleepNeedEstimate(client, userId)
-        ]);
+        const { sessions: recentSessions, sleepNeed: activeNeed } = await loadSleepHistory({ mode, userId, client });
 
         if (!isMounted) return;
-        setSleepSessions(recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today));
+        setSleepSessions(recentSessions);
         setSleepNeed(
           activeNeed
             ? {
@@ -95,12 +81,12 @@ export default function RhythmScreen() {
               }
             : createDefaultSleepNeedEstimate(now)
         );
-        setDataMode(recentSessions.length > 0 ? 'persisted' : 'demo');
+        setDataMode(mode === 'account' ? 'persisted' : recentSessions.length > 0 ? 'manual' : 'demo');
       } catch {
         if (isMounted) {
-          setSleepSessions(createDemoSleepSessions(today));
+          setSleepSessions([]);
           setSleepNeed(createDefaultSleepNeedEstimate(now));
-          setDataMode('demo');
+          setDataMode(mode === 'account' ? 'persisted' : 'demo');
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -111,7 +97,7 @@ export default function RhythmScreen() {
     return () => {
       isMounted = false;
     };
-  }, [today, user?.id]); // now is intentionally excluded so the minute timer does not refetch persistence.
+  }, [mode, today, user?.id]); // now is intentionally excluded so the minute timer does not refetch persistence.
 
   const previewSession = useMemo(() => {
     if (!inputsTouched || !isValidTimeInput(sleepStartTime) || !isValidTimeInput(wakeTime)) return null;
@@ -163,20 +149,41 @@ export default function RhythmScreen() {
     setIsSaving(true);
     try {
       const userId = user?.id;
-      if (isUuid(userId)) {
-        await saveSleepSession(supabase as unknown as SleepRhythmSupabaseClient, userId, manualSession);
-      }
+      await saveSleepForSource({ mode, userId, client: supabase as unknown as SleepRhythmSupabaseClient }, manualSession);
       setSleepSessions((current) => [manualSession, ...current.filter((session) => session.date !== today)]);
-      setDataMode('manual');
+      setDataMode(mode === 'account' ? 'persisted' : 'manual');
       setInputsTouched(false);
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save this sleep window right now.';
-      Alert.alert('Saved on this device', `${message} Your local rhythm view has still been updated.`);
-      setSleepSessions((current) => [manualSession, ...current.filter((session) => session.date !== today)]);
-      setDataMode('manual');
+      Alert.alert('Sleep window not saved', `${message} Your draft is still open. Please try again.`);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleSleepWindowSave(record: SleepWindowRecord) {
+    const sleepSession = sleepWindowToSession(record, new Date().toISOString());
+
+    setIsSaving(true);
+    try {
+      const userId = user?.id;
+      await saveSleepForSource({ mode, userId, client: supabase as unknown as SleepRhythmSupabaseClient }, {
+          ...sleepSession,
+          correction_of_session_id: record.corrected_by_user && isUuid(record.based_on_session_id ?? undefined)
+            ? record.based_on_session_id
+            : null,
+          original_source_id: record.based_on_session_id
+      });
+      setSleepSessions((current) => [sleepSession, ...current.filter((session) => session.date !== record.date)]);
+      setDataMode(mode === 'account' ? 'persisted' : 'manual');
       setInputsTouched(false);
       return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sync this sleep window right now.';
+      Alert.alert('Sleep window not saved', `${message} Your draft is still open. Please try again.`);
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -190,6 +197,7 @@ export default function RhythmScreen() {
       isSaving={isSaving}
       now={now}
       onSaveManual={handleManualSubmit}
+      onSaveSleepWindow={handleSleepWindowSave}
       onSleepQualityChange={(value) => { setInputsTouched(true); setSleepQuality(value); }}
       onSleepStartTimeChange={(value) => { setInputsTouched(true); setSleepStartTime(value); }}
       onWakeTimeChange={(value) => { setInputsTouched(true); setWakeTime(value); }}

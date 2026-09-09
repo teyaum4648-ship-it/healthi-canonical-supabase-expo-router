@@ -33,15 +33,9 @@ import {
   getMealLogsForDate,
   type NutritionSupabaseClient
 } from '../../../src/features/nutrition/persistence';
-import {
-  getActiveSleepNeedEstimate,
-  getRecentSleepSessions,
-  type SleepRhythmSupabaseClient
-} from '../../../src/features/sleepRhythm/persistence';
-import {
-  createDefaultSleepNeedEstimate,
-  createDemoSleepSessions
-} from '../../../src/features/sleepRhythm/rhythmInputs';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
+import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
+import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import {
   addDemoWorkoutExerciseEntries,
   addDemoWorkoutSession,
@@ -93,22 +87,22 @@ import {
   type WorkoutExerciseDraft
 } from '../../../src/features/movement/workoutForms';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, hairlineWidth, spacing, type } from '../../../src/styles/theme';
+import { colors, hairlineWidth, spacing, type } from '../../../src/styles/mobileTheme';
 
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
 const segments: Segment[] = ['Today', 'Train', 'Library', 'History'];
 const movePalette = {
-  background: '#EDEBE3',
-  surface: '#FAF9F5',
-  ink: '#141F19',
-  green: '#1C4235',
-  greenMid: '#2F6B53',
-  slate: '#4A5560',
-  line: 'rgba(20, 31, 25, 0.10)',
-  lineStrong: 'rgba(20, 31, 25, 0.14)',
-  wash: 'rgba(28, 66, 53, 0.06)'
+  background: '#000000',
+  surface: '#121214',
+  ink: '#F5F5F7',
+  green: '#0A84FF',
+  greenMid: '#5AC8FA',
+  slate: '#A1A1A6',
+  line: 'rgba(255, 255, 255, 0.075)',
+  lineStrong: 'rgba(255, 255, 255, 0.12)',
+  wash: 'rgba(10, 132, 255, 0.12)'
 } as const;
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -199,7 +193,7 @@ function Chip({ label, selected, onPress }: { label: string; selected?: boolean;
 }
 
 export default function MovementScreen() {
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const { moveFixture } = useLocalSearchParams<{ moveFixture?: string | string[] }>();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
@@ -279,6 +273,15 @@ export default function MovementScreen() {
       setDataMode('demo');
       setStatus(state.workoutSessions.length > 0 ? 'Based on local demo workout logs.' : 'Log a workout to begin shaping your movement signal.');
     } catch {
+      if (canUseRemote) {
+        setSessions([]);
+        setEntries([]);
+        setWorkoutSets([]);
+        setLibrary(starterExerciseRows());
+        setDataMode('remote');
+        setStatus('Your workouts could not sync. Please try again when connected.');
+        return;
+      }
       const state = await getLocalDemoMovementState().catch(() => ({
         exerciseLibrary: [],
         workoutSessions: [],
@@ -315,14 +318,7 @@ export default function MovementScreen() {
         }
         try {
           const sleepClient = supabase as unknown as SleepRhythmSupabaseClient;
-          const [recentSessions, activeNeed] =
-            canUseRemote && userId
-              ? await Promise.all([
-                  getRecentSleepSessions(sleepClient, userId, 14),
-                  getActiveSleepNeedEstimate(sleepClient, userId)
-                ])
-              : [[], null];
-          const sleepSessions = recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today);
+          const { sessions: sleepSessions, sleepNeed: activeNeed } = await loadSleepHistory({ mode, userId, client: sleepClient });
           const sleepNeed = activeNeed
             ? { minutes: activeNeed.minutes, confidence: activeNeed.confidence, basis: activeNeed.basis, updated_at: activeNeed.updated_at }
             : createDefaultSleepNeedEstimate(now);
@@ -334,7 +330,9 @@ export default function MovementScreen() {
             preferredBedtime: '22:30',
             now
           });
-          if (isMounted) setSleepSignal(deriveSleepMoveSignal(briefing));
+          if (isMounted) setSleepSignal(sleepSessions.length > 0
+            ? deriveSleepMoveSignal(briefing)
+            : { signal: 'unknown', summary: 'Log your first sleep window to add recovery context.' });
         } catch {
           if (isMounted) setSleepSignal({ signal: 'unknown', summary: 'Sleep is still calibrating for today.' });
         }
@@ -356,7 +354,7 @@ export default function MovementScreen() {
       return () => {
         isMounted = false;
       };
-    }, [canUseRemote, now, today, usePreviewFixture, userId])
+    }, [canUseRemote, mode, now, today, usePreviewFixture, userId])
   );
 
   const engineSessions = useMemo(() => sessions.map(workoutSessionRowToEngineSession), [sessions]);
@@ -407,7 +405,7 @@ export default function MovementScreen() {
     const rows = [
       { label: 'Strength', count: summary.strength_session_count, color: movePalette.green },
       { label: 'Cardio', count: summary.cardio_session_count, color: movePalette.greenMid },
-      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: '#7B8F82' },
+      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: '#6E6E73' },
       { label: 'Mixed + sport', count: Math.max(0, summary.workout_count - known), color: movePalette.slate }
     ];
     const max = Math.max(1, ...rows.map((row) => row.count));
@@ -462,7 +460,7 @@ export default function MovementScreen() {
           : session.workout_type === 'cardio'
             ? movePalette.greenMid
             : session.workout_type === 'mobility' || session.workout_type === 'recovery'
-              ? '#869B90'
+              ? '#8E8E93'
               : movePalette.slate
       };
     });
@@ -807,7 +805,7 @@ export default function MovementScreen() {
         <View style={styles.quickLaunchCard}>
           <View style={styles.quickLaunchHeading}>
             <View style={styles.quickLaunchIcon}>
-              <Ionicons color={movePalette.surface} name="flash-outline" size={18} />
+              <Ionicons color="#FFFFFF" name="flash-outline" size={18} />
             </View>
             <View style={styles.quickLaunchCopy}>
               <Text style={styles.quickLaunchTitle}>Quick log</Text>
@@ -820,7 +818,7 @@ export default function MovementScreen() {
               onChangeText={setQuickPrompt}
               onSubmitEditing={openQuickFromPrompt}
               placeholder="Leg day, or squat + row"
-              placeholderTextColor="rgba(20, 31, 25, 0.42)"
+              placeholderTextColor="rgba(255, 255, 255, 0.42)"
               returnKeyType="go"
               style={styles.quickInput}
               value={quickPrompt}
@@ -830,7 +828,7 @@ export default function MovementScreen() {
               onPress={openQuickFromPrompt}
               style={({ pressed }) => [styles.quickGoButton, pressed && styles.pressed]}
             >
-              <Ionicons color={movePalette.surface} name="arrow-forward" size={19} />
+              <Ionicons color="#FFFFFF" name="arrow-forward" size={19} />
             </Pressable>
           </View>
           <Text style={styles.routineWheelLabel}>Routine wheel</Text>
@@ -879,7 +877,7 @@ export default function MovementScreen() {
 
         <Pressable onPress={() => setActiveSegment('Train')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
           <Text style={styles.primaryButtonText}>Start today’s session</Text>
-          <Ionicons color={movePalette.surface} name="arrow-forward" size={18} />
+          <Ionicons color="#FFFFFF" name="arrow-forward" size={18} />
         </Pressable>
 
         <View style={styles.changedRow}>
@@ -983,7 +981,7 @@ export default function MovementScreen() {
                 : day.category === 'cardio'
                   ? movePalette.greenMid
                   : day.category === 'mobility' || day.category === 'recovery'
-                    ? '#92A69B'
+                    ? '#A1A1A6'
                     : day.category
                       ? movePalette.slate
                       : 'transparent';
@@ -1030,7 +1028,7 @@ export default function MovementScreen() {
             accessibilityLabel="Workout name"
             onChangeText={(title) => setQuickDraft((current) => current ? { ...current, title } : current)}
             placeholder="Workout name"
-            placeholderTextColor="rgba(20, 31, 25, 0.38)"
+            placeholderTextColor="rgba(255, 255, 255, 0.38)"
             style={styles.ledgerTitleInput}
             value={quickDraft.title}
           />
@@ -1062,7 +1060,7 @@ export default function MovementScreen() {
                   accessibilityLabel={`Movement ${exerciseIndex + 1} name`}
                   onChangeText={(exercise_name) => updateQuickExercise(exercise.id, { exercise_name })}
                   placeholder="Movement name"
-                  placeholderTextColor="rgba(20, 31, 25, 0.38)"
+                  placeholderTextColor="rgba(255, 255, 255, 0.38)"
                   style={styles.ledgerExerciseTitle}
                   value={exercise.exercise_name}
                 />
@@ -1165,7 +1163,7 @@ export default function MovementScreen() {
                         keyboardType="decimal-pad"
                         onChangeText={(weight) => updateQuickSet(exercise.id, set.id, { weight })}
                         placeholder="—"
-                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
                         style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
                         value={set.weight}
                       />
@@ -1174,7 +1172,7 @@ export default function MovementScreen() {
                         keyboardType="numeric"
                         onChangeText={(reps) => updateQuickSet(exercise.id, set.id, { reps })}
                         placeholder="—"
-                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
                         style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
                         value={set.reps}
                       />
@@ -1183,7 +1181,7 @@ export default function MovementScreen() {
                         keyboardType="decimal-pad"
                         onChangeText={(rpe) => updateQuickSet(exercise.id, set.id, { rpe })}
                         placeholder="—"
-                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
                         style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
                         value={set.rpe}
                       />
@@ -1192,7 +1190,7 @@ export default function MovementScreen() {
                         keyboardType="numeric"
                         onChangeText={(rest_seconds) => updateQuickSet(exercise.id, set.id, { rest_seconds })}
                         placeholder="90"
-                        placeholderTextColor="rgba(20, 31, 25, 0.30)"
+                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
                         style={[styles.ledgerCellInput, styles.ledgerRestColumn]}
                         value={set.rest_seconds}
                       />
@@ -1230,7 +1228,7 @@ export default function MovementScreen() {
             onPress={handleQuickSave}
             style={({ pressed }) => [styles.ledgerFinishButton, (pressed || isSaving) && styles.pressed]}
           >
-            {isSaving ? <ActivityIndicator color={movePalette.surface} /> : <Ionicons color={movePalette.surface} name="checkmark" size={19} />}
+            {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons color="#FFFFFF" name="checkmark" size={19} />}
             <Text style={styles.ledgerFinishButtonText}>{isSaving ? 'Saving…' : 'Finish'}</Text>
           </Pressable>
         </View>
@@ -1305,7 +1303,7 @@ export default function MovementScreen() {
         </View>
 
         <Pressable disabled={isSaving} onPress={handleSave} style={({ pressed }) => [styles.primaryButton, (pressed || isSaving) && styles.pressed]}>
-          {isSaving ? <ActivityIndicator color={movePalette.surface} /> : <Ionicons color={movePalette.surface} name="checkmark" size={20} />}
+          {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons color="#FFFFFF" name="checkmark" size={20} />}
           <Text style={styles.primaryButtonText}>{isSaving ? 'Saving…' : 'Save Workout'}</Text>
         </Pressable>
       </View>
@@ -1380,7 +1378,7 @@ export default function MovementScreen() {
           <TextInput
             onChangeText={setLibraryQuery}
             placeholder="Search movements"
-            placeholderTextColor="rgba(20, 31, 25, 0.42)"
+            placeholderTextColor="rgba(255, 255, 255, 0.42)"
             style={styles.searchInput}
             value={libraryQuery}
           />
@@ -1573,18 +1571,18 @@ const styles = StyleSheet.create({
   },
   segment: { borderBottomColor: 'transparent', borderBottomWidth: 2, minHeight: 48, justifyContent: 'center' },
   segmentActive: { borderBottomColor: movePalette.green },
-  segmentText: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontFamily: type.label.fontFamily, fontSize: 12 },
+  segmentText: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontFamily: type.label.fontFamily, fontSize: 12 },
   segmentTextActive: { color: movePalette.green },
-  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.16)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
+  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: 'rgba(10, 132, 255, 0.16)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
   previewDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 6, width: 6 },
-  previewBannerText: { ...type.caption, color: movePalette.green, fontSize: 11.5 },
+  previewBannerText: { ...type.caption, color: movePalette.green, fontSize: 13 },
   page: { gap: 22, paddingHorizontal: 22, paddingTop: 30 },
   pageHeadingRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   pageTitle: { ...type.title, color: movePalette.ink, fontSize: 30, lineHeight: 37 },
   editorialLabel: {
     ...type.eyebrow,
-    color: 'rgba(20, 31, 25, 0.56)',
-    fontSize: 10.5,
+    color: 'rgba(255, 255, 255, 0.56)',
+    fontSize: 12,
     letterSpacing: 1.5,
     lineHeight: 15,
     textTransform: 'uppercase'
@@ -1592,102 +1590,102 @@ const styles = StyleSheet.create({
   editorialDivider: { backgroundColor: movePalette.line, height: hairlineWidth, marginVertical: 2 },
   verdictBlock: { paddingTop: 4 },
   verdict: { ...type.voice, color: movePalette.ink, fontSize: 28, lineHeight: 35, marginTop: 14 },
-  lede: { ...type.body, color: 'rgba(20, 31, 25, 0.70)', lineHeight: 22, marginTop: 10 },
+  lede: { ...type.body, color: 'rgba(255, 255, 255, 0.70)', lineHeight: 22, marginTop: 10 },
   whyTitle: { ...type.label, color: movePalette.ink, marginTop: 22 },
   reasonList: { gap: 9, marginTop: 11 },
   reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   reasonDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 5, width: 5 },
-  reasonLine: { ...type.caption, color: 'rgba(20, 31, 25, 0.65)', flex: 1 },
-  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
-  protocolNoteText: { ...type.caption, color: 'rgba(20, 31, 25, 0.72)', flex: 1 },
-  quickLaunchCard: { backgroundColor: movePalette.surface, borderColor: 'rgba(28, 66, 53, 0.16)', borderRadius: 20, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 17, paddingHorizontal: 17, paddingTop: 18 },
+  reasonLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.65)', flex: 1 },
+  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(10, 132, 255, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
+  protocolNoteText: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', flex: 1 },
+  quickLaunchCard: { backgroundColor: movePalette.surface, borderColor: 'rgba(10, 132, 255, 0.16)', borderRadius: 20, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 17, paddingHorizontal: 17, paddingTop: 18 },
   quickLaunchHeading: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   quickLaunchIcon: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, height: 42, justifyContent: 'center', width: 42 },
   quickLaunchCopy: { flex: 1 },
   quickLaunchTitle: { ...type.heading, color: movePalette.ink, fontSize: 21, lineHeight: 26 },
-  quickLaunchHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.64)', fontSize: 12, lineHeight: 17, marginTop: 2 },
+  quickLaunchHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.64)', fontSize: 12, lineHeight: 17, marginTop: 2 },
   quickInputRow: { alignItems: 'center', backgroundColor: movePalette.background, borderColor: movePalette.lineStrong, borderRadius: 14, borderWidth: hairlineWidth, flexDirection: 'row', gap: 8, marginTop: 16, paddingLeft: 13, paddingRight: 5 },
   quickInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 52, paddingVertical: 11 },
-  quickGoButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 11, height: 42, justifyContent: 'center', width: 42 },
-  routineWheelLabel: { ...type.label, color: 'rgba(20, 31, 25, 0.64)', fontSize: 11.5, marginTop: 16 },
+  quickGoButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, height: 44, justifyContent: 'center', width: 44 },
+  routineWheelLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.64)', fontSize: 13, marginTop: 16 },
   routineWheel: { gap: 10, paddingRight: 16, paddingTop: 9 },
-  routineWheelCard: { backgroundColor: '#F3F1EA', borderColor: movePalette.line, borderRadius: 14, borderWidth: hairlineWidth, justifyContent: 'space-between', minHeight: 112, padding: 13, width: 164 },
-  routineWheelCardPressed: { backgroundColor: 'rgba(28, 66, 53, 0.10)', borderColor: 'rgba(28, 66, 53, 0.24)' },
-  routineWheelMeta: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 9, letterSpacing: 1.2 },
+  routineWheelCard: { backgroundColor: '#1C1C1E', borderColor: movePalette.line, borderRadius: 14, borderWidth: hairlineWidth, justifyContent: 'space-between', minHeight: 112, padding: 13, width: 164 },
+  routineWheelCardPressed: { backgroundColor: 'rgba(10, 132, 255, 0.10)', borderColor: 'rgba(10, 132, 255, 0.24)' },
+  routineWheelMeta: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 1.2 },
   routineWheelTitle: { ...type.label, color: movePalette.ink, fontSize: 14, lineHeight: 18, marginTop: 8 },
-  routineWheelSubtitle: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontSize: 11.5, marginTop: 9 },
+  routineWheelSubtitle: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontSize: 13, marginTop: 9 },
   primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: movePalette.green, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
-  primaryButtonText: { ...type.label, color: movePalette.surface, fontSize: 14 },
+  primaryButtonText: { ...type.label, color: '#FFFFFF', fontSize: 14 },
   changedRow: { gap: 8 },
-  changedCopy: { ...type.body, color: 'rgba(20, 31, 25, 0.65)' },
+  changedCopy: { ...type.body, color: 'rgba(255, 255, 255, 0.65)' },
   capacityLabels: { flexDirection: 'row', marginTop: 15 },
-  capacityLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', flex: 1, fontSize: 11, textAlign: 'center' },
+  capacityLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', flex: 1, fontSize: 12, textAlign: 'center' },
   capacityLabelActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
   capacityRail: { flexDirection: 'row', gap: 3, marginTop: 8 },
-  capacitySegment: { backgroundColor: 'rgba(20, 31, 25, 0.08)', borderRadius: 3, flex: 1, height: 6 },
+  capacitySegment: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, flex: 1, height: 6 },
   capacitySegmentActive: { backgroundColor: movePalette.green },
   capacityPanel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 15, borderWidth: hairlineWidth, marginTop: 14, padding: 16 },
   capacityTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 24 },
-  body: { ...type.body, color: 'rgba(20, 31, 25, 0.66)', marginTop: 8 },
-  monoMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontVariant: ['tabular-nums'], fontSize: 11.5 },
+  body: { ...type.body, color: 'rgba(255, 255, 255, 0.66)', marginTop: 8 },
+  monoMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontVariant: ['tabular-nums'], fontSize: 13 },
   rangeMeta: { ...type.caption, color: movePalette.greenMid, fontVariant: ['tabular-nums'], marginTop: 12 },
   objective: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 13 },
   agenda: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 18 },
   agendaRow: { alignItems: 'flex-start', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, flexDirection: 'row', gap: 16, paddingVertical: 13 },
-  agendaWhen: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 9, lineHeight: 17, width: 44 },
-  agendaCopy: { ...type.body, color: 'rgba(20, 31, 25, 0.70)', flex: 1, fontSize: 13.5, lineHeight: 20 },
+  agendaWhen: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, lineHeight: 17, width: 44 },
+  agendaCopy: { ...type.body, color: 'rgba(255, 255, 255, 0.70)', flex: 1, fontSize: 13.5, lineHeight: 20 },
   supportList: { gap: 16, marginTop: 16 },
   supportRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
   supportCopy: { flex: 1 },
   supportTitle: { ...type.label, color: movePalette.ink },
-  supportBody: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', marginTop: 3 },
+  supportBody: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', marginTop: 3 },
   feelingPanel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
   feelingTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 23 },
-  feelingHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.45)', marginTop: 4 },
+  feelingHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)', marginTop: 4 },
   mixList: { gap: 14, marginTop: 16 },
   mixHeading: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   mixLabel: { ...type.label, color: movePalette.ink, fontSize: 12.5 },
-  mixRail: { backgroundColor: 'rgba(20, 31, 25, 0.08)', borderRadius: 3, height: 6, overflow: 'hidden' },
+  mixRail: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, height: 6, overflow: 'hidden' },
   mixFill: { borderRadius: 3, height: 6 },
-  mixInsight: { ...type.voice, color: 'rgba(20, 31, 25, 0.70)', marginTop: 16 },
+  mixInsight: { ...type.voice, color: 'rgba(255, 255, 255, 0.70)', marginTop: 16 },
   weekRow: { flexDirection: 'row', marginTop: 16 },
   weekDay: { alignItems: 'center', flex: 1, gap: 9 },
-  weekLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.42)', fontSize: 10 },
+  weekLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.42)', fontSize: 12 },
   weekLabelToday: { color: movePalette.green, fontFamily: type.label.fontFamily },
   weekDot: { borderColor: movePalette.lineStrong, borderRadius: 6, borderWidth: 1, height: 11, width: 11 },
   weekDotToday: { borderColor: movePalette.green, borderWidth: 2 },
   weekLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 16 },
   panel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 18 },
-  ledgerHero: { backgroundColor: movePalette.surface, borderColor: 'rgba(28, 66, 53, 0.15)', borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
+  ledgerHero: { backgroundColor: movePalette.surface, borderColor: 'rgba(10, 132, 255, 0.15)', borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
   ledgerTitleInput: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 22, lineHeight: 28, minHeight: 48, paddingBottom: 8, paddingTop: 2 },
   ledgerTimestampRow: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 12 },
-  ledgerTimestamp: { ...type.caption, color: movePalette.greenMid, flex: 1, fontSize: 11.5, fontVariant: ['tabular-nums'] },
-  ledgerHelp: { ...type.body, color: 'rgba(20, 31, 25, 0.62)', fontSize: 13.5, lineHeight: 20, marginTop: 12 },
-  addMovementChip: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 12, borderWidth: hairlineWidth, flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 42, paddingHorizontal: 14 },
+  ledgerTimestamp: { ...type.caption, color: movePalette.greenMid, flex: 1, fontSize: 13, fontVariant: ['tabular-nums'] },
+  ledgerHelp: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', fontSize: 13.5, lineHeight: 20, marginTop: 12 },
+  addMovementChip: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 12, borderWidth: hairlineWidth, flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   addMovementChipText: { ...type.caption, color: movePalette.green, fontFamily: type.label.fontFamily },
   ledgerExerciseCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 18, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 14, paddingTop: 16 },
   ledgerExerciseHeading: { alignItems: 'flex-start', flexDirection: 'row', paddingHorizontal: 16 },
   ledgerExerciseTitleWrap: { flex: 1 },
-  ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 10, letterSpacing: 1.15, textTransform: 'uppercase' },
-  ledgerExerciseTitle: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 19, lineHeight: 24, marginRight: 10, marginTop: 3, minHeight: 42, paddingVertical: 6 },
-  ledgerPreviousDate: { ...type.caption, color: 'rgba(20, 31, 25, 0.58)', fontSize: 11.5, marginTop: 6 },
+  ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 1.15, textTransform: 'uppercase' },
+  ledgerExerciseTitle: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 19, lineHeight: 24, marginRight: 10, marginTop: 3, minHeight: 48, paddingVertical: 8 },
+  ledgerPreviousDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontSize: 13, marginTop: 6 },
   ledgerCategoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingVertical: 13 },
-  ledgerCategoryChip: { borderColor: movePalette.lineStrong, borderRadius: 9, borderWidth: hairlineWidth, minHeight: 32, paddingHorizontal: 9, paddingVertical: 7 },
-  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.28)' },
-  ledgerCategoryText: { ...type.caption, color: 'rgba(20, 31, 25, 0.55)', fontSize: 10.5 },
+  ledgerCategoryChip: { borderColor: movePalette.lineStrong, borderRadius: 11, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },
+  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: 'rgba(10, 132, 255, 0.28)' },
+  ledgerCategoryText: { ...type.caption, color: 'rgba(255, 255, 255, 0.55)', fontSize: 12 },
   ledgerCategoryTextActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
   ledgerSetCountRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   ledgerSetCountCopy: { flex: 1, paddingRight: 12 },
   ledgerSetCountTitle: { ...type.label, color: movePalette.ink, fontSize: 13 },
-  ledgerSetCountHint: { ...type.caption, color: 'rgba(20, 31, 25, 0.57)', fontSize: 11.5, marginTop: 2 },
-  ledgerSetStepper: { alignItems: 'center', borderColor: 'rgba(28, 66, 53, 0.20)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
-  ledgerStepperButton: { alignItems: 'center', backgroundColor: movePalette.surface, height: 42, justifyContent: 'center', width: 42 },
+  ledgerSetCountHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.57)', fontSize: 13, marginTop: 2 },
+  ledgerSetStepper: { alignItems: 'center', borderColor: 'rgba(10, 132, 255, 0.20)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
+  ledgerStepperButton: { alignItems: 'center', backgroundColor: movePalette.surface, height: 44, justifyContent: 'center', width: 44 },
   ledgerSetCountValue: { ...type.label, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, borderRightColor: movePalette.line, borderRightWidth: hairlineWidth, color: movePalette.ink, fontSize: 14, textAlign: 'center', width: 34 },
   ledgerSheet: { borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, minWidth: 662 },
-  ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#F2F0E9', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
-  ledgerHeader: { ...type.eyebrow, color: 'rgba(20, 31, 25, 0.55)', fontSize: 9, letterSpacing: 1, textAlign: 'center' },
+  ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#1C1C1E', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
+  ledgerHeader: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.55)', fontSize: 12, letterSpacing: 1, textAlign: 'center' },
   ledgerSetRow: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', minHeight: 54, paddingHorizontal: 10 },
-  ledgerSetRowComplete: { backgroundColor: 'rgba(28, 66, 53, 0.055)' },
+  ledgerSetRowComplete: { backgroundColor: 'rgba(10, 132, 255, 0.055)' },
   ledgerSetColumn: { width: 104 },
   ledgerPreviousColumn: { width: 126 },
   ledgerInputColumn: { width: 76 },
@@ -1696,30 +1694,30 @@ const styles = StyleSheet.create({
   ledgerSetIdentity: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   ledgerSetNumber: { ...type.label, color: movePalette.ink, fontSize: 12, textAlign: 'center', width: 22 },
   ledgerPreviousCell: { alignItems: 'center', flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 48, paddingHorizontal: 4 },
-  ledgerPreviousValue: { ...type.caption, color: 'rgba(20, 31, 25, 0.68)', fontSize: 11.5, fontVariant: ['tabular-nums'] },
+  ledgerPreviousValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontSize: 13, fontVariant: ['tabular-nums'] },
   ledgerCellInput: { ...type.body, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, color: movePalette.ink, fontSize: 13, minHeight: 48, paddingHorizontal: 5, textAlign: 'center' },
-  ledgerDoneButton: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 9, borderWidth: hairlineWidth, height: 36, justifyContent: 'center', marginHorizontal: 9 },
+  ledgerDoneButton: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 10, borderWidth: hairlineWidth, height: 44, justifyContent: 'center', marginHorizontal: 6 },
   ledgerDoneButtonActive: { backgroundColor: movePalette.green },
   ledgerRemoveButton: { alignItems: 'center', flexDirection: 'row', gap: 2, height: 44, justifyContent: 'center', width: 70 },
-  ledgerRemoveText: { ...type.caption, color: colors.danger, fontFamily: type.label.fontFamily, fontSize: 10.5 },
+  ledgerRemoveText: { ...type.caption, color: colors.danger, fontFamily: type.label.fontFamily, fontSize: 12 },
   ledgerAddSet: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 4, minHeight: 44, paddingHorizontal: 16, paddingTop: 10 },
   ledgerAddSetText: { ...type.label, color: movePalette.green, fontSize: 12 },
-  ledgerFinishBar: { alignItems: 'center', backgroundColor: movePalette.ink, borderRadius: 18, flexDirection: 'row', gap: 12, padding: 15 },
+  ledgerFinishBar: { alignItems: 'center', backgroundColor: '#1C1C1E', borderColor: movePalette.lineStrong, borderRadius: 18, borderWidth: hairlineWidth, flexDirection: 'row', gap: 12, padding: 15 },
   ledgerFinishCopy: { flex: 1 },
-  ledgerFinishTitle: { ...type.label, color: movePalette.surface, fontSize: 14 },
-  ledgerFinishHint: { ...type.caption, color: 'rgba(250, 249, 245, 0.68)', fontSize: 11.5, lineHeight: 16, marginTop: 3 },
-  ledgerFinishButton: { alignItems: 'center', backgroundColor: movePalette.greenMid, borderRadius: 12, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
-  ledgerFinishButtonText: { ...type.label, color: movePalette.surface },
-  ledgerStatus: { ...type.caption, color: 'rgba(20, 31, 25, 0.60)', fontSize: 11.5, textAlign: 'center' },
+  ledgerFinishTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
+  ledgerFinishHint: { ...type.caption, color: movePalette.slate, fontSize: 13, lineHeight: 18, marginTop: 3 },
+  ledgerFinishButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
+  ledgerFinishButtonText: { ...type.label, color: '#FFFFFF' },
+  ledgerStatus: { ...type.caption, color: 'rgba(255, 255, 255, 0.60)', fontSize: 13, textAlign: 'center' },
   field: { marginTop: 15 },
-  fieldLabel: { ...type.label, color: 'rgba(20, 31, 25, 0.68)', marginTop: 12 },
+  fieldLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.68)', marginTop: 12 },
   input: { ...type.body, backgroundColor: movePalette.background, borderColor: movePalette.lineStrong, borderRadius: 11, borderWidth: hairlineWidth, color: movePalette.ink, minHeight: 48, paddingHorizontal: 13, paddingVertical: 11 },
   textarea: { minHeight: 84, textAlignVertical: 'top' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 9 },
-  chip: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 42, paddingHorizontal: 14 },
+  chip: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   chipSelected: { backgroundColor: movePalette.green, borderColor: movePalette.green },
-  chipText: { ...type.caption, color: 'rgba(20, 31, 25, 0.68)', fontFamily: type.label.fontFamily },
-  chipTextSelected: { color: movePalette.surface },
+  chipText: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontFamily: type.label.fontFamily },
+  chipTextSelected: { color: '#FFFFFF' },
   twoFields: { flexDirection: 'row', gap: 10 },
   threeFields: { flexDirection: 'row', gap: 8 },
   flexField: { flex: 1, minWidth: 0 },
@@ -1729,74 +1727,74 @@ const styles = StyleSheet.create({
   iconButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
   libraryScroller: { marginHorizontal: -4, marginTop: 10 },
   libraryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 4 },
-  emptyCopy: { ...type.caption, color: 'rgba(20, 31, 25, 0.46)', marginTop: 16 },
+  emptyCopy: { ...type.caption, color: 'rgba(255, 255, 255, 0.46)', marginTop: 16 },
   exerciseCard: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 20, paddingTop: 16 },
-  exerciseIndex: { ...type.eyebrow, color: 'rgba(20, 31, 25, 0.42)' },
+  exerciseIndex: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.42)' },
   textAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 },
   textActionLabel: { ...type.label, color: movePalette.green },
-  sectionIntro: { ...type.body, color: 'rgba(20, 31, 25, 0.62)', marginTop: -10 },
+  sectionIntro: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', marginTop: -10 },
   templateCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
   templateCopy: { flex: 1 },
   templateTitle: { ...type.heading, color: movePalette.ink, fontSize: 19, lineHeight: 25 },
-  monoLine: { ...type.caption, color: 'rgba(20, 31, 25, 0.62)', fontVariant: ['tabular-nums'], marginTop: 7 },
-  templateMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', marginTop: 4 },
-  fitTag: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 8.5 },
+  monoLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'], marginTop: 7 },
+  templateMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', marginTop: 4 },
+  fitTag: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12 },
   templateActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
   templateStart: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 48 },
-  templateStartText: { ...type.label, color: movePalette.surface },
+  templateStartText: { ...type.label, color: '#FFFFFF' },
   templatePreview: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 48, minWidth: 92 },
   templatePreviewText: { ...type.label, color: movePalette.ink },
   outlineAction: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 15, borderWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, padding: 16 },
   outlineActionCopyWrap: { flex: 1, paddingRight: spacing.md },
   outlineActionTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
-  outlineActionCopy: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', marginTop: 3 },
-  footnote: { ...type.caption, color: 'rgba(20, 31, 25, 0.45)' },
+  outlineActionCopy: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', marginTop: 3 },
+  footnote: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)' },
   searchBox: { alignItems: 'center', backgroundColor: movePalette.surface, borderColor: movePalette.lineStrong, borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 10, paddingHorizontal: 14 },
   searchInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
   libraryFilters: { gap: 8, paddingRight: 22 },
   libraryList: { gap: 24, marginTop: 2 },
   libraryGroup: { gap: 0 },
-  libraryGroupTitle: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 9.5, letterSpacing: 1.55, marginBottom: 8, textTransform: 'uppercase' },
+  libraryGroupTitle: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 1.55, marginBottom: 8, textTransform: 'uppercase' },
   libraryItem: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 62, paddingHorizontal: 2, paddingVertical: 12 },
   libraryItemFirst: { borderTopWidth: 0 },
   libraryItemCopy: { flex: 1 },
   libraryItemTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
-  libraryItemMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', marginTop: 3 },
+  libraryItemMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', marginTop: 3 },
   libraryItemAside: { alignItems: 'flex-end', maxWidth: '42%' },
-  libraryItemCategory: { ...type.caption, color: 'rgba(20, 31, 25, 0.52)', fontSize: 11 },
-  emptyLibrary: { ...type.body, color: 'rgba(20, 31, 25, 0.48)', paddingVertical: 40, textAlign: 'center' },
+  libraryItemCategory: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', fontSize: 12 },
+  emptyLibrary: { ...type.body, color: 'rgba(255, 255, 255, 0.48)', paddingVertical: 40, textAlign: 'center' },
   historyInsight: { ...type.voice, color: movePalette.ink, fontSize: 24, lineHeight: 31, marginTop: -6 },
   historyPlotCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 14 },
   plotArea: { height: 172, overflow: 'hidden', position: 'relative' },
-  plotGridLine: { backgroundColor: 'rgba(20, 31, 25, 0.07)', height: hairlineWidth, left: 0, position: 'absolute', right: 0 },
+  plotGridLine: { backgroundColor: 'rgba(255, 255, 255, 0.07)', height: hairlineWidth, left: 0, position: 'absolute', right: 0 },
   plotDot: { borderColor: movePalette.surface, borderRadius: 6, borderWidth: 1.5, height: 12, marginLeft: -6, marginTop: -6, position: 'absolute', width: 12 },
   plotAxisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  plotAxisLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.40)', fontSize: 9.5 },
-  plotAxisTitle: { ...type.caption, color: movePalette.greenMid, fontSize: 9.5 },
+  plotAxisLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.40)', fontSize: 12 },
+  plotAxisTitle: { ...type.caption, color: movePalette.greenMid, fontSize: 12 },
   plotLegend: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 10 },
-  plotLegendText: { ...type.caption, color: 'rgba(20, 31, 25, 0.50)', fontSize: 10.5 },
+  plotLegendText: { ...type.caption, color: 'rgba(255, 255, 255, 0.50)', fontSize: 12 },
   loadRows: { gap: 12, marginTop: 16 },
   loadRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  loadLabel: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', fontSize: 10, width: 54 },
-  loadRail: { backgroundColor: 'rgba(20, 31, 25, 0.06)', borderRadius: 5, flex: 1, height: 10, overflow: 'hidden' },
+  loadLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', fontSize: 12, width: 54 },
+  loadRail: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 5, flex: 1, height: 10, overflow: 'hidden' },
   loadFill: { backgroundColor: movePalette.green, borderRadius: 5, height: 10 },
-  loadValue: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', fontSize: 10, textAlign: 'right', width: 34 },
+  loadValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', fontSize: 12, textAlign: 'right', width: 34 },
   patternRows: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 12 },
   patternRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 52 },
   patternLabel: { ...type.label, color: movePalette.ink },
-  patternValue: { ...type.caption, color: 'rgba(20, 31, 25, 0.62)', fontVariant: ['tabular-nums'] },
+  patternValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'] },
   mirrorLine: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 14 },
-  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(28, 66, 53, 0.17)', borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
+  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(10, 132, 255, 0.17)', borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
   emptyHistory: { paddingVertical: 14 },
   sessionRow: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, paddingVertical: 13 },
-  sessionDate: { ...type.caption, color: 'rgba(20, 31, 25, 0.44)', fontSize: 10, marginBottom: 5 },
+  sessionDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.44)', fontSize: 12, marginBottom: 5 },
   historyTitleWrap: { flex: 1, paddingRight: 8 },
   sessionTitle: { ...type.label, color: movePalette.ink, fontSize: 13.5 },
-  sessionMeta: { ...type.caption, color: 'rgba(20, 31, 25, 0.48)', fontSize: 11.5, marginTop: 2 },
+  sessionMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', fontSize: 13, marginTop: 2 },
   sessionAside: { alignItems: 'flex-end', marginRight: 2 },
-  sessionMinutes: { ...type.caption, color: 'rgba(20, 31, 25, 0.68)', fontVariant: ['tabular-nums'] },
-  sessionEffort: { ...type.caption, color: 'rgba(20, 31, 25, 0.42)', fontSize: 10, marginTop: 2 },
-  meta: { ...type.caption, color: 'rgba(20, 31, 25, 0.46)' },
+  sessionMinutes: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontVariant: ['tabular-nums'] },
+  sessionEffort: { ...type.caption, color: 'rgba(255, 255, 255, 0.42)', fontSize: 12, marginTop: 2 },
+  meta: { ...type.caption, color: 'rgba(255, 255, 255, 0.46)' },
   disabled: { opacity: 0.38 },
   pressed: { opacity: 0.68 },
   loading: { alignItems: 'center', gap: 10, paddingVertical: 48 }
