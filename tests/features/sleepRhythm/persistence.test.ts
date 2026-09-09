@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  hydrateSleepSession,
   toSleepNeedEstimateInsert,
   toSleepSessionInsert,
   type JsonValue,
-  type SleepSessionPersistenceInput
+  type SleepSessionPersistenceInput,
+  type SleepSessionRow
 } from '../../../src/features/sleepRhythm/persistence';
 import type { SleepNeedEstimate } from '../../../src/engines/circadian';
 
@@ -96,6 +98,52 @@ describe('sleep rhythm persistence mapping', () => {
 
     expect(payload.original_source_id).toBe('demo-session-1');
     expect(payload.raw_source_payload).toEqual(rawPayload);
+  });
+
+  it('serializes and hydrates sleep-window intervals through the existing source payload', () => {
+    const intervals = [
+      {
+        id: 'asleep-1',
+        state: 'asleep' as const,
+        start_at: '2026-06-09T22:30:00.000Z',
+        end_at: '2026-06-10T02:15:00.000Z'
+      },
+      {
+        id: 'awake-1',
+        state: 'awake' as const,
+        start_at: '2026-06-10T02:15:00.000Z',
+        end_at: '2026-06-10T02:30:00.000Z'
+      },
+      {
+        id: 'asleep-2',
+        state: 'asleep' as const,
+        start_at: '2026-06-10T02:30:00.000Z',
+        end_at: '2026-06-10T06:45:00.000Z'
+      }
+    ];
+    const payload = toSleepSessionInsert(baseSleepSession({
+      timezone: 'America/Los_Angeles',
+      sleep_intervals: intervals,
+      confirmed_by_user: true
+    }), userId);
+    const row: SleepSessionRow = {
+      ...payload,
+      id: 'sleep-row-1',
+      created_at: '2026-06-10T12:00:00.000Z',
+      updated_at: '2026-06-10T12:00:00.000Z'
+    };
+
+    expect(payload.raw_source_payload).toEqual({
+      schema_version: 1,
+      timezone: 'America/Los_Angeles',
+      intervals
+    });
+    expect(hydrateSleepSession(row)).toMatchObject({
+      id: 'sleep-row-1',
+      timezone: 'America/Los_Angeles',
+      sleep_intervals: intervals,
+      confirmed_by_user: true
+    });
   });
 
   it('preserves correction lineage', () => {
@@ -192,4 +240,3 @@ describe('sleep rhythm persistence mapping', () => {
     }
   });
 });
-

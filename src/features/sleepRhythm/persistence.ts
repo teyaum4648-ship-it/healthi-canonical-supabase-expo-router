@@ -1,4 +1,10 @@
-import type { DataConfidence, SleepDataSource, SleepNeedEstimate, SleepSession } from '../../engines/circadian';
+import type {
+  DataConfidence,
+  SleepDataSource,
+  SleepInterval,
+  SleepNeedEstimate,
+  SleepSession
+} from '../../engines/circadian';
 
 export type JsonValue =
   | string
@@ -87,6 +93,59 @@ function raiseSupabaseError(error: QueryError): never {
   throw new Error(error.message ?? 'Sleep rhythm persistence request failed.');
 }
 
+function isJsonObject(value: JsonValue): value is { [key: string]: JsonValue } {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isSleepInterval(value: JsonValue): value is JsonValue & SleepInterval {
+  if (!isJsonObject(value)) return false;
+  return typeof value.id === 'string'
+    && (value.state === 'asleep' || value.state === 'awake')
+    && typeof value.start_at === 'string'
+    && typeof value.end_at === 'string';
+}
+
+function sleepWindowPayload(sleepSession: SleepSessionPersistenceInput): JsonValue {
+  if (sleepSession.raw_source_payload !== undefined) return sleepSession.raw_source_payload;
+  if (!sleepSession.sleep_intervals?.length) return null;
+  return {
+    schema_version: 1,
+    timezone: sleepSession.timezone ?? null,
+    intervals: sleepSession.sleep_intervals.map((interval) => ({ ...interval }))
+  };
+}
+
+export function hydrateSleepSession(row: SleepSessionRow): SleepSession {
+  const payload = isJsonObject(row.raw_source_payload) ? row.raw_source_payload : null;
+  const intervals = payload && Array.isArray(payload.intervals)
+    ? payload.intervals.filter(isSleepInterval).map((interval) => ({
+        id: interval.id,
+        state: interval.state,
+        start_at: interval.start_at,
+        end_at: interval.end_at
+      }))
+    : undefined;
+  const timezone = payload && typeof payload.timezone === 'string' ? payload.timezone : null;
+
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    date: row.date,
+    sleep_start_at: row.sleep_start_at,
+    sleep_end_at: row.sleep_end_at,
+    duration_minutes: row.duration_minutes,
+    sleep_quality: row.sleep_quality,
+    source: row.source,
+    source_confidence: row.source_confidence,
+    corrected_by_user: row.corrected_by_user,
+    confirmed_by_user: row.confirmed_by_user,
+    timezone,
+    sleep_intervals: intervals,
+    reason_codes: [...row.reason_codes],
+    created_at: row.created_at
+  };
+}
+
 export function toSleepSessionInsert(
   sleepSession: SleepSessionPersistenceInput,
   userId: string
@@ -104,7 +163,7 @@ export function toSleepSessionInsert(
     confirmed_by_user: sleepSession.confirmed_by_user ?? false,
     correction_of_session_id: sleepSession.correction_of_session_id ?? null,
     original_source_id: sleepSession.original_source_id ?? null,
-    raw_source_payload: sleepSession.raw_source_payload ?? null,
+    raw_source_payload: sleepWindowPayload(sleepSession),
     reason_codes: [...sleepSession.reason_codes]
   };
 }
@@ -146,7 +205,7 @@ export async function getRecentSleepSessions(
   client: SleepRhythmSupabaseClient,
   userId: string,
   limit = 14
-): Promise<SleepSessionRow[]> {
+): Promise<SleepSession[]> {
   const { data, error } = await client
     .from('sleep_sessions')
     .select('*')
@@ -158,7 +217,7 @@ export async function getRecentSleepSessions(
     raiseSupabaseError(error);
   }
 
-  return data ?? [];
+  return (data ?? []).map(hydrateSleepSession);
 }
 
 export async function saveSleepNeedEstimate(
@@ -199,4 +258,3 @@ export async function getActiveSleepNeedEstimate(
 
   return data?.[0] ?? null;
 }
-

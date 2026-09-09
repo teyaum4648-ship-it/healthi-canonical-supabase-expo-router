@@ -24,8 +24,9 @@ export type {
   SleepDataSource,
   SleepDebtNight,
   SleepDebtSummary,
+  SleepInterval,
+  SleepIntervalState,
   SleepNeedEstimate,
   SleepSession,
   TimeWindow
 } from './types';
-

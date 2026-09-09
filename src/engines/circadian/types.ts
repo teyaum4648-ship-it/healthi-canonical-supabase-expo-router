@@ -13,6 +13,15 @@ export type SleepDataSource =
   | 'wearable'
   | 'user_corrected';
 
+export type SleepIntervalState = 'asleep' | 'awake';
+
+export type SleepInterval = {
+  id: string;
+  state: SleepIntervalState;
+  start_at: string;
+  end_at: string;
+};
+
 export type SleepSession = {
   id?: string;
   user_id?: string;
@@ -24,6 +33,9 @@ export type SleepSession = {
   source: SleepDataSource;
   source_confidence: DataConfidence;
   corrected_by_user?: boolean;
+  confirmed_by_user?: boolean;
+  timezone?: string | null;
+  sleep_intervals?: SleepInterval[];
   reason_codes: string[];
   created_at: string;
 };
@@ -141,4 +153,3 @@ export type MissingDailySignalsResult = {
   signals_already_known: DailySignalNeed[];
   reason_codes: string[];
 };
-
