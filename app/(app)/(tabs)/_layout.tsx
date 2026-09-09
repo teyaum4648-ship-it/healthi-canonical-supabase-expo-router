@@ -1,9 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 
-import { colors, fonts, hairlineWidth } from '../../../src/styles/theme';
+import { colors, fonts, hairlineWidth } from '../../../src/styles/mobileTheme';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
+
+const systemFont = Platform.select({
+  ios: 'System',
+  android: 'sans-serif',
+  web: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif'
+}) ?? fonts.body;
 
 function tabIcon(outline: TabIconName, filled: TabIconName) {
   return ({ color, focused, size }: { color: string; focused: boolean; size: number }) => (
@@ -14,24 +21,26 @@ function tabIcon(outline: TabIconName, filled: TabIconName) {
 export default function AppTabsLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textFaint,
-        tabBarLabelStyle: {
-          fontFamily: fonts.bodyMedium,
-          fontSize: 10,
-          fontWeight: '500',
-          letterSpacing: 0.2
-        },
-        tabBarStyle: {
-          borderTopColor: colors.hairline,
-          borderTopWidth: hairlineWidth,
-          backgroundColor: colors.background,
-          height: 74,
-          paddingBottom: 12,
-          paddingTop: 10
-        }
+      screenOptions={() => {
+        return {
+          headerShown: false,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textFaint,
+          tabBarLabelStyle: {
+            fontFamily: systemFont,
+            fontSize: 11,
+            fontWeight: '600',
+            letterSpacing: 0.1
+          },
+          tabBarStyle: {
+            borderTopColor: colors.hairline,
+            borderTopWidth: hairlineWidth,
+            backgroundColor: '#08080A',
+            height: 78,
+            paddingBottom: 14,
+            paddingTop: 9
+          }
+        };
       }}
     >
       <Tabs.Screen

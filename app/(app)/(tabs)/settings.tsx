@@ -19,7 +19,7 @@ import type { ProfileScreenModel } from '../../../src/features/profile/profileTy
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, spacing } from '../../../src/styles/theme';
+import { colors, fonts, spacing } from '../../../src/styles/mobileTheme';
 
 function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
   return value === 'ready' ? 'Ready' : value === 'partial' ? 'Early pattern' : 'Calibrating';
@@ -146,28 +146,29 @@ export default function SettingsScreen() {
   const baseline = model?.baseline;
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen appearance="mobile" contentStyle={styles.content}>
       <SectionHeader
+        appearance="mobile"
         eyebrow="Profile"
         title="You"
         body="Your baseline, preferences, and calibration status."
       />
 
       {isLoading || !model || !baseline ? (
-        <Card style={styles.loadingCard}>
+        <Card appearance="mobile" style={styles.loadingCard}>
           <ActivityIndicator color={colors.accent} />
           <Text style={styles.loadingText}>Organizing your available data.</Text>
         </Card>
       ) : (
         <>
-          <Card style={styles.accountCard}>
+          <Card appearance="mobile" style={styles.accountCard}>
             <Text style={styles.cardEyebrow}>ACCOUNT</Text>
             <Text style={styles.accountTitle}>{model.account.label}</Text>
             <Text style={styles.detail}>{model.account.detail}</Text>
             <Text style={styles.meta}>{model.account.source_label === 'demo' ? 'Local demo mode' : model.account.source_label === 'logged' ? 'Saved profile data' : 'Setup status'}</Text>
           </Card>
 
-          <Card style={styles.baselineCard}>
+          <Card appearance="mobile" style={styles.baselineCard}>
             <Text style={styles.cardEyebrow}>YOUR BASELINE</Text>
             <Text style={styles.baselineTitle}>{baseline.headline}</Text>
             <Text style={styles.baselineDetail}>{baseline.detail}</Text>
@@ -175,7 +176,7 @@ export default function SettingsScreen() {
           </Card>
 
           {activeProtocol ? (
-            <Card>
+            <Card appearance="mobile">
               <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
               <Text style={styles.baselineTitle}>{activeProtocol.headline}</Text>
               <Text style={styles.meta}>
@@ -207,13 +208,13 @@ export default function SettingsScreen() {
           </View>
 
           {isTrendsLoading || !trendsModel ? (
-            <Card style={styles.trendLoadingCard}>
+            <Card appearance="mobile" style={styles.trendLoadingCard}>
               <ActivityIndicator color={colors.accent} />
               <Text style={styles.loadingText}>Gathering your available patterns.</Text>
             </Card>
           ) : (
             <>
-              <Card style={styles.trendOverviewCard}>
+              <Card appearance="mobile" style={styles.trendOverviewCard}>
                 <View style={styles.trendTopline}>
                   <Text style={styles.cardEyebrow}>OVERVIEW</Text>
                   <Text style={styles.trendSource}>{trendSourceLabel(trendsModel)}</Text>
@@ -225,7 +226,7 @@ export default function SettingsScreen() {
 
               <View style={styles.trendDomainGrid}>
                 {trendsModel.summary.domain_cards.map((card) => (
-                  <Card key={card.domain} style={styles.trendDomainCard}>
+                  <Card appearance="mobile" key={card.domain} style={styles.trendDomainCard}>
                     <View style={styles.trendTopline}>
                       <Text style={styles.trendDomainTitle}>{card.title}</Text>
                       <Text style={[styles.trendStatus, card.status === 'watch' && styles.trendStatusWatch]}>{trendStatusLabel(card)}</Text>
@@ -238,7 +239,7 @@ export default function SettingsScreen() {
               </View>
 
               {trendsModel.summary.insights.length > 0 ? (
-                <Card style={styles.trendInsightCard}>
+                <Card appearance="mobile" style={styles.trendInsightCard}>
                   <Text style={styles.cardEyebrow}>WHAT IS SHOWING UP</Text>
                   {trendsModel.summary.insights.map((insight) => (
                     <View key={insight.id} style={styles.trendInsightRow}>
@@ -250,7 +251,7 @@ export default function SettingsScreen() {
                 </Card>
               ) : null}
 
-              <Card style={styles.trendFocusCard}>
+              <Card appearance="mobile" style={styles.trendFocusCard}>
                 <Text style={styles.cardEyebrow}>NEXT FOCUS</Text>
                 <Text style={styles.trendFocusTitle}>{trendsModel.summary.next_focus.title}</Text>
                 <Text style={styles.trendFocusDetail}>{trendsModel.summary.next_focus.detail}</Text>
@@ -263,13 +264,13 @@ export default function SettingsScreen() {
             <Text style={styles.sectionCaption}>Available signals</Text>
           </View>
           {baseline.profile_cards.length ? baseline.profile_cards.map((card) => (
-            <Card key={card.id} style={styles.profileCard}>
+            <Card appearance="mobile" key={card.id} style={styles.profileCard}>
               <Text style={styles.profileTitle}>{card.title}</Text>
               <Text style={styles.profileValue}>{card.value}</Text>
               <Text style={styles.detail}>{card.detail}</Text>
             </Card>
           )) : (
-            <Card>
+            <Card appearance="mobile">
               <Text style={styles.profileTitle}>Baseline details</Text>
               <Text style={styles.detail}>Complete setup to add your goal and personal context.</Text>
             </Card>
@@ -280,7 +281,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionCaption}>What shapes your plan</Text>
           </View>
 
-          <Card style={styles.blueprintCard}>
+          <Card appearance="mobile" style={styles.blueprintCard}>
             <Text style={styles.cardEyebrow}>NOURISHMENT PREFERENCES</Text>
             <Text style={styles.blueprintTitle}>{model.blueprint.nourishment.pattern_label}</Text>
             <Text style={styles.detail}>{model.blueprint.nourishment.detail}</Text>
@@ -303,7 +304,7 @@ export default function SettingsScreen() {
             <Text style={styles.readinessNote}>{model.blueprint.nourishment.readiness_note}</Text>
           </Card>
 
-          <Card style={styles.blueprintCard}>
+          <Card appearance="mobile" style={styles.blueprintCard}>
             <Text style={styles.cardEyebrow}>SLEEP RHYTHM</Text>
             <Text style={styles.blueprintTitle}>Your sleep context</Text>
             <Text style={styles.miniHeading}>Biggest friction</Text>
@@ -320,7 +321,7 @@ export default function SettingsScreen() {
             <Text style={styles.readinessNote}>{model.blueprint.sleep.readiness_note}</Text>
           </Card>
 
-          <Card style={styles.blueprintCard}>
+          <Card appearance="mobile" style={styles.blueprintCard}>
             <Text style={styles.cardEyebrow}>MOVEMENT SUMMARY</Text>
             <Text style={styles.blueprintTitle}>Your training context</Text>
             <View style={styles.movementMetrics}>
@@ -344,7 +345,7 @@ export default function SettingsScreen() {
             <Text style={styles.readinessNote}>{model.blueprint.movement.readiness_note}</Text>
           </Card>
 
-          <Card style={styles.calibrationCard}>
+          <Card appearance="mobile" style={styles.calibrationCard}>
             <Text style={styles.cardEyebrow}>CALIBRATION</Text>
             <Text style={styles.calibrationTitle}>{baseline.calibration.completion_label}</Text>
             <Text style={styles.detail}>{baseline.calibration.detail}</Text>
@@ -361,7 +362,7 @@ export default function SettingsScreen() {
             </View>
           </Card>
 
-          <Card>
+          <Card appearance="mobile">
             <Text style={styles.cardEyebrow}>PREFERENCES</Text>
             {baseline.preferences.map((preference) => (
               <View key={preference.id} style={styles.preferenceRow}>
@@ -371,7 +372,7 @@ export default function SettingsScreen() {
             ))}
           </Card>
 
-          <Card style={styles.nextStepsCard}>
+          <Card appearance="mobile" style={styles.nextStepsCard}>
             <Text style={styles.cardEyebrow}>NEXT STEPS</Text>
             {baseline.next_steps.map((step) => (
               <View key={step.id} style={styles.stepRow}>
@@ -386,7 +387,7 @@ export default function SettingsScreen() {
 
           <Text style={styles.footer}>Healthi provides general wellness guidance based on available data.</Text>
 
-          <Button label="Log out" onPress={handleSignOut} variant="secondary" />
+          <Button appearance="mobile" label="Log out" onPress={handleSignOut} variant="secondary" />
           {model.load_error ? <Text style={styles.errorNote}>Some profile details are still calibrating while data becomes available.</Text> : null}
         </>
       )}
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
   loadingText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14 },
   accountCard: { backgroundColor: colors.surfaceInset },
   baselineCard: { backgroundColor: colors.surfaceMuted, borderColor: colors.borderStrong },
-  cardEyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 1.4 },
+  cardEyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 1.4 },
   accountTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 27, lineHeight: 33 },
   baselineTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 28, lineHeight: 34 },
   baselineDetail: { color: colors.text, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
@@ -417,12 +418,12 @@ const styles = StyleSheet.create({
   trendLoadingCard: { alignItems: 'center', gap: spacing.sm, justifyContent: 'center', minHeight: 120 },
   trendOverviewCard: { backgroundColor: colors.surfaceMuted, borderColor: colors.borderStrong, gap: spacing.sm },
   trendTopline: { alignItems: 'baseline', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
-  trendSource: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 11 },
+  trendSource: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
   trendOverviewTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 26, lineHeight: 32 },
   trendDomainGrid: { gap: spacing.sm },
   trendDomainCard: { gap: spacing.xs },
   trendDomainTitle: { color: colors.text, flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14 },
-  trendStatus: { color: colors.accentMid, fontFamily: fonts.bodyMedium, fontSize: 11 },
+  trendStatus: { color: colors.accentMid, fontFamily: fonts.bodyMedium, fontSize: 12 },
   trendStatusWatch: { color: colors.danger },
   trendDomainValue: { color: colors.text, fontFamily: fonts.display, fontSize: 22, lineHeight: 28 },
   trendInsightCard: { gap: spacing.sm },
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
   donutWrap: { alignItems: 'center', height: 108, justifyContent: 'center', width: 108 },
   donutCenter: { alignItems: 'center', justifyContent: 'center', position: 'absolute' },
   donutLabel: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 12 },
-  donutSubLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 10 },
+  donutSubLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
   macroLegend: { flex: 1, gap: spacing.sm },
   macroLegendRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
   macroDot: { borderRadius: 4, height: 8, width: 8 },
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
   movementMetrics: { flexDirection: 'row', gap: spacing.sm },
   metricItem: { backgroundColor: colors.surfaceInset, flex: 1, gap: 2, padding: spacing.sm },
   metricValue: { color: colors.text, fontFamily: fonts.display, fontSize: 22, lineHeight: 27 },
-  metricLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 10, lineHeight: 14 },
+  metricLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12, lineHeight: 14 },
   calibrationCard: { gap: spacing.sm },
   calibrationTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 24, lineHeight: 30 },
   domainList: { borderTopColor: colors.hairline, borderTopWidth: 1, marginTop: spacing.xs },

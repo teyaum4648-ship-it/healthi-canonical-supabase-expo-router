@@ -22,7 +22,8 @@ export default function RootLayout() {
     Fraunces_400Regular,
     Fraunces_400Regular_Italic,
     Inter_400Regular,
-    Inter_500Medium
+    Inter_500Medium,
+    Ionicons: require('../assets/fonts/Ionicons.ttf')
   });
 
   if (!fontsLoaded) {

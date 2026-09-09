@@ -8,6 +8,10 @@ import {
   type SleepSession
 } from '../../../src/engines/circadian';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import {
+  getLocalSleepWindowSessions,
+  saveLocalSleepWindowSession
+} from '../../../src/features/sleepRhythm/localSleepWindowStore';
 import { SleepExperience } from '../../../src/features/sleepRhythm/SleepExperience';
 import {
   getActiveSleepNeedEstimate,
@@ -20,6 +24,10 @@ import {
   createDemoSleepSessions,
   createManualSleepSession
 } from '../../../src/features/sleepRhythm/rhythmInputs';
+import {
+  sleepWindowToSession,
+  type SleepWindowRecord
+} from '../../../src/features/sleepRhythm/sleepWindowEngine';
 import { supabase } from '../../../src/lib/supabase';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
@@ -67,10 +75,11 @@ export default function RhythmScreen() {
     async function loadSleepRhythmData() {
       const userId = user?.id;
       if (!isUuid(userId)) {
+        const localSessions = await getLocalSleepWindowSessions().catch(() => []);
         if (isMounted) {
-          setSleepSessions(createDemoSleepSessions(today));
+          setSleepSessions(localSessions.length > 0 ? localSessions : createDemoSleepSessions(today));
           setSleepNeed(createDefaultSleepNeedEstimate(now));
-          setDataMode('demo');
+          setDataMode(localSessions.length > 0 ? 'manual' : 'demo');
           setIsLoading(false);
         }
         return;
@@ -165,6 +174,8 @@ export default function RhythmScreen() {
       const userId = user?.id;
       if (isUuid(userId)) {
         await saveSleepSession(supabase as unknown as SleepRhythmSupabaseClient, userId, manualSession);
+      } else {
+        await saveLocalSleepWindowSession(manualSession);
       }
       setSleepSessions((current) => [manualSession, ...current.filter((session) => session.date !== today)]);
       setDataMode('manual');
@@ -172,8 +183,43 @@ export default function RhythmScreen() {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save this sleep window right now.';
+      await saveLocalSleepWindowSession(manualSession).catch(() => undefined);
       Alert.alert('Saved on this device', `${message} Your local rhythm view has still been updated.`);
       setSleepSessions((current) => [manualSession, ...current.filter((session) => session.date !== today)]);
+      setDataMode('manual');
+      setInputsTouched(false);
+      return true;
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleSleepWindowSave(record: SleepWindowRecord) {
+    const sleepSession = sleepWindowToSession(record, new Date().toISOString());
+
+    setIsSaving(true);
+    try {
+      const userId = user?.id;
+      if (isUuid(userId)) {
+        await saveSleepSession(supabase as unknown as SleepRhythmSupabaseClient, userId, {
+          ...sleepSession,
+          correction_of_session_id: record.corrected_by_user && isUuid(record.based_on_session_id ?? undefined)
+            ? record.based_on_session_id
+            : null,
+          original_source_id: record.based_on_session_id
+        });
+      } else {
+        await saveLocalSleepWindowSession(sleepSession);
+      }
+      setSleepSessions((current) => [sleepSession, ...current.filter((session) => session.date !== record.date)]);
+      setDataMode(isUuid(userId) ? 'persisted' : 'manual');
+      setInputsTouched(false);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sync this sleep window right now.';
+      await saveLocalSleepWindowSession(sleepSession).catch(() => undefined);
+      Alert.alert('Saved on this device', `${message} Your sleep window is still available here.`);
+      setSleepSessions((current) => [sleepSession, ...current.filter((session) => session.date !== record.date)]);
       setDataMode('manual');
       setInputsTouched(false);
       return true;
@@ -190,6 +236,7 @@ export default function RhythmScreen() {
       isSaving={isSaving}
       now={now}
       onSaveManual={handleManualSubmit}
+      onSaveSleepWindow={handleSleepWindowSave}
       onSleepQualityChange={(value) => { setInputsTouched(true); setSleepQuality(value); }}
       onSleepStartTimeChange={(value) => { setInputsTouched(true); setSleepStartTime(value); }}
       onWakeTimeChange={(value) => { setInputsTouched(true); setWakeTime(value); }}

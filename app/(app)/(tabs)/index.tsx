@@ -1,10 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useIsFocused } from '@react-navigation/native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, G, Line } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polyline } from 'react-native-svg';
 
 import { generateCircadianBriefing, type SleepNeedEstimate, type SleepSession } from '../../../src/engines/circadian';
 import { generateDayPlan } from '../../../src/engines/dayPlan';
@@ -12,6 +15,13 @@ import { calculateMovementSummary, generateMovementReadinessSignal } from '../..
 import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import {
+  aggregateDashboardMacros,
+  boundedProgress,
+  driverStatusProgress,
+  greetingForHour,
+  recentSleepTrend
+} from '../../../src/features/dashboard/homeDashboardPresentation';
 import { readOnboardingV2Setup } from '../../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2BaselineSetup } from '../../../src/features/onboarding/onboardingV2Types';
 import { getDemoScheduleBlocksForDate } from '../../../src/features/dayPlan/localDemoScheduleStore';
@@ -64,12 +74,43 @@ import {
   createDemoSleepSessions
 } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { colors, hairlineWidth, palette, type } from '../../../src/styles/theme';
+import { fonts, type } from '../../../src/styles/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const foodSegments = Array.from({ length: 10 }, (_, index) => index);
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
+const homePalette = {
+  background: '#000000',
+  surface: '#121214',
+  surfaceRaised: '#1C1C1E',
+  surfaceSoft: '#242426',
+  border: 'rgba(255, 255, 255, 0.075)',
+  borderStrong: 'rgba(255, 255, 255, 0.12)',
+  blue: '#0A84FF',
+  blueBright: '#64D2FF',
+  blueSoft: '#5AC8FA',
+  cyan: '#63E6CE',
+  violet: '#BF8BFF',
+  amber: '#FFD479',
+  text: '#F5F5F7',
+  textMuted: '#A1A1A6',
+  textFaint: '#6E6E73',
+  track: '#2C2C2E',
+  white: '#FFFFFF'
+} as const;
+
+const homeFont = Platform.select({
+  ios: 'System',
+  android: 'sans-serif',
+  web: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif'
+}) ?? fonts.body;
+
+const domainAccent = {
+  recovery_rhythm: homePalette.violet,
+  nourishment: homePalette.cyan,
+  movement_capacity: homePalette.blueSoft,
+  mind_life_load: homePalette.amber
+} as const;
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -96,7 +137,21 @@ function readinessIcon(domain: string): keyof typeof Ionicons.glyphMap {
   if (domain === 'recovery_rhythm') return 'moon-outline';
   if (domain === 'nourishment') return 'nutrition-outline';
   if (domain === 'movement_capacity') return 'walk-outline';
-  return 'calendar-outline';
+  return 'sparkles-outline';
+}
+
+function formatClockTime(value: string | null | undefined): string {
+  if (!value) return 'Open';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Open';
+  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(date);
+}
+
+function foundationRoute(domain: 'recovery_rhythm' | 'nourishment' | 'movement_capacity' | 'mind_life_load') {
+  if (domain === 'recovery_rhythm') return '/rhythm' as const;
+  if (domain === 'nourishment') return '/food' as const;
+  if (domain === 'movement_capacity') return '/movement' as const;
+  return '/plan' as const;
 }
 
 function mealRowToMealLog(row: MealLogRow): MealLog {
@@ -155,18 +210,14 @@ type DashboardBaselineClient = {
   };
 };
 
-/**
- * Signature element: a 64-tick chronometer bezel. Ticks light in jade up to
- * the score; the arc sweeps in on mount with a luminous head. The dial IS
- * the brand — everything else on the screen stays quiet around it.
- */
-function ReadinessRing({ score }: { score: number }) {
-  const size = 208;
+function ReadinessRing({ score }: { score: number | null }) {
+  const size = 164;
   const c = size / 2;
-  const arcRadius = 82;
+  const arcRadius = 62;
   const circumference = 2 * Math.PI * arcRadius;
-  const tickCount = 64;
-  const litTicks = Math.round((score / 100) * tickCount);
+  const tickCount = 48;
+  const targetScore = score ?? 0;
+  const litTicks = Math.round((targetScore / 100) * tickCount);
 
   const progress = useRef(new Animated.Value(0)).current;
   const [displayScore, setDisplayScore] = useState(0);
@@ -176,24 +227,24 @@ function ReadinessRing({ score }: { score: number }) {
       setDisplayScore(Math.round(value));
     });
     Animated.timing(progress, {
-      toValue: score,
+      toValue: targetScore,
       duration: 1200,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false
     }).start();
     return () => progress.removeListener(listener);
-  }, [progress, score]);
+  }, [progress, targetScore]);
 
   const dashOffset = progress.interpolate({
     inputRange: [0, 100],
     outputRange: [circumference, 0]
   });
   const headOpacity = progress.interpolate({
-    inputRange: [0, Math.max(score - 4, 1), score],
+    inputRange: [0, Math.max(targetScore - 4, 1), Math.max(targetScore, 2)],
     outputRange: [0, 0, 1]
   });
 
-  const headAngle = (score / 100) * Math.PI * 2;
+  const headAngle = (targetScore / 100) * Math.PI * 2;
   const headX = c + arcRadius * Math.cos(headAngle);
   const headY = c + arcRadius * Math.sin(headAngle);
 
@@ -204,13 +255,13 @@ function ReadinessRing({ score }: { score: number }) {
           {Array.from({ length: tickCount }, (_, tick) => {
             const angle = (tick / tickCount) * Math.PI * 2;
             const isMajor = tick % 8 === 0;
-            const inner = isMajor ? 92 : 95;
-            const outer = 99;
+            const inner = isMajor ? 71 : 73;
+            const outer = 77;
             const lit = tick < litTicks;
             return (
               <Line
                 key={tick}
-                stroke={lit ? 'rgba(124, 217, 175, 0.38)' : palette.hairline}
+                stroke={lit ? 'rgba(100, 210, 255, 0.45)' : homePalette.track}
                 strokeLinecap="round"
                 strokeWidth={1.1}
                 x1={c + inner * Math.cos(angle)}
@@ -220,50 +271,133 @@ function ReadinessRing({ score }: { score: number }) {
               />
             );
           })}
-          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke={palette.hairlineSoft} strokeWidth={2} />
+          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke={homePalette.track} strokeWidth={5} />
           <AnimatedCircle
             cx={c}
             cy={c}
             fill="none"
             r={arcRadius}
-            stroke={palette.forest}
+            stroke={homePalette.blue}
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
             strokeLinecap="round"
-            strokeWidth={2.5}
+            strokeWidth={5}
           />
-          <AnimatedCircle cx={headX} cy={headY} fill={palette.forest} opacity={headOpacity} r={7.5} fillOpacity={0.16} />
-          <AnimatedCircle cx={headX} cy={headY} fill={palette.forest} opacity={headOpacity} r={3.2} />
+          {score !== null ? (
+            <>
+              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blue} opacity={headOpacity} r={8} fillOpacity={0.18} />
+              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blueBright} opacity={headOpacity} r={3.2} />
+            </>
+          ) : null}
         </G>
       </Svg>
       <View style={styles.ringCenter}>
-        <Text style={styles.score}>{displayScore}</Text>
-        <Text style={styles.scoreLabel}>Readiness</Text>
+        <Text style={[styles.score, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
+        <Text style={styles.scoreLabel}>{score === null ? 'Calibrating' : '/ 100'}</Text>
       </View>
     </View>
   );
 }
 
-function Section({ children }: { children: React.ReactNode }) {
-  return <View style={styles.section}>{children}</View>;
+function Panel({ children, style }: { children: React.ReactNode; style?: object }) {
+  return <View style={[styles.panel, style]}>{children}</View>;
 }
 
-function SectionHeader({ title, value, unit }: { title: string; value?: string; unit?: string }) {
+function PanelHeader({ title, action }: { title: string; action?: string }) {
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {value ? (
-        <Text style={styles.sectionValue}>
-          {value}
-          {unit ? <Text style={styles.unit}> {unit}</Text> : null}
-        </Text>
-      ) : null}
+    <View style={styles.panelHeader}>
+      <Text style={styles.panelTitle}>{title}</Text>
+      {action ? <Text style={styles.panelAction}>{action}</Text> : null}
+    </View>
+  );
+}
+
+type QuickLogAction = {
+  label: string;
+  detail: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  onPress: () => void;
+};
+
+function QuickLog({ actions }: { actions: QuickLogAction[] }) {
+  return (
+    <View style={styles.quickLogSection}>
+      <View style={styles.quickLogHeader}>
+        <Text style={styles.quickLogTitle}>Quick log</Text>
+        <Text style={styles.quickLogHint}>Add in seconds</Text>
+      </View>
+      <View style={styles.quickLogRow}>
+        {actions.map((action) => (
+          <Pressable
+            accessibilityLabel={`${action.label}. ${action.detail}`}
+            accessibilityRole="button"
+            key={action.label}
+            onPress={action.onPress}
+            style={({ pressed }) => [styles.quickLogButton, pressed && styles.quickLogButtonPressed]}
+          >
+            <View style={[styles.quickLogIcon, { backgroundColor: `${action.color}1C` }]}>
+              <Ionicons color={action.color} name={action.icon} size={20} />
+            </View>
+            <Text style={styles.quickLogLabel}>{action.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ProgressRail({ progress, color }: { progress: number; color: string }) {
+  return (
+    <View style={styles.progressTrack}>
+      <View style={[styles.progressFill, { backgroundColor: color, width: `${Math.round(progress * 100)}%` }]} />
+    </View>
+  );
+}
+
+function SleepSparkline({ values }: { values: number[] }) {
+  if (values.length < 2) {
+    return (
+      <View style={styles.emptyChart}>
+        <Ionicons color={homePalette.textFaint} name="pulse-outline" size={22} />
+        <Text style={styles.emptyChartText}>Two recorded nights will reveal your rhythm trend.</Text>
+      </View>
+    );
+  }
+
+  const width = 300;
+  const height = 76;
+  const padding = 6;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(max - min, 30);
+  const points = values.map((value, index) => {
+    const x = padding + (index / Math.max(values.length - 1, 1)) * (width - padding * 2);
+    const y = height - padding - ((value - min) / range) * (height - padding * 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <View style={styles.chartShell}>
+      <Svg height="76" preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`} width="100%">
+        <Line stroke={homePalette.track} strokeWidth="1" x1="0" x2={width} y1="24" y2="24" />
+        <Line stroke={homePalette.track} strokeWidth="1" x1="0" x2={width} y1="52" y2="52" />
+        <Polyline
+          fill="none"
+          points={points}
+          stroke={homePalette.blue}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+        />
+      </Svg>
     </View>
   );
 }
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const isFocused = useIsFocused();
   const today = new Date().toISOString().slice(0, 10);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
@@ -505,14 +639,6 @@ export default function DashboardScreen() {
     targets: nutritionTargets,
     demoMode: nutritionSource === 'demo'
   });
-  const activeFoodSegments =
-    nutritionSummary.meal_count === 0
-      ? 0
-      : nutritionSummary.food_quality_label === 'Supportive'
-        ? 8
-        : nutritionSummary.food_quality_label === 'Steady'
-          ? 6
-          : 4;
   const movementSummary = calculateMovementSummary({
     date: today,
     sessions: movementSessions.map(workoutSessionRowToEngineSession),
@@ -626,157 +752,219 @@ export default function DashboardScreen() {
   }, [protocolModel, protocolScopeValue]);
   const protocol = protocolModel.protocol;
   const protocolActions = protocol.actions.slice(0, 3);
+  const primaryAction = protocol.actions.find((action) => action.status === 'pending') ?? protocol.actions[0];
+  const macroTotals = aggregateDashboardMacros(nutritionMeals);
+  const sleepTrend = recentSleepTrend(sleepSessions);
+  const nextScheduleBlock = scheduleBlocks.find((block) => new Date(block.end_at).getTime() >= Date.now()) ?? null;
+  const foundationSourceCount = [rhythmSource, nutritionSource, movementSource, scheduleSource]
+    .filter((source) => source !== 'calibrating').length;
+  const visibleReadinessScore = dashboardHero.source_label === 'calibrating' ? null : dashboardHero.score;
+  const sourceLabel = dashboardHero.source_label === 'logged'
+    ? 'Live signals'
+    : dashboardHero.source_label === 'demo'
+      ? 'Demo signals'
+      : 'Signals calibrating';
+  const greeting = greetingForHour(new Date().getHours());
+  const quickLogActions: QuickLogAction[] = [
+    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: homePalette.cyan, onPress: () => router.push('/food') },
+    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: homePalette.blueSoft, onPress: () => router.push('/movement') },
+    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: homePalette.violet, onPress: () => router.push('/rhythm') },
+    { label: 'Check-in', detail: 'Record how today felt', icon: 'pulse-outline', color: homePalette.amber, onPress: () => router.push('/closeout') }
+  ];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
+      {isFocused ? <StatusBar style="light" /> : null}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.date}>{displayDate(today)}</Text>
-          <Text style={styles.greeting}>Good morning, {firstName}</Text>
+          <View style={styles.headerCopy}>
+            <Text style={styles.date}>{displayDate(today)}</Text>
+            <Text style={styles.greeting}>{greeting}, {firstName}</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Open your profile"
+            accessibilityRole="button"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
+          >
+            <Text style={styles.avatarText}>{firstName.slice(0, 1).toUpperCase()}</Text>
+          </Pressable>
         </View>
-
-        <ReadinessRing score={dashboardHero.score} />
-        <Text style={styles.readinessNote}>
-          {dashboardHero.label} · {dashboardHero.top_action}
-        </Text>
-        <Text style={styles.briefingMeta}>
-          {dashboardHero.source_label === 'logged'
-            ? 'Based on available data'
-            : dashboardHero.source_label === 'demo'
-              ? 'Demo signals'
-              : 'Still calibrating'} · Confidence: {dashboardHero.confidence}
-        </Text>
 
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push('/protocol')}
-          style={({ pressed }) => [styles.protocolCard, pressed && styles.protocolCardPressed]}
+          style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}
         >
-          <View style={styles.protocolTop}>
-            <Text style={styles.protocolEyebrow}>Today's protocol</Text>
-            <Ionicons color={colors.accent} name="chevron-forward" size={18} />
+          <LinearGradient colors={['rgba(10, 132, 255, 0.09)', 'rgba(18, 18, 20, 0)']} style={styles.heroGlow}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroCopy}>
+                <View style={styles.livePill}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>Day mode</Text>
+                </View>
+                <Text style={styles.dayMode}>{dayModeLabel(protocol.day_mode)}</Text>
+                <Text style={styles.heroLabel}>{dashboardHero.label}</Text>
+              </View>
+              <ReadinessRing score={visibleReadinessScore} />
+            </View>
+            <View style={styles.heroSummaryRow}>
+              <View style={styles.heroSummaryCopy}>
+                <Text style={styles.heroSummary} numberOfLines={3}>{dashboardHero.summary}</Text>
+                <Text style={styles.heroMeta}>{sourceLabel} · {dashboardHero.confidence} confidence</Text>
+              </View>
+              <View style={styles.roundArrow}>
+                <Ionicons color={homePalette.white} name="arrow-forward" size={16} />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
+
+        <QuickLog actions={quickLogActions} />
+
+        <Pressable
+          accessibilityLabel={`Open today's protocol. ${primaryAction?.title ?? dashboardHero.top_action}`}
+          accessibilityRole="button"
+          onPress={() => router.push('/protocol')}
+          style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}
+        >
+          <LinearGradient colors={['#171719', '#121214']} style={styles.primaryActionGradient}>
+            <View style={styles.primaryActionIcon}>
+              <Ionicons color={homePalette.blue} name="flash-outline" size={20} />
+            </View>
+            <View style={styles.primaryActionCopy}>
+              <Text style={styles.primaryActionEyebrow}>Next best action</Text>
+              <Text style={styles.primaryActionTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
+              <Text numberOfLines={2} style={styles.primaryActionDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
+            </View>
+            <Ionicons color={homePalette.blue} name="chevron-forward" size={20} />
+          </LinearGradient>
+        </Pressable>
+
+        <Panel>
+          <PanelHeader action={titleCase(morningBriefing.readiness.mode)} title="Your Foundations" />
+          <View style={styles.foundationList}>
+            {morningBriefing.driver_cards.map((driver) => {
+              const accent = domainAccent[driver.domain];
+              return (
+                <Pressable
+                  accessibilityLabel={`${driver.label}. ${titleCase(driver.status)}. Open details.`}
+                  accessibilityRole="button"
+                  key={driver.domain}
+                  onPress={() => router.push(foundationRoute(driver.domain))}
+                  style={({ pressed }) => [styles.foundationRow, pressed && styles.foundationRowPressed]}
+                >
+                  <View style={[styles.foundationIcon, { backgroundColor: `${accent}1F` }]}>
+                    <Ionicons color={accent} name={readinessIcon(driver.domain)} size={17} />
+                  </View>
+                  <View style={styles.foundationBody}>
+                    <View style={styles.foundationLabelRow}>
+                      <Text style={styles.foundationLabel}>{driver.label}</Text>
+                      <Text style={[styles.foundationStatus, { color: accent }]}>{titleCase(driver.status)}</Text>
+                    </View>
+                    <ProgressRail color={accent} progress={driverStatusProgress(driver.status)} />
+                  </View>
+                  <Ionicons color={homePalette.textFaint} name="chevron-forward" size={14} />
+                </Pressable>
+              );
+            })}
           </View>
-          <View style={styles.protocolTags}>
-            <View style={styles.protocolTag}><Text style={styles.protocolTagText}>{dayModeLabel(protocol.day_mode)}</Text></View>
-            <View style={styles.protocolTag}><Text style={styles.protocolTagText}>{focusLabel(protocol.primary_focus)}</Text></View>
+          <View style={styles.coverageRow}>
+            <Ionicons color={homePalette.textFaint} name="layers-outline" size={14} />
+            <Text style={styles.coverageText}>{foundationSourceCount} of 4 foundations have current signals</Text>
           </View>
-          <Text style={styles.protocolHeadline}>{protocol.headline}</Text>
-          <View style={styles.protocolActions}>
-            {protocolActions.map((action) => (
-              <View key={action.id} style={styles.protocolActionRow}>
-                <View style={styles.protocolDot} />
-                <Text numberOfLines={1} style={styles.protocolActionText}>{action.title}</Text>
+        </Panel>
+
+        <Panel>
+          <PanelHeader action={`${nutritionSummary.meal_count} logged`} title="Nourishment today" />
+          <View style={styles.calorieRow}>
+            <View>
+              <Text style={styles.metricEyebrow}>Calories</Text>
+              <Text style={styles.calorieValue}>{macroTotals.has_nutrition ? macroTotals.calories : '—'}</Text>
+            </View>
+            <View style={styles.calorieTargetWrap}>
+              <Text style={styles.metricEyebrow}>Target</Text>
+              <Text style={styles.calorieTarget}>{nutritionTargets?.calories_target ?? 'Not set'}</Text>
+            </View>
+          </View>
+          <ProgressRail color={homePalette.blue} progress={boundedProgress(macroTotals.calories, nutritionTargets?.calories_target)} />
+          <View style={styles.macroGrid}>
+            {[
+              { label: 'Protein', value: macroTotals.protein_g, target: nutritionTargets?.protein_g_target, color: homePalette.cyan },
+              { label: 'Carbs', value: macroTotals.carbs_g, target: nutritionTargets?.carbs_g_target, color: homePalette.blueSoft },
+              { label: 'Fat', value: macroTotals.fat_g, target: nutritionTargets?.fat_g_target, color: homePalette.violet }
+            ].map((macro) => (
+              <View key={macro.label} style={styles.macroCell}>
+                <Text style={styles.macroLabel}>{macro.label}</Text>
+                <Text style={styles.macroValue}>{macroTotals.has_nutrition ? `${macro.value}g` : '—'}</Text>
+                <ProgressRail color={macro.color} progress={boundedProgress(macro.value, macro.target)} />
+              </View>
+            ))}
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/food')} style={styles.inlineAction}>
+            <Text style={styles.inlineActionText}>{nutritionSummary.meal_count > 0 ? 'View nutrition' : 'Log your first meal'}</Text>
+            <Ionicons color={homePalette.blueSoft} name="arrow-forward" size={15} />
+          </Pressable>
+        </Panel>
+
+        <View style={styles.twoColumn}>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/movement')} style={({ pressed }) => [styles.miniCard, pressed && styles.pressed]}>
+            <View style={[styles.miniIcon, { backgroundColor: 'rgba(10, 132, 255, 0.12)' }]}>
+              <Ionicons color={homePalette.blueSoft} name="body-outline" size={19} />
+            </View>
+            <Text style={styles.miniEyebrow}>Movement</Text>
+            <Text style={styles.miniValue}>{movementCard.workout_count}</Text>
+            <Text style={styles.miniUnit}>sessions · 7 days</Text>
+            <Text numberOfLines={2} style={styles.miniDetail}>{movementCard.label}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/plan')} style={({ pressed }) => [styles.miniCard, pressed && styles.pressed]}>
+            <View style={[styles.miniIcon, { backgroundColor: 'rgba(255, 212, 121, 0.11)' }]}>
+              <Ionicons color={homePalette.amber} name="calendar-outline" size={19} />
+            </View>
+            <Text style={styles.miniEyebrow}>Next block</Text>
+            <Text style={styles.miniValueSmall}>{formatClockTime(nextScheduleBlock?.start_at)}</Text>
+            <Text numberOfLines={1} style={styles.miniUnit}>{nextScheduleBlock?.title ?? (nextScheduleBlock ? titleCase(nextScheduleBlock.block_type) : 'Add to your day')}</Text>
+            <Text style={styles.miniDetail}>{preliminaryDayPlan.open_windows.length} open windows</Text>
+          </Pressable>
+        </View>
+
+        <Panel>
+          <PanelHeader action={`${sleepTrend.length} nights`} title="Recovery + Rhythm" />
+          <View style={styles.trendTopRow}>
+            <View>
+              <Text style={styles.metricEyebrow}>Latest sleep</Text>
+              <Text style={styles.trendValue}>{sleepDurationLabel(latestSleepSession)}</Text>
+            </View>
+            <View style={styles.confidencePill}>
+              <Text style={styles.confidenceText}>{circadianBriefing.confidence} confidence</Text>
+            </View>
+          </View>
+          <SleepSparkline values={sleepTrend} />
+          <Text style={styles.trendCaption}>{rhythmDriver?.detail ?? 'Sleep timing is still calibrating.'}</Text>
+        </Panel>
+
+        <Panel>
+          <PanelHeader action={`${protocolActions.length} actions`} title="Today's protocol" />
+          <Text style={styles.focusTitle}>{focusLabel(protocol.primary_focus)}</Text>
+          <View style={styles.actionPreviewList}>
+            {protocolActions.map((action, index) => (
+              <View key={action.id} style={styles.actionPreviewRow}>
+                <View style={styles.actionIndex}><Text style={styles.actionIndexText}>{index + 1}</Text></View>
+                <Text numberOfLines={1} style={styles.actionPreviewText}>{action.title}</Text>
               </View>
             ))}
           </View>
           {shouldSurfaceSafety(protocol.safety.status) ? (
-            <View style={styles.protocolSafety}>
-              <Ionicons color={colors.accentMid} name="shield-checkmark-outline" size={14} />
-              <Text style={styles.protocolSafetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
+            <View style={styles.safetyRow}>
+              <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={14} />
+              <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
             </View>
           ) : null}
-          <Text style={styles.protocolFooter}>Confidence: {protocol.confidence} · Tap to follow</Text>
-        </Pressable>
-
-        <Section>
-          <SectionHeader title="System drivers" value={titleCase(morningBriefing.readiness.mode)} />
-          <View style={styles.driverGrid}>
-            {morningBriefing.driver_cards.map((driver) => (
-              <View key={driver.domain} style={styles.driverCell}>
-                <View style={styles.driverHeader}>
-                  <Ionicons color={colors.accent} name={readinessIcon(driver.domain)} size={16} />
-                  <Text style={styles.driverLabel}>{driver.label}</Text>
-                </View>
-                <Text style={styles.driverStatus}>{driver.status}</Text>
-                <Text style={styles.driverDetail}>{driver.detail}</Text>
-              </View>
-            ))}
-          </View>
-        </Section>
-
-        <Section>
-          <SectionHeader title="Sleep + rhythm" value={sleepDurationLabel(latestSleepSession)} />
-          <Text style={styles.sectionCopy}>{rhythmDriver?.detail ?? 'Sleep timing is still calibrating.'}</Text>
-          <Text style={styles.sourceCopy}>
-            {circadianBriefing.current_phase === 'unknown'
-              ? 'Rhythm phase calibrating'
-              : `Current phase: ${titleCase(circadianBriefing.current_phase)}`} · {titleCase(rhythmSource)} · Confidence: {circadianBriefing.confidence}
-          </Text>
-        </Section>
-
-        <Section>
-          <SectionHeader title="Food response" value={nutritionSummary.food_quality_label} />
-          <View style={styles.foodScoreBar}>
-            {foodSegments.map((segment) => (
-              <View
-                key={segment}
-                style={[
-                  styles.foodScoreSegment,
-                  {
-                    backgroundColor:
-                      segment < activeFoodSegments
-                        ? palette.forest
-                        : segment === activeFoodSegments && activeFoodSegments > 0
-                          ? palette.forestPale
-                          : palette.hairline
-                  }
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.nutritionGrid}>
-            <View style={styles.nutritionCell}>
-              <Text style={styles.nutritionLabel}>Meals</Text>
-              <Text style={styles.nutritionValue}>{nutritionSummary.meal_count}</Text>
-            </View>
-            <View style={styles.nutritionCell}>
-              <Text style={styles.nutritionLabel}>Calories</Text>
-              <Text style={styles.nutritionValue}>{nutritionSummary.calorie_label}</Text>
-            </View>
-            <View style={styles.nutritionCell}>
-              <Text style={styles.nutritionLabel}>Protein</Text>
-              <Text style={styles.nutritionValue}>{nutritionSummary.protein_label}</Text>
-            </View>
-            <View style={styles.nutritionCell}>
-              <Text style={styles.nutritionLabel}>Response</Text>
-              <Text style={styles.nutritionValue}>{nutritionSummary.food_response_label}</Text>
-            </View>
-          </View>
-          <Text style={styles.sectionCopy}>
-            {nutritionSummary.readiness_support_label}
-          </Text>
-          <Text style={styles.sourceCopy}>
-            {nutritionSummary.source_label === 'logged' ? 'Based on logged meals.' : nutritionSummary.next_action} Confidence: {nutritionSummary.confidence}.
-          </Text>
-        </Section>
-
-        <View style={styles.twoColumn}>
-          <View style={styles.compactPanel}>
-            <View style={styles.compactIcon}>
-              <Ionicons color={colors.accent} name="walk-outline" size={17} />
-            </View>
-            <Text style={styles.compactLabel}>Movement</Text>
-            <Text style={styles.compactValue}>{movementCard.label}</Text>
-            <Text style={styles.compactCopy}>{movementCard.workout_count} workouts · {movementCard.total_minutes} min</Text>
-            <Text style={styles.compactCopy}>{movementCard.suggested_next_action}</Text>
-            <Text style={styles.compactSource}>Confidence: {movementCard.confidence} · {titleCase(movementCard.source_label)}</Text>
-          </View>
-          <View style={styles.compactPanel}>
-            <View style={styles.compactIcon}>
-              <Ionicons color={colors.accent} name="calendar-outline" size={17} />
-            </View>
-            <Text style={styles.compactLabel}>Schedule</Text>
-            <Text style={styles.compactValue}>{scheduleBlocks.length} blocks</Text>
-            <Text style={styles.compactCopy}>{preliminaryDayPlan.open_windows.length} open windows found</Text>
-            <Text style={styles.compactSource}>Confidence: {preliminaryDayPlan.confidence} · {titleCase(scheduleSource)}</Text>
-          </View>
-        </View>
-
-        <Section>
-          <SectionHeader title="Today's focus" />
-          <Text style={styles.focusTitle}>{dashboardHero.focus}</Text>
-          <Text style={styles.sectionCopy}>{dashboardHero.summary}</Text>
-        </Section>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/protocol')} style={styles.inlineAction}>
+            <Text style={styles.inlineActionText}>Open full protocol</Text>
+            <Ionicons color={homePalette.blueSoft} name="arrow-forward" size={15} />
+          </Pressable>
+        </Panel>
       </ScrollView>
     </SafeAreaView>
   );
@@ -784,32 +972,194 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   safe: {
-    flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: homePalette.background,
+    flex: 1
   },
   scroll: {
-    paddingBottom: 96
+    gap: 13,
+    paddingBottom: 112,
+    paddingHorizontal: 16
   },
   header: {
-    paddingHorizontal: 26,
-    paddingTop: 22
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingBottom: 3,
+    paddingTop: 20
+  },
+  headerCopy: {
+    flex: 1
   },
   date: {
-    ...type.eyebrow,
-    color: colors.textFaint
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.25,
+    lineHeight: 14
   },
   greeting: {
-    ...type.title,
-    color: colors.text,
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 25,
+    fontWeight: '600',
+    letterSpacing: -0.55,
+    lineHeight: 31,
+    marginTop: 4
+  },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: homePalette.blue,
+    borderColor: 'rgba(255,255,255,0.24)',
+    borderRadius: 20,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40
+  },
+  avatarText: {
+    color: homePalette.white,
+    fontFamily: homeFont,
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  pressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.992 }]
+  },
+  quickLogSection: {
+    backgroundColor: homePalette.surface,
+    borderColor: homePalette.border,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingBottom: 13,
+    paddingTop: 12
+  },
+  quickLogHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 3
+  },
+  quickLogTitle: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 14.5,
+    fontWeight: '600',
+    letterSpacing: -0.15,
+    lineHeight: 20
+  },
+  quickLogHint: {
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    fontSize: 11,
+    lineHeight: 16
+  },
+  quickLogRow: {
+    flexDirection: 'row',
+    gap: 7,
+    marginTop: 11
+  },
+  quickLogButton: {
+    alignItems: 'center',
+    borderColor: 'transparent',
+    borderRadius: 14,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 78,
+    paddingHorizontal: 3,
+    paddingVertical: 9
+  },
+  quickLogButtonPressed: {
+    backgroundColor: homePalette.surfaceRaised,
+    borderColor: homePalette.border
+  },
+  quickLogIcon: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 38,
+    justifyContent: 'center',
+    width: 38
+  },
+  quickLogLabel: {
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    lineHeight: 14,
+    marginTop: 7
+  },
+  heroCard: {
+    backgroundColor: homePalette.surface,
+    borderColor: homePalette.borderStrong,
+    borderRadius: 26,
+    borderWidth: 1,
+    elevation: 2,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 18
+  },
+  heroGlow: {
+    padding: 18
+  },
+  heroTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    minHeight: 164
+  },
+  heroCopy: {
+    flex: 1,
+    paddingLeft: 2,
+    paddingRight: 4
+  },
+  livePill: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(10, 132, 255, 0.12)',
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 6
+  },
+  liveDot: {
+    backgroundColor: homePalette.blueSoft,
+    borderRadius: 4,
+    height: 7,
+    width: 7
+  },
+  liveText: {
+    ...type.eyebrow,
+    color: homePalette.blueSoft,
+    fontFamily: homeFont,
+    fontWeight: '600',
+    fontSize: 9,
+    letterSpacing: 1.3
+  },
+  dayMode: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 27,
+    fontWeight: '600',
+    letterSpacing: -0.7,
+    lineHeight: 33,
+    marginTop: 16
+  },
+  heroLabel: {
+    ...type.caption,
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
     marginTop: 7
   },
   ringShell: {
     alignItems: 'center',
-    alignSelf: 'center',
-    height: 208,
+    height: 164,
     justifyContent: 'center',
-    marginTop: 30,
-    width: 208
+    width: 164
   },
   ringCenter: {
     alignItems: 'center',
@@ -821,262 +1171,430 @@ const styles = StyleSheet.create({
     top: 0
   },
   score: {
-    ...type.hero,
-    color: colors.text,
-    fontSize: 74,
-    lineHeight: 78
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 44,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+    lineHeight: 50
+  },
+  scoreCalibrating: {
+    color: homePalette.textMuted
   },
   scoreLabel: {
     ...type.eyebrow,
-    color: colors.textFaint,
-    marginTop: 6
-  },
-  readinessNote: {
-    ...type.voice,
-    color: colors.accent,
-    paddingHorizontal: 30,
-    paddingTop: 18,
-    textAlign: 'center'
-  },
-  briefingMeta: {
-    ...type.caption,
-    color: colors.textFaint,
-    paddingBottom: 26,
-    paddingHorizontal: 30,
-    paddingTop: 8,
-    textAlign: 'center',
-    textTransform: 'capitalize'
-  },
-  protocolCard: {
-    backgroundColor: colors.surface,
-    borderColor: palette.forestPale,
-    borderRadius: 22,
-    borderWidth: hairlineWidth,
-    gap: 10,
-    marginHorizontal: 20,
-    marginBottom: 8,
-    padding: 20
-  },
-  protocolCardPressed: {
-    opacity: 0.9
-  },
-  protocolTop: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  protocolEyebrow: {
-    ...type.eyebrow,
-    color: colors.accent
-  },
-  protocolTags: {
-    flexDirection: 'row',
-    gap: 8
-  },
-  protocolTag: {
-    backgroundColor: colors.accentWash,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4
-  },
-  protocolTagText: {
-    ...type.eyebrow,
-    color: colors.accent
-  },
-  protocolHeadline: {
-    ...type.heading,
-    color: colors.text
-  },
-  protocolActions: {
-    gap: 8,
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    fontSize: 9,
     marginTop: 2
   },
-  protocolActionRow: {
+  heroSummaryRow: {
     alignItems: 'center',
+    borderTopColor: homePalette.border,
+    borderTopWidth: 1,
     flexDirection: 'row',
-    gap: 10
+    gap: 12,
+    paddingTop: 15
   },
-  protocolDot: {
-    backgroundColor: colors.accentMid,
-    borderRadius: 3,
-    height: 6,
-    width: 6
-  },
-  protocolActionText: {
-    ...type.body,
-    color: colors.textMuted,
+  heroSummaryCopy: {
     flex: 1
   },
-  protocolSafety: {
+  heroSummary: {
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    fontSize: 13.5,
+    lineHeight: 20
+  },
+  heroMeta: {
+    ...type.caption,
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    marginTop: 7,
+    textTransform: 'capitalize'
+  },
+  roundArrow: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
-    borderRadius: 12,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8
+    backgroundColor: homePalette.blue,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    width: 36
   },
-  protocolSafetyText: {
-    ...type.caption,
-    color: colors.textMuted,
-    flex: 1
+  panel: {
+    backgroundColor: homePalette.surface,
+    borderColor: homePalette.border,
+    borderRadius: 22,
+    borderWidth: 1,
+    elevation: 1,
+    padding: 17
   },
-  protocolFooter: {
-    ...type.caption,
-    color: colors.textFaint
-  },
-  section: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.hairlineSoft,
-    borderTopWidth: hairlineWidth,
-    paddingHorizontal: 26,
-    paddingVertical: 18
-  },
-  sectionHeader: {
-    alignItems: 'baseline',
+  panelHeader: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
-  sectionTitle: {
-    ...type.label,
-    color: colors.text
+  panelTitle: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 15.5,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    lineHeight: 21
   },
-  sectionValue: {
-    ...type.number,
-    color: colors.text
-  },
-  unit: {
+  panelAction: {
     ...type.caption,
-    color: colors.textFaint
-  },
-  driverGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 14
-  },
-  driverCell: {
-    backgroundColor: colors.surfaceInset,
-    borderRadius: 12,
-    minWidth: '46%',
-    padding: 12,
-    width: '48%'
-  },
-  driverHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 7
-  },
-  driverLabel: {
-    ...type.eyebrow,
-    color: colors.textFaint,
-    flex: 1
-  },
-  driverStatus: {
-    ...type.label,
-    color: colors.text,
-    marginTop: 9,
+    color: homePalette.blueSoft,
+    fontFamily: homeFont,
     textTransform: 'capitalize'
   },
-  driverDetail: {
-    ...type.caption,
-    color: colors.textMuted,
-    marginTop: 4
+  foundationList: {
+    gap: 15,
+    marginTop: 17
   },
-  foodScoreBar: {
+  foundationRow: {
+    alignItems: 'center',
+    borderRadius: 13,
     flexDirection: 'row',
-    gap: 4,
-    marginTop: 14
+    gap: 11,
+    marginHorizontal: -5,
+    minHeight: 46,
+    paddingHorizontal: 5,
+    paddingVertical: 4
   },
-  foodScoreSegment: {
-    borderRadius: 2,
+  foundationRowPressed: {
+    backgroundColor: homePalette.surfaceRaised
+  },
+  foundationIcon: {
+    alignItems: 'center',
+    borderRadius: 13,
+    height: 38,
+    justifyContent: 'center',
+    width: 38
+  },
+  foundationBody: {
     flex: 1,
-    height: 4
+    gap: 7
   },
-  nutritionGrid: {
+  foundationLabelRow: {
+    alignItems: 'center',
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between'
+  },
+  foundationLabel: {
+    ...type.label,
+    color: homePalette.textMuted,
+    fontFamily: homeFont
+  },
+  foundationStatus: {
+    ...type.caption,
+    fontFamily: homeFont,
+    fontWeight: '600'
+  },
+  progressTrack: {
+    backgroundColor: homePalette.track,
+    borderRadius: 999,
+    height: 5,
+    overflow: 'hidden'
+  },
+  progressFill: {
+    borderRadius: 999,
+    height: '100%'
+  },
+  coverageRow: {
+    alignItems: 'center',
+    borderTopColor: homePalette.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
     gap: 8,
-    marginTop: 14
+    marginTop: 17,
+    paddingTop: 13
   },
-  nutritionCell: {
-    backgroundColor: colors.surfaceInset,
-    borderRadius: 12,
-    flexGrow: 1,
-    minWidth: '46%',
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  nutritionLabel: {
-    ...type.eyebrow,
-    color: colors.textFaint
-  },
-  nutritionValue: {
-    ...type.number,
-    color: colors.text,
-    marginTop: 4
-  },
-  sectionCopy: {
+  coverageText: {
     ...type.caption,
-    color: colors.textMuted,
-    marginTop: 11
+    color: homePalette.textFaint,
+    fontFamily: homeFont
   },
-  sourceCopy: {
-    ...type.caption,
-    color: colors.textFaint,
-    marginTop: 6
+  primaryAction: {
+    backgroundColor: homePalette.surface,
+    borderColor: homePalette.border,
+    borderRadius: 20,
+    borderWidth: 1,
+    elevation: 1,
+    overflow: 'hidden'
   },
-  twoColumn: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.hairlineSoft,
-    borderTopWidth: hairlineWidth,
+  primaryActionGradient: {
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 26,
-    paddingVertical: 18
+    padding: 16
   },
-  compactPanel: {
-    borderColor: colors.hairline,
-    borderRadius: 18,
-    borderWidth: hairlineWidth,
-    flex: 1,
-    padding: 14
-  },
-  compactIcon: {
+  primaryActionIcon: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
-    borderRadius: 999,
-    height: 32,
+    backgroundColor: 'rgba(10, 132, 255, 0.13)',
+    borderRadius: 15,
+    height: 42,
     justifyContent: 'center',
-    marginBottom: 12,
-    width: 32
+    width: 42
   },
-  compactLabel: {
+  primaryActionCopy: {
+    flex: 1
+  },
+  primaryActionEyebrow: {
     ...type.eyebrow,
-    color: colors.textFaint
-  },
-  compactValue: {
-    ...type.heading,
-    color: colors.text,
-    marginTop: 4
-  },
-  compactCopy: {
-    ...type.caption,
-    color: colors.textMuted,
-    marginTop: 4
-  },
-  compactSource: {
-    ...type.caption,
-    color: colors.textFaint,
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
     fontSize: 10,
-    lineHeight: 14,
+    letterSpacing: 0.25
+  },
+  primaryActionTitle: {
+    color: homePalette.white,
+    fontFamily: homeFont,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginTop: 4
+  },
+  primaryActionDetail: {
+    ...type.caption,
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    marginTop: 3
+  },
+  safetyRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 9
+  },
+  safetyText: {
+    ...type.caption,
+    color: homePalette.amber,
+    flex: 1,
+    fontFamily: homeFont
+  },
+  calorieRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 11,
+    marginTop: 18
+  },
+  metricEyebrow: {
+    ...type.eyebrow,
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    fontSize: 10,
+    letterSpacing: 0.2
+  },
+  calorieValue: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 36,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+    lineHeight: 42,
+    marginTop: 3
+  },
+  calorieTargetWrap: {
+    alignItems: 'flex-end',
+    paddingBottom: 5
+  },
+  calorieTarget: {
+    ...type.number,
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    marginTop: 3
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 16
+  },
+  macroCell: {
+    backgroundColor: homePalette.surfaceRaised,
+    borderRadius: 14,
+    flex: 1,
+    gap: 7,
+    padding: 11
+  },
+  macroLabel: {
+    ...type.caption,
+    color: homePalette.textFaint,
+    fontFamily: homeFont
+  },
+  macroValue: {
+    ...type.number,
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontWeight: '600'
+  },
+  inlineAction: {
+    alignItems: 'center',
+    borderTopColor: homePalette.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'flex-end',
+    marginTop: 15,
+    paddingTop: 13
+  },
+  inlineActionText: {
+    ...type.label,
+    color: homePalette.blue,
+    fontFamily: homeFont,
+    fontWeight: '600'
+  },
+  twoColumn: {
+    flexDirection: 'row',
+    gap: 12
+  },
+  miniCard: {
+    backgroundColor: homePalette.surface,
+    borderColor: homePalette.border,
+    borderRadius: 20,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 170,
+    padding: 15
+  },
+  miniIcon: {
+    alignItems: 'center',
+    borderRadius: 13,
+    height: 38,
+    justifyContent: 'center',
+    marginBottom: 14,
+    width: 38
+  },
+  miniEyebrow: {
+    ...type.eyebrow,
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    fontSize: 10,
+    letterSpacing: 0.2
+  },
+  miniValue: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 32,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+    lineHeight: 37,
+    marginTop: 5
+  },
+  miniValueSmall: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 22,
+    fontWeight: '600',
+    lineHeight: 28,
+    marginTop: 7
+  },
+  miniUnit: {
+    ...type.caption,
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    marginTop: 1
+  },
+  miniDetail: {
+    ...type.caption,
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
     marginTop: 8
   },
+  trendTopRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 18
+  },
+  trendValue: {
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 28,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+    lineHeight: 34,
+    marginTop: 4
+  },
+  confidencePill: {
+    backgroundColor: homePalette.surfaceSoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  confidenceText: {
+    ...type.caption,
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    textTransform: 'capitalize'
+  },
+  chartShell: {
+    height: 76,
+    marginTop: 14,
+    width: '100%'
+  },
+  emptyChart: {
+    alignItems: 'center',
+    backgroundColor: homePalette.surfaceRaised,
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 14,
+    minHeight: 76,
+    paddingHorizontal: 13
+  },
+  emptyChartText: {
+    ...type.caption,
+    color: homePalette.textFaint,
+    flex: 1,
+    fontFamily: homeFont
+  },
+  trendCaption: {
+    ...type.caption,
+    color: homePalette.textMuted,
+    fontFamily: homeFont,
+    marginTop: 9
+  },
   focusTitle: {
-    ...type.title,
-    color: colors.text,
-    fontSize: 21,
-    lineHeight: 27,
-    marginTop: 10
+    color: homePalette.text,
+    fontFamily: homeFont,
+    fontSize: 19,
+    fontWeight: '600',
+    letterSpacing: -0.35,
+    lineHeight: 25,
+    marginTop: 15
+  },
+  actionPreviewList: {
+    gap: 9,
+    marginTop: 15
+  },
+  actionPreviewRow: {
+    alignItems: 'center',
+    backgroundColor: homePalette.surfaceRaised,
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9
+  },
+  actionIndex: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 132, 255, 0.13)',
+    borderRadius: 10,
+    height: 24,
+    justifyContent: 'center',
+    width: 24
+  },
+  actionIndexText: {
+    ...type.caption,
+    color: homePalette.blueSoft,
+    fontFamily: homeFont,
+    fontWeight: '600'
+  },
+  actionPreviewText: {
+    ...type.label,
+    color: homePalette.textMuted,
+    flex: 1,
+    fontFamily: homeFont
   }
 });

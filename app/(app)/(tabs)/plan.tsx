@@ -72,7 +72,7 @@ import {
   workoutSessionRowToEngineSession
 } from '../../../src/features/movement/movementPersistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, hairlineWidth, palette, spacing, type } from '../../../src/styles/theme';
+import { colors, fonts, hairlineWidth, palette, spacing, type } from '../../../src/styles/mobileTheme';
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -105,18 +105,18 @@ function formatHourLabel(ms: number): string {
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: 'rgba(28, 84, 67, 0.10)',
-  exercise: 'rgba(184, 145, 69, 0.14)',
-  light_movement: 'rgba(78, 133, 113, 0.14)',
-  wind_down: 'rgba(138, 75, 60, 0.11)',
-  meal: 'rgba(163, 166, 158, 0.12)',
-  sleep: 'rgba(26, 33, 29, 0.06)',
-  neutral: 'rgba(163, 166, 158, 0.08)'
+  deep_work: 'rgba(10, 132, 255, 0.14)',
+  exercise: 'rgba(255, 212, 121, 0.14)',
+  light_movement: 'rgba(90, 200, 250, 0.14)',
+  wind_down: 'rgba(255, 105, 97, 0.12)',
+  meal: 'rgba(255, 255, 255, 0.10)',
+  sleep: 'rgba(191, 139, 255, 0.12)',
+  neutral: 'rgba(255, 255, 255, 0.07)'
 };
 
 const SECTION_ACCENT: Record<CalendarSection, string> = {
   deep_work: palette.forest,
-  exercise: '#B89145',
+  exercise: '#FFD479',
   light_movement: palette.forestMid,
   wind_down: palette.clayDark,
   meal: palette.faint,
@@ -798,12 +798,14 @@ export default function PlanScreen() {
           <View style={styles.twoCol}>
             <TimeField
               accessibilityLabel="Start time"
+              appearance="mobile"
               label="Start"
               onChange={(value) => updateForm('start_time', value)}
               value={form.start_time}
             />
             <TimeField
               accessibilityLabel="End time"
+              appearance="mobile"
               label="End"
               onChange={(value) => updateForm('end_time', value)}
               value={form.end_time}
@@ -1091,9 +1093,9 @@ const styles = StyleSheet.create({
     borderColor: colors.hairline,
     borderRadius: 16,
     borderWidth: 1,
-    height: 34,
+    height: 44,
     justifyContent: 'center',
-    width: 34
+    width: 44
   },
   addBlockButton: {
     alignItems: 'center',
@@ -1101,8 +1103,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     flexDirection: 'row',
     gap: 4,
-    minHeight: 36,
-    paddingHorizontal: 12
+    minHeight: 44,
+    paddingHorizontal: 16
   },
   addBlockButtonText: {
     ...type.caption,
