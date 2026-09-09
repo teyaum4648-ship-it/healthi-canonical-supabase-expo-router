@@ -79,7 +79,10 @@ function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint'
 }
 
 export default function SettingsScreen() {
-  const { signOut, user, profile } = useAuth();
+  const { signOut, user, profile, mode, startDemo } = useAuth();
+  const [confirmDemoReset, setConfirmDemoReset] = useState(false);
+  const [isResettingDemo, setIsResettingDemo] = useState(false);
+  const [demoResetError, setDemoResetError] = useState('');
   const [model, setModel] = useState<ProfileScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [trendRangeDays, setTrendRangeDays] = useState<TrendsRangeDays>(7);
@@ -153,6 +156,25 @@ export default function SettingsScreen() {
         title="You"
         body="Your baseline, preferences, and calibration status."
       />
+      {mode === 'demo' ? (
+        <Card appearance="mobile">
+          <Text style={styles.cardEyebrow}>YOUR DEMO</Text>
+          <Text style={styles.baselineTitle}>A fresh start, whenever you need it</Text>
+          <Text style={styles.detail}>Your demo entries stay on this device. Resetting starts onboarding again with empty sleep, food, movement, and plan history.</Text>
+          {confirmDemoReset ? <>
+            <Text style={styles.detail}>Remove this device’s demo history? Personal account data is not affected.</Text>
+            <Button appearance="mobile" label="Reset demo and start again" isLoading={isResettingDemo} onPress={async () => {
+              setIsResettingDemo(true);
+              setDemoResetError('');
+              try { await startDemo(true); }
+              catch { setDemoResetError('Reset could not finish. Please try again.'); }
+              finally { setIsResettingDemo(false); }
+            }} />
+            <Button appearance="mobile" variant="secondary" label="Cancel" onPress={() => setConfirmDemoReset(false)} />
+          </> : <Button appearance="mobile" variant="secondary" label="Start fresh demo" onPress={() => setConfirmDemoReset(true)} />}
+          {demoResetError ? <Text accessibilityRole="alert" style={styles.detail}>{demoResetError}</Text> : null}
+        </Card>
+      ) : null}
 
       {isLoading || !model || !baseline ? (
         <Card appearance="mobile" style={styles.loadingCard}>

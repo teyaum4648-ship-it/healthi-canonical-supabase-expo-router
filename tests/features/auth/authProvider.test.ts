@@ -19,8 +19,8 @@ import {
 } from '../../../src/features/auth/AuthProvider';
 
 describe('AuthProvider', () => {
-  it('keeps a missing demo preference in the completed preview state', () => {
-    expect(parseDemoOnboardingStatus(null)).toBe('completed');
+  it('requires onboarding for a fresh demo', () => {
+    expect(parseDemoOnboardingStatus(null)).toBe('not_started');
     expect(parseDemoOnboardingStatus('true')).toBe('completed');
     expect(parseDemoOnboardingStatus('false')).toBe('in_progress');
   });

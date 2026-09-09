@@ -36,7 +36,8 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
 
   return {
     date: input.date,
-    rhythm: briefing || session
+    // A default clock-based briefing is a suggestion, not observed sleep evidence.
+    rhythm: session
       ? {
           sleep_duration_hours: typeof session?.duration_minutes === 'number' ? Math.round((session.duration_minutes / 60) * 10) / 10 : null,
           sleep_debt_hours: typeof briefing?.sleep_debt_7_day.nightly_average_debt_minutes === 'number'

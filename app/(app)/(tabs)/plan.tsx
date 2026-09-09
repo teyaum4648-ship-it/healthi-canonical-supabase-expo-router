@@ -29,15 +29,9 @@ import { calculateMovementSummary, generateMovementReadinessSignal } from '../..
 import { generateDailyReadiness } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
-import {
-  getActiveSleepNeedEstimate,
-  getRecentSleepSessions,
-  type SleepRhythmSupabaseClient
-} from '../../../src/features/sleepRhythm/persistence';
-import {
-  createDefaultSleepNeedEstimate,
-  createDemoSleepSessions
-} from '../../../src/features/sleepRhythm/rhythmInputs';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
+import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
+import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import {
   addDemoScheduleBlock,
   deleteDemoScheduleBlock,
@@ -392,7 +386,7 @@ function DayTimeline({
 }
 
 export default function PlanScreen() {
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
@@ -456,14 +450,11 @@ export default function PlanScreen() {
       async function loadSleepBriefing() {
         try {
           const client = supabase as unknown as SleepRhythmSupabaseClient;
-          const [recentSessions, activeNeed] =
-            canUseRemote && userId
-              ? await Promise.all([
-                  getRecentSleepSessions(client, userId, 14),
-                  getActiveSleepNeedEstimate(client, userId)
-                ])
-              : [[], null];
-          const sleepSessions = recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today);
+          const { sessions: sleepSessions, sleepNeed: activeNeed } = await loadSleepHistory({ mode, userId, client });
+          if (sleepSessions.length === 0) {
+            if (isMounted) setSleepBriefing(null);
+            return;
+          }
           const sleepNeed = activeNeed
             ? { minutes: activeNeed.minutes, confidence: activeNeed.confidence, basis: activeNeed.basis, updated_at: activeNeed.updated_at }
             : createDefaultSleepNeedEstimate(now);
@@ -485,7 +476,7 @@ export default function PlanScreen() {
       return () => {
         isMounted = false;
       };
-    }, [canUseRemote, now, today, userId])
+    }, [mode, now, today, userId])
   );
 
   useFocusEffect(

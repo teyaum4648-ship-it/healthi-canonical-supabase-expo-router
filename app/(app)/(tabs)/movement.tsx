@@ -33,15 +33,9 @@ import {
   getMealLogsForDate,
   type NutritionSupabaseClient
 } from '../../../src/features/nutrition/persistence';
-import {
-  getActiveSleepNeedEstimate,
-  getRecentSleepSessions,
-  type SleepRhythmSupabaseClient
-} from '../../../src/features/sleepRhythm/persistence';
-import {
-  createDefaultSleepNeedEstimate,
-  createDemoSleepSessions
-} from '../../../src/features/sleepRhythm/rhythmInputs';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
+import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
+import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import {
   addDemoWorkoutExerciseEntries,
   addDemoWorkoutSession,
@@ -199,7 +193,7 @@ function Chip({ label, selected, onPress }: { label: string; selected?: boolean;
 }
 
 export default function MovementScreen() {
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const { moveFixture } = useLocalSearchParams<{ moveFixture?: string | string[] }>();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const now = useMemo(() => new Date().toISOString(), []);
@@ -279,6 +273,15 @@ export default function MovementScreen() {
       setDataMode('demo');
       setStatus(state.workoutSessions.length > 0 ? 'Based on local demo workout logs.' : 'Log a workout to begin shaping your movement signal.');
     } catch {
+      if (canUseRemote) {
+        setSessions([]);
+        setEntries([]);
+        setWorkoutSets([]);
+        setLibrary(starterExerciseRows());
+        setDataMode('remote');
+        setStatus('Your workouts could not sync. Please try again when connected.');
+        return;
+      }
       const state = await getLocalDemoMovementState().catch(() => ({
         exerciseLibrary: [],
         workoutSessions: [],
@@ -315,14 +318,7 @@ export default function MovementScreen() {
         }
         try {
           const sleepClient = supabase as unknown as SleepRhythmSupabaseClient;
-          const [recentSessions, activeNeed] =
-            canUseRemote && userId
-              ? await Promise.all([
-                  getRecentSleepSessions(sleepClient, userId, 14),
-                  getActiveSleepNeedEstimate(sleepClient, userId)
-                ])
-              : [[], null];
-          const sleepSessions = recentSessions.length > 0 ? recentSessions : createDemoSleepSessions(today);
+          const { sessions: sleepSessions, sleepNeed: activeNeed } = await loadSleepHistory({ mode, userId, client: sleepClient });
           const sleepNeed = activeNeed
             ? { minutes: activeNeed.minutes, confidence: activeNeed.confidence, basis: activeNeed.basis, updated_at: activeNeed.updated_at }
             : createDefaultSleepNeedEstimate(now);
@@ -334,7 +330,9 @@ export default function MovementScreen() {
             preferredBedtime: '22:30',
             now
           });
-          if (isMounted) setSleepSignal(deriveSleepMoveSignal(briefing));
+          if (isMounted) setSleepSignal(sleepSessions.length > 0
+            ? deriveSleepMoveSignal(briefing)
+            : { signal: 'unknown', summary: 'Log your first sleep window to add recovery context.' });
         } catch {
           if (isMounted) setSleepSignal({ signal: 'unknown', summary: 'Sleep is still calibrating for today.' });
         }
@@ -356,7 +354,7 @@ export default function MovementScreen() {
       return () => {
         isMounted = false;
       };
-    }, [canUseRemote, now, today, usePreviewFixture, userId])
+    }, [canUseRemote, mode, now, today, usePreviewFixture, userId])
   );
 
   const engineSessions = useMemo(() => sessions.map(workoutSessionRowToEngineSession), [sessions]);

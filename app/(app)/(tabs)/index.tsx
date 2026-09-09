@@ -44,6 +44,7 @@ import {
   workoutSessionRowToEngineSession
 } from '../../../src/features/movement/movementPersistence';
 import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
+import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import {
   getActiveNutritionTarget,
   getMealLogsForDate,
@@ -64,15 +65,8 @@ import {
   safetyStatusLabel,
   shouldSurfaceSafety
 } from '../../../src/features/dailyProtocol';
-import {
-  getActiveSleepNeedEstimate,
-  getRecentSleepSessions,
-  type SleepRhythmSupabaseClient
-} from '../../../src/features/sleepRhythm/persistence';
-import {
-  createDefaultSleepNeedEstimate,
-  createDemoSleepSessions
-} from '../../../src/features/sleepRhythm/rhythmInputs';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
+import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
 import { fonts, type } from '../../../src/styles/theme';
 
@@ -396,7 +390,7 @@ function SleepSparkline({ values }: { values: number[] }) {
 }
 
 export default function DashboardScreen() {
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const isFocused = useIsFocused();
   const today = new Date().toISOString().slice(0, 10);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
@@ -508,22 +502,9 @@ export default function DashboardScreen() {
       const userId = user?.id;
       let isMounted = true;
 
-      if (!isUuid(userId)) {
-        const demoSessions = createDemoSleepSessions(today);
-        setSleepSessions(demoSessions);
-        setSleepNeed(createDefaultSleepNeedEstimate());
-        setRhythmSource('demo');
-        return () => {
-          isMounted = false;
-        };
-      }
-
       const client = supabase as unknown as SleepRhythmSupabaseClient;
-      Promise.all([
-        getRecentSleepSessions(client, userId, 14),
-        getActiveSleepNeedEstimate(client, userId)
-      ])
-        .then(([sessions, estimate]) => {
+      loadSleepHistory({ mode, userId, client })
+        .then(({ sessions, sleepNeed: estimate }) => {
           if (!isMounted) return;
           setSleepSessions(sessions);
           setSleepNeed(
@@ -536,7 +517,7 @@ export default function DashboardScreen() {
                 }
               : createDefaultSleepNeedEstimate()
           );
-          setRhythmSource(sessions.length > 0 ? 'remote' : 'calibrating');
+          setRhythmSource(sessions.length > 0 ? mode === 'account' ? 'remote' : 'demo' : 'calibrating');
         })
         .catch(() => {
           if (!isMounted) return;
@@ -548,7 +529,7 @@ export default function DashboardScreen() {
       return () => {
         isMounted = false;
       };
-    }, [today, user?.id])
+    }, [mode, today, user?.id])
   );
 
   useFocusEffect(

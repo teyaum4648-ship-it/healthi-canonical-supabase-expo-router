@@ -12,15 +12,18 @@ import {
 } from 'react';
 
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
+import { demoSessionActiveKey, demoOnboardingCompletedKey, parseDemoOnboardingStatus, resetDemoStorage } from './demoLifecycle';
+export { parseDemoOnboardingStatus } from './demoLifecycle';
 
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
-const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   profile: HealthiProfile | null;
   isLoading: boolean;
+  mode: 'demo' | 'account';
+  startDemo: (fresh?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -50,27 +53,25 @@ const demoSession = {
   user: demoUser
 } as Session;
 
-export function parseDemoOnboardingStatus(value: string | null): HealthiProfile['onboarding_status'] {
-  return value === 'false' ? 'in_progress' : 'completed';
-}
-
 function DemoAuthProvider({ children }: PropsWithChildren) {
   const [demoOnboardingStatus, setDemoOnboardingStatus] =
-    useState<HealthiProfile['onboarding_status']>('completed');
-  const [isLocalDemoSignedOut, setIsLocalDemoSignedOut] = useState(false);
+    useState<HealthiProfile['onboarding_status']>('not_started');
+  const [isLocalDemoSignedOut, setIsLocalDemoSignedOut] = useState(true);
+  const [demoRevision, setDemoRevision] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-    AsyncStorage.getItem(demoOnboardingCompletedKey)
-      .then((value) => {
+    Promise.all([AsyncStorage.getItem(demoOnboardingCompletedKey), AsyncStorage.getItem(demoSessionActiveKey)])
+      .then(([value, active]) => {
         if (isMounted) {
           setDemoOnboardingStatus(parseDemoOnboardingStatus(value));
+          setIsLocalDemoSignedOut(active !== 'true');
         }
       })
       .catch(() => {
         if (isMounted) {
-          setDemoOnboardingStatus('completed');
+          setDemoOnboardingStatus('not_started');
         }
       })
       .finally(() => {
@@ -100,21 +101,22 @@ function DemoAuthProvider({ children }: PropsWithChildren) {
     setDemoOnboardingStatus(parseDemoOnboardingStatus(value));
   }, []);
 
-  const signIn = useCallback(async () => {
-    await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
-    setDemoOnboardingStatus('completed');
-    setIsLocalDemoSignedOut(false);
+  const startDemo = useCallback(async (fresh = false) => {
+    setIsLoading(true);
+    try {
+      if (fresh) await resetDemoStorage(AsyncStorage);
+      else await AsyncStorage.setItem(demoSessionActiveKey, 'true');
+      setDemoOnboardingStatus(parseDemoOnboardingStatus(await AsyncStorage.getItem(demoOnboardingCompletedKey)));
+      setDemoRevision((revision) => revision + 1);
+      setIsLocalDemoSignedOut(false);
+    } finally { setIsLoading(false); }
   }, []);
 
-  const signUp = useCallback(async () => {
-    await AsyncStorage.setItem(demoOnboardingCompletedKey, 'true');
-    setDemoOnboardingStatus('completed');
-    setIsLocalDemoSignedOut(false);
-  }, []);
+  const signIn = useCallback(async () => { throw new Error('This preview uses a local demo. Choose Continue demo to enter.'); }, []);
+  const signUp = useCallback(async () => { throw new Error('Account registration is not enabled in this demo build.'); }, []);
 
   const signOut = useCallback(async () => {
-    await AsyncStorage.removeItem(demoOnboardingCompletedKey);
-    setDemoOnboardingStatus('in_progress');
+    await AsyncStorage.removeItem(demoSessionActiveKey);
     setIsLocalDemoSignedOut(true);
   }, []);
 
@@ -124,15 +126,17 @@ function DemoAuthProvider({ children }: PropsWithChildren) {
       user: isLocalDemoSignedOut ? null : demoUser,
       profile: isLocalDemoSignedOut ? null : demoProfile,
       isLoading,
+      mode: 'demo',
+      startDemo,
       refreshProfile,
       signIn,
       signUp,
       signOut
     }),
-    [demoProfile, isLoading, isLocalDemoSignedOut, refreshProfile, signIn, signOut, signUp]
+    [demoProfile, isLoading, isLocalDemoSignedOut, refreshProfile, signIn, signOut, signUp, startDemo]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider key={`${isLocalDemoSignedOut}:${demoRevision}`} value={value}>{children}</AuthContext.Provider>;
 }
 
 function RemoteAuthProvider({ children }: PropsWithChildren) {
@@ -282,6 +286,8 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
+      mode: 'account',
+      startDemo: async () => { throw new Error('Demo reset is only available in the separate demo preview.'); },
       profile,
       user: session?.user ?? null,
       isLoading,
@@ -293,7 +299,7 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
     [isLoading, profile, refreshProfile, session, signIn, signOut, signUp]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider key={session?.user.id ?? 'signed-out'} value={value}>{children}</AuthContext.Provider>;
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {

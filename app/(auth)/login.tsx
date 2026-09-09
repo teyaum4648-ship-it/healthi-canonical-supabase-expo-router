@@ -8,10 +8,11 @@ import { Screen } from '../../src/components/Screen';
 import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/features/auth/AuthProvider';
+import { DemoEntry } from '../../src/features/auth/DemoEntry';
 import { colors, spacing } from '../../src/styles/theme';
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, mode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,6 +47,7 @@ export default function LoginScreen() {
     }
   }
 
+  if (mode === 'demo') return <DemoEntry />;
   return (
     <Screen contentStyle={styles.screen}>
       <SectionHeader

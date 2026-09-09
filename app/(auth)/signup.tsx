@@ -8,10 +8,11 @@ import { Screen } from '../../src/components/Screen';
 import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/features/auth/AuthProvider';
+import { DemoEntry } from '../../src/features/auth/DemoEntry';
 import { colors, spacing } from '../../src/styles/theme';
 
 export default function SignupScreen() {
-  const { signUp } = useAuth();
+  const { signUp, mode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,12 +47,13 @@ export default function SignupScreen() {
     }
   }
 
+  if (mode === 'demo') return <DemoEntry />;
   return (
     <Screen contentStyle={styles.screen}>
       <SectionHeader
         eyebrow="Create account"
         title="Start with Healthi"
-        body="Set up secure access now. Profile and onboarding come in the next feature layer."
+        body="Create your account, set your baseline, and begin with your own daily entries."
       />
 
       <Card>
