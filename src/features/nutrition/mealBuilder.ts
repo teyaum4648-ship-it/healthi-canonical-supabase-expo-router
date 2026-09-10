@@ -5,6 +5,7 @@ import type { MealItemSource, MealLogItemPersistenceInput } from './mealItemPers
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import type { JsonValue } from './persistence';
 import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
+import { safeProductImageUrl } from './productLookup/productImage';
 import { foodLoggingNutrition } from './foodLoggingNutrition';
 
 export type MealBuilderItem = {
@@ -318,6 +319,7 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     variant: typeof evidence.variant === 'string' ? evidence.variant : null,
     quantity: typeof evidence.quantity === 'string' ? evidence.quantity : null,
     serving_size: row.serving_size,
+    image_url: safeProductImageUrl(evidence.image_url),
     serving_quantity_g: row.serving_quantity_g,
     serving_quantity: typeof evidence.serving_quantity === 'number' ? evidence.serving_quantity : row.serving_quantity_g,
     serving_unit: typeof evidence.serving_unit === 'string' ? evidence.serving_unit : row.serving_quantity_g ? 'g' : null,

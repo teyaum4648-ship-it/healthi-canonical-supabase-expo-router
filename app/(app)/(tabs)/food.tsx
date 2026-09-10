@@ -25,6 +25,8 @@ import { SegmentedControl } from '../../../src/components/mobile/SegmentedContro
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { dayTitle } from '../../../src/features/navigation/navigationModel';
 import { FoodEntryPicker } from '../../../src/features/nutrition/FoodEntryPicker';
+import { MealDiarySections } from '../../../src/features/nutrition/MealDiarySections';
+import { chooseMealDraft, diaryMealChoices, mealTypeLabel } from '../../../src/features/nutrition/mealDiaryModel';
 import { foodLoggingNutrition } from '../../../src/features/nutrition/foodLoggingNutrition';
 import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features/nutrition/foodDiaryPresentation';
 import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
@@ -524,6 +526,8 @@ export default function FoodScreen() {
   const actualToday = new Date().toISOString().slice(0, 10);
   const [selectedDay, setSelectedDay] = useState(actualToday);
   const [foodEntryOpen, setFoodEntryOpen] = useState(false);
+  const [mealChooserOpen, setMealChooserOpen] = useState(false);
+  const [mealStartMessage, setMealStartMessage] = useState('');
   const [manualFoodOpen, setManualFoodOpen] = useState(false);
   const [manualFoodError, setManualFoodError] = useState('');
   const [isAddingManualFood, setIsAddingManualFood] = useState(false);
@@ -536,7 +540,7 @@ export default function FoodScreen() {
   const [savingMealEdit, setSavingMealEdit] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollPositions = useRef<Record<string, number>>({});
-  useQuickEntry(() => setFoodEntryOpen(true));
+  useQuickEntry(() => setMealChooserOpen(true));
   const [expandedLane, setExpandedLane] = useState<string | null>(null);
   const [nutrientQuery, setNutrientQuery] = useState('');
   const [meals, setMeals] = useState<MealLog[]>([]);
@@ -833,6 +837,20 @@ export default function FoodScreen() {
     } catch {
       if (generation === searchGeneration.current) setSearchMessage('Search is unavailable right now. Try again, or use Recent, Saved, or manual entry.');
     } finally { if (generation === searchGeneration.current) setIsSearchingProducts(false); }
+  }
+
+  function beginDiaryMeal(type: MealType) {
+    const choice = chooseMealDraft(mealBuilder, type);
+    if (choice.status === 'blocked') {
+      setMealStartMessage(`You have an unfinished ${mealTypeLabel(mealBuilder.meal_type).toLowerCase()} meal. Save it before starting another meal.`);
+      setMealChooserOpen(true);
+      return;
+    }
+    setMealBuilder(choice.draft);
+    setMealStartMessage('');
+    setMealChooserOpen(false);
+    setActiveSegment('Build Meal');
+    setFoodEntryOpen(true);
   }
 
   async function handleAddManualProduct() {
@@ -1847,12 +1865,7 @@ export default function FoodScreen() {
         <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
-        <View style={styles.diarySection}>
-          <Text style={styles.diaryHeading}>Meals</Text>
-          {isLoadingRemote ? <View style={styles.diaryNotice}><ActivityIndicator color={colors.accent} /><Text style={styles.diaryDetail}>Loading your diary…</Text></View> : todayMeals.length ? todayMeals.map((meal, index) => (
-            <ActionRow key={meal.id ?? meal.logged_at} title={meal.name} detail={`${displayLabel(meal.meal_type)} · ${formatClock(meal.logged_at)}${typeof meal.calories === 'number' ? ` · ${Math.round(meal.calories)} kcal` : ' · Nutrition not reported'}`} onPress={() => setSelectedMeal(meal)} last={index === todayMeals.length - 1} />
-          )) : <Text style={styles.diaryDetail}>No meals logged for this day. Add a food below to begin.</Text>}
-        </View>
+        <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={setSelectedMeal} />
         <ActionRow title="How food is supporting you" detail="Personal responses and nourishment guidance" icon="leaf-outline" onPress={() => setActiveSegment('Guidance')} last />
       </View>
     );
@@ -2227,6 +2240,7 @@ export default function FoodScreen() {
           <Text style={styles.diaryHeading}>Your meal</Text>
           <Text style={styles.diaryDetail}>Review portions, then save to {dayTitle(today, actualToday).toLowerCase()}.</Text>
           <Field label="Meal name" onChangeText={(name) => setMealBuilder((current) => ({ ...current, name }))} placeholder="e.g. Lunch" value={mealBuilder.name} />
+          <Text style={styles.fieldLabel}>Log this meal as</Text>
           <View style={styles.chipWrap}>{mealTypes.map((type) => <Chip key={type} label={displayLabel(type)} selected={mealBuilder.meal_type === type} onPress={() => setMealBuilder((current) => ({ ...current, meal_type: type }))} />)}</View>
           <ActionRow title="Add another food" detail="Search, scan, or use a saved food" icon="add-circle-outline" onPress={() => setFoodEntryOpen(true)} last />
         </View>
@@ -2556,11 +2570,18 @@ export default function FoodScreen() {
             {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
           {!inFlow ? <View style={styles.adaptiveActionDock}>
-            <Pressable accessibilityRole="button" onPress={() => setFoodEntryOpen(true)} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color="#FFFFFF" size={22} /><Text style={styles.adaptivePrimaryButtonText}>Add food</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color="#FFFFFF" size={22} /><Text style={styles.adaptivePrimaryButtonText}>Add meal</Text></Pressable>
           </View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
+      {mealChooserOpen ? <EntrySheet title="Add meal" onClose={() => setMealChooserOpen(false)}>
+        <Text style={styles.diaryDetail}>Which meal are you logging?</Text>
+        {mealStartMessage ? <Text accessibilityRole="alert" style={styles.diaryDetail}>{mealStartMessage}</Text> : null}
+        {mealBuilder.items.length ? <ActionRow title={`Continue your ${mealTypeLabel(mealBuilder.meal_type).toLowerCase()}`} detail={`${mealBuilder.items.length} foods in your unsaved draft`} onPress={() => { setMealChooserOpen(false); setActiveSegment('Build Meal'); }} /> : null}
+        {diaryMealChoices.map(choice => <ActionRow key={choice.type} title={choice.label} icon="add-circle-outline" onPress={() => beginDiaryMeal(choice.type)} />)}
+      </EntrySheet> : null}
       {foodEntryOpen ? <FoodEntryPicker
+        mealLabel={mealTypeLabel(mealBuilder.meal_type)}
         query={searchQuery}
         onQueryChange={(value) => { searchGeneration.current += 1; searchController.current?.abort(); setIsSearchingProducts(false); setSearchQuery(value); setSearchResults([]); setSearchMessage(''); }}
         onSearch={handleSearchProducts}

@@ -40,6 +40,9 @@ function productFields(locale = 'en'): string {
   return [
   'code',
   'product_name',
+  'image_front_small_url',
+  'image_front_thumb_url',
+  'image_front_url',
   'product_name_en',
   'generic_name',
   'abbreviated_product_name',

@@ -2,6 +2,7 @@ import type { DataConfidence, FoodQualityFlag, NutritionReasonCode } from '../..
 import type { JsonValue } from './persistence';
 import type { HealthiProductSnapshot, ProductProvider, ProductQualitySnapshot } from './productLookup/productLookupTypes';
 import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
+import { safeProductImageUrl } from './productLookup/productImage';
 import { mergeProductSnapshots } from './productLookup/mergeProductEvidence';
 
 export type UserFoodProductSource = 'open_food_facts' | 'usda_food_data_central' | 'manual' | 'demo' | 'scanner';
@@ -174,6 +175,7 @@ export function productSnapshotValue(product: Partial<HealthiProductSnapshot>, q
     generalized_fallback_used: quality.generalized_fallback_used ?? false,
     review_trace: quality.review_trace ? JSON.parse(JSON.stringify(quality.review_trace)) as JsonValue : null,
     product_evidence: {
+      image_url: safeProductImageUrl(product.image_url),
       canonical_barcode: product.canonical_barcode ?? canonicalBarcodeIdentity(product.barcode ?? ''),
       variant: product.variant ?? null,
       quantity: product.quantity ?? null,
@@ -222,6 +224,7 @@ function storedSnapshot(row: UserFoodProductRow): HealthiProductSnapshot {
   return {
     barcode: row.barcode ?? '', canonical_barcode: typeof evidence.canonical_barcode === 'string' ? evidence.canonical_barcode : canonicalBarcodeIdentity(row.barcode ?? ''),
     provider: row.provider, provider_product_id: row.provider_product_id, name: row.name, brand: row.brand,
+    image_url: safeProductImageUrl(evidence.image_url),
     variant: typeof evidence.variant === 'string' ? evidence.variant : null,
     quantity: typeof evidence.quantity === 'string' ? evidence.quantity : null,
     serving_size: row.serving_size, serving_quantity_g: row.serving_quantity_g, calories_per_serving: row.calories_per_serving,

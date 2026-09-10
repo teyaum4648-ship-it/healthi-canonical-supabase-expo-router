@@ -10,9 +10,11 @@ import type { UserFoodProductRow } from './productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
 import { foodLoggingNutrition } from './foodLoggingNutrition';
+import { ProductThumbnail } from './ProductThumbnail';
 
 type PickerTab = 'Search' | 'Recent' | 'Saved';
-export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onManual, onClose }: {
+export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onManual, onClose, mealLabel }: {
+  mealLabel?: string;
   query: string; onQueryChange: (value: string) => void; onSearch: () => Promise<void>;
   results: HealthiProductSnapshot[]; searching: boolean; message: string;
   products: UserFoodProductRow[]; onToggleSaved: (product: UserFoodProductRow) => Promise<void>;
@@ -44,15 +46,16 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
     finally { setBusy(false); }
   }
   return (
-    <EntrySheet title={selected ? 'Choose your portion' : 'Add food'} onClose={onClose} busy={busy} footer={selected ? (
+    <EntrySheet title={selected ? 'Choose your portion' : mealLabel ? `Add to ${mealLabel.toLowerCase()}` : 'Add food'} onClose={onClose} busy={busy} footer={selected ? (
       <Pressable accessibilityRole="button" disabled={portion === null || busy} onPress={() => void add()} style={({ pressed }) => [styles.primary, (portion === null || busy || pressed) && styles.dim]}>
-        {busy ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.primaryText}>Add to meal</Text>}
+        {busy ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.primaryText}>{mealLabel ? `Add to ${mealLabel.toLowerCase()}` : 'Add to meal'}</Text>}
       </Pressable>
     ) : undefined}>
       {selected ? <>
         <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><Ionicons name="chevron-back" size={18} color={colors.accentMid} /><Text style={styles.link}>Choose another food</Text></Pressable>
-        <Text style={styles.title}>{selected.product.name}</Text>
-        <Text style={styles.detail}>{[selected.product.brand, logging?.label].filter(Boolean).join(' · ')}</Text>
+        <View style={styles.productRow}><ProductThumbnail url={selected.product.image_url} name={selected.product.name} size={76} /><View style={styles.libraryCopy}><Text style={styles.title}>{selected.product.name}</Text><Text style={styles.detail}>{selected.product.brand}</Text></View></View>
+        <Text style={styles.detail}>Check the name, variety, and pack size—packaging photos may be older.</Text>
+        <Text style={styles.detail}>{[selected.product.quantity, logging?.label].filter(Boolean).join(' · ')}</Text>
         <Text style={styles.label}>{multiplier === 100 ? 'Amount eaten' : 'Number of servings'}</Text>
         <View style={styles.portionRow}>
           <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={(portion ?? 1) <= 0.25} onPress={() => setServings(String(Math.max(0.25, (portion ?? 1) - 0.25) * multiplier))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
@@ -77,12 +80,12 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           {results.length ? <Text style={styles.label}>{results.length} food matches</Text> : null}
           {results.map((product) => {
             const nutrition = foodLoggingNutrition(product);
-            return <ActionRow key={`${product.provider}-${product.barcode}-${product.name}`} title={product.name} detail={[product.brand, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal / portion` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} />;
+            return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal / portion` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View></View>;
           })}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts · Community label records may be incomplete.</Text>
         </> : <>
-          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.accentMid} /></Pressable></View>)}
+          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.accentMid} /></Pressable></View>)}
           {!personal.length ? <Text style={styles.detail}>{query ? 'No matching foods in this list. Try Search for more options.' : tab === 'Saved' ? 'Bookmark foods in Recent to keep them here for next time.' : 'Foods you use will appear here. Search or scan to begin.'}</Text> : null}
         </>}
         {error ? <Text accessibilityRole="alert" style={styles.detail}>{error}</Text> : null}
@@ -92,6 +95,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   );
 }
 const styles = StyleSheet.create({
+  productRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text }, detail: { ...type.body, color: colors.textMuted }, label: { ...type.label, color: colors.text },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: colors.accentMid },
   searchRow: { flexDirection: 'row', gap: 8 }, searchInput: { ...type.body, color: colors.text, minWidth: 0, flex: 1, backgroundColor: colors.surfaceInset, minHeight: 50, paddingHorizontal: 14, borderRadius: 14 },

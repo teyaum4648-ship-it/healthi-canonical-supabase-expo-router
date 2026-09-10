@@ -6,6 +6,7 @@ import type {
 import type { HealthiProductSnapshot } from './productLookupTypes';
 import { resolveIngredientEvidence } from './ingredientEvidenceResolver';
 import { canonicalBarcodeIdentity } from './barcodeUtils';
+import { productThumbnail } from './productImage';
 import type {
   NutrientEvidenceLedger,
   NutrientIdentifier,
@@ -442,6 +443,7 @@ export function normalizeOpenFoodFactsProduct(
   return {
     barcode,
     canonical_barcode: canonicalBarcodeIdentity(cleanString(product.code) ?? barcode),
+    image_url: productThumbnail(product),
     provider: 'open_food_facts',
     provider_product_id: cleanString(product.code) ?? barcode,
     name,
