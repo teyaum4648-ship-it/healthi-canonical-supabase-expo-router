@@ -1,4 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
+import { NutritionGoalSetup } from '../../../src/features/nutrition/NutritionGoalSetup';
+import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
+import type { GoalClient } from '../../../src/features/nutrition/nutritionGoalStore';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -185,16 +189,7 @@ const sans = themeFonts.body;
 const sansMedium = themeFonts.bodyMedium;
 const productQualityExperimentEnabled = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT === 'v5_two_axis';
 
-const defaultTargets: NutritionTargets = {
-  calories_target: 2300,
-  protein_g_target: 160,
-  carbs_g_target: 240,
-  fat_g_target: 80,
-  fiber_g_target: 30,
-  sodium_mg_limit: 2300,
-  confidence: 'low',
-  basis: ['default']
-};
+const defaultTargets: NutritionTargets = unsetNutritionTargets;
 
 const dietTabs = ['Diary', 'Nutrients', 'Guidance'] as const;
 type DietTab = typeof dietTabs[number];
@@ -262,7 +257,7 @@ function mealRowToMealLog(row: MealLogRow): MealLog {
 }
 
 function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets {
-  if (!row) return defaultTargets;
+  if (!row || row.basis.every(b => b === 'default')) return defaultTargets;
 
   return {
     calories_target: row.calories_target,
@@ -600,6 +595,7 @@ export default function FoodScreen() {
 
   const userId = session?.user.id ?? null;
   const canUseRemote = remoteEnabled(userId);
+  useEffect(() => { setTargets(defaultTargets); }, [userId, mode]);
   const today = selectedDay;
   const protocolScopeValue = useMemo(() => protocolScope(userId), [userId]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
@@ -827,13 +823,12 @@ export default function FoodScreen() {
     const controller = new AbortController();
     searchController.current = controller;
     setIsSearchingProducts(true);
-    setSearchResults([]);
     setSearchMessage('');
     try {
-      const result = await searchOpenFoodFactsProducts(searchQuery, { signal: controller.signal });
+      const result = await searchFoods(searchQuery, { signal: controller.signal });
       if (generation !== searchGeneration.current) return;
-      setSearchResults(result.products);
-      setSearchMessage(result.status === 'found' ? 'Choose a food to confirm your portion.' : result.message);
+      if (result.status !== 'error') setSearchResults(result.products);
+      setSearchMessage(result.status === 'found' ? result.notice ?? 'Choose a food to confirm your portion.' : result.message);
     } catch {
       if (generation === searchGeneration.current) setSearchMessage('Search is unavailable right now. Try again, or use Recent, Saved, or manual entry.');
     } finally { if (generation === searchGeneration.current) setIsSearchingProducts(false); }
@@ -1862,6 +1857,7 @@ export default function FoodScreen() {
     return (
       <View style={styles.stack}>
         <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
+        <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} onTargets={setTargets} />
         <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}

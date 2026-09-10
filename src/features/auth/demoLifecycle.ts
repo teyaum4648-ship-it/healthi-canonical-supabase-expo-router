@@ -21,6 +21,7 @@ export const resettableDemoKeys = [
   'healthi:demo:nutrition:foodPatternProfile',
   'healthi:demo:nutrition:userFoodProducts',
   'healthi:demo:nutrition:mealLogItems',
+  'healthi:demo:nutrition:goalSetup',
   'healthi:demo:movement:exerciseLibrary',
   'healthi:demo:movement:workoutSessions',
   'healthi:demo:movement:workoutExerciseEntries',
