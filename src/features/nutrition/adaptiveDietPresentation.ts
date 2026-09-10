@@ -228,7 +228,7 @@ export function buildAdaptiveDietPresentation(input: {
       progress: 0,
       confidence: 'low',
       horizon: 'Today',
-      detail: 'Fluid intake is not captured by the current meal log.'
+      detail: 'Water entries are shown separately in your diary. Electrolyte coverage is not measured by the current meal log.'
     },
     {
       id: 'micronutrients',

@@ -16,13 +16,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
-import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
+import { DietIntakeSummary, DietWeekSelector } from '../../../src/features/nutrition/DietDashboard';
+import { HydrationCard } from '../../../src/features/nutrition/HydrationCard';
+import type { HydrationClient } from '../../../src/features/nutrition/hydrationStore';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { dayTitle } from '../../../src/features/navigation/navigationModel';
 import { FoodEntryPicker } from '../../../src/features/nutrition/FoodEntryPicker';
+import { foodLoggingNutrition } from '../../../src/features/nutrition/foodLoggingNutrition';
 import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features/nutrition/foodDiaryPresentation';
 import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
 import { MealEditSheet } from '../../../src/features/nutrition/MealEditSheet';
@@ -515,7 +518,7 @@ function TrackerProgress({
 }
 
 export default function FoodScreen() {
-  const { session } = useAuth();
+  const { session, mode } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [activeSegment, setActiveSegment] = useState<Segment>('Diary');
   const actualToday = new Date().toISOString().slice(0, 10);
@@ -580,6 +583,9 @@ export default function FoodScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<HealthiProductSnapshot[]>([]);
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const searchGeneration = useRef(0);
+  const searchController = useRef<AbortController | null>(null);
+  useEffect(() => () => { searchGeneration.current += 1; searchController.current?.abort(); }, []);
   const [builderMessage, setBuilderMessage] = useState('Add foods to build one meal with clear totals.');
   const [isSavingBuilder, setIsSavingBuilder] = useState(false);
   const [productLibrary, setProductLibrary] = useState<UserFoodProductRow[]>([]);
@@ -812,15 +818,21 @@ export default function FoodScreen() {
 
   async function handleSearchProducts() {
     if (isSearchingProducts || searchQuery.trim().length < 2) return;
+    const generation = ++searchGeneration.current;
+    searchController.current?.abort();
+    const controller = new AbortController();
+    searchController.current = controller;
     setIsSearchingProducts(true);
     setSearchResults([]);
+    setSearchMessage('');
     try {
-      const result = await searchOpenFoodFactsProducts(searchQuery);
+      const result = await searchOpenFoodFactsProducts(searchQuery, { signal: controller.signal });
+      if (generation !== searchGeneration.current) return;
       setSearchResults(result.products);
       setSearchMessage(result.status === 'found' ? 'Choose a food to confirm your portion.' : result.message);
     } catch {
-      setSearchMessage('Search is unavailable right now. Try again, or use Recent, Saved, or manual entry.');
-    } finally { setIsSearchingProducts(false); }
+      if (generation === searchGeneration.current) setSearchMessage('Search is unavailable right now. Try again, or use Recent, Saved, or manual entry.');
+    } finally { if (generation === searchGeneration.current) setIsSearchingProducts(false); }
   }
 
   async function handleAddManualProduct() {
@@ -1831,18 +1843,9 @@ export default function FoodScreen() {
   function renderDiary() {
     return (
       <View style={styles.stack}>
-        <DayNavigator date={today} today={actualToday} onChange={setSelectedDay} />
-        <View style={styles.diarySection}>
-          <View style={styles.rowBetween}><Text style={styles.diaryHeading}>Nutrition</Text><Text style={styles.diaryDetail}>{todayMeals.length} meals</Text></View>
-          <View style={styles.diaryEnergy}>
-            <Text style={styles.diaryEnergyValue}>{todayMeals.length && typeof nutrientSummary.calories === 'number' ? Math.round(nutrientSummary.calories) : '—'}</Text>
-            <Text style={styles.diaryDetail}>kcal logged{targets.calories_target ? ` · ${Math.round(targets.calories_target)} working target` : ''}</Text>
-          </View>
-          <View style={styles.diaryMacros}>{[
-            { label: 'Protein', value: nutrientSummary.protein_g }, { label: 'Carbs', value: nutrientSummary.carbs_g }, { label: 'Fat', value: nutrientSummary.fat_g }
-          ].map((macro) => <View key={macro.label} style={styles.diaryMacro}><Text style={styles.diaryMacroValue}>{todayMeals.length && typeof macro.value === 'number' ? `${Math.round(macro.value)} g` : '—'}</Text><Text style={styles.diaryDetail}>{macro.label}</Text></View>)}</View>
-          <ActionRow title="All nutrients" detail="Reported values and data confidence" onPress={() => setActiveSegment('Nutrients')} last />
-        </View>
+        <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
+        <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
+        <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
         <View style={styles.diarySection}>
           <Text style={styles.diaryHeading}>Meals</Text>
@@ -2241,11 +2244,11 @@ export default function FoodScreen() {
             <View key={item.id} style={styles.builderItemRow}>
               <View style={styles.builderItemCopy}>
                 <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
-                <Text style={styles.libraryMeta}>{[item.snapshot.brand, item.snapshot.serving_size].filter(Boolean).join(' · ') || 'Nutrition facts added'}</Text>
-                <Text style={styles.librarySignal}>{displayLabel(item.quality.label)} · {formatProductAmount(item.snapshot.calories_per_serving, ' cal')} per serving</Text>
+                <Text style={styles.libraryMeta}>{[item.snapshot.brand, foodLoggingNutrition(item.snapshot).label].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.librarySignal}>{displayLabel(item.quality.label)} · {formatProductAmount(foodLoggingNutrition(item.snapshot).nutrients.calories, ' kcal')} per portion</Text>
               </View>
               <TextInput
-                accessibilityLabel={`Servings of ${item.snapshot.name}`}
+                accessibilityLabel={`${foodLoggingNutrition(item.snapshot).label} portions of ${item.snapshot.name}`}
                 keyboardType="decimal-pad"
                 onChangeText={(value) => { setServingDrafts((current) => ({ ...current, [item.id]: value })); if (portionValue(value) !== null) setMealBuilder((current) => updateMealBuilderItemServings(current, item.id, value)); }}
                 style={styles.servingsInput}
@@ -2534,7 +2537,7 @@ export default function FoodScreen() {
               <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Food</Text>
               <Text style={styles.diaryDetail}>{modeLabel}</Text>
             </View>
-            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={dietTabs} value={activeSegment as DietTab} onChange={(segment) => { closeScanner(); setActiveSegment(segment); }} /></View> : (
+            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Guidance'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Guidance'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
               <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
                 <Ionicons name="chevron-back" size={20} color={colors.accentMid} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
               </Pressable>
@@ -2559,7 +2562,7 @@ export default function FoodScreen() {
       </SafeAreaView>
       {foodEntryOpen ? <FoodEntryPicker
         query={searchQuery}
-        onQueryChange={(value) => { setSearchQuery(value); setSearchResults([]); setSearchMessage(''); }}
+        onQueryChange={(value) => { searchGeneration.current += 1; searchController.current?.abort(); setIsSearchingProducts(false); setSearchQuery(value); setSearchResults([]); setSearchMessage(''); }}
         onSearch={handleSearchProducts}
         results={searchResults}
         searching={isSearchingProducts}
