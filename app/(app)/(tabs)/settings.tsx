@@ -7,6 +7,7 @@ import { Button } from '../../../src/components/Button';
 import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
+import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import {
@@ -154,27 +155,8 @@ export default function SettingsScreen() {
         appearance="mobile"
         eyebrow="Profile"
         title="You"
-        body="Your baseline, preferences, and calibration status."
+        body="Your progress, profile and preferences."
       />
-      {mode === 'demo' ? (
-        <Card appearance="mobile">
-          <Text style={styles.cardEyebrow}>YOUR DEMO</Text>
-          <Text style={styles.baselineTitle}>A fresh start, whenever you need it</Text>
-          <Text style={styles.detail}>Your demo entries stay on this device. Resetting starts onboarding again with empty sleep, food, movement, and plan history.</Text>
-          {confirmDemoReset ? <>
-            <Text style={styles.detail}>Remove this device’s demo history? Personal account data is not affected.</Text>
-            <Button appearance="mobile" label="Reset demo and start again" isLoading={isResettingDemo} onPress={async () => {
-              setIsResettingDemo(true);
-              setDemoResetError('');
-              try { await startDemo(true); }
-              catch { setDemoResetError('Reset could not finish. Please try again.'); }
-              finally { setIsResettingDemo(false); }
-            }} />
-            <Button appearance="mobile" variant="secondary" label="Cancel" onPress={() => setConfirmDemoReset(false)} />
-          </> : <Button appearance="mobile" variant="secondary" label="Start fresh demo" onPress={() => setConfirmDemoReset(true)} />}
-          {demoResetError ? <Text accessibilityRole="alert" style={styles.detail}>{demoResetError}</Text> : null}
-        </Card>
-      ) : null}
 
       {isLoading || !model || !baseline ? (
         <Card appearance="mobile" style={styles.loadingCard}>
@@ -183,33 +165,9 @@ export default function SettingsScreen() {
         </Card>
       ) : (
         <>
-          <Card appearance="mobile" style={styles.accountCard}>
-            <Text style={styles.cardEyebrow}>ACCOUNT</Text>
-            <Text style={styles.accountTitle}>{model.account.label}</Text>
-            <Text style={styles.detail}>{model.account.detail}</Text>
-            <Text style={styles.meta}>{model.account.source_label === 'demo' ? 'Local demo mode' : model.account.source_label === 'logged' ? 'Saved profile data' : 'Setup status'}</Text>
-          </Card>
-
-          <Card appearance="mobile" style={styles.baselineCard}>
-            <Text style={styles.cardEyebrow}>YOUR BASELINE</Text>
-            <Text style={styles.baselineTitle}>{baseline.headline}</Text>
-            <Text style={styles.baselineDetail}>{baseline.detail}</Text>
-            <Text style={styles.meta}>Confidence: {baseline.confidence}</Text>
-          </Card>
-
-          {activeProtocol ? (
-            <Card appearance="mobile">
-              <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
-              <Text style={styles.baselineTitle}>{activeProtocol.headline}</Text>
-              <Text style={styles.meta}>
-                {dayModeLabel(activeProtocol.day_mode)} · {protocolDone}/{activeProtocol.actions.length} done · Confidence: {activeProtocol.confidence}
-              </Text>
-            </Card>
-          ) : null}
-
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Your trends</Text>
-            <Text style={styles.sectionCaption}>Patterns, inside You</Text>
+            <Text style={styles.sectionCaption}>Your recent patterns</Text>
           </View>
 
           <View accessibilityRole="tablist" style={styles.trendRangeSelector}>
@@ -281,6 +239,7 @@ export default function SettingsScreen() {
             </>
           )}
 
+          <Disclosure title="Your profile and preferences" detail="Goals, nourishment, sleep and movement context">
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Your profile</Text>
             <Text style={styles.sectionCaption}>Available signals</Text>
@@ -407,18 +366,64 @@ export default function SettingsScreen() {
             ))}
           </Card>
 
-          <Text style={styles.footer}>Healthi provides general wellness guidance based on available data.</Text>
+          </Disclosure>
+          <Disclosure title="Account and baseline" detail={model.account.label}>
+          <Card appearance="mobile" style={styles.accountCard}>
+            <Text style={styles.cardEyebrow}>ACCOUNT</Text>
+            <Text style={styles.accountTitle}>{model.account.label}</Text>
+            <Text style={styles.detail}>{model.account.detail}</Text>
+            <Text style={styles.meta}>{model.account.source_label === 'demo' ? 'Local demo mode' : model.account.source_label === 'logged' ? 'Saved profile data' : 'Setup status'}</Text>
+          </Card>
+
+          <Card appearance="mobile" style={styles.baselineCard}>
+            <Text style={styles.cardEyebrow}>YOUR BASELINE</Text>
+            <Text style={styles.baselineTitle}>{baseline.headline}</Text>
+            <Text style={styles.baselineDetail}>{baseline.detail}</Text>
+            <Text style={styles.meta}>Confidence: {baseline.confidence}</Text>
+          </Card>
+
+          {activeProtocol ? (
+            <Card appearance="mobile">
+              <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
+              <Text style={styles.baselineTitle}>{activeProtocol.headline}</Text>
+              <Text style={styles.meta}>
+                {dayModeLabel(activeProtocol.day_mode)} · {protocolDone}/{activeProtocol.actions.length} done · Confidence: {activeProtocol.confidence}
+              </Text>
+            </Card>
+          ) : null}
 
           <Button appearance="mobile" label="Log out" onPress={handleSignOut} variant="secondary" />
+          </Disclosure>
+          <Text style={styles.footer}>Healthi provides general wellness guidance based on available data.</Text>
+
           {model.load_error ? <Text style={styles.errorNote}>Some profile details are still calibrating while data becomes available.</Text> : null}
         </>
       )}
+      {mode === 'demo' ? (
+        <Disclosure title="Demo settings" detail="Reset this device’s demo history">
+          <Text style={styles.cardEyebrow}>YOUR DEMO</Text>
+          <Text style={styles.baselineTitle}>A fresh start, whenever you need it</Text>
+          <Text style={styles.detail}>Your demo entries stay on this device. Resetting starts onboarding again with empty sleep, food, movement, and plan history.</Text>
+          {confirmDemoReset ? <>
+            <Text style={styles.detail}>Remove this device’s demo history? Personal account data is not affected.</Text>
+            <Button appearance="mobile" label="Reset demo and start again" isLoading={isResettingDemo} onPress={async () => {
+              setIsResettingDemo(true);
+              setDemoResetError('');
+              try { await startDemo(true); }
+              catch { setDemoResetError('Reset could not finish. Please try again.'); }
+              finally { setIsResettingDemo(false); }
+            }} />
+            <Button appearance="mobile" variant="secondary" label="Cancel" onPress={() => setConfirmDemoReset(false)} />
+          </> : <Button appearance="mobile" variant="secondary" label="Start fresh demo" onPress={() => setConfirmDemoReset(true)} />}
+          {demoResetError ? <Text accessibilityRole="alert" style={styles.detail}>{demoResetError}</Text> : null}
+        </Disclosure>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 116 },
+  content: { paddingBottom: 28 },
   loadingCard: { alignItems: 'center', justifyContent: 'center', minHeight: 150 },
   loadingText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14 },
   accountCard: { backgroundColor: colors.surfaceInset },
@@ -427,7 +432,7 @@ const styles = StyleSheet.create({
   accountTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 27, lineHeight: 33 },
   baselineTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 28, lineHeight: 34 },
   baselineDetail: { color: colors.text, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
-  detail: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 21 },
+  detail: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 16, lineHeight: 23 },
   meta: { color: colors.textMuted, fontFamily: fonts.bodyMedium, fontSize: 12, marginTop: spacing.xs },
   sectionRow: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm },
   sectionTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 22 },

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
@@ -88,11 +88,17 @@ import {
 } from '../../../src/features/movement/workoutForms';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, hairlineWidth, spacing, type } from '../../../src/styles/mobileTheme';
+import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
+import { ActionRow } from '../../../src/components/mobile/ActionRow';
+import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
+import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
-const segments: Segment[] = ['Today', 'Train', 'Library', 'History'];
+const segments: Segment[] = ['Today', 'Library', 'History'];
 const movePalette = {
   background: '#000000',
   surface: '#121214',
@@ -204,6 +210,11 @@ export default function MovementScreen() {
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
   const [isLogging, setIsLogging] = useState(false);
   const [isQuickLogging, setIsQuickLogging] = useState(false);
+  const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
+  const [historyDay, setHistoryDay] = useState(today);
+  const [historyView, setHistoryView] = useState<'All recent' | 'By day'>('All recent');
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollPositions = useRef<Record<string, number>>({});
   const [quickPrompt, setQuickPrompt] = useState('');
   const [quickDraft, setQuickDraft] = useState<QuickWorkoutDraft | null>(null);
   const [libraryQuery, setLibraryQuery] = useState('');
@@ -226,6 +237,11 @@ export default function MovementScreen() {
   const [status, setStatus] = useState('Log a workout to begin shaping your movement signal.');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  useQuickEntry(openQuickLauncher, !isLoading);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: scrollPositions.current[activeSegment] ?? 0, animated: false }));
+    return () => cancelAnimationFrame(frame);
+  }, [activeSegment]);
 
   const userId = user?.id;
   const canUseRemote = Boolean(isSupabaseConfigured && isUuid(userId));
@@ -527,6 +543,7 @@ export default function MovementScreen() {
       setStatus('Today’s protocol keeps that routine outside the suggested movement range. Choose mobility or recovery instead.');
       return;
     }
+    setQuickLaunchOpen(false);
     setQuickDraft(attachPreviousWorkout(nextDraft, sessions, entries, workoutSets));
     setActiveSegment('Train');
     setIsLogging(false);
@@ -541,6 +558,12 @@ export default function MovementScreen() {
       return;
     }
     startQuickWorkout(nextDraft);
+  }
+
+  function openQuickLauncher() {
+    if (quickDraft) { setActiveSegment('Train'); setIsQuickLogging(true); }
+    else if (isLogging) setActiveSegment('Train');
+    else setQuickLaunchOpen(true);
   }
 
   function openQuickTemplate(template: (typeof workoutTemplates)[number]) {
@@ -789,19 +812,8 @@ export default function MovementScreen() {
     }
   }
 
-  function renderToday() {
-    return (
-      <View style={styles.page}>
-        <PageHeading section="MOVE · TODAY" title="Today" />
-        {trainingLimited ? (
-          <View style={styles.protocolNote}>
-            <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
-            <Text style={styles.protocolNoteText}>
-              Today's protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
-            </Text>
-          </View>
-        ) : null}
-
+  function renderQuickLaunch() {
+    return <EntrySheet title="Log a workout" onClose={() => setQuickLaunchOpen(false)}>
         <View style={styles.quickLaunchCard}>
           <View style={styles.quickLaunchHeading}>
             <View style={styles.quickLaunchIcon}>
@@ -859,6 +871,28 @@ export default function MovementScreen() {
             })}
           </ScrollView>
         </View>
+      <ActionRow title="Start a blank workout" detail="Add movements as you go; no routine needed" icon="add-outline" onPress={() => { setQuickLaunchOpen(false); openBlankWorkout(); }} last />
+      <Text accessibilityLiveRegion="polite" style={styles.meta}>{status}</Text>
+    </EntrySheet>;
+  }
+
+  function renderToday() {
+    return (
+      <View style={styles.page}>
+        <PageHeading section="MOVE · TODAY" title="Today" />
+        {trainingLimited ? (
+          <View style={styles.protocolNote}>
+            <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
+            <Text style={styles.protocolNoteText}>
+              Today's protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
+            </Text>
+          </View>
+        ) : null}
+
+        <Pressable accessibilityRole="button" onPress={openQuickLauncher} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
+          <Ionicons name="add" color="#FFFFFF" size={22} />
+          <Text style={styles.primaryButtonText}>{quickDraft || isLogging ? 'Continue workout' : 'Log a workout'}</Text>
+        </Pressable>
 
         <View style={styles.verdictBlock}>
           <EditorialLabel>TODAY'S DIRECTION</EditorialLabel>
@@ -1373,6 +1407,7 @@ export default function MovementScreen() {
           section="MOVE · LIBRARY"
           title="Library"
         />
+        <ActionRow title="Workout routines" detail="Choose a template, then make it yours" icon="albums-outline" onPress={() => { setIsLogging(false); setIsQuickLogging(false); setActiveSegment('Train'); }} last />
         <View style={styles.searchBox}>
           <Ionicons color={movePalette.slate} name="search" size={17} />
           <TextInput
@@ -1422,9 +1457,38 @@ export default function MovementScreen() {
   }
 
   function renderHistory() {
+    const visibleSessions = historyView === 'All recent' ? sessions : sessions.filter((session) => session.session_date.slice(0, 10) === historyDay);
     return (
       <View style={styles.page}>
         <PageHeading section="MOVE · HISTORY" title="History" />
+        <SegmentedControl options={['All recent', 'By day'] as const} value={historyView} onChange={setHistoryView} />
+        {historyView === 'By day' ? <DayNavigator date={historyDay} today={today} earliest={historyStart(today)} onChange={setHistoryDay} /> : null}
+        <EditorialLabel>SESSIONS</EditorialLabel>
+        {visibleSessions.length === 0 ? (
+          <View style={styles.emptyHistory}><Text style={styles.templateTitle}>No workouts for this view</Text><Text style={styles.body}>Your recent sessions will appear here after you log one.</Text></View>
+        ) : visibleSessions.map((session) => {
+          const sessionEntries = entries.filter((entry) => entry.workout_session_id === session.id);
+          return (
+            <View key={session.id} style={styles.sessionRow}>
+              <Text style={styles.sessionDate}>{formatDate(session.session_date)}</Text>
+              <View style={styles.rowBetween}>
+                <View style={styles.historyTitleWrap}>
+                  <Text style={styles.sessionTitle}>{session.title}</Text>
+                  <Text style={styles.sessionMeta}>{titleCase(session.workout_type)} · {sessionEntries.length} exercises · {session.source === 'demo' ? 'Local demo' : 'Logged'}</Text>
+                </View>
+                <View style={styles.sessionAside}>
+                  <Text style={styles.sessionMinutes}>{session.duration_minutes ?? '—'} min</Text>
+                  <Text style={styles.sessionEffort}>Effort {session.perceived_effort ?? '—'}</Text>
+                </View>
+                <Pressable accessibilityLabel={`Delete ${session.title}`} onPress={() => handleDelete(session.id)} style={styles.iconButton}>
+                  <Ionicons color={colors.danger} name="trash-outline" size={17} />
+                </Pressable>
+              </View>
+            </View>
+          );
+        })}
+
+        <Disclosure title="Movement patterns" detail="Training load, effort and recent trends">
         <Text style={styles.historyInsight}>
           {sessions.length === 0
             ? 'Your first session will begin a useful movement pattern.'
@@ -1493,54 +1557,16 @@ export default function MovementScreen() {
 
         <Divider />
 
-        <EditorialLabel>SESSIONS</EditorialLabel>
-        {sessions.length === 0 ? (
-          <View style={styles.emptyHistory}><Text style={styles.templateTitle}>No workouts yet</Text><Text style={styles.body}>Your recent sessions will appear here after you log one.</Text></View>
-        ) : sessions.map((session) => {
-          const sessionEntries = entries.filter((entry) => entry.workout_session_id === session.id);
-          return (
-            <View key={session.id} style={styles.sessionRow}>
-              <Text style={styles.sessionDate}>{formatDate(session.session_date)}</Text>
-              <View style={styles.rowBetween}>
-                <View style={styles.historyTitleWrap}>
-                  <Text style={styles.sessionTitle}>{session.title}</Text>
-                  <Text style={styles.sessionMeta}>{titleCase(session.workout_type)} · {sessionEntries.length} exercises · {session.source === 'demo' ? 'Local demo' : 'Logged'}</Text>
-                </View>
-                <View style={styles.sessionAside}>
-                  <Text style={styles.sessionMinutes}>{session.duration_minutes ?? '—'} min</Text>
-                  <Text style={styles.sessionEffort}>Effort {session.perceived_effort ?? '—'}</Text>
-                </View>
-                <Pressable accessibilityLabel={`Delete ${session.title}`} onPress={() => handleDelete(session.id)} style={styles.iconButton}>
-                  <Ionicons color={colors.danger} name="trash-outline" size={17} />
-                </Pressable>
-              </View>
-            </View>
-          );
-        })}
+
+        </Disclosure>
       </View>
     );
   }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentRow}>
-          {segments.map((segment) => (
-            <Pressable
-              key={segment}
-              onPress={() => {
-                setActiveSegment(segment);
-                if (segment !== 'Train') {
-                  setIsLogging(false);
-                  setIsQuickLogging(false);
-                }
-              }}
-              style={[styles.segment, activeSegment === segment && styles.segmentActive]}
-            >
-              <Text style={[styles.segmentText, activeSegment === segment && styles.segmentTextActive]}>{segment}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+      <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Move</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Move · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
 
         {usePreviewFixture ? (
           <View style={styles.previewBanner}>
@@ -1555,13 +1581,16 @@ export default function MovementScreen() {
         {!isLoading && activeSegment === 'Library' ? renderLibrary() : null}
         {!isLoading && activeSegment === 'History' ? renderHistory() : null}
       </ScrollView>
+      {quickLaunchOpen ? renderQuickLaunch() : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: movePalette.background },
-  scroll: { paddingBottom: 118 },
+  scroll: { paddingBottom: 28 },
+  navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
+  navigationTitle: { ...type.title, fontSize: 30, lineHeight: 38, color: colors.text },
   segmentRow: {
     borderBottomColor: movePalette.line,
     borderBottomWidth: hairlineWidth,
