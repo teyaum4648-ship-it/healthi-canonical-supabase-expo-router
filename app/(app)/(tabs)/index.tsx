@@ -69,6 +69,10 @@ import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhyth
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
 import { fonts, type } from '../../../src/styles/theme';
+import { ActionRow } from '../../../src/components/mobile/ActionRow';
+import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { useReducedMotion } from '../../../src/components/mobile/useReducedMotion';
+import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -205,9 +209,10 @@ type DashboardBaselineClient = {
 };
 
 function ReadinessRing({ score }: { score: number | null }) {
-  const size = 164;
+  const reducedMotion = useReducedMotion();
+  const size = 128;
   const c = size / 2;
-  const arcRadius = 62;
+  const arcRadius = 48;
   const circumference = 2 * Math.PI * arcRadius;
   const tickCount = 48;
   const targetScore = score ?? 0;
@@ -222,12 +227,12 @@ function ReadinessRing({ score }: { score: number | null }) {
     });
     Animated.timing(progress, {
       toValue: targetScore,
-      duration: 1200,
+      duration: reducedMotion ? 0 : 280,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false
     }).start();
     return () => progress.removeListener(listener);
-  }, [progress, targetScore]);
+  }, [progress, targetScore, reducedMotion]);
 
   const dashOffset = progress.interpolate({
     inputRange: [0, 100],
@@ -249,8 +254,8 @@ function ReadinessRing({ score }: { score: number | null }) {
           {Array.from({ length: tickCount }, (_, tick) => {
             const angle = (tick / tickCount) * Math.PI * 2;
             const isMajor = tick % 8 === 0;
-            const inner = isMajor ? 71 : 73;
-            const outer = 77;
+            const inner = isMajor ? 55 : 57;
+            const outer = 61;
             const lit = tick < litTicks;
             return (
               <Line
@@ -319,7 +324,6 @@ function QuickLog({ actions }: { actions: QuickLogAction[] }) {
     <View style={styles.quickLogSection}>
       <View style={styles.quickLogHeader}>
         <Text style={styles.quickLogTitle}>Quick log</Text>
-        <Text style={styles.quickLogHint}>Add in seconds</Text>
       </View>
       <View style={styles.quickLogRow}>
         {actions.map((action) => (
@@ -747,204 +751,83 @@ export default function DashboardScreen() {
       : 'Signals calibrating';
   const greeting = greetingForHour(new Date().getHours());
   const quickLogActions: QuickLogAction[] = [
-    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: homePalette.cyan, onPress: () => router.push('/food') },
-    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: homePalette.blueSoft, onPress: () => router.push('/movement') },
-    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: homePalette.violet, onPress: () => router.push('/rhythm') },
+    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: homePalette.cyan, onPress: () => router.navigate(quickEntryHref('food')) },
+    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: homePalette.blueSoft, onPress: () => router.navigate(quickEntryHref('workout')) },
+    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: homePalette.violet, onPress: () => router.navigate(quickEntryHref('sleep')) },
     { label: 'Check-in', detail: 'Record how today felt', icon: 'pulse-outline', color: homePalette.amber, onPress: () => router.push('/closeout') }
   ];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       {isFocused ? <StatusBar style="light" /> : null}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={styles.date}>{displayDate(today)}</Text>
             <Text style={styles.greeting}>{greeting}, {firstName}</Text>
           </View>
-          <Pressable
-            accessibilityLabel="Open your profile"
-            accessibilityRole="button"
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
-          >
-            <Text style={styles.avatarText}>{firstName.slice(0, 1).toUpperCase()}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
+            <Ionicons name="calendar-outline" color={homePalette.blueSoft} size={22} />
+            <Text style={styles.calendarLabel}>Plan</Text>
           </Pressable>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/protocol')}
-          style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}
-        >
-          <LinearGradient colors={['rgba(10, 132, 255, 0.09)', 'rgba(18, 18, 20, 0)']} style={styles.heroGlow}>
+        <View style={styles.heroCard}>
+          <View style={styles.heroGlow}>
             <View style={styles.heroTopRow}>
               <View style={styles.heroCopy}>
-                <View style={styles.livePill}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>Day mode</Text>
-                </View>
+                <Text style={styles.liveText}>Today's direction</Text>
                 <Text style={styles.dayMode}>{dayModeLabel(protocol.day_mode)}</Text>
                 <Text style={styles.heroLabel}>{dashboardHero.label}</Text>
               </View>
               <ReadinessRing score={visibleReadinessScore} />
             </View>
-            <View style={styles.heroSummaryRow}>
-              <View style={styles.heroSummaryCopy}>
-                <Text style={styles.heroSummary} numberOfLines={3}>{dashboardHero.summary}</Text>
-                <Text style={styles.heroMeta}>{sourceLabel} · {dashboardHero.confidence} confidence</Text>
-              </View>
-              <View style={styles.roundArrow}>
-                <Ionicons color={homePalette.white} name="arrow-forward" size={16} />
-              </View>
-            </View>
-          </LinearGradient>
+            <Text style={styles.homeSummary}>{dashboardHero.summary}</Text>
+            <Text style={styles.homeMeta}>{sourceLabel} · {dashboardHero.confidence} confidence</Text>
+          </View>
+        </View>
+
+        <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.homeNextAction, pressed && styles.pressed]}>
+          <View style={styles.primaryActionCopy}>
+            <Text style={styles.homeEyebrow}>Next best action</Text>
+            <Text style={styles.primaryActionTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
+            <Text style={styles.homeDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
+          </View>
+          <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={20} />
         </Pressable>
+        {shouldSurfaceSafety(protocol.safety.status) ? (
+          <View style={styles.safetyRow}>
+            <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={18} />
+            <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
+          </View>
+        ) : null}
 
         <QuickLog actions={quickLogActions} />
 
-        <Pressable
-          accessibilityLabel={`Open today's protocol. ${primaryAction?.title ?? dashboardHero.top_action}`}
-          accessibilityRole="button"
-          onPress={() => router.push('/protocol')}
-          style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}
-        >
-          <LinearGradient colors={['#171719', '#121214']} style={styles.primaryActionGradient}>
-            <View style={styles.primaryActionIcon}>
-              <Ionicons color={homePalette.blue} name="flash-outline" size={20} />
-            </View>
-            <View style={styles.primaryActionCopy}>
-              <Text style={styles.primaryActionEyebrow}>Next best action</Text>
-              <Text style={styles.primaryActionTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
-              <Text numberOfLines={2} style={styles.primaryActionDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
-            </View>
-            <Ionicons color={homePalette.blue} name="chevron-forward" size={20} />
-          </LinearGradient>
-        </Pressable>
-
         <Panel>
-          <PanelHeader action={titleCase(morningBriefing.readiness.mode)} title="Your Foundations" />
-          <View style={styles.foundationList}>
-            {morningBriefing.driver_cards.map((driver) => {
-              const accent = domainAccent[driver.domain];
-              return (
-                <Pressable
-                  accessibilityLabel={`${driver.label}. ${titleCase(driver.status)}. Open details.`}
-                  accessibilityRole="button"
-                  key={driver.domain}
-                  onPress={() => router.push(foundationRoute(driver.domain))}
-                  style={({ pressed }) => [styles.foundationRow, pressed && styles.foundationRowPressed]}
-                >
-                  <View style={[styles.foundationIcon, { backgroundColor: `${accent}1F` }]}>
-                    <Ionicons color={accent} name={readinessIcon(driver.domain)} size={17} />
-                  </View>
-                  <View style={styles.foundationBody}>
-                    <View style={styles.foundationLabelRow}>
-                      <Text style={styles.foundationLabel}>{driver.label}</Text>
-                      <Text style={[styles.foundationStatus, { color: accent }]}>{titleCase(driver.status)}</Text>
-                    </View>
-                    <ProgressRail color={accent} progress={driverStatusProgress(driver.status)} />
-                  </View>
-                  <Ionicons color={homePalette.textFaint} name="chevron-forward" size={14} />
-                </Pressable>
-              );
-            })}
-          </View>
-          <View style={styles.coverageRow}>
-            <Ionicons color={homePalette.textFaint} name="layers-outline" size={14} />
-            <Text style={styles.coverageText}>{foundationSourceCount} of 4 foundations have current signals</Text>
-          </View>
+          <PanelHeader title="Your day" />
+          <ActionRow
+            title={nextScheduleBlock?.title ?? (nextScheduleBlock ? titleCase(nextScheduleBlock.block_type) : 'Your calendar is open')}
+            detail={nextScheduleBlock ? `${formatClockTime(nextScheduleBlock.start_at)} – ${formatClockTime(nextScheduleBlock.end_at)} · View your plan` : 'Tap a time in your plan to add a block.'}
+            icon="calendar-outline"
+            onPress={() => router.navigate('/plan')}
+            last
+          />
         </Panel>
 
-        <Panel>
-          <PanelHeader action={`${nutritionSummary.meal_count} logged`} title="Nourishment today" />
-          <View style={styles.calorieRow}>
-            <View>
-              <Text style={styles.metricEyebrow}>Calories</Text>
-              <Text style={styles.calorieValue}>{macroTotals.has_nutrition ? macroTotals.calories : '—'}</Text>
-            </View>
-            <View style={styles.calorieTargetWrap}>
-              <Text style={styles.metricEyebrow}>Target</Text>
-              <Text style={styles.calorieTarget}>{nutritionTargets?.calories_target ?? 'Not set'}</Text>
-            </View>
-          </View>
-          <ProgressRail color={homePalette.blue} progress={boundedProgress(macroTotals.calories, nutritionTargets?.calories_target)} />
-          <View style={styles.macroGrid}>
-            {[
-              { label: 'Protein', value: macroTotals.protein_g, target: nutritionTargets?.protein_g_target, color: homePalette.cyan },
-              { label: 'Carbs', value: macroTotals.carbs_g, target: nutritionTargets?.carbs_g_target, color: homePalette.blueSoft },
-              { label: 'Fat', value: macroTotals.fat_g, target: nutritionTargets?.fat_g_target, color: homePalette.violet }
-            ].map((macro) => (
-              <View key={macro.label} style={styles.macroCell}>
-                <Text style={styles.macroLabel}>{macro.label}</Text>
-                <Text style={styles.macroValue}>{macroTotals.has_nutrition ? `${macro.value}g` : '—'}</Text>
-                <ProgressRail color={macro.color} progress={boundedProgress(macro.value, macro.target)} />
-              </View>
-            ))}
-          </View>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/food')} style={styles.inlineAction}>
-            <Text style={styles.inlineActionText}>{nutritionSummary.meal_count > 0 ? 'View nutrition' : 'Log your first meal'}</Text>
-            <Ionicons color={homePalette.blueSoft} name="arrow-forward" size={15} />
-          </Pressable>
-        </Panel>
-
-        <View style={styles.twoColumn}>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/movement')} style={({ pressed }) => [styles.miniCard, pressed && styles.pressed]}>
-            <View style={[styles.miniIcon, { backgroundColor: 'rgba(10, 132, 255, 0.12)' }]}>
-              <Ionicons color={homePalette.blueSoft} name="body-outline" size={19} />
-            </View>
-            <Text style={styles.miniEyebrow}>Movement</Text>
-            <Text style={styles.miniValue}>{movementCard.workout_count}</Text>
-            <Text style={styles.miniUnit}>sessions · 7 days</Text>
-            <Text numberOfLines={2} style={styles.miniDetail}>{movementCard.label}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/plan')} style={({ pressed }) => [styles.miniCard, pressed && styles.pressed]}>
-            <View style={[styles.miniIcon, { backgroundColor: 'rgba(255, 212, 121, 0.11)' }]}>
-              <Ionicons color={homePalette.amber} name="calendar-outline" size={19} />
-            </View>
-            <Text style={styles.miniEyebrow}>Next block</Text>
-            <Text style={styles.miniValueSmall}>{formatClockTime(nextScheduleBlock?.start_at)}</Text>
-            <Text numberOfLines={1} style={styles.miniUnit}>{nextScheduleBlock?.title ?? (nextScheduleBlock ? titleCase(nextScheduleBlock.block_type) : 'Add to your day')}</Text>
-            <Text style={styles.miniDetail}>{preliminaryDayPlan.open_windows.length} open windows</Text>
-          </Pressable>
-        </View>
+        <Disclosure title="What informed today?" detail={`${foundationSourceCount} of 4 foundations have available signals`}>
+          <Text style={styles.homeDetail}>These are the inputs behind your daily guidance. Missing information lowers confidence, not your score.</Text>
+          {morningBriefing.driver_cards.map((driver, index) => (
+            <ActionRow key={driver.domain} title={driver.label} detail={driver.detail} value={titleCase(driver.status)} icon={readinessIcon(driver.domain)} onPress={() => router.navigate(foundationRoute(driver.domain))} last={index === morningBriefing.driver_cards.length - 1} />
+          ))}
+          <ActionRow title="See the full daily protocol" detail="Reasons, confidence and your next steps" icon="list-outline" onPress={() => router.navigate('/protocol')} last />
+        </Disclosure>
 
         <Panel>
-          <PanelHeader action={`${sleepTrend.length} nights`} title="Recovery + Rhythm" />
-          <View style={styles.trendTopRow}>
-            <View>
-              <Text style={styles.metricEyebrow}>Latest sleep</Text>
-              <Text style={styles.trendValue}>{sleepDurationLabel(latestSleepSession)}</Text>
-            </View>
-            <View style={styles.confidencePill}>
-              <Text style={styles.confidenceText}>{circadianBriefing.confidence} confidence</Text>
-            </View>
-          </View>
-          <SleepSparkline values={sleepTrend} />
-          <Text style={styles.trendCaption}>{rhythmDriver?.detail ?? 'Sleep timing is still calibrating.'}</Text>
-        </Panel>
-
-        <Panel>
-          <PanelHeader action={`${protocolActions.length} actions`} title="Today's protocol" />
-          <Text style={styles.focusTitle}>{focusLabel(protocol.primary_focus)}</Text>
-          <View style={styles.actionPreviewList}>
-            {protocolActions.map((action, index) => (
-              <View key={action.id} style={styles.actionPreviewRow}>
-                <View style={styles.actionIndex}><Text style={styles.actionIndexText}>{index + 1}</Text></View>
-                <Text numberOfLines={1} style={styles.actionPreviewText}>{action.title}</Text>
-              </View>
-            ))}
-          </View>
-          {shouldSurfaceSafety(protocol.safety.status) ? (
-            <View style={styles.safetyRow}>
-              <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={14} />
-              <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
-            </View>
-          ) : null}
-          <Pressable accessibilityRole="button" onPress={() => router.push('/protocol')} style={styles.inlineAction}>
-            <Text style={styles.inlineActionText}>Open full protocol</Text>
-            <Ionicons color={homePalette.blueSoft} name="arrow-forward" size={15} />
-          </Pressable>
+          <PanelHeader title="At a glance" />
+          <ActionRow title="Food" detail={nutritionSummary.meal_count ? `${nutritionSummary.meal_count} meals logged${macroTotals.has_nutrition ? ` · ${macroTotals.calories} kcal reported` : ''}` : 'No meals logged today'} icon="nutrition-outline" onPress={() => router.navigate('/food')} />
+          <ActionRow title="Movement" detail={`${movementCard.workout_count} sessions in the last 7 days`} icon="barbell-outline" onPress={() => router.navigate('/movement')} />
+          <ActionRow title="Sleep" detail={latestSleepSession ? `${sleepDurationLabel(latestSleepSession)} · latest recorded night` : 'Add your first sleep window'} icon="moon-outline" onPress={() => router.navigate('/rhythm')} last />
         </Panel>
       </ScrollView>
     </SafeAreaView>
@@ -952,14 +835,21 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  calendarButton: { alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: homePalette.surfaceRaised },
+  calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
+  homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
+  homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
+  homeNextAction: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, paddingHorizontal: 20, borderRadius: 20, backgroundColor: homePalette.surfaceRaised },
+  homeEyebrow: { fontFamily: homeFont, fontSize: 14, fontWeight: '500', color: homePalette.blueSoft, marginBottom: 6 },
+  homeDetail: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 4 },
   safe: {
     backgroundColor: homePalette.background,
     flex: 1
   },
   scroll: {
     gap: 13,
-    paddingBottom: 112,
-    paddingHorizontal: 16
+    paddingBottom: 28,
+    paddingHorizontal: 20
   },
   header: {
     alignItems: 'center',
@@ -973,12 +863,12 @@ const styles = StyleSheet.create({
     flex: 1
   },
   date: {
-    color: homePalette.textFaint,
+    color: homePalette.textMuted,
     fontFamily: homeFont,
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '500',
     letterSpacing: 0.25,
-    lineHeight: 14
+    lineHeight: 20
   },
   greeting: {
     color: homePalette.text,
@@ -1033,13 +923,14 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   quickLogHint: {
-    color: homePalette.textFaint,
+    color: homePalette.textMuted,
     fontFamily: homeFont,
-    fontSize: 11,
-    lineHeight: 16
+    fontSize: 13,
+    lineHeight: 19
   },
   quickLogRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 7,
     marginTop: 11
   },
@@ -1049,6 +940,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
+    minWidth: 56,
     minHeight: 78,
     paddingHorizontal: 3,
     paddingVertical: 9
@@ -1065,11 +957,11 @@ const styles = StyleSheet.create({
     width: 38
   },
   quickLogLabel: {
-    color: homePalette.textMuted,
+    color: homePalette.text,
     fontFamily: homeFont,
-    fontSize: 10.5,
+    fontSize: 14,
     fontWeight: '500',
-    lineHeight: 14,
+    lineHeight: 20,
     marginTop: 7
   },
   heroCard: {
@@ -1090,10 +982,12 @@ const styles = StyleSheet.create({
   heroTopRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    minHeight: 164
+    flexWrap: 'wrap',
+    minHeight: 128
   },
   heroCopy: {
     flex: 1,
+    minWidth: 126,
     paddingLeft: 2,
     paddingRight: 4
   },
@@ -1118,8 +1012,9 @@ const styles = StyleSheet.create({
     color: homePalette.blueSoft,
     fontFamily: homeFont,
     fontWeight: '600',
-    fontSize: 9,
-    letterSpacing: 1.3
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0
   },
   dayMode: {
     color: homePalette.text,
@@ -1128,19 +1023,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.7,
     lineHeight: 33,
-    marginTop: 16
+    marginTop: 8
   },
   heroLabel: {
     ...type.caption,
     color: homePalette.textMuted,
     fontFamily: homeFont,
+    fontSize: 14,
+    lineHeight: 20,
     marginTop: 7
   },
   ringShell: {
     alignItems: 'center',
-    height: 164,
+    height: 128,
     justifyContent: 'center',
-    width: 164
+    width: 128
   },
   ringCenter: {
     alignItems: 'center',
@@ -1164,9 +1061,10 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     ...type.eyebrow,
-    color: homePalette.textFaint,
+    color: homePalette.textMuted,
     fontFamily: homeFont,
-    fontSize: 9,
+    fontSize: 12,
+    letterSpacing: 0,
     marginTop: 2
   },
   heroSummaryRow: {

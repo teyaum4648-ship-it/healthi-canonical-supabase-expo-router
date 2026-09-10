@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { SleepSession } from '../../engines/circadian';
 import { fonts } from '../../styles/mobileTheme';
+import { SleepTimePicker } from './SleepTimePicker';
+import { DayNavigator } from '../../components/mobile/DayNavigator';
+import { shiftDay } from '../navigation/navigationModel';
 import {
   SLEEP_WINDOW_TIMELINE,
   adjustSleepWindowClock,
@@ -34,6 +37,7 @@ export type SleepWindowTrackerPalette = {
 };
 
 type SleepWindowTrackerProps = {
+  editRequest?: number;
   date: string;
   timezone: string;
   sessions: SleepSession[];
@@ -104,19 +108,31 @@ function TimeAdjuster({
   onChange: (value: string) => void;
   palette: SleepWindowTrackerPalette;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   return (
     <View style={[styles.timeAdjuster, { backgroundColor: palette.chip, borderColor: palette.hairline }]}>
       <Text style={[styles.timeLabel, { color: palette.faint }]}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Choose ${label.toLowerCase()} time, ${formatTime(`2000-01-01T${value}:00.000Z`)}`}
+        accessibilityHint="Opens scrolling hour, minute, and AM or PM choices"
+        onPress={() => setPickerOpen(true)}
+        style={styles.timePickerButton}
+      >
+        <Text style={[styles.timeValue, { color: palette.text }]}>{formatTime(`2000-01-01T${value}:00.000Z`)}</Text>
+        <Ionicons color={palette.muted} name="chevron-down" size={14} />
+      </Pressable>
       <View style={styles.timeControlRow}>
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel={`Move ${label.toLowerCase()} fifteen minutes earlier`}
           onPress={() => onChange(adjustSleepWindowClock(value, -15))}
           style={({ pressed }) => [styles.timeStepButton, { borderColor: palette.border }, pressed && styles.pressed]}
         >
           <Ionicons color={palette.muted} name="remove" size={18} />
         </Pressable>
-        <Text style={[styles.timeValue, { color: palette.text }]}>{formatTime(`2000-01-01T${value}:00.000Z`)}</Text>
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel={`Move ${label.toLowerCase()} fifteen minutes later`}
           onPress={() => onChange(adjustSleepWindowClock(value, 15))}
           style={({ pressed }) => [styles.timeStepButton, { borderColor: palette.border }, pressed && styles.pressed]}
@@ -124,18 +140,20 @@ function TimeAdjuster({
           <Ionicons color={palette.muted} name="add" size={18} />
         </Pressable>
       </View>
+      {pickerOpen ? <SleepTimePicker label={label} value={value} palette={palette} onCancel={() => setPickerOpen(false)} onDone={(next) => { onChange(next); setPickerOpen(false); }} /> : null}
     </View>
   );
 }
 
 export function SleepWindowTracker(props: SleepWindowTrackerProps) {
+  const [viewDate, setViewDate] = useState(props.date);
   const inferred = useMemo(() => inferSleepWindow({
-    date: props.date,
+    date: viewDate,
     timezone: props.timezone,
     sessions: props.sessions,
     preferredBedtime: props.preferredBedtime,
     preferredWakeTime: props.preferredWakeTime
-  }), [props.date, props.preferredBedtime, props.preferredWakeTime, props.sessions, props.timezone]);
+  }), [viewDate, props.preferredBedtime, props.preferredWakeTime, props.sessions, props.timezone]);
   const [record, setRecord] = useState(inferred);
   const [editing, setEditing] = useState(false);
   const [startTime, setStartTime] = useState(() => sleepWindowClockValue(inferred.start_at));
@@ -143,6 +161,15 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
   const [awakePeriods, setAwakePeriods] = useState<SleepWindowClockInterval[]>(() => awakePeriodsFrom(inferred));
   const [localSaving, setLocalSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const handledEditRequest = useRef(0);
+
+  useEffect(() => {
+    if (!props.editRequest || props.editRequest === handledEditRequest.current || props.isSaving) return;
+    if (!editing && viewDate !== props.date) { setViewDate(props.date); return; }
+    if (!editing && record.date !== props.date) return;
+    handledEditRequest.current = props.editRequest;
+    if (!editing) beginEditing();
+  }, [props.editRequest, props.isSaving, props.date, editing, record.date, viewDate]);
 
   useEffect(() => {
     if (editing) return;
@@ -213,7 +240,7 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
       <View style={[styles.card, { backgroundColor: props.palette.surface, borderColor: props.palette.border }]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.eyebrow, { color: props.palette.faint }]}>Last night</Text>
+            <Text style={[styles.eyebrow, { color: props.palette.faint }]}>{viewDate === props.date ? 'Last night' : 'Sleep history'}</Text>
             <Text style={[styles.cardTitle, { color: props.palette.text }]}>Your sleep window</Text>
           </View>
           <View style={[styles.statusChip, { backgroundColor: props.palette.accentSoft }]}>
@@ -225,6 +252,8 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
             <Text style={[styles.statusText, { color: props.palette.accent }]}>{statusLabel}</Text>
           </View>
         </View>
+
+        <DayNavigator date={viewDate} today={props.date} earliest={shiftDay(props.date, -13)} onChange={setViewDate} disabled={editing || localSaving || props.isSaving} palette={props.palette} />
 
         <View style={styles.rangeRow}>
           <Text style={[styles.range, { color: props.palette.text }]}>
@@ -266,7 +295,7 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
         {editing ? (
           <View style={[styles.editor, { borderTopColor: props.palette.hairline }]}>
             <Text style={[styles.editorTitle, { color: props.palette.text }]}>Adjust last night</Text>
-            <Text style={[styles.editorSupport, { color: props.palette.muted }]}>Tap − or + to move each time by 15 minutes.</Text>
+            <Text style={[styles.editorSupport, { color: props.palette.muted }]}>Tap a time to scroll hours, minutes, and AM or PM. Use − / + for 15-minute adjustments.</Text>
             <View style={styles.timeGrid}>
               <TimeAdjuster label="Fell asleep" onChange={setStartTime} palette={props.palette} value={startTime} />
               <TimeAdjuster label="Woke up" onChange={setEndTime} palette={props.palette} value={endTime} />
@@ -385,12 +414,13 @@ const styles = StyleSheet.create({
   editor: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 18, paddingTop: 18 },
   editorTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, letterSpacing: -0.2, lineHeight: 22 },
   editorSupport: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, marginTop: 3 },
-  timeGrid: { flexDirection: 'row', gap: 9, marginTop: 13 },
-  timeAdjuster: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, flex: 1, padding: 10 },
+  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 13 },
+  timeAdjuster: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, flex: 1, minWidth: 130, padding: 10 },
   timeLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0.7, lineHeight: 15, textTransform: 'uppercase' },
-  timeControlRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  timeStepButton: { alignItems: 'center', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, height: 44, justifyContent: 'center', width: 40 },
-  timeValue: { fontFamily: fonts.bodyMedium, fontSize: 14, fontVariant: ['tabular-nums'], lineHeight: 19, marginHorizontal: 2 },
+  timePickerButton: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, minHeight: 48 },
+  timeControlRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  timeStepButton: { alignItems: 'center', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, height: 44, justifyContent: 'center', width: 44 },
+  timeValue: { fontFamily: fonts.bodyMedium, fontSize: 16, fontVariant: ['tabular-nums'], lineHeight: 22 },
   awakeCard: { borderRadius: 17, borderWidth: StyleSheet.hairlineWidth, marginTop: 12, padding: 11 },
   awakeHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   awakeTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },

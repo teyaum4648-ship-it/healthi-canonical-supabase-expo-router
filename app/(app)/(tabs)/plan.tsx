@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TimeField } from '../../../src/components/TimeField';
+import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
 import {
   generateCircadianBriefing,
   type CircadianBriefing,
@@ -400,6 +402,7 @@ export default function PlanScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showBlockComposer, setShowBlockComposer] = useState(false);
+  const [hasBlockDraft, setHasBlockDraft] = useState(false);
 
   const userId = user?.id;
   const canUseRemote = Boolean(isSupabaseConfigured && isUuid(userId));
@@ -603,6 +606,7 @@ export default function PlanScreen() {
 
       setForm(createEmptyScheduleBlockForm(today));
       setShowBlockComposer(false);
+      setHasBlockDraft(false);
     } catch {
       setStatus('Schedule block could not save. Check the block details and try again.');
     } finally {
@@ -632,18 +636,49 @@ export default function PlanScreen() {
   }
 
   function openBlockComposer(startMs: number, section: CalendarSection) {
-    setForm(createScheduleBlockFormForWindow(new Date(startMs).toISOString(), SECTION_BLOCK_TYPE[section]));
+    if (!hasBlockDraft) {
+      setForm(createScheduleBlockFormForWindow(new Date(startMs).toISOString(), SECTION_BLOCK_TYPE[section]));
+      setHasBlockDraft(true);
+    }
     setShowBlockComposer(true);
   }
 
   function closeBlockComposer() {
     setForm(createEmptyScheduleBlockForm(today));
+    setHasBlockDraft(false);
     setShowBlockComposer(false);
   }
 
   function renderPlan() {
     return (
       <View style={styles.stack}>
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <View style={styles.blockHeader}>
+              <Text style={styles.cardTitle}>Your day</Text>
+              <Text style={styles.metaText}>Tap a time to add a block</Text>
+            </View>
+            <Pressable
+              accessibilityLabel={hasBlockDraft ? 'Continue schedule block draft' : 'Add a schedule block'}
+              accessibilityRole="button"
+              onPress={() => openBlockComposer(new Date(`${today}T09:00:00.000Z`).getTime(), 'neutral')}
+              style={({ pressed }) => [styles.addBlockButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.primaryText} name="add" size={17} />
+              <Text style={styles.addBlockButtonText}>{hasBlockDraft ? 'Continue' : 'Block'}</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.body}>Recommended sections come from your sleep rhythm and stay separate from your saved commitments.</Text>
+          <DayTimeline
+            blocks={blocks}
+            briefing={sleepBriefing}
+            date={today}
+            onAddBlockAt={openBlockComposer}
+            onDeleteBlock={requestDeleteBlock}
+          />
+        </View>
+
+        <Disclosure title="Schedule guidance" detail="Suggested windows, reasons and confidence">
         <View style={[styles.card, styles.heroCard]}>
           <Text style={styles.eyebrow}>Today</Text>
           <Text style={styles.heroTitle}>{dayPlan.primary_focus}</Text>
@@ -660,33 +695,7 @@ export default function PlanScreen() {
           </View>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.rowBetween}>
-            <View style={styles.blockHeader}>
-              <Text style={styles.cardTitle}>Your day</Text>
-              <Text style={styles.metaText}>Tap a time to add a block</Text>
-            </View>
-            <Pressable
-              accessibilityLabel="Add a schedule block"
-              accessibilityRole="button"
-              onPress={() => openBlockComposer(new Date(`${today}T09:00:00.000Z`).getTime(), 'neutral')}
-              style={({ pressed }) => [styles.addBlockButton, pressed && styles.pressed]}
-            >
-              <Ionicons color={colors.primaryText} name="add" size={17} />
-              <Text style={styles.addBlockButtonText}>Block</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.body}>Recommended sections come from your sleep rhythm and stay separate from your saved commitments.</Text>
-          <DayTimeline
-            blocks={blocks}
-            briefing={sleepBriefing}
-            date={today}
-            onAddBlockAt={openBlockComposer}
-            onDeleteBlock={requestDeleteBlock}
-          />
-        </View>
 
-        {showBlockComposer ? renderBlockComposer() : null}
 
         {dayPlan.missing_data.length > 0 ? (
           <View style={styles.card}>
@@ -763,6 +772,7 @@ export default function PlanScreen() {
             </View>
           ))}
         </View>
+        </Disclosure>
       </View>
     );
   }
@@ -776,12 +786,13 @@ export default function PlanScreen() {
               <Text style={styles.metaText}>{formatWindow(`${form.date}T${form.start_time}:00.000Z`, `${form.date}T${form.end_time}:00.000Z`)}</Text>
             </View>
             <Pressable
-              accessibilityLabel="Close block form"
+              accessibilityLabel="Discard unsaved block draft"
               accessibilityRole="button"
+              disabled={isSaving}
               onPress={closeBlockComposer}
-              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.discardDraftButton, pressed && styles.pressed]}
             >
-              <Ionicons color={colors.textMuted} name="close" size={18} />
+              <Text style={styles.metaText}>Discard draft</Text>
             </Pressable>
           </View>
           <Field label="Title" onChangeText={(value) => updateForm('title', value)} placeholder="Work block" value={form.title} />
@@ -875,11 +886,9 @@ export default function PlanScreen() {
       <SafeAreaView edges={['top']} style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
-            <Text style={styles.pageEyebrow}>Plan</Text>
-            <Text style={styles.pageTitle}>Today’s Plan</Text>
-            <Text style={styles.subtitle}>
-              Healthi uses your schedule, rhythm, fueling, and readiness signals to shape the day.
-            </Text>
+            <Pressable accessibilityRole="button" onPress={() => router.navigate('/')} style={styles.backHome}><Ionicons name="chevron-back" color={colors.accentMid} size={20} /><Text style={styles.backHomeLabel}>Home</Text></Pressable>
+            <Text accessibilityRole="header" style={styles.pageTitle}>Your plan</Text>
+            <Text style={styles.subtitle}>{new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
           </View>
 
           <View style={styles.statusLine}>
@@ -890,11 +899,14 @@ export default function PlanScreen() {
           {renderPlan()}
         </ScrollView>
       </SafeAreaView>
+      {showBlockComposer ? <EntrySheet title="Add a schedule block" onClose={() => setShowBlockComposer(false)} busy={isSaving}>{renderBlockComposer()}</EntrySheet> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backHome: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 4 },
+  backHomeLabel: { fontFamily: fonts.body, fontSize: 16, color: colors.accentMid },
   screen: {
     flex: 1,
     backgroundColor: colors.background
@@ -1087,6 +1099,12 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 44
+  },
+  discardDraftButton: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   addBlockButton: {
     alignItems: 'center',

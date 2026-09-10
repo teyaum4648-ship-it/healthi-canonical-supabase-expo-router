@@ -13,6 +13,20 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Platform } from 'react-native';
+import { ActionRow } from '../../../src/components/mobile/ActionRow';
+import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
+import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
+import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
+import { dayTitle } from '../../../src/features/navigation/navigationModel';
+import { FoodEntryPicker } from '../../../src/features/nutrition/FoodEntryPicker';
+import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features/nutrition/foodDiaryPresentation';
+import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
+import { MealEditSheet } from '../../../src/features/nutrition/MealEditSheet';
+import { applyMealEdit, createMealEditDraft, persistMealEdit, type MealEditClient, type MealEditDraft } from '../../../src/features/nutrition/mealEditing';
 
 import {
   calculateFoodPatternProfile,
@@ -176,9 +190,9 @@ const defaultTargets: NutritionTargets = {
   basis: ['default']
 };
 
-const dietTabs = ['Today', 'Timeline', 'Nutrients', 'Profile'] as const;
+const dietTabs = ['Diary', 'Nutrients', 'Guidance'] as const;
 type DietTab = typeof dietTabs[number];
-type Segment = DietTab | 'Build Meal' | 'Log Meal' | 'Response Log' | 'Food Pattern Test' | 'Insights';
+type Segment = DietTab | 'Today' | 'Timeline' | 'Profile' | 'Build Meal' | 'Log Meal' | 'Response Log' | 'Food Pattern Test' | 'Insights';
 
 function dateKey(value: string): string {
   return value.slice(0, 10);
@@ -502,7 +516,23 @@ function TrackerProgress({
 export default function FoodScreen() {
   const { session } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [activeSegment, setActiveSegment] = useState<Segment>('Today');
+  const [activeSegment, setActiveSegment] = useState<Segment>('Diary');
+  const actualToday = new Date().toISOString().slice(0, 10);
+  const [selectedDay, setSelectedDay] = useState(actualToday);
+  const [foodEntryOpen, setFoodEntryOpen] = useState(false);
+  const [manualFoodOpen, setManualFoodOpen] = useState(false);
+  const [manualFoodError, setManualFoodError] = useState('');
+  const [isAddingManualFood, setIsAddingManualFood] = useState(false);
+  const [removedItem, setRemovedItem] = useState<MealBuilderItem | null>(null);
+  const [servingDrafts, setServingDrafts] = useState<Record<string, string>>({});
+  const [selectedMeal, setSelectedMeal] = useState<MealLog | null>(null);
+  const [searchMessage, setSearchMessage] = useState('');
+  const [mealEditDraft, setMealEditDraft] = useState<MealEditDraft | null>(null);
+  const [mealEditError, setMealEditError] = useState('');
+  const [savingMealEdit, setSavingMealEdit] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollPositions = useRef<Record<string, number>>({});
+  useQuickEntry(() => setFoodEntryOpen(true));
   const [expandedLane, setExpandedLane] = useState<string | null>(null);
   const [nutrientQuery, setNutrientQuery] = useState('');
   const [meals, setMeals] = useState<MealLog[]>([]);
@@ -518,6 +548,11 @@ export default function FoodScreen() {
   const [isLoadingRemote, setIsLoadingRemote] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  useEffect(() => {
+    const key = scannerOpen ? 'scanner' : activeSegment;
+    const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: scrollPositions.current[key] ?? 0, animated: false }));
+    return () => cancelAnimationFrame(frame);
+  }, [activeSegment, scannerOpen]);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scannerProduct, setScannerProduct] = useState<HealthiProductSnapshot | null>(null);
@@ -554,12 +589,12 @@ export default function FoodScreen() {
 
   const userId = session?.user.id ?? null;
   const canUseRemote = remoteEnabled(userId);
-  const today = dateKey(new Date().toISOString());
+  const today = selectedDay;
   const protocolScopeValue = useMemo(() => protocolScope(userId), [userId]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
   const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
-  const todayMeals = useMemo(() => meals.filter((meal) => dateKey(meal.logged_at) === today), [meals, today]);
+  const todayMeals = useMemo(() => mealsForDay(meals, today), [meals, today]);
 
   const nutrientSummary = useMemo(
     () => calculateNutrientSummary({ date: today, meals: todayMeals, targets }),
@@ -771,25 +806,39 @@ export default function FoodScreen() {
     }));
     setBuilderMessage(product
       ? `${snapshot.name} is in this meal.`
-      : `${snapshot.name} is in this meal. Product library sync can retry later.`);
+      : `${snapshot.name} is in this meal, but could not be added to your recent-food library.`);
   }
 
   async function handleSearchProducts() {
+    if (isSearchingProducts || searchQuery.trim().length < 2) return;
     setIsSearchingProducts(true);
-    const result = await searchOpenFoodFactsProducts(searchQuery);
-    setSearchResults(result.products);
-    setBuilderMessage(result.status === 'found' ? 'Choose a result to add it to this meal.' : result.message);
-    setIsSearchingProducts(false);
+    setSearchResults([]);
+    try {
+      const result = await searchOpenFoodFactsProducts(searchQuery);
+      setSearchResults(result.products);
+      setSearchMessage(result.status === 'found' ? 'Choose a food to confirm your portion.' : result.message);
+    } catch {
+      setSearchMessage('Search is unavailable right now. Try again, or use Recent, Saved, or manual entry.');
+    } finally { setIsSearchingProducts(false); }
   }
 
   async function handleAddManualProduct() {
+    if (isAddingManualFood) return;
     const validation = validateManualProductForm(manualProductForm);
     if (!validation.valid) {
-      setBuilderMessage(validation.message);
+      setManualFoodError(validation.message);
       return;
     }
-    await addSnapshotToMealBuilder(validation.snapshot, 'manual');
-    setManualProductForm(createEmptyManualProductForm());
+    setManualFoodError('');
+    setIsAddingManualFood(true);
+    try {
+      await addSnapshotToMealBuilder(validation.snapshot, 'manual');
+      setManualProductForm(createEmptyManualProductForm());
+      setManualFoodOpen(false);
+      setActiveSegment('Build Meal');
+    } catch {
+      setManualFoodError('Could not add this food. Your details are still here; please try again.');
+    } finally { setIsAddingManualFood(false); }
   }
 
   async function handleToggleSavedProduct(product: UserFoodProductRow) {
@@ -808,18 +857,22 @@ export default function FoodScreen() {
         setProductLibrary(nextProducts);
       }
     } catch {
-      setBuilderMessage('This saved-food change could not sync yet. Your meal is unchanged.');
+      throw new Error('Saved foods could not be updated. Your meal is unchanged.');
     }
   }
 
   async function handleSaveBuiltMeal() {
+    if (mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null)) {
+      setBuilderMessage('Check the servings for each food before saving.');
+      return;
+    }
     if (mealBuilder.items.length === 0) {
       setBuilderMessage('Add at least one food before saving this meal.');
       return;
     }
 
     setIsSavingBuilder(true);
-    const loggedAt = new Date().toISOString();
+    const loggedAt = loggedAtForDay(today, new Date().toISOString());
     const meal = mealBuilderToAggregateMealLog(mealBuilder, loggedAt, !canUseRemote);
 
     try {
@@ -848,7 +901,7 @@ export default function FoodScreen() {
           );
           setStatus('Meal saved. Today’s fueling totals have been updated.');
         } catch {
-          setStatus('Meal saved. Item detail will retry when product storage is available.');
+          setStatus('Meal totals saved, but item details could not sync. They are not available in meal history.');
         }
       } else {
         const localMeal = { ...meal, id: `local-built-meal-${Date.now()}` };
@@ -872,10 +925,12 @@ export default function FoodScreen() {
       }
 
       setMealBuilder(createEmptyMealBuilder());
+      setRemovedItem(null);
+      setServingDrafts({});
       setSearchResults([]);
       setSearchQuery('');
       setBuilderMessage('Meal saved. Build another meal whenever you are ready.');
-      setActiveSegment('Today');
+      setActiveSegment('Diary');
     } catch {
       setBuilderMessage('This meal could not be saved. Your items are still here so you can try again.');
     } finally {
@@ -904,7 +959,8 @@ export default function FoodScreen() {
     setActiveSegment('Build Meal');
   }
 
-  function openScanner(destination: 'log' | 'builder' = 'log') {
+  function openScanner(destination: 'log' | 'builder' = 'builder') {
+    setFoodEntryOpen(false);
     setScannerDestination(destination);
     setScannerOpen(true);
     setCameraOpen(false);
@@ -1118,7 +1174,7 @@ export default function FoodScreen() {
       setScannerServingQuantity('1');
       setScannerMealType('unknown');
       closeScanner();
-      setActiveSegment('Today');
+      setActiveSegment('Diary');
     } catch {
       setScannerMessage('This meal could not be saved. Your product snapshot is still here so you can try again.');
     } finally {
@@ -1147,25 +1203,45 @@ export default function FoodScreen() {
       }
 
       setMealForm(createEmptyManualMealForm());
-      setActiveSegment('Today');
+      setActiveSegment('Diary');
     } catch {
-      const localMeal = { ...meal, id: `local-meal-${Date.now()}` };
-      if (!canUseRemote) {
-        await appendLocalDemoMealLog(localMeal);
-      }
-      setMeals((current) => [localMeal, ...current]);
-      setStatus('Meal saved locally. Remote sync can retry later.');
+      setStatus('Meal not saved. Your draft is still here. Please try again.');
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function startEditingMeal(meal: MealLog) {
+    setSelectedMeal(null);
+    setMealEditDraft(createMealEditDraft(meal));
+    setMealEditError('');
+  }
+
+  async function handleSaveMealEdit() {
+    if (!mealEditDraft || savingMealEdit) return;
+    setSavingMealEdit(true);
+    setMealEditError('');
+    try {
+      let updated = applyMealEdit(mealEditDraft);
+      if (canUseRemote && userId) {
+        updated = mealRowToMealLog(await persistMealEdit(supabase as unknown as MealEditClient, userId, updated));
+      } else {
+        const current = await getLocalDemoNutritionState();
+        if (!current.mealLogs.some((meal) => meal.id === updated.id)) throw new Error('This meal is no longer available. Refresh the diary.');
+        await saveLocalDemoMealLogs(current.mealLogs.map((meal) => meal.id === updated.id ? updated : meal));
+      }
+      setMeals((current) => current.map((meal) => meal.id === updated.id ? updated : meal));
+      setMealEditDraft(null);
+      setStatus('Meal changes saved. Diary totals have been updated.');
+    } catch (error) {
+      setMealEditError(error instanceof Error ? error.message : 'Changes could not be saved. Your draft is still here.');
+    } finally { setSavingMealEdit(false); }
   }
 
   async function handleSaveResponse() {
     setIsSaving(true);
     const response = responseLogFormToInput(responseForm);
     const nextMeals = applyResponseToMealLogs(meals, response);
-
-    setMeals(nextMeals);
 
     try {
       if (canUseRemote && userId) {
@@ -1182,13 +1258,11 @@ export default function FoodScreen() {
         setStatus('Response logged locally. Insights will sharpen as you add more.');
       }
 
+      setMeals(nextMeals);
       setResponseForm(createEmptyResponseLogForm());
-      setActiveSegment('Today');
+      setActiveSegment('Diary');
     } catch {
-      if (!canUseRemote) {
-        await saveLocalDemoMealLogs(nextMeals);
-      }
-      setStatus('Response saved locally. Remote sync can retry later.');
+      setStatus('Response could not finish saving. Your draft is still here; check history before retrying.');
     } finally {
       setIsSaving(false);
     }
@@ -1224,7 +1298,8 @@ export default function FoodScreen() {
 
   function openAdaptiveDestination(destination: AdaptiveDietDestination) {
     closeScanner();
-    setActiveSegment(destination);
+    if (destination === 'Log Meal' || destination === 'Build Meal') setFoodEntryOpen(true);
+    else setActiveSegment(destination);
   }
 
   function renderScanner() {
@@ -1697,7 +1772,34 @@ export default function FoodScreen() {
     );
   }
 
-  function renderToday() {
+  function renderDiary() {
+    return (
+      <View style={styles.stack}>
+        <DayNavigator date={today} today={actualToday} onChange={setSelectedDay} />
+        <View style={styles.diarySection}>
+          <View style={styles.rowBetween}><Text style={styles.diaryHeading}>Nutrition</Text><Text style={styles.diaryDetail}>{todayMeals.length} meals</Text></View>
+          <View style={styles.diaryEnergy}>
+            <Text style={styles.diaryEnergyValue}>{todayMeals.length && typeof nutrientSummary.calories === 'number' ? Math.round(nutrientSummary.calories) : '—'}</Text>
+            <Text style={styles.diaryDetail}>kcal logged{targets.calories_target ? ` · ${Math.round(targets.calories_target)} working target` : ''}</Text>
+          </View>
+          <View style={styles.diaryMacros}>{[
+            { label: 'Protein', value: nutrientSummary.protein_g }, { label: 'Carbs', value: nutrientSummary.carbs_g }, { label: 'Fat', value: nutrientSummary.fat_g }
+          ].map((macro) => <View key={macro.label} style={styles.diaryMacro}><Text style={styles.diaryMacroValue}>{todayMeals.length && typeof macro.value === 'number' ? `${Math.round(macro.value)} g` : '—'}</Text><Text style={styles.diaryDetail}>{macro.label}</Text></View>)}</View>
+          <ActionRow title="All nutrients" detail="Reported values and data confidence" onPress={() => setActiveSegment('Nutrients')} last />
+        </View>
+        {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
+        <View style={styles.diarySection}>
+          <Text style={styles.diaryHeading}>Meals</Text>
+          {isLoadingRemote ? <View style={styles.diaryNotice}><ActivityIndicator color={colors.accent} /><Text style={styles.diaryDetail}>Loading your diary…</Text></View> : todayMeals.length ? todayMeals.map((meal, index) => (
+            <ActionRow key={meal.id ?? meal.logged_at} title={meal.name} detail={`${displayLabel(meal.meal_type)} · ${formatClock(meal.logged_at)}${typeof meal.calories === 'number' ? ` · ${Math.round(meal.calories)} kcal` : ' · Nutrition not reported'}`} onPress={() => setSelectedMeal(meal)} last={index === todayMeals.length - 1} />
+          )) : <Text style={styles.diaryDetail}>No meals logged for this day. Add a food below to begin.</Text>}
+        </View>
+        <ActionRow title="How food is supporting you" detail="Personal responses and nourishment guidance" icon="leaf-outline" onPress={() => setActiveSegment('Guidance')} last />
+      </View>
+    );
+  }
+
+  function renderGuidance() {
     const recentMeal = todayMeals
       .slice()
       .sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0] ?? null;
@@ -1715,69 +1817,6 @@ export default function FoodScreen() {
             ))}
           </View>
         ) : null}
-
-        <View style={[styles.adaptiveSection, styles.trackerCard]}>
-          <View style={styles.adaptiveSectionHeading}>
-            <View>
-              <Text style={styles.adaptiveSectionLabel}>Daily nutrition tracker</Text>
-              <Text style={styles.trackerTitle}>Today at a glance</Text>
-            </View>
-            <Text style={styles.adaptiveMono}>{todayMeals.length} meal{todayMeals.length === 1 ? '' : 's'}</Text>
-          </View>
-
-          <View style={styles.trackerEnergyRow}>
-            <View>
-              <Text style={styles.trackerEnergyValue}>{typeof nutrientSummary.calories === 'number' ? Math.round(nutrientSummary.calories) : '—'}</Text>
-              <Text style={styles.trackerEnergyLabel}>calories logged</Text>
-            </View>
-            <Text style={styles.trackerEnergyTarget}>
-              {typeof targets.calories_target === 'number' ? `${Math.round(targets.calories_target)} working target` : 'No working target'}
-            </Text>
-          </View>
-
-          <View style={styles.trackerMacroList}>
-            <TrackerProgress current={nutrientSummary.protein_g} label="Protein" target={targets.protein_g_target} />
-            <TrackerProgress current={nutrientSummary.carbs_g} label="Carbohydrate" target={targets.carbs_g_target} />
-            <TrackerProgress current={nutrientSummary.fat_g} label="Fat" target={targets.fat_g_target} />
-            <TrackerProgress current={nutrientSummary.fiber_g} label="Fiber" target={targets.fiber_g_target} />
-          </View>
-
-          <View style={styles.trackerMicroBlock}>
-            <Text style={styles.trackerMicroHeading}>Micronutrients reported</Text>
-            <View style={styles.trackerMicroGrid}>
-              <View style={styles.trackerMicroItem}>
-                <Text style={styles.trackerMicroValue}>{typeof nutrientSummary.sodium_mg === 'number' ? `${Math.round(nutrientSummary.sodium_mg)} mg` : '—'}</Text>
-                <Text style={styles.trackerMicroLabel}>Sodium</Text>
-              </View>
-              {['Potassium', 'Calcium', 'Iron'].map((label) => (
-                <View key={label} style={styles.trackerMicroItem}>
-                  <Text style={styles.trackerMicroUnavailable}>Not reported</Text>
-                  <Text style={styles.trackerMicroLabel}>{label}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={styles.adaptiveSafetyNote}>Missing label fields stay unreported; Healthi does not treat them as zero.</Text>
-          </View>
-
-          <View style={styles.trackerActions}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setActiveSegment('Build Meal')}
-              style={({ pressed }) => [styles.trackerSearchButton, pressed && styles.pressed]}
-            >
-              <Ionicons color="#0A84FF" name="search" size={17} />
-              <Text style={styles.trackerSearchText}>Look up food</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => openScanner()}
-              style={({ pressed }) => [styles.trackerScanButton, pressed && styles.pressed]}
-            >
-              <Ionicons color="#FFFFFF" name="barcode-outline" size={17} />
-              <Text style={styles.trackerScanText}>Scan food</Text>
-            </Pressable>
-          </View>
-        </View>
 
         <View style={styles.adaptiveHero}>
           <Text style={styles.adaptiveSectionLabel}>Nutrition · Today</Text>
@@ -2096,129 +2135,8 @@ export default function FoodScreen() {
     );
   }
 
-  function renderMealBuilder() {
-    const recentProducts = productLibrary
-      .slice()
-      .sort((left, right) => (right.last_used_at ?? right.updated_at).localeCompare(left.last_used_at ?? left.updated_at))
-      .slice(0, 6);
-
-    return (
-      <View style={styles.stack}>
-        <SectionTitle
-          eyebrow="Meal builder"
-          title="Build Meal"
-          body="Add foods, adjust servings, then save one complete meal to today."
-        />
-
-        <Card style={styles.builderCard}>
-          <Field
-            label="Meal name"
-            onChangeText={(value) => setMealBuilder((current) => ({ ...current, name: value }))}
-            placeholder="Lunch bowl"
-            value={mealBuilder.name}
-          />
-          <Text style={styles.fieldLabel}>Meal type</Text>
-          <View style={styles.chipWrap}>
-            {mealTypes.map((type) => (
-              <Chip
-                key={type}
-                label={displayLabel(type)}
-                onPress={() => setMealBuilder((current) => ({ ...current, meal_type: type }))}
-                selected={mealBuilder.meal_type === type}
-              />
-            ))}
-          </View>
-          <Text style={styles.builderMessage}>{builderMessage}</Text>
-        </Card>
-
-        <Card>
-          <View style={styles.rowBetween}>
-            <View>
-              <Text style={styles.cardTitle}>Add Food</Text>
-              <Text style={styles.body}>Scan a package, search label data, or enter nutrition facts.</Text>
-            </View>
-            <View style={styles.scannerIcon}>
-              <Ionicons color={colors.accent} name="add" size={22} />
-            </View>
-          </View>
-          <PrimaryButton label="Scan Food" onPress={() => openScanner('builder')} />
-          <View style={styles.searchRow}>
-            <TextInput
-              onChangeText={setSearchQuery}
-              placeholder="Search packaged foods"
-              placeholderTextColor={colors.textFaint}
-              style={[styles.input, styles.searchInput]}
-              value={searchQuery}
-            />
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSearchingProducts || searchQuery.trim().length < 2}
-              onPress={() => void handleSearchProducts()}
-              style={({ pressed }) => [styles.searchButton, (isSearchingProducts || searchQuery.trim().length < 2) && styles.disabled, pressed && styles.pressed]}
-            >
-              {isSearchingProducts ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons color="#FFFFFF" name="search" size={18} />}
-            </Pressable>
-          </View>
-          {searchResults.map((product) => {
-            const quality = calculateProductQuality(product);
-            return (
-              <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.libraryRow}>
-                <View style={styles.libraryCopy}>
-                  <Text numberOfLines={1} style={styles.libraryName}>{product.name}</Text>
-                  <Text numberOfLines={1} style={styles.libraryMeta}>{[product.brand, product.serving_size].filter(Boolean).join(' · ') || 'Available label data'}</Text>
-                  <Text style={styles.librarySignal}>{displayLabel(quality.label)} · {formatProductAmount(product.calories_per_serving)} cal</Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => void addSnapshotToMealBuilder(product, 'search')}
-                  style={({ pressed }) => [styles.addIconButton, pressed && styles.pressed]}
-                >
-                  <Ionicons color={colors.accent} name="add" size={20} />
-                </Pressable>
-              </View>
-            );
-          })}
-        </Card>
-
-        {recentProducts.length > 0 || savedProducts.length > 0 ? (
-          <Card>
-            <Text style={styles.cardTitle}>Recent Foods</Text>
-            <Text style={styles.body}>Reuse foods from your recent scans and meal builds.</Text>
-            <View style={styles.libraryList}>
-              {recentProducts.map((product) => {
-                const snapshot = userFoodProductRowToSnapshot(product);
-                return (
-                  <View key={product.id} style={styles.libraryRow}>
-                    <View style={styles.libraryCopy}>
-                      <Text numberOfLines={1} style={styles.libraryName}>{product.name}</Text>
-                      <Text numberOfLines={1} style={styles.libraryMeta}>{[product.brand, product.serving_size].filter(Boolean).join(' · ') || 'Saved nutrition facts'}</Text>
-                      <Text style={styles.librarySignal}>{displayLabel(product.quality_label ?? 'calibrating')} · {formatProductAmount(product.calories_per_serving)} cal</Text>
-                    </View>
-                    <Pressable
-                      accessibilityLabel={product.is_saved ? `Remove ${product.name} from saved foods` : `Save ${product.name}`}
-                      accessibilityRole="button"
-                      onPress={() => void handleToggleSavedProduct(product)}
-                      style={({ pressed }) => [styles.smallIconButton, pressed && styles.pressed]}
-                    >
-                      <Ionicons color={product.is_saved ? colors.accent : colors.textFaint} name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={18} />
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`Add ${product.name} to meal`}
-                      accessibilityRole="button"
-                      onPress={() => void addSnapshotToMealBuilder(snapshot, product.is_saved ? 'saved_food' : 'search')}
-                      style={({ pressed }) => [styles.addIconButton, pressed && styles.pressed]}
-                    >
-                      <Ionicons color={colors.accent} name="add" size={20} />
-                    </Pressable>
-                  </View>
-                );
-              })}
-            </View>
-            {savedProducts.length > 0 ? <Text style={styles.confidenceLine}>{savedProducts.length} saved food{savedProducts.length === 1 ? '' : 's'} ready to reuse.</Text> : null}
-          </Card>
-        ) : null}
-
-        <Card>
+  function renderManualFood() {
+    return <EntrySheet title="Enter food" busy={isAddingManualFood} onClose={() => setManualFoodOpen(false)}><Card>
           <Text style={styles.cardTitle}>Add Manual Food</Text>
           <Text style={styles.body}>Useful when label data is missing or you are logging a simple food.</Text>
           <Field
@@ -2238,9 +2156,23 @@ export default function FoodScreen() {
             <Field keyboardType="numeric" label="Sugar g" onChangeText={(value) => setManualProductForm((current) => ({ ...current, sugar_g: value }))} style={styles.fieldHalf} value={manualProductForm.sugar_g} />
             <Field keyboardType="numeric" label="Sodium mg" onChangeText={(value) => setManualProductForm((current) => ({ ...current, sodium_mg: value }))} style={styles.fieldHalf} value={manualProductForm.sodium_mg} />
           </View>
-          <PrimaryButton label="Add to Meal" onPress={() => void handleAddManualProduct()} />
-        </Card>
+          {manualFoodError ? <Text accessibilityRole="alert" style={styles.diaryDetail}>{manualFoodError}</Text> : null}
+          <PrimaryButton label="Add to Meal" loading={isAddingManualFood} onPress={() => void handleAddManualProduct()} />
+        </Card></EntrySheet>;
+  }
 
+  function renderMealBuilder() {
+    return (
+      <View style={styles.stack}>
+        <View style={styles.diarySection}>
+          <Text style={styles.diaryHeading}>Your meal</Text>
+          <Text style={styles.diaryDetail}>Review portions, then save to {dayTitle(today, actualToday).toLowerCase()}.</Text>
+          <Field label="Meal name" onChangeText={(name) => setMealBuilder((current) => ({ ...current, name }))} placeholder="e.g. Lunch" value={mealBuilder.name} />
+          <View style={styles.chipWrap}>{mealTypes.map((type) => <Chip key={type} label={displayLabel(type)} selected={mealBuilder.meal_type === type} onPress={() => setMealBuilder((current) => ({ ...current, meal_type: type }))} />)}</View>
+          <ActionRow title="Add another food" detail="Search, scan, or use a saved food" icon="add-circle-outline" onPress={() => setFoodEntryOpen(true)} last />
+        </View>
+        <Text accessibilityLiveRegion="polite" style={styles.diaryDetail}>{builderMessage}</Text>
+        {removedItem ? <View style={styles.diaryNotice}><Text style={styles.diaryDetail}>Food removed from this draft.</Text><Pressable accessibilityRole="button" onPress={() => { setMealBuilder((current) => ({ ...current, items: [...current.items, removedItem] })); setRemovedItem(null); }} style={styles.diaryTextButton}><Text style={styles.diaryLink}>Undo</Text></Pressable></View> : null}
         <Card style={styles.mealContentsCard}>
           <View style={styles.rowBetween}>
             <View>
@@ -2257,15 +2189,16 @@ export default function FoodScreen() {
                 <Text style={styles.librarySignal}>{displayLabel(item.quality.label)} · {formatProductAmount(item.snapshot.calories_per_serving, ' cal')} per serving</Text>
               </View>
               <TextInput
-                keyboardType="numeric"
-                onChangeText={(value) => setMealBuilder((current) => updateMealBuilderItemServings(current, item.id, value))}
+                accessibilityLabel={`Servings of ${item.snapshot.name}`}
+                keyboardType="decimal-pad"
+                onChangeText={(value) => { setServingDrafts((current) => ({ ...current, [item.id]: value })); if (portionValue(value) !== null) setMealBuilder((current) => updateMealBuilderItemServings(current, item.id, value)); }}
                 style={styles.servingsInput}
-                value={String(item.servings)}
+                value={servingDrafts[item.id] ?? String(item.servings)}
               />
               <Pressable
                 accessibilityLabel={`Remove ${item.snapshot.name} from meal`}
                 accessibilityRole="button"
-                onPress={() => setMealBuilder((current) => removeMealBuilderItem(current, item.id))}
+                onPress={() => { setRemovedItem(item); setMealBuilder((current) => removeMealBuilderItem(current, item.id)); }}
                 style={({ pressed }) => [styles.smallIconButton, pressed && styles.pressed]}
               >
                 <Ionicons color={colors.textMuted} name="close" size={18} />
@@ -2282,8 +2215,10 @@ export default function FoodScreen() {
             <Metric label="Sodium" value={formatProductAmount(mealBuilderTotals.sodium_mg, 'mg')} />
           </View>
           <Text style={styles.confidenceLine}>Based on available label data. Macro targets are optional and can be adjusted later.</Text>
-          <PrimaryButton label="Save Meal" loading={isSavingBuilder} onPress={() => void handleSaveBuiltMeal()} />
+          {mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null) ? <Text accessibilityRole="alert" style={styles.diaryDetail}>Servings must be greater than 0 and no more than 20.</Text> : null}
+          <PrimaryButton label="Save meal" disabled={mealBuilder.items.length === 0 || mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null)} loading={isSavingBuilder} onPress={() => void handleSaveBuiltMeal()} />
         </Card>
+
       </View>
     );
   }
@@ -2525,59 +2460,33 @@ export default function FoodScreen() {
     );
   }
 
+  const inFlow = scannerOpen || !dietTabs.includes(activeSegment as DietTab);
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={['top']} style={styles.safe}>
-        <KeyboardAvoidingView behavior={undefined} style={styles.safe}>
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+          <ScrollView
+            ref={scrollRef}
+            onScroll={(event) => { scrollPositions.current[scannerOpen ? 'scanner' : activeSegment] = event.nativeEvent.contentOffset.y; }}
+            scrollEventThrottle={100}
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.adaptiveTopBar}>
-              <Text style={styles.adaptivePageLabel}>Diet</Text>
-              <View style={styles.adaptiveMode}>
-                <View style={styles.adaptiveModeDot} />
-                <Text style={styles.adaptiveModeText}>{modeLabel}</Text>
-              </View>
+              <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Food</Text>
+              <Text style={styles.diaryDetail}>{modeLabel}</Text>
             </View>
-
-            <View style={styles.adaptiveTabBar}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {dietTabs.map((segment) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: activeSegment === segment }}
-                    key={segment}
-                    onPress={() => {
-                      closeScanner();
-                      setActiveSegment(segment);
-                    }}
-                    style={[styles.adaptiveTab, activeSegment === segment && styles.adaptiveTabActive]}
-                  >
-                    <Text style={[styles.adaptiveTabText, activeSegment === segment && styles.adaptiveTabTextActive]}>{segment}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              <View style={styles.adaptiveTabBaseline} />
-            </View>
-
-            {!scannerOpen && !dietTabs.includes(activeSegment as DietTab) ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setActiveSegment('Today')}
-                style={({ pressed }) => [styles.adaptiveBack, pressed && styles.pressed]}
-              >
-                <Ionicons color="#A1A1A6" name="arrow-back" size={16} />
-                <Text style={styles.adaptiveBackText}>Back to Diet</Text>
+            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={dietTabs} value={activeSegment as DietTab} onChange={(segment) => { closeScanner(); setActiveSegment(segment); }} /></View> : (
+              <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
+                <Ionicons name="chevron-back" size={20} color={colors.accentMid} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
               </Pressable>
-            ) : null}
-
-            {(scannerOpen || !dietTabs.includes(activeSegment as DietTab)) ? (
-              <View style={styles.statusLine}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>{isLoadingRemote ? 'Loading available food data...' : status}</Text>
-              </View>
-            ) : null}
-
+            )}
+            {/saved|logged|could not|unavailable|not saved/i.test(status) ? <Text accessibilityLiveRegion="polite" style={styles.diaryStatus}>{status}</Text> : null}
             {scannerOpen ? renderScanner() : null}
-            {!scannerOpen && activeSegment === 'Today' ? renderToday() : null}
+            {!scannerOpen && (activeSegment === 'Diary' || activeSegment === 'Today') ? renderDiary() : null}
+            {!scannerOpen && activeSegment === 'Guidance' ? <>{renderGuidance()}<ActionRow title="Food preferences" detail="Your food pattern and personal responses" onPress={() => setActiveSegment('Profile')} last /></> : null}
             {!scannerOpen && activeSegment === 'Timeline' ? renderTimeline() : null}
             {!scannerOpen && activeSegment === 'Nutrients' ? renderNutrients() : null}
             {!scannerOpen && activeSegment === 'Profile' ? renderProfile() : null}
@@ -2587,28 +2496,34 @@ export default function FoodScreen() {
             {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
             {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
-          {!scannerOpen && dietTabs.includes(activeSegment as DietTab) ? (
-            <View style={styles.adaptiveActionDock}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => openScanner()}
-                style={({ pressed }) => [styles.adaptiveDockButton, pressed && styles.pressed]}
-              >
-                <Ionicons color="#0A84FF" name="barcode-outline" size={18} />
-                <Text style={styles.adaptiveDockText}>Scan food</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setActiveSegment('Build Meal')}
-                style={({ pressed }) => [styles.adaptiveDockAdd, pressed && styles.pressed]}
-              >
-                <Ionicons color="#0A84FF" name="search" size={18} />
-                <Text style={styles.adaptiveDockText}>Search food</Text>
-              </Pressable>
-            </View>
-          ) : null}
+          {!inFlow ? <View style={styles.adaptiveActionDock}>
+            <Pressable accessibilityRole="button" onPress={() => setFoodEntryOpen(true)} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color="#FFFFFF" size={22} /><Text style={styles.adaptivePrimaryButtonText}>Add food</Text></Pressable>
+          </View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
+      {foodEntryOpen ? <FoodEntryPicker
+        query={searchQuery}
+        onQueryChange={(value) => { setSearchQuery(value); setSearchResults([]); setSearchMessage(''); }}
+        onSearch={handleSearchProducts}
+        results={searchResults}
+        searching={isSearchingProducts}
+        message={searchMessage}
+        products={productLibrary}
+        onToggleSaved={handleToggleSavedProduct}
+        onAdd={async (product, source, servings) => { await addSnapshotToMealBuilder(product, source, servings); setFoodEntryOpen(false); setActiveSegment('Build Meal'); }}
+        onScan={() => openScanner('builder')}
+        onManual={() => { setFoodEntryOpen(false); setManualFoodOpen(true); }}
+        onClose={() => setFoodEntryOpen(false)}
+      /> : null}
+      {manualFoodOpen ? renderManualFood() : null}
+      {selectedMeal ? <EntrySheet title={selectedMeal.name} onClose={() => setSelectedMeal(null)}>
+        <Text style={styles.diaryDetail}>{displayLabel(selectedMeal.meal_type)} · {formatClock(selectedMeal.logged_at)}</Text>
+        <View style={styles.metricGrid}><Metric label="Calories" value={formatProductAmount(selectedMeal.calories, ' kcal')} /><Metric label="Protein" value={formatProductAmount(selectedMeal.protein_g, ' g')} /><Metric label="Carbs" value={formatProductAmount(selectedMeal.carbs_g, ' g')} /><Metric label="Fat" value={formatProductAmount(selectedMeal.fat_g, ' g')} /></View>
+        {mealLogItems.filter((item) => item.meal_log_id === selectedMeal.id).map((item) => <View key={item.id}><Text style={styles.diaryMacroValue}>{item.name}</Text><Text style={styles.diaryDetail}>{item.servings} servings · {item.serving_size ?? 'Size not reported'}</Text></View>)}
+        <ActionRow title="Edit meal details" icon="create-outline" onPress={() => startEditingMeal(selectedMeal)} />
+        <ActionRow title="Add a personal response" detail="Optional: how did this meal feel?" icon="chatbubble-outline" onPress={() => { updateResponseForm('meal_log_id', selectedMeal.id ?? null); setSelectedMeal(null); setActiveSegment('Response Log'); }} last />
+      </EntrySheet> : null}
+      {mealEditDraft ? <MealEditSheet draft={mealEditDraft} onChange={setMealEditDraft} onClose={() => setMealEditDraft(null)} onSave={handleSaveMealEdit} busy={savingMealEdit} error={mealEditError} /> : null}
     </View>
   );
 }
@@ -2637,6 +2552,20 @@ function ChoiceRow({
 }
 
 const styles = StyleSheet.create({
+  diarySection: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, gap: 12 },
+  diaryHeading: { fontFamily: sans, fontSize: 20, lineHeight: 26, fontWeight: '600', color: colors.text },
+  diaryDetail: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted },
+  diaryEnergy: { paddingVertical: 8, gap: 3 },
+  diaryEnergyValue: { fontFamily: sans, fontSize: 38, fontWeight: '600', color: colors.text, fontVariant: ['tabular-nums'] },
+  diaryMacros: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingVertical: 10 },
+  diaryMacro: { flex: 1, minWidth: 70, gap: 4 },
+  diaryMacroValue: { fontFamily: sans, fontSize: 17, lineHeight: 24, fontWeight: '600', color: colors.text },
+  diaryNotice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
+  diaryTextButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
+  diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: colors.accentMid, fontWeight: '500' },
+  diaryStatus: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted, paddingVertical: 8 },
+  diaryAdd: { flex: 1, backgroundColor: colors.accent, minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
+  diaryTabs: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
   screen: {
     flex: 1,
     backgroundColor: '#000000'
@@ -2645,22 +2574,24 @@ const styles = StyleSheet.create({
     flex: 1
   },
   scroll: {
-    paddingBottom: 112
+    paddingBottom: 28
   },
   adaptiveTopBar: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 22,
-    paddingTop: 10
+    gap: 12,
+    flexWrap: 'wrap',
+    paddingTop: 18
   },
   adaptivePageLabel: {
-    color: '#0A84FF',
+    color: '#F5F5F7',
     fontFamily: sansMedium,
-    fontSize: 12,
-    letterSpacing: 1.9,
-    lineHeight: 16,
-    textTransform: 'uppercase'
+    fontSize: 30,
+    fontWeight: '600',
+    letterSpacing: -0.7,
+    lineHeight: 38
   },
   trackerCard: {
     backgroundColor: '#121214',
@@ -3499,7 +3430,7 @@ const styles = StyleSheet.create({
   stack: {
     gap: 14,
     marginTop: 14,
-    paddingHorizontal: 16
+    paddingHorizontal: 20
   },
   stackSmall: {
     gap: 8
@@ -4149,6 +4080,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: C.ink,
     fontFamily: sansMedium,
+    fontSize: 16,
     minHeight: 44,
     paddingHorizontal: 10,
     textAlign: 'center',

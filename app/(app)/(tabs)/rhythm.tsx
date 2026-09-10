@@ -20,6 +20,7 @@ import {
   type SleepWindowRecord
 } from '../../../src/features/sleepRhythm/sleepWindowEngine';
 import { supabase } from '../../../src/lib/supabase';
+import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
@@ -54,6 +55,8 @@ export default function RhythmScreen() {
   const [wakeTime, setWakeTime] = useState('06:45');
   const [sleepQuality, setSleepQuality] = useState('4');
   const [inputsTouched, setInputsTouched] = useState(false);
+  const [logRequest, setLogRequest] = useState(0);
+  useQuickEntry(() => setLogRequest((value) => value + 1), !isLoading);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date().toISOString()), 60_000);
@@ -191,6 +194,7 @@ export default function RhythmScreen() {
 
   return (
     <SleepExperience
+      logRequest={logRequest}
       briefing={briefing}
       dataMode={dataMode}
       isLoading={isLoading}

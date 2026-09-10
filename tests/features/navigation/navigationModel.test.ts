@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest';
+import { dayTitle, firstRouteParam, mainTabs, quickEntryHref, quickEntryRequest, shiftDay } from '../../../src/features/navigation/navigationModel';
+
+describe('mobile navigation contract', () => {
+  it('has five stable destinations, with Food before Move and Plan accessed from Home', () => {
+    expect(mainTabs.map((tab) => tab.label)).toEqual(['Home', 'Food', 'Move', 'Sleep', 'You']);
+    expect(new Set(mainTabs.map((tab) => tab.route)).size).toBe(5);
+    expect(mainTabs.some((tab) => String(tab.route) === 'plan')).toBe(false);
+  });
+  it.each([['food', '/food'], ['workout', '/movement'], ['sleep', '/rhythm']] as const)('opens the %s logger with a one-time intent', (destination, pathname) => {
+    expect(quickEntryHref(destination, 'request-1')).toEqual({ pathname, params: { action: 'log', entry: 'request-1' } });
+  });
+  it('does not treat normal tab navigation or an unknown action as a log request', () => {
+    expect(quickEntryRequest(undefined, undefined)).toBeNull();
+    expect(quickEntryRequest('delete', 'request-1')).toBeNull();
+  });
+  it('handles direct links and repeated query parameters predictably', () => {
+    expect(quickEntryRequest('log', undefined)).toBe('direct');
+    expect(quickEntryRequest(['log', 'ignored'], ['one', 'two'])).toBe('one');
+    expect(firstRouteParam([])).toBeUndefined();
+  });
+  it('uses calendar arithmetic across month and leap-year boundaries', () => {
+    expect(shiftDay('2026-01-01', -1)).toBe('2025-12-31');
+    expect(shiftDay('2024-03-01', -1)).toBe('2024-02-29');
+    expect(shiftDay('2026-03-08', 1)).toBe('2026-03-09');
+  });
+  it('keeps Today and Yesterday explicit', () => {
+    expect(dayTitle('2026-09-09', '2026-09-09')).toBe('Today');
+    expect(dayTitle('2026-09-08', '2026-09-09')).toBe('Yesterday');
+    expect(dayTitle('2026-09-07', '2026-09-09')).not.toBe('Today');
+  });
+});
