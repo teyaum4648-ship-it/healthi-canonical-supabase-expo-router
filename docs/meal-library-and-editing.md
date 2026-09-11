@@ -33,7 +33,31 @@ storage key. A durable edit journal is committed before the two legacy local dia
 materialized; reads replay interrupted writes before returning data. Account errors never
 fall back to this demo library.
 
-Remote Supabase deployment is **not part of this change**. Apply and verify migration 0016
-after the existing migration baseline is available; the paused cloud project is unchanged.
-Account-backed meal history, bookmarks and item editing require that migration. Do not
-present local demo storage as cross-device sync. No package or scoring changes are required.
+## Cloud verification — September 10, 2026 (Pacific)
+
+After the owner resumed project `lhqpexnepgvuohmhltnr` and approved the database rollout,
+migrations 0015 (goal setup), 0016 (meal library/editing), and 0017 (nutrition persistence
+permissions) were applied together in one transaction and recorded in migration history.
+The previous cloud baseline was 0001–0012. The unrelated 0013 scanner-cache and 0014 Move
+migrations remain pending; do not run a blanket migration push to resolve that gap without
+reviewing and obtaining approval for those features. No Edge Functions were deployed.
+
+Migration 0017 admits the existing USDA provider/source identifier without fabricating
+provenance. It repeats only the compatible constraint changes from 0013 so the cache itself
+need not be deployed. It removes inherited broad grants from PUBLIC, anon, and authenticated
+on the five nutrition tables, then grants only SELECT/INSERT/UPDATE/DELETE to authenticated.
+RLS remains enabled, owner policies remain unchanged, and service-role permissions are
+preserved. Global default privileges and other feature tables are outside this correction.
+
+Both `supabase/tests/meal_library_security.sql` and
+`supabase/tests/nutrition_persistence_security.sql` passed locally and against the cloud
+database. Cloud fixture identities were randomized in memory; both suites rolled back all
+fixtures and a subsequent query confirmed zero remaining test users. The checks cover
+owner isolation, anonymous denial, least-privilege grants, USDA persistence/search, goal
+history and failed-write rollback, atomic meal edits, and missing-versus-zero nutrition.
+
+This verifies the database contract, not a signed-in browser session. The published phone
+demo remains device-local and was not redeployed or switched to account mode. Connecting
+the hosted account experience and testing a real sign-in/save/reload flow is a separate
+follow-up. Do not present local demo storage as cross-device sync. No package or scoring
+changes are required.
