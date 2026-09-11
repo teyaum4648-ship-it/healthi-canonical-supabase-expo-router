@@ -1,5 +1,15 @@
 # Healthi Repo Package
 
+## Current app and live-demo source
+
+The combined app source is on `codex/backup-2026-09-10`, including the live demo's
+optional ZIP-based scanner engine and the newer nutrition database fixes. GitHub's
+default `main` branch has not been merged with these changes.
+
+See [Source and deployment workflow](docs/source-and-deployment.md) for the live
+version, demo build settings, and the process for keeping GitHub and deployments
+aligned. Secrets and personal account data are not part of this source backup.
+
 Healthi is a working codename for a holistic adaptive coaching mobile app. The product connects sleep, circadian rhythm, recovery, allostatic load, food quality, personal food response, digestion, hydration, posture, mobility, flexibility, training performance, stress, motivation, and goals into one daily plan.
 
 This repo package is designed for use with Codex, Cursor, Replit Agent, or another coding agent. It is not the full app yet. It is the source-of-truth documentation, implementation plan, schemas, engine rules, safety language, and starter TypeScript contracts that a coding agent should follow.
