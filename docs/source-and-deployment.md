@@ -4,11 +4,12 @@
 
 Repository: https://github.com/teyaum4648-ship-it/healthi-canonical-supabase-expo-router
 
-The working branch is `codex/backup-2026-09-10`. It combines the latest canonical
+The audit branch is now `main`; `codex/backup-2026-09-10` remains a backup. It combines the latest canonical
 app, nutrition database fixes, and the six scanner files previously present only
 in the published-demo checkout. Both scoring kernels are retained. This backup
-does not merge main, republish the website, change provider secrets, or enable
-account mode. The UI refinement proposal is not implemented by this reconciliation.
+was promoted to main with the owner's approval using a fast-forward, preserving
+the old history. It does not republish the website, change provider secrets, or
+enable account mode. The UI refinement proposal is not implemented by this reconciliation.
 
 ## Published version at reconciliation
 

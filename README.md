@@ -1,14 +1,16 @@
 # Healthi Repo Package
 
-## Current app and live-demo source
+## Third-party audit: start here
 
-The combined app source is on `codex/backup-2026-09-10`, including the live demo's
-optional ZIP-based scanner engine and the newer nutrition database fixes. GitHub's
-default `main` branch has not been merged with these changes.
+`main` contains the current app source, including the scanner engine and UI used
+by [the live demo](https://healthi-demo.teyaum4648.chatgpt.site/). Both scanner
+kernels remain in the repository; **the published demo uses `v5_two_axis`**, not
+the default kernel. No private keys or personal account data are included.
 
-See [Source and deployment workflow](docs/source-and-deployment.md) for the live
-version, demo build settings, and the process for keeping GitHub and deployments
-aligned. Secrets and personal account data are not part of this source backup.
+Read the [Live demo audit guide](docs/live-demo-audit.md) for exact mode settings,
+entry points, backend boundaries, and source verification. Run
+`node scripts/verify-live-demo-source.cjs` to check the published runtime files.
+See [Source and deployment workflow](docs/source-and-deployment.md) for releases.
 
 Healthi is a working codename for a holistic adaptive coaching mobile app. The product connects sleep, circadian rhythm, recovery, allostatic load, food quality, personal food response, digestion, hydration, posture, mobility, flexibility, training performance, stress, motivation, and goals into one daily plan.
 
