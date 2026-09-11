@@ -186,6 +186,7 @@ export function toLocalDemoMealLog(mealLog: MealLog): MealLog {
 }
 
 export async function getLocalDemoNutritionState(): Promise<LocalDemoNutritionState> {
+  await recoverMealEdit();
   const [mealLogs, postMealResponses, foodPatternProfile, userFoodProducts, mealLogItems] = await Promise.all([
     AsyncStorage.getItem(demoNutritionMealLogsKey),
     AsyncStorage.getItem(demoNutritionPostMealResponsesKey),
@@ -201,6 +202,29 @@ export async function getLocalDemoNutritionState(): Promise<LocalDemoNutritionSt
     userFoodProducts: deserializeDemoUserFoodProducts(userFoodProducts),
     mealLogItems: deserializeDemoMealLogItems(mealLogItems)
   };
+}
+
+const mealEditJournalKey = 'healthi:demo:nutrition:mealEditJournal';
+async function recoverMealEdit() {
+  const raw = await AsyncStorage.getItem(mealEditJournalKey);
+  if (!raw) return;
+  const journal = JSON.parse(raw) as { meals: MealLog[]; items: MealLogItemRow[] };
+  if (!Array.isArray(journal.meals) || !Array.isArray(journal.items)) throw new Error('Meal edit needs recovery.');
+  await AsyncStorage.setItem(demoNutritionMealLogsKey, serializeDemoMealLogs(journal.meals));
+  await AsyncStorage.setItem(demoNutritionMealLogItemsKey, serializeDemoMealLogItems(journal.items));
+  await AsyncStorage.removeItem(mealEditJournalKey);
+}
+
+export async function replaceLocalDemoMealItems(meal: MealLog, items: MealLogItemRow[]) {
+  const current = await getLocalDemoNutritionState();
+  if (!current.mealLogs.some(row => row.id === meal.id)) throw new Error('This meal is no longer in your diary.');
+  const meals = current.mealLogs.map(row => row.id === meal.id ? meal : row);
+  const nextItems = [...current.mealLogItems.filter(row => row.meal_log_id !== meal.id), ...items];
+  // A single durable journal write is the commit point; interrupted materialization
+  // is replayed before any reader sees the aggregate or its foods.
+  await AsyncStorage.setItem(mealEditJournalKey, JSON.stringify({ meals, items: nextItems }));
+  await recoverMealEdit().catch(() => undefined);
+  return { meals, items: nextItems };
 }
 
 export async function saveLocalDemoMealLogs(mealLogs: MealLog[]): Promise<void> {

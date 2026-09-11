@@ -294,6 +294,8 @@ export function mealBuilderItemToPersistenceInput(
     metadata: {
       builder_item_id: item.id,
       logging_nutrient_basis: logging.basis,
+      image_url: safeProductImageUrl(item.snapshot.image_url),
+      quality_flags: [...item.snapshot.quality_flags],
       quality_summary: item.quality.summary
     }
   };
