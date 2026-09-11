@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
+import { localDay } from '../../../src/utils/localDay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -396,7 +398,7 @@ function SleepSparkline({ values }: { values: number[] }) {
 export default function DashboardScreen() {
   const { user, mode } = useAuth();
   const isFocused = useIsFocused();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = useLocalToday();
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
   const [nutritionSource, setNutritionSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
@@ -459,7 +461,7 @@ export default function DashboardScreen() {
       getLocalDemoNutritionState()
         .then((state) => {
           if (!isMounted) return;
-          const todayMeals = state.mealLogs.filter((meal) => meal.logged_at.slice(0, 10) === today);
+          const todayMeals = state.mealLogs.filter((meal) => localDay(meal.logged_at) === today);
           setNutritionMeals(todayMeals);
           setNutritionTargets(null);
           setNutritionSource(todayMeals.length > 0 ? 'demo' : 'calibrating');

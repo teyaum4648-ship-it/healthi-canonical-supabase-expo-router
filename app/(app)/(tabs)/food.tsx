@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
+import { rolloverDiaryDay } from '../../../src/utils/localDay';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 import { NutritionGoalSetup } from '../../../src/features/nutrition/NutritionGoalSetup';
 import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
@@ -523,8 +525,14 @@ export default function FoodScreen() {
   const { session, mode } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [activeSegment, setActiveSegment] = useState<Segment>('Diary');
-  const actualToday = new Date().toISOString().slice(0, 10);
+  const actualToday = useLocalToday();
   const [selectedDay, setSelectedDay] = useState(actualToday);
+  const previousToday = useRef(actualToday);
+  useEffect(() => {
+    const previous = previousToday.current;
+    setSelectedDay(day => rolloverDiaryDay(day, previous, actualToday, !dietTabs.includes(activeSegment as DietTab)));
+    previousToday.current = actualToday;
+  }, [actualToday, activeSegment]);
   const [foodEntryOpen, setFoodEntryOpen] = useState(false);
   const [mealChooserOpen, setMealChooserOpen] = useState(false);
   const [mealStartMessage, setMealStartMessage] = useState('');

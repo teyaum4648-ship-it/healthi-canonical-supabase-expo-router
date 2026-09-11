@@ -1,4 +1,5 @@
 import type { DataConfidence, MealType, NutritionReasonCode } from '../../engines/nutrition';
+import { localDayBounds } from '../../utils/localDay';
 import type { JsonValue } from './persistence';
 import type { ProductProvider } from './productLookup/productLookupTypes';
 import type { ProductQualityLabel } from './productLibraryPersistence';
@@ -164,15 +165,13 @@ export async function getMealLogItemsForDate(
   date: string,
   limit = 200
 ): Promise<MealLogItemRow[]> {
-  const start = `${date.slice(0, 10)}T00:00:00.000Z`;
-  const nextDay = new Date(`${date.slice(0, 10)}T00:00:00.000Z`);
-  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  const { start, end } = localDayBounds(date);
   const { data, error } = await client
     .from('meal_log_items')
     .select('*')
     .eq('user_id', userId)
     .gte('logged_at', start)
-    .lt('logged_at', nextDay.toISOString())
+    .lt('logged_at', end)
     .order('logged_at', { ascending: true })
     .limit(limit);
   if (error) raiseSupabaseError(error);

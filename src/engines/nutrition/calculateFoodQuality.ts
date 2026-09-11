@@ -1,3 +1,4 @@
+import { localDay } from '../../utils/localDay';
 import type {
   FoodQualityFlag,
   FoodQualitySummary,
@@ -17,7 +18,7 @@ const watchFlags: FoodQualityFlag[] = [
 ];
 
 function dateKey(value: string): string {
-  return value.slice(0, 10);
+  return localDay(value);
 }
 
 function clampScore(value: number): number {

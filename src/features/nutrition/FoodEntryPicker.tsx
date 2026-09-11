@@ -58,6 +58,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         <Text style={styles.detail}>Check the name, variety, and pack size—packaging photos may be older.</Text>
         <Text style={styles.detail}>{[selected.product.quantity, logging?.label].filter(Boolean).join(' · ')}</Text>
         <Text style={styles.label}>{multiplier === 100 ? 'Amount eaten' : 'Number of servings'}</Text>
+        {multiplier === 1 ? <View style={styles.portionRow}>{[0.5, 1, 2].map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} servings`} accessibilityState={{ selected: portion === value }} onPress={() => setServings(String(value))} style={styles.step}><Text style={styles.link}>{value === 0.5 ? '½' : value}×</Text></Pressable>)}</View> : null}
         <View style={styles.portionRow}>
           <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={(portion ?? 1) <= 0.25} onPress={() => setServings(String(Math.max(0.25, (portion ?? 1) - 0.25) * multiplier))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
           <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} keyboardType="decimal-pad" selectTextOnFocus value={servings} onChangeText={setServings} style={styles.portion} />

@@ -1,3 +1,4 @@
+import { localDay, localDayBounds } from '../../utils/localDay';
 import type {
   DataConfidence,
   FoodQualityFlag,
@@ -91,6 +92,8 @@ type InsertQuery<TRow> = {
 };
 
 type SelectQuery<TRow> = {
+  gte(column: string, value: string): SelectQuery<TRow>;
+  lt(column: string, value: string): SelectQuery<TRow>;
   eq(column: string, value: string | boolean): SelectQuery<TRow>;
   order(column: string, options: { ascending: boolean }): SelectQuery<TRow>;
   limit(count: number): Promise<QueryResponse<TRow[]>>;
@@ -111,7 +114,7 @@ function raiseSupabaseError(error: QueryError): never {
 }
 
 function dateFromLoggedAt(loggedAt: string): string {
-  return loggedAt.slice(0, 10);
+  return localDay(loggedAt);
 }
 
 export function toMealLogInsert(
@@ -189,11 +192,13 @@ export async function getMealLogsForDate(
   date: string,
   limit = 100
 ): Promise<MealLogRow[]> {
+  const { start, end } = localDayBounds(date);
   const { data, error } = await client
     .from('meal_logs')
     .select('*')
     .eq('user_id', userId)
-    .eq('meal_date', date.slice(0, 10))
+    .gte('logged_at', start)
+    .lt('logged_at', end)
     .order('logged_at', { ascending: true })
     .limit(limit);
 

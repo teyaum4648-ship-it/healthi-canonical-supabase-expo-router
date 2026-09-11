@@ -2,12 +2,15 @@ import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './norm
 import { searchOpenFoodFactsProducts, type ProductSearchResult } from './openFoodFactsClient';
 import { canonicalBarcodeIdentity } from './barcodeUtils';
 import type { HealthiProductSnapshot } from './productLookupTypes';
+import { metricServing, metricServingFromText } from '../labelServing';
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => !!v && typeof v === 'object' && !Array.isArray(v);
 const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
 const text = (v: unknown) => typeof v === 'string' ? v.trim() : '';
 
-/** USDA search nutrients are per 100 g. Do not invent a label serving or image. */
+/** USDA branded nutrients use 100 g or 100 mL according to the reported unit.
+ * https://fdc.nal.usda.gov/GBFPD_Documentation/#standardizing-and-presenting-gbfpd-data
+ */
 export function normalizeUsdaSearchFood(food: RecordValue): HealthiProductSnapshot | null {
   if (!text(food.description) || !Number.isInteger(food.fdcId)) return null;
   const nutrients = Array.isArray(food.foodNutrients) ? food.foodNutrients.filter(record) : [];
@@ -16,9 +19,19 @@ export function normalizeUsdaSearchFood(food: RecordValue): HealthiProductSnapsh
     return row ? finite(row.value) : null;
   }
   const kcal = nutrient(1008, 'kcal') ?? nutrient(2048, 'kcal') ?? nutrient(2047, 'kcal');
+  const household = text(food.householdServingFullText);
+  const serving = metricServing(food.servingSize, food.servingSizeUnit) ?? metricServingFromText(household);
+  const isVolume = (metricServing(1, food.servingSizeUnit)?.unit ?? serving?.unit) === 'mL';
+  const metricLabel = serving ? `${Math.round(serving.quantity * 100) / 100} ${serving.unit}` : null;
+  const label = household && metricLabel && !metricServingFromText(household)
+    ? `${household} (${metricLabel})` : household || metricLabel;
+  const perHundred = { calories: kcal, protein_g: nutrient(1003, 'g'), carbs_g: nutrient(1005, 'g'), fat_g: nutrient(1004, 'g'), fiber_g: nutrient(1079, 'g'), sugar_g: nutrient(2000, 'g'), added_sugar_g: nutrient(1235, 'g'), saturated_fat_g: nutrient(1258, 'g'), sodium_mg: nutrient(1093, 'mg') };
   return { barcode: text(food.gtinUpc), provider: 'usda_food_data_central', provider_product_id: String(food.fdcId), name: text(food.description), brand: text(food.brandName) || text(food.brandOwner) || null,
-    ingredients_text: text(food.ingredients) || null, image_url: null, serving_size: null,
-    nutriments_per_100g: { calories: kcal, protein_g: nutrient(1003, 'g'), carbs_g: nutrient(1005, 'g'), fat_g: nutrient(1004, 'g'), fiber_g: nutrient(1079, 'g'), sugar_g: nutrient(2000, 'g'), added_sugar_g: nutrient(1235, 'g'), saturated_fat_g: nutrient(1258, 'g'), sodium_mg: nutrient(1093, 'mg') },
+    ingredients_text: text(food.ingredients) || null, image_url: null, serving_size: label,
+    serving_quantity: serving?.quantity ?? null, serving_unit: serving?.unit ?? null,
+    serving_quantity_g: serving?.unit === 'g' ? serving.quantity : null,
+    nutriments_per_100g: isVolume ? undefined : perHundred,
+    nutriments_per_100ml: isVolume ? perHundred : undefined,
     confidence: 'medium', quality_flags: [], reason_codes: [] };
 }
 export function normalizeSearchPayload(payload: unknown, query: string): HealthiProductSnapshot[] {

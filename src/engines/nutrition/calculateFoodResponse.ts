@@ -1,7 +1,8 @@
 import type { FoodResponseSummary, MealLog, NutritionReasonCode } from './types';
+import { localDay } from '../../utils/localDay';
 
 function dateKey(value: string): string {
-  return value.slice(0, 10);
+  return localDay(value);
 }
 
 function addReason(reasons: Set<NutritionReasonCode>, reason: NutritionReasonCode) {
