@@ -57,10 +57,18 @@ export function mealItemToSnapshot(item: MealLogItemRow): HealthiProductSnapshot
 }
 export function mealEntryToBuilder(entry: MealCollectionEntry, mealType: MealType = entry.meal.meal_type): MealBuilderState {
   if (!entry.items.length) throw new Error('This older meal has totals only. Its individual foods were not saved.');
-  return entry.items.reduce((builder, item, index) => addMealBuilderItem(builder, {
-    snapshot: mealItemToSnapshot(item), source: 'saved_food', productId: item.food_product_id,
-    servings: item.servings, id: `reused-${index}`
-  }), { ...createEmptyMealBuilder(), name: entry.meal.name, meal_type: mealType });
+  return entry.items.reduce((builder, item, index) => {
+    const next = addMealBuilderItem(builder, {
+      snapshot: mealItemToSnapshot(item), source: 'saved_food', productId: item.food_product_id,
+      servings: item.servings, id: `reused-${index}`
+    });
+    const added = next.items[next.items.length - 1];
+    added.historical_quality = {
+      score: item.quality_score, label: item.quality_label ?? 'calibrating',
+      confidence: item.quality_confidence ?? 'low'
+    };
+    return next;
+  }, { ...createEmptyMealBuilder(), name: entry.meal.name, meal_type: mealType });
 }
 export function buildEditedMeal(original: MealLog, builder: MealBuilderState, demo: boolean): MealLog {
   if (!original.id) throw new Error('Refresh the diary before editing this meal.');
