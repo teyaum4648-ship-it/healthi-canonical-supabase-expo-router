@@ -13,6 +13,8 @@ export type MealBuilderItem = {
   food_product_id: string | null;
   snapshot: HealthiProductSnapshot;
   quality: ProductQualitySnapshot;
+  /** Preserve recorded quality on reuse; historical macros are not a new label. */
+  historical_quality?: Pick<ProductQualitySnapshot, 'score' | 'label' | 'confidence'>;
   servings: number;
   source: MealItemSource;
 };
@@ -238,7 +240,7 @@ export function mealBuilderToAggregateMealLog(
     meal_type: builder.meal_type,
     name: builder.name.trim() || `${builder.meal_type === 'unknown' ? 'Meal' : builder.meal_type} meal`,
     source: demoMode ? 'demo' : 'manual',
-    source_confidence: builder.items.some((item) => item.quality.confidence === 'low') ? 'low' : 'medium',
+    source_confidence: builder.items.some((item) => (item.historical_quality ?? item.quality).confidence === 'low') ? 'low' : 'medium',
     calories: totals.calories,
     protein_g: totals.protein_g,
     carbs_g: totals.carbs_g,
@@ -285,9 +287,9 @@ export function mealBuilderItemToPersistenceInput(
     barcode: item.snapshot.barcode,
     provider: item.snapshot.provider,
     provider_product_id: item.snapshot.provider_product_id,
-    quality_label: item.quality.label,
-    quality_score: item.quality.score,
-    quality_confidence: item.quality.confidence,
+    quality_label: (item.historical_quality ?? item.quality).label,
+    quality_score: (item.historical_quality ?? item.quality).score,
+    quality_confidence: (item.historical_quality ?? item.quality).confidence,
     source: demoMode ? 'demo' : item.source,
     source_confidence: item.snapshot.confidence,
     reason_codes: unique(['product_label_data' as NutritionReasonCode, ...item.snapshot.reason_codes]),

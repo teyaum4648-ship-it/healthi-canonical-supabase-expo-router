@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MealLog } from '../../../src/engines/nutrition';
-import { addMealBuilderItem, calculateMealBuilderTotals, removeMealBuilderItem, updateMealBuilderItemServings, validateManualProductForm, createEmptyManualProductForm } from '../../../src/features/nutrition/mealBuilder';
+import { addMealBuilderItem, calculateMealBuilderTotals, mealBuilderItemToPersistenceInput, removeMealBuilderItem, updateMealBuilderItemServings, validateManualProductForm, createEmptyManualProductForm } from '../../../src/features/nutrition/mealBuilder';
 import { buildEditedMeal, collectMealHistory, createMealCollectionEntry, mealEntryToBuilder, mealItemToSnapshot, matchesHistory } from '../../../src/features/nutrition/mealLibrary';
 import { demoMealCollectionKey, persistMealItemEdit, readMealCollection, readMealHistory, saveMealCollectionEntry } from '../../../src/features/nutrition/mealCollectionStore';
 import { toMealLogItemInsert, type MealLogItemRow } from '../../../src/features/nutrition/mealItemPersistence';
@@ -11,6 +11,14 @@ function food(overrides: Partial<MealLogItemRow> = {}): MealLogItemRow {
 }
 const store = () => { const map = new Map<string, string>(); return { map, getItem: vi.fn(async (key: string) => map.get(key) ?? null), setItem: vi.fn(async (key: string, value: string) => { map.set(key, value); }) }; };
 describe('meal library and reuse', () => {
+  it('preserves stored Product Quality when changing a historical portion', () => {
+    const entry = createMealCollectionEntry(meal, [food({ quality_score: 91, quality_label: 'supportive', quality_confidence: 'high' })]);
+    const builder = mealEntryToBuilder(entry);
+    const changed = updateMealBuilderItemServings(builder, builder.items[0].id, 3);
+    const persisted = mealBuilderItemToPersistenceInput(changed.items[0], meal.id!, meal.logged_at, meal.meal_type);
+    expect(persisted).toMatchObject({ calories: 300, quality_score: 91, quality_label: 'supportive', quality_confidence: 'high' });
+    expect(buildEditedMeal(meal, changed, false).source_confidence).toBe('medium');
+  });
   it('pins starred meals ahead of newer unstarred meals without duplicate repeated logs', () => {
     const old = createMealCollectionEntry(meal, [food()]); old.is_starred = true;
     const repeated = { ...meal, id: 'meal-2', logged_at: '2026-09-11T08:00:00Z' };
