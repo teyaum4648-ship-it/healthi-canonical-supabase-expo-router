@@ -5,6 +5,8 @@ import type { MealItemSource, MealLogItemPersistenceInput } from './mealItemPers
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import type { JsonValue } from './persistence';
 import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
+import { safeProductImageUrl } from './productLookup/productImage';
+import { foodLoggingNutrition } from './foodLoggingNutrition';
 
 export type MealBuilderItem = {
   id: string;
@@ -207,15 +209,10 @@ export function updateMealBuilderItemServings(
 }
 
 export function calculateMealBuilderTotals(items: MealBuilderItem[]): MealBuilderTotals {
+  const scaled = (key: keyof MealBuilderTotals) => total(items.map(item => scale(foodLoggingNutrition(item.snapshot).nutrients[key], item.servings)));
   return {
-    calories: total(items.map((item) => scale(item.snapshot.calories_per_serving, item.servings))),
-    protein_g: total(items.map((item) => scale(item.snapshot.protein_g, item.servings))),
-    carbs_g: total(items.map((item) => scale(item.snapshot.carbs_g, item.servings))),
-    fat_g: total(items.map((item) => scale(item.snapshot.fat_g, item.servings))),
-    fiber_g: total(items.map((item) => scale(item.snapshot.fiber_g, item.servings))),
-    sugar_g: total(items.map((item) => scale(item.snapshot.sugar_g, item.servings))),
-    sodium_mg: total(items.map((item) => scale(item.snapshot.sodium_mg, item.servings))),
-    saturated_fat_g: total(items.map((item) => scale(item.snapshot.saturated_fat_g, item.servings)))
+    calories: scaled('calories'), protein_g: scaled('protein_g'), carbs_g: scaled('carbs_g'), fat_g: scaled('fat_g'),
+    fiber_g: scaled('fiber_g'), sugar_g: scaled('sugar_g'), sodium_mg: scaled('sodium_mg'), saturated_fat_g: scaled('saturated_fat_g')
   };
 }
 
@@ -266,6 +263,7 @@ export function mealBuilderItemToPersistenceInput(
   mealType: MealType,
   demoMode = false
 ): MealLogItemPersistenceInput {
+  const logging = foodLoggingNutrition(item.snapshot);
   return {
     meal_log_id: mealLogId,
     food_product_id: item.food_product_id,
@@ -274,16 +272,16 @@ export function mealBuilderItemToPersistenceInput(
     name: item.snapshot.name,
     brand: item.snapshot.brand,
     servings: item.servings,
-    serving_size: item.snapshot.serving_size,
-    serving_quantity_g: item.snapshot.serving_quantity_g,
-    calories: scale(item.snapshot.calories_per_serving, item.servings),
-    protein_g: scale(item.snapshot.protein_g, item.servings),
-    carbs_g: scale(item.snapshot.carbs_g, item.servings),
-    fat_g: scale(item.snapshot.fat_g, item.servings),
-    fiber_g: scale(item.snapshot.fiber_g, item.servings),
-    sugar_g: scale(item.snapshot.sugar_g, item.servings),
-    sodium_mg: scale(item.snapshot.sodium_mg, item.servings),
-    saturated_fat_g: scale(item.snapshot.saturated_fat_g, item.servings),
+    serving_size: logging.basis.startsWith('per_100') ? logging.label : item.snapshot.serving_size,
+    serving_quantity_g: logging.quantityG,
+    calories: scale(logging.nutrients.calories, item.servings),
+    protein_g: scale(logging.nutrients.protein_g, item.servings),
+    carbs_g: scale(logging.nutrients.carbs_g, item.servings),
+    fat_g: scale(logging.nutrients.fat_g, item.servings),
+    fiber_g: scale(logging.nutrients.fiber_g, item.servings),
+    sugar_g: scale(logging.nutrients.sugar_g, item.servings),
+    sodium_mg: scale(logging.nutrients.sodium_mg, item.servings),
+    saturated_fat_g: scale(logging.nutrients.saturated_fat_g, item.servings),
     barcode: item.snapshot.barcode,
     provider: item.snapshot.provider,
     provider_product_id: item.snapshot.provider_product_id,
@@ -295,6 +293,7 @@ export function mealBuilderItemToPersistenceInput(
     reason_codes: unique(['product_label_data' as NutritionReasonCode, ...item.snapshot.reason_codes]),
     metadata: {
       builder_item_id: item.id,
+      logging_nutrient_basis: logging.basis,
       quality_summary: item.quality.summary
     }
   };
@@ -320,6 +319,7 @@ export function userFoodProductRowToSnapshot(row: UserFoodProductRow): HealthiPr
     variant: typeof evidence.variant === 'string' ? evidence.variant : null,
     quantity: typeof evidence.quantity === 'string' ? evidence.quantity : null,
     serving_size: row.serving_size,
+    image_url: safeProductImageUrl(evidence.image_url),
     serving_quantity_g: row.serving_quantity_g,
     serving_quantity: typeof evidence.serving_quantity === 'number' ? evidence.serving_quantity : row.serving_quantity_g,
     serving_unit: typeof evidence.serving_unit === 'string' ? evidence.serving_unit : row.serving_quantity_g ? 'g' : null,

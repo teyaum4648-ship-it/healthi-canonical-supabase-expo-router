@@ -1,8 +1,8 @@
-import { barcodeLookupCandidates, validateBarcode } from './barcodeUtils';
+import { barcodeLookupCandidates, canonicalBarcodeIdentity, validateBarcode } from './barcodeUtils';
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
 import {
   openFoodFactsProductRequestScheduler,
-  type ProviderRequestScheduler
+  ProviderRequestScheduler
 } from './productRequestScheduler';
 import type { HealthiProductSnapshot, ProductLookupResult } from './productLookupTypes';
 
@@ -23,6 +23,7 @@ export type OpenFoodFactsLookupOptions = {
   timeoutMs?: number;
   locale?: string;
   scheduler?: Pick<ProviderRequestScheduler, 'schedule' | 'defer'> | null;
+  signal?: AbortSignal;
 };
 
 export type ProductSearchResult =
@@ -39,6 +40,9 @@ function productFields(locale = 'en'): string {
   return [
   'code',
   'product_name',
+  'image_front_small_url',
+  'image_front_thumb_url',
+  'image_front_url',
   'product_name_en',
   'generic_name',
   'abbreviated_product_name',
@@ -222,21 +226,52 @@ export async function searchOpenFoodFactsProducts(
     return { status: 'empty', products: [], message: 'Enter at least two letters to search foods.' };
   }
 
+  if (searchTerms.length > 120) return { status: 'empty', products: [], message: 'Try a shorter food name or brand (up to 120 characters).' };
   const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
-  const url = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=&search_terms=${encodeURIComponent(searchTerms)}&fields=${productFields(options.locale)}&page_size=12`;
+  // V2 search is filter-only. The existing provider's keyword endpoint also
+  // permits browser requests; Search-a-licious currently blocks this app origin.
+  const url = buildFoodSearchUrl(searchTerms, options.locale);
+  const cacheKey = `${options.locale ?? 'en'}:${searchTerms.toLocaleLowerCase()}`;
+  const cached = !options.fetcher ? foodSearchCache.get(cacheKey) : null;
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  const scheduler = options.scheduler === undefined ? (options.fetcher ? null : foodSearchScheduler) : options.scheduler;
 
   try {
-    const response = await fetchWithTimeout(fetcher, url, options.timeoutMs ?? 12_000);
+    let response: FetchResponse | null = null;
+    let payload: unknown;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const request = async () => {
+          if (options.signal?.aborted) throw new Error('Search canceled');
+          const controller = new AbortController();
+          const cancel = () => controller.abort();
+          options.signal?.addEventListener('abort', cancel, { once: true });
+          const timeout = setTimeout(cancel, options.timeoutMs ?? 12_000);
+          try {
+            const result = await fetcher(url, { headers: requestHeaders, signal: controller.signal });
+            // Keep the timeout active through body decoding, not just headers.
+            const body = result.ok ? await result.json() : null;
+            return { result, body };
+          } finally { clearTimeout(timeout); options.signal?.removeEventListener('abort', cancel); }
+        };
+        const fetched = scheduler ? await scheduler.schedule(request) : await request();
+        response = fetched.result; payload = fetched.body;
+        if (response.status === 429 && scheduler) scheduler.defer(Math.min(retryAfterMilliseconds(response.headers?.get('retry-after')) ?? 6_100, 60_000));
+        if (response.ok || !isRetryableProviderFailure(response) || response.status === 429 || attempt === 1) break;
+      } catch (error) {
+        if (options.signal?.aborted || error instanceof SyntaxError || attempt === 1) throw error;
+      }
+    }
+    if (!response) throw new Error('No search response');
     if (!response.ok) {
-      return { status: 'error', products: [], message: 'Food search is unavailable right now. You can add the product manually.' };
+      return { status: 'error', products: [], message: response.status === 429 ? 'The food database is busy. Wait a minute, then try Search again. Your saved foods are still available.' : 'The food database is unavailable right now. Try again, or use Recent, Saved, or manual entry.' };
     }
 
-    const payload = await response.json();
     if (!isRecord(payload) || !Array.isArray(payload.products)) {
       return { status: 'error', products: [], message: 'Food search returned an unreadable result. You can add the product manually.' };
     }
 
-    const products = payload.products.flatMap((candidate) => {
+    const normalizedProducts = payload.products.flatMap((candidate) => {
       if (!isRecord(candidate)) return [];
       const barcode = typeof candidate.code === 'string' ? candidate.code.trim() : '';
       if (!barcode) return [];
@@ -244,12 +279,37 @@ export async function searchOpenFoodFactsProducts(
       return normalized ? [normalized] : [];
     });
 
-    if (products.length === 0) {
-      return { status: 'empty', products: [], message: 'No readable foods matched that search. You can add one manually.' };
+    if (options.signal?.aborted) throw new Error('Search canceled');
+    const products = rankFoodSearchResults(normalizedProducts, searchTerms);
+    const result: ProductSearchResult = products.length
+      ? { status: 'found', products }
+      : { status: 'empty', products: [], message: 'No foods matched. Try a simpler name or include the brand. You can also scan or enter the label.' };
+    if (!options.fetcher) {
+      if (foodSearchCache.size >= 30) foodSearchCache.delete(foodSearchCache.keys().next().value!);
+      foodSearchCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60_000, result });
     }
-
-    return { status: 'found', products };
-  } catch {
-    return { status: 'error', products: [], message: 'Food search could not connect. You can add the product manually.' };
+    return result;
+  } catch (error) {
+    return { status: 'error', products: [], message: options.signal?.aborted ? 'Search canceled.' : error instanceof SyntaxError ? 'Food search returned an unreadable response. Try Search again.' : 'Food search could not connect. Try again, or choose a Recent or Saved food.' };
   }
+}
+
+const foodSearchScheduler = new ProviderRequestScheduler({ minimumIntervalMs: 6_100 });
+const foodSearchCache = new Map<string, { expiresAt: number; result: ProductSearchResult }>();
+
+export function buildFoodSearchUrl(query: string, locale = 'en') {
+  return `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query.trim())}&search_simple=1&action=process&json=1&fields=${productFields(locale)}&page_size=24`;
+}
+const searchable = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+export function rankFoodSearchResults(products: HealthiProductSnapshot[], query: string) {
+  const phrase = searchable(query.trim());
+  const terms = phrase.split(/\s+/).filter(Boolean);
+  const seen = new Set<string>();
+  return products.filter(p => { const id = canonicalBarcodeIdentity(p.barcode); if (seen.has(id)) return false; seen.add(id); return true; })
+    .map((product, index) => {
+      const name = searchable(product.name), brand = searchable(product.brand ?? '');
+      const relevance = (name === phrase ? 30 : name.startsWith(`${phrase} `) ? 14 : name.includes(phrase) ? 8 : 0)
+        + terms.reduce((n, term) => n + (name.includes(term) ? 2 : 0) + (brand.includes(term) ? 1 : 0), 0);
+      return { product, relevance, index };
+    }).sort((a, b) => b.relevance - a.relevance || a.index - b.index).map(row => row.product);
 }

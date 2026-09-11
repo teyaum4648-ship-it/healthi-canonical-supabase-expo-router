@@ -107,6 +107,8 @@ export type ProductResolutionTraceSnapshot = {
 };
 
 export type HealthiProductSnapshot = {
+  /** Provider photo for identification only; not scoring evidence. */
+  image_url?: string | null;
   barcode: string;
   provider: ProductProvider;
   provider_product_id?: string | null;
