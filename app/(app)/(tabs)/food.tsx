@@ -35,6 +35,9 @@ import { foodLoggingNutrition } from '../../../src/features/nutrition/foodLoggin
 import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features/nutrition/foodDiaryPresentation';
 import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
 import { MealEditSheet } from '../../../src/features/nutrition/MealEditSheet';
+import { MealLibrarySheet, MealMacroGrid } from '../../../src/features/nutrition/MealLibrarySheet';
+import { buildEditedMeal, createMealCollectionEntry, mealEntryToBuilder, type MealCollectionEntry } from '../../../src/features/nutrition/mealLibrary';
+import { persistMealItemEdit, type MealCollectionClient } from '../../../src/features/nutrition/mealCollectionStore';
 import { applyMealEdit, createMealEditDraft, persistMealEdit, type MealEditClient, type MealEditDraft } from '../../../src/features/nutrition/mealEditing';
 
 import {
@@ -97,6 +100,7 @@ import {
   getLocalDemoNutritionState,
   saveLocalDemoFoodPatternProfile,
   saveLocalDemoMealLogs,
+  replaceLocalDemoMealItems,
   updateLocalDemoUserFoodProduct
 } from '../../../src/features/nutrition/localDemoNutritionStore';
 import {
@@ -117,6 +121,7 @@ import {
   saveMealLogItems,
   toMealLogItemInsert,
   getMealLogItemsForDate,
+  getMealLogItemsForMealLog,
   type MealItemSupabaseClient,
   type MealLogItemRow
 } from '../../../src/features/nutrition/mealItemPersistence';
@@ -529,6 +534,10 @@ export default function FoodScreen() {
   const [removedItem, setRemovedItem] = useState<MealBuilderItem | null>(null);
   const [servingDrafts, setServingDrafts] = useState<Record<string, string>>({});
   const [selectedMeal, setSelectedMeal] = useState<MealLog | null>(null);
+  const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
+  const [mealLibraryOpen, setMealLibraryOpen] = useState(false);
+  const [libraryInitialEntry, setLibraryInitialEntry] = useState<MealCollectionEntry | null>(null);
+  const [mealDetailMessage, setMealDetailMessage] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
   const [mealEditDraft, setMealEditDraft] = useState<MealEditDraft | null>(null);
   const [mealEditError, setMealEditError] = useState('');
@@ -596,6 +605,10 @@ export default function FoodScreen() {
   const userId = session?.user.id ?? null;
   const canUseRemote = remoteEnabled(userId);
   useEffect(() => { setTargets(defaultTargets); }, [userId, mode]);
+  useEffect(() => {
+    setMealLibraryOpen(false); setSelectedMeal(null); setEditingMeal(null); setMealEditDraft(null);
+    setMealBuilder(createEmptyMealBuilder()); setServingDrafts({}); setRemovedItem(null);
+  }, [userId, mode]);
   const today = selectedDay;
   const protocolScopeValue = useMemo(() => protocolScope(userId), [userId]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
@@ -888,6 +901,7 @@ export default function FoodScreen() {
   }
 
   async function handleSaveBuiltMeal() {
+    if (isSavingBuilder) return;
     if (mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null)) {
       setBuilderMessage('Check the servings for each food before saving.');
       return;
@@ -902,7 +916,24 @@ export default function FoodScreen() {
     const meal = mealBuilderToAggregateMealLog(mealBuilder, loggedAt, !canUseRemote);
 
     try {
-      if (canUseRemote && userId) {
+      if (editingMeal) {
+        if (mode !== 'demo' && (!canUseRemote || !userId)) throw new Error('Sign in to save changes to your meal.');
+        let updated = buildEditedMeal(editingMeal, mealBuilder, !canUseRemote);
+        const inputs = mealBuilder.items.map(item => toMealLogItemInsert(
+          mealBuilderItemToPersistenceInput(item, editingMeal.id!, editingMeal.logged_at, mealBuilder.meal_type, !canUseRemote), userId ?? 'demo-user'));
+        if (canUseRemote && userId) {
+          const result = await persistMealItemEdit(supabase as unknown as MealCollectionClient, editingMeal, updated, inputs);
+          updated = mealRowToMealLog(result.meal);
+          setMealLogItems(current => [...current.filter(item => item.meal_log_id !== updated.id), ...result.items]);
+        } else {
+          const rows = inputs.map((item, index) => ({ ...item, id: `edited-${Date.now()}-${index}`, created_at: editingMeal.created_at, updated_at: new Date().toISOString() }));
+          const next = await replaceLocalDemoMealItems(updated, rows);
+          setMealLogItems(next.items);
+        }
+        setMeals(current => current.map(row => row.id === updated.id ? updated : row));
+        setEditingMeal(null);
+        setStatus('Meal updated. Your diary totals now reflect these foods and portions.');
+      } else if (canUseRemote && userId) {
         const savedMeal = await saveMealLog(supabase as unknown as NutritionSupabaseClient, userId, meal);
         const nextMeal = mealRowToMealLog(savedMeal);
         setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
@@ -957,8 +988,8 @@ export default function FoodScreen() {
       setSearchQuery('');
       setBuilderMessage('Meal saved. Build another meal whenever you are ready.');
       setActiveSegment('Diary');
-    } catch {
-      setBuilderMessage('This meal could not be saved. Your items are still here so you can try again.');
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : 'This meal could not be saved. Your items are still here so you can try again.');
     } finally {
       setIsSavingBuilder(false);
     }
@@ -1237,10 +1268,34 @@ export default function FoodScreen() {
     }
   }
 
-  function startEditingMeal(meal: MealLog) {
-    setSelectedMeal(null);
-    setMealEditDraft(createMealEditDraft(meal));
-    setMealEditError('');
+  async function startEditingMeal(meal: MealLog) {
+    if (mealBuilder.items.length) { setMealDetailMessage('Save or cancel your current meal draft before editing another meal.'); return; }
+    try {
+      const items = canUseRemote && userId && meal.id
+        ? await getMealLogItemsForMealLog(supabase as unknown as MealItemSupabaseClient, userId, meal.id)
+        : mealLogItems.filter(item => item.meal_log_id === meal.id);
+      setSelectedMeal(null); setMealDetailMessage('');
+      if (!items.length) { setMealEditDraft(createMealEditDraft(meal)); setMealEditError(''); return; }
+      setMealBuilder(mealEntryToBuilder(createMealCollectionEntry(meal, items)));
+      setEditingMeal(meal); setServingDrafts({}); setRemovedItem(null);
+      setBuilderMessage('Edit foods or portions below. Nothing changes in your diary until you save.');
+      setActiveSegment('Build Meal');
+    } catch { setMealDetailMessage('Food details could not load. Try again before editing this meal.'); }
+  }
+
+  function openMealLibrary(entry: MealCollectionEntry | null = null) {
+    setLibraryInitialEntry(entry); setSelectedMeal(null); setMealChooserOpen(false); setFoodEntryOpen(false); setMealLibraryOpen(true);
+  }
+  function usePreviousMeal(entry: MealCollectionEntry) {
+    if (mealBuilder.items.length) {
+      setMealLibraryOpen(false); setActiveSegment('Build Meal');
+      setBuilderMessage('Save or cancel this draft before reusing another meal. Your foods have been kept.'); return;
+    }
+    try {
+      setMealBuilder(mealEntryToBuilder(entry)); setEditingMeal(null); setServingDrafts({}); setRemovedItem(null);
+      setMealLibraryOpen(false); setActiveSegment('Build Meal');
+      setBuilderMessage('Review these foods and portions, choose breakfast, lunch, dinner, or snack, then save a new entry.');
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'This meal could not be reused.'); }
   }
 
   async function handleSaveMealEdit() {
@@ -1861,7 +1916,8 @@ export default function FoodScreen() {
         <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
-        <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={setSelectedMeal} />
+        <View style={styles.diarySection}><ActionRow title="Your foods & meals" detail="Search history, starred meals, and saved favorites" icon="bookmark-outline" onPress={() => openMealLibrary()} last /></View>
+        <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={meal => { setMealDetailMessage(''); setSelectedMeal(meal); }} />
         <ActionRow title="How food is supporting you" detail="Personal responses and nourishment guidance" icon="leaf-outline" onPress={() => setActiveSegment('Guidance')} last />
       </View>
     );
@@ -2233,8 +2289,8 @@ export default function FoodScreen() {
     return (
       <View style={styles.stack}>
         <View style={styles.diarySection}>
-          <Text style={styles.diaryHeading}>Your meal</Text>
-          <Text style={styles.diaryDetail}>Review portions, then save to {dayTitle(today, actualToday).toLowerCase()}.</Text>
+          <Text style={styles.diaryHeading}>{editingMeal ? 'Edit meal' : 'Your meal'}</Text>
+          <Text style={styles.diaryDetail}>{editingMeal ? `Updating ${new Date(editingMeal.logged_at).toLocaleDateString()} · ${formatClock(editingMeal.logged_at)}. Original date and time are kept.` : `Review portions, then save to ${dayTitle(today, actualToday).toLowerCase()}.`}</Text>
           <Field label="Meal name" onChangeText={(name) => setMealBuilder((current) => ({ ...current, name }))} placeholder="e.g. Lunch" value={mealBuilder.name} />
           <Text style={styles.fieldLabel}>Log this meal as</Text>
           <View style={styles.chipWrap}>{mealTypes.map((type) => <Chip key={type} label={displayLabel(type)} selected={mealBuilder.meal_type === type} onPress={() => setMealBuilder((current) => ({ ...current, meal_type: type }))} />)}</View>
@@ -2255,7 +2311,7 @@ export default function FoodScreen() {
               <View style={styles.builderItemCopy}>
                 <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
                 <Text style={styles.libraryMeta}>{[item.snapshot.brand, foodLoggingNutrition(item.snapshot).label].filter(Boolean).join(' · ')}</Text>
-                <Text style={styles.librarySignal}>{displayLabel(item.quality.label)} · {formatProductAmount(foodLoggingNutrition(item.snapshot).nutrients.calories, ' kcal')} per portion</Text>
+                <Text style={styles.librarySignal}>{formatProductAmount(foodLoggingNutrition(item.snapshot).nutrients.calories, ' kcal')} per portion</Text>
               </View>
               <TextInput
                 accessibilityLabel={`${foodLoggingNutrition(item.snapshot).label} portions of ${item.snapshot.name}`}
@@ -2283,9 +2339,10 @@ export default function FoodScreen() {
             <Metric label="Fiber" value={formatProductAmount(mealBuilderTotals.fiber_g, 'g')} />
             <Metric label="Sodium" value={formatProductAmount(mealBuilderTotals.sodium_mg, 'mg')} />
           </View>
-          <Text style={styles.confidenceLine}>Based on available label data. Macro targets are optional and can be adjusted later.</Text>
+          <Text style={styles.confidenceLine}>Totals include reported nutrients only. Missing values aren’t treated as zero. Portions are multiples of the label amount shown above.</Text>
           {mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null) ? <Text accessibilityRole="alert" style={styles.diaryDetail}>Servings must be greater than 0 and no more than 20.</Text> : null}
-          <PrimaryButton label="Save meal" disabled={mealBuilder.items.length === 0 || mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null)} loading={isSavingBuilder} onPress={() => void handleSaveBuiltMeal()} />
+          <PrimaryButton label={editingMeal ? 'Save changes' : 'Log meal'} disabled={mealBuilder.items.length === 0 || mealBuilder.items.some((item) => portionValue(servingDrafts[item.id] ?? String(item.servings)) === null)} loading={isSavingBuilder} onPress={() => void handleSaveBuiltMeal()} />
+          {!isSavingBuilder ? <ActionRow title={editingMeal ? 'Cancel changes' : 'Discard draft'} onPress={() => { setEditingMeal(null); setMealBuilder(createEmptyMealBuilder()); setServingDrafts({}); setRemovedItem(null); setActiveSegment('Diary'); }} last /> : null}
         </Card>
 
       </View>
@@ -2575,6 +2632,7 @@ export default function FoodScreen() {
         {mealStartMessage ? <Text accessibilityRole="alert" style={styles.diaryDetail}>{mealStartMessage}</Text> : null}
         {mealBuilder.items.length ? <ActionRow title={`Continue your ${mealTypeLabel(mealBuilder.meal_type).toLowerCase()}`} detail={`${mealBuilder.items.length} foods in your unsaved draft`} onPress={() => { setMealChooserOpen(false); setActiveSegment('Build Meal'); }} /> : null}
         {diaryMealChoices.map(choice => <ActionRow key={choice.type} title={choice.label} icon="add-circle-outline" onPress={() => beginDiaryMeal(choice.type)} />)}
+        <ActionRow title="Reuse a meal" detail="Starred, recent, and saved meals" icon="bookmark-outline" onPress={() => openMealLibrary()} last />
       </EntrySheet> : null}
       {foodEntryOpen ? <FoodEntryPicker
         mealLabel={mealTypeLabel(mealBuilder.meal_type)}
@@ -2590,16 +2648,20 @@ export default function FoodScreen() {
         onScan={() => openScanner('builder')}
         onManual={() => { setFoodEntryOpen(false); setManualFoodOpen(true); }}
         onClose={() => setFoodEntryOpen(false)}
+        onOpenLibrary={() => openMealLibrary()}
       /> : null}
       {manualFoodOpen ? renderManualFood() : null}
       {selectedMeal ? <EntrySheet title={selectedMeal.name} onClose={() => setSelectedMeal(null)}>
         <Text style={styles.diaryDetail}>{displayLabel(selectedMeal.meal_type)} · {formatClock(selectedMeal.logged_at)}</Text>
-        <View style={styles.metricGrid}><Metric label="Calories" value={formatProductAmount(selectedMeal.calories, ' kcal')} /><Metric label="Protein" value={formatProductAmount(selectedMeal.protein_g, ' g')} /><Metric label="Carbs" value={formatProductAmount(selectedMeal.carbs_g, ' g')} /><Metric label="Fat" value={formatProductAmount(selectedMeal.fat_g, ' g')} /></View>
-        {mealLogItems.filter((item) => item.meal_log_id === selectedMeal.id).map((item) => <View key={item.id}><Text style={styles.diaryMacroValue}>{item.name}</Text><Text style={styles.diaryDetail}>{item.servings} servings · {item.serving_size ?? 'Size not reported'}</Text></View>)}
-        <ActionRow title="Edit meal details" icon="create-outline" onPress={() => startEditingMeal(selectedMeal)} />
+        <MealMacroGrid meal={selectedMeal} />
+        {mealLogItems.filter((item) => item.meal_log_id === selectedMeal.id).map((item) => <ActionRow key={item.id} title={item.name} detail={`${item.servings} × ${item.serving_size ?? 'serving (size not reported)'}`} onPress={() => void startEditingMeal(selectedMeal)} />)}
+        {mealDetailMessage ? <Text accessibilityRole="alert" style={styles.diaryDetail}>{mealDetailMessage}</Text> : null}
+        <ActionRow title="Edit foods & portions" detail="Add foods, remove foods, or change amounts" icon="create-outline" onPress={() => void startEditingMeal(selectedMeal)} />
+        <ActionRow title="Star or save this meal" icon="star-outline" onPress={() => openMealLibrary(createMealCollectionEntry(selectedMeal, mealLogItems))} />
         <ActionRow title="Add a personal response" detail="Optional: how did this meal feel?" icon="chatbubble-outline" onPress={() => { updateResponseForm('meal_log_id', selectedMeal.id ?? null); setSelectedMeal(null); setActiveSegment('Response Log'); }} last />
       </EntrySheet> : null}
       {mealEditDraft ? <MealEditSheet draft={mealEditDraft} onChange={setMealEditDraft} onClose={() => setMealEditDraft(null)} onSave={handleSaveMealEdit} busy={savingMealEdit} error={mealEditError} /> : null}
+      {mealLibraryOpen ? <MealLibrarySheet key={`${mode}:${userId}`} userId={userId} demo={mode === 'demo'} client={supabase as unknown as MealCollectionClient} meals={meals} items={mealLogItems} foods={productLibrary} initialEntry={libraryInitialEntry} onClose={() => setMealLibraryOpen(false)} onUseMeal={usePreviousMeal} onUseFood={food => { setMealLibraryOpen(false); setSearchQuery(food.name); setSearchResults([food]); setSearchMessage('Choose this food to review your portion.'); setFoodEntryOpen(true); }} /> : null}
     </View>
   );
 }
