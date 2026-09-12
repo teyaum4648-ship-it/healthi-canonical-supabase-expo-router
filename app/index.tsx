@@ -1,38 +1,25 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
 import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
-import { isSupabaseConfigured } from '../src/lib/supabase';
+import { DemoEntry } from '../src/features/auth/DemoEntry';
+import { entryDestination } from '../src/features/auth/entryRouting';
 import { colors, fonts, spacing } from '../src/styles/theme';
+import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
-  const { profile, session, isLoading, signUp } = useAuth();
+  const { profile, session, isLoading, mode } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 820;
 
-  async function handleStart() {
-    if (!isSupabaseConfigured) {
-      await signUp('demo@healthi.local', 'demo-password');
-      router.replace('/(app)/(tabs)');
-      return;
-    }
-
-    if (profile?.onboarding_status === 'completed') {
-      router.replace('/(app)/(tabs)');
-      return;
-    }
-
-    if (!session) {
-      router.push('/(auth)/signup');
-      return;
-    }
-
-    router.push('/(onboarding)');
-  }
+  const destination = entryDestination({ isLoading, mode, hasSession: Boolean(session), onboardingStatus: profile?.onboarding_status });
+  if (destination === 'loading') return <Screen appearance="mobile"><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening Healthi…</Text></Screen>;
+  if (destination === 'demo') return <DemoEntry />;
+  if (destination !== 'welcome') return <Redirect href={destination} />;
 
   return (
     <Screen contentStyle={styles.screen}>
@@ -56,7 +43,7 @@ export default function IndexRoute() {
           <Button
             disabled={isLoading}
             label="Get started on your wellness test"
-            onPress={handleStart}
+            onPress={() => router.push('/(auth)/signup')}
             style={styles.cta}
           />
 
