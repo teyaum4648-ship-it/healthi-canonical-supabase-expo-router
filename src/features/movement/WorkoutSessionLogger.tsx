@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
@@ -18,6 +19,7 @@ import {
   weightStep,
   type WeightUnit
 } from './weightUnits';
+import type { ProgressionSuggestion } from './exerciseProgression';
 import { previousSetFor, type QuickExerciseDraft, type QuickSetDraft, type QuickWorkoutDraft } from './workoutQuickLog';
 
 export type LoggerView = 'Focus' | 'Overview';
@@ -44,6 +46,10 @@ export type WorkoutSessionLoggerProps = {
   onMoveExercise: (exerciseId: string, direction: -1 | 1) => void;
   onAddExercise: () => void;
   onSaveRoutine: () => void;
+  /** Frozen at session start; never recomputed while the lifter is working. */
+  suggestion: ProgressionSuggestion | null;
+  onAcceptSuggestion: () => void;
+  suggestionAccepted: boolean;
   onToggleRest: () => void;
   onAdjustRest: (deltaSeconds: number) => void;
   onSkipRest: () => void;
@@ -235,6 +241,68 @@ function SetCard({
   );
 }
 
+/**
+ * A proposal, not an instruction. It shows what it is based on, and nothing is
+ * written to the session until the lifter accepts it — after which the fields
+ * remain editable like any other.
+ */
+function SuggestionCard({
+  suggestion,
+  accepted,
+  onAccept
+}: {
+  suggestion: ProgressionSuggestion;
+  accepted: boolean;
+  onAccept: () => void;
+}) {
+  const [showWhy, setShowWhy] = useState(false);
+  return (
+    <View style={styles.suggestion}>
+      <View style={styles.suggestionHead}>
+        <Text style={styles.suggestionEyebrow}>Suggested next</Text>
+        <Text style={styles.suggestionConfidence}>{suggestion.confidence} confidence</Text>
+      </View>
+      <Text style={styles.suggestionHeadline}>{suggestion.headline}</Text>
+      {suggestion.target_reps !== null ? (
+        <Text style={styles.suggestionTarget}>
+          {suggestion.target_sets ?? '—'} × {suggestion.target_reps} reps
+          {suggestion.target_weight !== null ? ` at ${suggestion.target_weight} ${suggestion.unit}` : ''}
+        </Text>
+      ) : null}
+
+      <Pressable
+        accessibilityHint="Shows what this suggestion is based on"
+        accessibilityLabel="Why this suggestion"
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showWhy }}
+        onPress={() => setShowWhy((current) => !current)}
+        style={({ pressed }) => [styles.whyRow, pressed && styles.pressed]}
+      >
+        <Text style={styles.whyText}>Why this</Text>
+        <Ionicons color={colors.accent} name={showWhy ? 'chevron-up' : 'chevron-down'} size={16} />
+      </Pressable>
+      {showWhy ? (
+        <View style={styles.whyList}>
+          {suggestion.rationale.map((line) => (
+            <Text key={line} style={styles.whyLine}>· {line}</Text>
+          ))}
+        </View>
+      ) : null}
+
+      <Pressable
+        accessibilityLabel={accepted ? 'Suggestion already applied' : 'Use this suggestion'}
+        accessibilityRole="button"
+        disabled={accepted}
+        onPress={onAccept}
+        style={({ pressed }) => [styles.useButton, accepted && styles.disabled, pressed && styles.pressed]}
+      >
+        <Ionicons color={colors.accent} name={accepted ? 'checkmark' : 'arrow-down'} size={17} />
+        <Text style={styles.useText}>{accepted ? 'Applied — edit freely' : 'Use these targets'}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
   // The screen stays awake for as long as this component is mounted, which is
   // exactly as long as a session is open — no explicit teardown to get wrong.
@@ -372,6 +440,14 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
                 <Ionicons color={colors.text} name="chevron-forward" size={22} />
               </Pressable>
             </View>
+
+            {props.suggestion && props.suggestion.action !== 'no_history' ? (
+              <SuggestionCard
+                accepted={props.suggestionAccepted}
+                onAccept={props.onAcceptSuggestion}
+                suggestion={props.suggestion}
+              />
+            ) : null}
 
             {exercise.sets.map((set) => (
               <SetCard
@@ -660,6 +736,35 @@ const styles = StyleSheet.create({
     minHeight: 52
   },
   finishText: { ...type.label, color: colors.primaryText, fontSize: 16 },
+
+  suggestion: {
+    backgroundColor: colors.surfaceInset,
+    borderColor: colors.accentPale,
+    borderRadius: 18,
+    borderWidth: hairlineWidth,
+    gap: 8,
+    padding: 16
+  },
+  suggestionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  suggestionEyebrow: { ...type.eyebrow, color: colors.accent },
+  suggestionConfidence: { ...type.caption, color: colors.textFaint, textTransform: 'capitalize' },
+  suggestionHeadline: { ...type.heading, color: colors.text },
+  suggestionTarget: { ...type.body, color: colors.textMuted },
+  whyRow: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 44 },
+  whyText: { ...type.label, color: colors.accent },
+  whyList: { gap: 6 },
+  whyLine: { ...type.caption, color: colors.textMuted },
+  useButton: {
+    alignItems: 'center',
+    borderColor: colors.accentPale,
+    borderRadius: 13,
+    borderWidth: hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 48
+  },
+  useText: { ...type.label, color: colors.accent, fontSize: 15 },
 
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.35 }

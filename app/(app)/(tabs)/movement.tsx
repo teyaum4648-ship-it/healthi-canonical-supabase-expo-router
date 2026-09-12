@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
 import { MovementProgress } from '../../../src/features/movement/MovementProgress';
+import { buildExerciseProgress, exerciseKey } from '../../../src/features/movement/exerciseProgress';
+import { suggestionsForSession, type ProgressionSuggestion } from '../../../src/features/movement/exerciseProgression';
 import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/movement/WorkoutSessionLogger';
 import {
   readRoutines,
@@ -274,6 +276,8 @@ export default function MovementScreen() {
   const [draftRestored, setDraftRestored] = useState(false);
   const [lastSummary, setLastSummary] = useState<WorkoutSummary | null>(null);
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [suggestions, setSuggestions] = useState<Map<string, ProgressionSuggestion>>(() => new Map());
+  const [acceptedSuggestions, setAcceptedSuggestions] = useState<Set<string>>(() => new Set());
   const routineScopeValue = useMemo(() => routineScope(user?.id), [user?.id]);
   const draftScope = useMemo(() => workoutDraftScope(user?.id), [user?.id]);
   const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
@@ -764,6 +768,44 @@ export default function MovementScreen() {
     setFocusIndex((current) => Math.max(0, current - 1));
   }
 
+  /**
+   * Fill the focused exercise's sets from its suggestion. Only ever runs from a
+   * tap, and the fields stay editable afterwards like any other.
+   */
+  function acceptSuggestion() {
+    const exercise = quickDraft?.exercises[focusIndex];
+    if (!exercise) return;
+    const key = exerciseKey({
+      exercise_library_item_id: exercise.exercise_library_item_id,
+      exercise_name: exercise.exercise_name
+    });
+    const suggestion = suggestions.get(key);
+    if (!suggestion) return;
+
+    rememberForUndo('Undo suggested targets');
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((item) => item.id !== exercise.id ? item : {
+        ...item,
+        sets: item.sets.map((set) => set.completed ? set : {
+          ...set,
+          weight: suggestion.target_weight === null ? set.weight : String(suggestion.target_weight),
+          reps: suggestion.target_reps === null ? set.reps : String(suggestion.target_reps)
+        })
+      })
+    } : current);
+    setAcceptedSuggestions((current) => new Set(current).add(key));
+  }
+
+  function focusedSuggestion(): ProgressionSuggestion | null {
+    const exercise = quickDraft?.exercises[focusIndex];
+    if (!exercise) return null;
+    return suggestions.get(exerciseKey({
+      exercise_library_item_id: exercise.exercise_library_item_id,
+      exercise_name: exercise.exercise_name
+    })) ?? null;
+  }
+
   function discardQuickDraft() {
     setQuickDraft(null);
     setRestTimer(null);
@@ -779,7 +821,9 @@ export default function MovementScreen() {
       return;
     }
     setQuickLaunchOpen(false);
-    setQuickDraft(attachPreviousWorkout(
+    // Computed once, here, and never again for this session: targets must not
+    // change under someone who is mid-workout.
+    const prepared = attachPreviousWorkout(
       {
         ...nextDraft,
         weight_unit: weightUnit,
@@ -788,7 +832,20 @@ export default function MovementScreen() {
       sessions,
       entries,
       workoutSets
-    ));
+    );
+    setSuggestions(suggestionsForSession({
+      progress: buildExerciseProgress({ sessions, entries, sets: workoutSets, unit: weightUnit }),
+      exerciseKeys: prepared.exercises.map((exercise) => exerciseKey({
+        exercise_library_item_id: exercise.exercise_library_item_id,
+        exercise_name: exercise.exercise_name
+      })),
+      capacity: adaptivePlan.capacity,
+      trainingAllowed: adaptivePlan.training_allowed,
+      today,
+      unit: weightUnit
+    }));
+    setAcceptedSuggestions(new Set());
+    setQuickDraft(prepared);
     setFocusIndex(0);
     setLoggerView('Focus');
     setRestTimer(null);
@@ -1676,7 +1733,17 @@ export default function MovementScreen() {
           onMoveExercise={moveQuickExercise}
           onRemoveExercise={removeQuickExercise}
           onRemoveSet={removeQuickSet}
+          onAcceptSuggestion={acceptSuggestion}
           onSaveRoutine={saveRoutineFromDraft}
+          suggestion={focusedSuggestion()}
+          suggestionAccepted={(() => {
+            const exercise = quickDraft.exercises[focusIndex];
+            if (!exercise) return false;
+            return acceptedSuggestions.has(exerciseKey({
+              exercise_library_item_id: exercise.exercise_library_item_id,
+              exercise_name: exercise.exercise_name
+            }));
+          })()}
           onRenameExercise={(exerciseId, exercise_name) => updateQuickExercise(exerciseId, { exercise_name })}
           onSkipRest={() => setRestTimer(null)}
           onToggleRest={() => setRestTimer((current) => current ? toggleRestTimer(current, new Date().toISOString()) : current)}
