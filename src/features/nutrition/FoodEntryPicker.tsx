@@ -9,7 +9,7 @@ import type { HealthiProductSnapshot } from './productLookup/productLookupTypes'
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
-import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount } from './foodLoggingNutrition';
+import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount, partitionFoodSearchResults, withFoodPortion } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
 
 type PickerTab = 'Search' | 'Recent' | 'Saved';
@@ -27,6 +27,8 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   const [servings, setServings] = useState('1');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showIncomplete, setShowIncomplete] = useState(false);
+  const catalog = partitionFoodSearchResults(results);
   const personal = findPersonalFoods(products, query, tab === 'Saved');
   const logging = selected ? foodLoggingNutrition(selected.product) : null;
   const multiplier = logging?.amountPerPortion ?? 1;
@@ -59,6 +61,10 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         <View style={styles.productRow}><ProductThumbnail url={selected.product.image_url} name={selected.product.name} size={76} /><View style={styles.libraryCopy}><Text style={styles.title}>{selected.product.name}</Text><Text style={styles.detail}>{selected.product.brand}</Text></View></View>
         <Text style={styles.detail}>Check the name, variety, and pack size—packaging photos may be older.</Text>
         <Text style={styles.detail}>{[selected.product.quantity, logging?.label].filter(Boolean).join(' · ')}</Text>
+        {(selected.product.food_portions?.length ?? 0) > 1 ? <View style={styles.portionChoices}>
+          <Text style={styles.label}>Portion size</Text>
+          {selected.product.food_portions!.map(p => <Pressable key={`${p.label}-${p.quantity}`} accessibilityRole="button" accessibilityState={{ selected: selected.product.serving_size === p.label }} onPress={() => { setSelected({ ...selected, product: withFoodPortion(selected.product, p) }); setServings('1'); }} style={[styles.portionChoice, selected.product.serving_size === p.label && styles.portionChoiceSelected]}><Text style={styles.detail}>{p.label}</Text></Pressable>)}
+        </View> : null}
         <Text style={styles.label}>{multiplier === 100 ? 'Amount eaten' : 'Number of servings'}</Text>
         {multiplier === 1 ? <View style={styles.portionRow}>{[0.5, 1, 2].map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} servings`} accessibilityState={{ selected: portion === value }} onPress={() => setServings(String(value))} style={styles.step}><Text style={styles.link}>{value === 0.5 ? '½' : value}×</Text></Pressable>)}</View> : null}
         <View style={styles.portionRow}>
@@ -82,10 +88,15 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         <SegmentedControl options={['Search', 'Recent', 'Saved'] as const} value={tab} onChange={setTab} />
         {onOpenLibrary ? <ActionRow title="Your foods & meals" detail="Search all history and reuse a starred meal" icon="bookmark-outline" onPress={onOpenLibrary} last /> : null}
         {tab === 'Search' ? <>
-          {results.length ? <Text style={styles.label}>{results.length} food matches</Text> : null}
-          {results.map((product) => {
+          {results.length ? <Text style={styles.label}>{catalog.ready.length} foods ready to log</Text> : null}
+          {catalog.ready.map((product) => {
             return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={foodSearchPortionDetail(product)} onPress={() => choose(product, 'search')} /></View></View>;
           })}
+          {catalog.incomplete.length ? <>
+            {!catalog.ready.length ? <Text style={styles.detail}>These matches still need label details. Scan the package or enter its nutrition to log it accurately.</Text> : null}
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: showIncomplete }} onPress={() => setShowIncomplete(!showIncomplete)} style={styles.back}><Text style={styles.link}>{showIncomplete ? 'Hide' : 'Show'} {catalog.incomplete.length} matches needing label details</Text><Ionicons name={showIncomplete ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accentMid} /></Pressable>
+            {showIncomplete ? catalog.incomplete.map(product => <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} /><View style={styles.libraryCopy}><Text style={styles.label}>{product.name}</Text><Text style={styles.detail}>{foodSearchPortionDetail(product)}</Text><ActionRow title="Enter this food’s label" onPress={onManual} /></View></View>) : null}
+          </> : null}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
         </> : <>
@@ -99,6 +110,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   );
 }
 const styles = StyleSheet.create({
+  portionChoices: { gap: 8 }, portionChoice: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.surfaceInset, minHeight: 44 }, portionChoiceSelected: { borderColor: colors.accentMid, backgroundColor: colors.surfaceInset },
   productRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text }, detail: { ...type.body, color: colors.textMuted }, label: { ...type.label, color: colors.text },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: colors.accentMid },

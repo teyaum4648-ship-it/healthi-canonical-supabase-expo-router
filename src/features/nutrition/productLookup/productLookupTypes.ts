@@ -122,6 +122,9 @@ export type HealthiProductSnapshot = {
   serving_quantity?: number | null;
   serving_unit?: string | null;
   serving_equivalent?: string | null;
+  /** Reported household portions for food logging, not inferred from names. */
+  food_portions?: Array<{ label: string; quantity: number; unit: 'g' | 'mL' }>;
+  food_data_type?: string;
   calories_per_serving?: number | null;
   protein_g?: number | null;
   carbs_g?: number | null;

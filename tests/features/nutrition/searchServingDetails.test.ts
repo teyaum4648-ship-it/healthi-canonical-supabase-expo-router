@@ -4,7 +4,7 @@ import { normalizeSearchPayload, searchFoods } from '../../../src/features/nutri
 import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount } from '../../../src/features/nutrition/foodLoggingNutrition';
 import { addMealBuilderItem, createEmptyMealBuilder, calculateMealBuilderTotals } from '../../../src/features/nutrition/mealBuilder';
 
-const raw = { code: '12345678', product_name: 'Example snack', nutriments: { 'energy-kcal_100g': 400, proteins_100g: 20 } };
+const raw = { code: '12345678', product_name: 'Example snack', nutriments: { 'energy-kcal_100g': 400, proteins_100g: 20, carbohydrates_100g: 40, fat_100g: 17 } };
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const detail = { code: raw.code, serving_size: '1 bar (45 g)', serving_quantity: 45 };
 const ctx = { waitUntil: (_p: Promise<unknown>) => {} };
@@ -22,7 +22,7 @@ describe('search label enrichment', () => {
     const url = new URL(fetcher.mock.calls[1][0]);
     expect(url.pathname).toBe('/api/v2/search');
     expect(url.searchParams.get('code')).toBe('12345678,87654321');
-    expect(url.searchParams.get('fields')).not.toContain('nutriments');
+    expect(url.searchParams.get('fields')).toContain('nutriments');
     expect(payload.servingDetailsIncomplete).toBe(false);
     const food = normalizeSearchPayload(payload, 'snack')[0];
     expect(foodLoggingNutrition(food)).toMatchObject({ basis: 'serving', label: '1 bar (45 g)', amountPerPortion: 1, nutrients: { calories: 180, protein_g: 9 } });
@@ -59,7 +59,7 @@ describe('search label enrichment', () => {
     expect(payload).toMatchObject({ servingDetailsIncomplete: true, partial: false, products: [raw] });
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(cache.put).not.toHaveBeenCalled();
-    expect(cache.match.mock.calls[0][0].url).toContain('/food-search-cache/v2');
+    expect(cache.match.mock.calls[0][0].url).toContain('/food-search-cache/v3');
   });
   it('reports when serving details could not load rather than silently implying no label exists', async () => {
     const result = await searchFoods('snack', { endpoint: '/api/food-search', fetcher: vi.fn(async () => response({ products: [raw], usdaFoods: [], servingDetailsIncomplete: true })) });
