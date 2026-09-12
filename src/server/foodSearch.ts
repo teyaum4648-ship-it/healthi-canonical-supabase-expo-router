@@ -1,7 +1,6 @@
 /** Same-origin search gateway. Only public catalog data is cached; never meals,
  * quiz answers, auth headers, or provider credentials. No arbitrary upstream URL.
  */
-import { canonicalBarcodeIdentity } from '../features/nutrition/productLookup/barcodeUtils';
 type Env = { USDA_API_KEY?: string; ASSETS?: { fetch(request: Request): Promise<Response> } };
 type Context = { waitUntil(promise: Promise<unknown>): void };
 type CacheLike = { match(request: Request): Promise<Response | undefined>; put(request: Request, response: Response): Promise<void> };
@@ -21,6 +20,9 @@ async function requestJson(fetcher: typeof fetch, url: string, init: RequestInit
 }
 const clean = (rows: unknown) => Array.isArray(rows) ? rows.filter(record).slice(0, 24) : null;
 const hasServing = (row: RecordValue) => typeof row.serving_size === 'string' && row.serving_size.trim().length > 0;
+// The Worker is standalone. Compare numeric GTIN representations by padding
+// to 14 digits, without introducing an unbundled client-module import.
+const catalogCodeKey = (code: string) => /^\d{8,14}$/.test(code) ? code.padStart(14, '0') : '';
 /** The fast index omits label servings. One bulk request, exact barcode matches,
  * no per-result fan-out and no weights inferred from names or package quantity.
  * https://openfoodfacts.github.io/openfoodfacts-server/api/ref-cheatsheet/#get-data-for-a-list-of-products
@@ -34,19 +36,19 @@ async function enrichServings(rows: RecordValue[], deadline: number, fetcher: ty
     const data = await requestJson(fetcher, `https://world.openfoodfacts.org/api/v2/search?code=${encodeURIComponent(codes.join(','))}&fields=code,serving_size,serving_quantity,quantity&page_size=24`, { headers }, timeout);
     const products = record(data) ? clean(data.products) : null;
     if (!products) throw new Error('invalid_label_response');
-    const requested = new Set(codes.map(canonicalBarcodeIdentity));
-    const matching = new Map(products.filter(p => typeof p.code === 'string' && requested.has(canonicalBarcodeIdentity(p.code))).map(p => [canonicalBarcodeIdentity(p.code as string), p]));
+    const requested = new Set(codes.map(catalogCodeKey));
+    const matching = new Map(products.filter(p => typeof p.code === 'string' && requested.has(catalogCodeKey(p.code))).map(p => [catalogCodeKey(p.code as string), p]));
     return {
       rows: rows.map(p => {
         if (hasServing(p) || typeof p.code !== 'string') return p;
-        const full = matching.get(canonicalBarcodeIdentity(p.code));
+        const full = matching.get(catalogCodeKey(p.code));
         if (!full || !hasServing(full)) return p;
         // Keep nutrition on its original basis. The existing normalizer derives
         // per-serving values from the reported metric amount exactly once.
         return { ...p, serving_size: full.serving_size, serving_quantity: full.serving_quantity,
           quantity: p.quantity || (typeof full.quantity === 'string' ? full.quantity : undefined) };
       }),
-      incomplete: codes.some(code => !matching.has(canonicalBarcodeIdentity(code)))
+      incomplete: codes.some(code => !matching.has(catalogCodeKey(code)))
     };
   } catch { return { rows, incomplete: true }; }
 }

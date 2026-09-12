@@ -9,6 +9,12 @@ const response = (body: unknown, status = 200) => new Response(JSON.stringify(bo
 const detail = { code: raw.code, serving_size: '1 bar (45 g)', serving_quantity: 45 };
 const ctx = { waitUntil: (_p: Promise<unknown>) => {} };
 describe('search label enrichment', () => {
+  it('matches zero-padded GTIN representations without merging different products', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(response({ hits: [{ ...raw, code: '012345678905' }] })).mockResolvedValueOnce(response({ products: [{ ...detail, code: '00012345678905' }] }));
+    const payload = await searchCatalog('snack', {}, fetcher);
+    expect(payload.products[0].serving_size).toBe('1 bar (45 g)');
+    expect(payload.servingDetailsIncomplete).toBe(false);
+  });
   it('uses one exact-code bulk request and recovers servings missing from the index', async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(response({ hits: [raw, { ...raw, code: '87654321' }] })).mockResolvedValueOnce(response({ products: [detail, { ...detail, code: '87654321' }] }));
     const payload = await searchCatalog('snack', {}, fetcher);
