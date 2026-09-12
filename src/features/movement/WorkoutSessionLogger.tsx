@@ -43,6 +43,7 @@ export type WorkoutSessionLoggerProps = {
   onRemoveExercise: (exerciseId: string) => void;
   onMoveExercise: (exerciseId: string, direction: -1 | 1) => void;
   onAddExercise: () => void;
+  onSaveRoutine: () => void;
   onToggleRest: () => void;
   onAdjustRest: (deltaSeconds: number) => void;
   onSkipRest: () => void;
@@ -451,6 +452,15 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
             >
               <Ionicons color={colors.accent} name="add" size={20} />
               <Text style={styles.secondaryActionText}>Add movement</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Save this session as a reusable routine"
+              accessibilityRole="button"
+              onPress={props.onSaveRoutine}
+              style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.accent} name="bookmark-outline" size={19} />
+              <Text style={styles.secondaryActionText}>Save as routine</Text>
             </Pressable>
           </>
         ) : null}

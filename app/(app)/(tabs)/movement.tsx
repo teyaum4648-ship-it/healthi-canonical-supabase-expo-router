@@ -14,7 +14,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
+import { MovementProgress } from '../../../src/features/movement/MovementProgress';
 import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/movement/WorkoutSessionLogger';
+import {
+  readRoutines,
+  removeRoutine,
+  routineFromExercises,
+  routineScope,
+  upsertRoutine,
+  writeRoutines,
+  type Routine
+} from '../../../src/features/movement/routineStore';
 import {
   adjustRestTimer,
   createRestTimer,
@@ -230,7 +240,7 @@ export default function MovementScreen() {
   const [isQuickLogging, setIsQuickLogging] = useState(false);
   const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
   const [historyDay, setHistoryDay] = useState(today);
-  const [historyView, setHistoryView] = useState<'All recent' | 'By day'>('All recent');
+  const [historyView, setHistoryView] = useState<'Progress' | 'All recent' | 'By day'>('Progress');
   const scrollRef = useRef<ScrollView>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const [quickPrompt, setQuickPrompt] = useState('');
@@ -263,6 +273,8 @@ export default function MovementScreen() {
   const [undoSnapshot, setUndoSnapshot] = useState<{ draft: QuickWorkoutDraft; label: string } | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   const [lastSummary, setLastSummary] = useState<WorkoutSummary | null>(null);
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const routineScopeValue = useMemo(() => routineScope(user?.id), [user?.id]);
   const draftScope = useMemo(() => workoutDraftScope(user?.id), [user?.id]);
   const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
   useQuickEntry(openQuickLauncher, !isLoading);
@@ -560,6 +572,49 @@ export default function MovementScreen() {
     const next = createEmptyExerciseDraft(item?.category ?? 'strength');
     if (item) next.exercise_name = item.name;
     updateDraft('exercises', [...draft.exercises, next]);
+  }
+
+  useEffect(() => {
+    let active = true;
+    void readRoutines(routineScopeValue).then((stored) => { if (active) setRoutines(stored); });
+    return () => { active = false; };
+  }, [routineScopeValue]);
+
+  function persistRoutines(next: Routine[]) {
+    setRoutines(next);
+    void writeRoutines(routineScopeValue, next);
+  }
+
+  /** Save what was actually trained, so the next session starts from it. */
+  function saveRoutineFromDraft() {
+    if (!quickDraft) return;
+    const routine = routineFromExercises(
+      quickDraft.title,
+      quickDraft.workout_type,
+      quickDraft.exercises.map((exercise) => ({
+        exercise_name: exercise.exercise_name,
+        exercise_library_item_id: exercise.exercise_library_item_id,
+        category: exercise.category,
+        setCount: exercise.sets.length
+      }))
+    );
+    if (!routine) {
+      setStatus('Give the session a name and at least one movement before saving it as a routine.');
+      return;
+    }
+    persistRoutines(upsertRoutine(routines, routine));
+    setStatus(`Saved "${routine.title}" to your routines.`);
+  }
+
+  function startFromRoutine(routine: Routine) {
+    startQuickWorkout({
+      title: routine.title,
+      workout_type: routine.workout_type,
+      started_at: new Date().toISOString(),
+      weight_unit: weightUnit,
+      exercises: routine.exercises.map((exercise) =>
+        createQuickExerciseDraft(exercise.exercise_name, exercise.category, exercise.sets, exercise.exercise_library_item_id))
+    });
   }
 
   // Unit preference lives in Settings; Move only reads it.
@@ -1338,6 +1393,49 @@ export default function MovementScreen() {
         <Text style={styles.sectionIntro}>
           Choose a starting point that fits today’s {titleCase(adaptivePlan.capacity)} range, then adjust it to your context.
         </Text>
+
+        {routines.length > 0 ? (
+          <>
+            <EditorialLabel>YOUR ROUTINES</EditorialLabel>
+            {routines.map((routine) => (
+              <View key={routine.id} style={styles.templateCard}>
+                <View style={styles.templateCopy}>
+                  <Text style={styles.templateTitle}>{routine.title}</Text>
+                  <Text style={styles.monoLine}>
+                    {routine.exercises.length} exercises · {routine.exercises.reduce((count, item) => count + item.sets, 0)} sets
+                  </Text>
+                  <Text style={styles.templateMeta} numberOfLines={1}>
+                    {routine.exercises.map((item) => item.exercise_name).join(' · ')}
+                  </Text>
+                </View>
+                <View style={styles.templateActions}>
+                  <Pressable
+                    accessibilityLabel={`Start ${routine.title}`}
+                    accessibilityRole="button"
+                    disabled={!isSafetyCompatible(routine.workout_type)}
+                    onPress={() => startFromRoutine(routine)}
+                    style={({ pressed }) => [styles.templateStart, !isSafetyCompatible(routine.workout_type) && styles.disabled, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.templateStartText}>
+                      {isSafetyCompatible(routine.workout_type) ? 'Start' : 'Limited today'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityLabel={`Delete ${routine.title}`}
+                    accessibilityRole="button"
+                    onPress={() => persistRoutines(removeRoutine(routines, routine.id))}
+                    style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+                  >
+                    <Ionicons color={colors.danger} name="trash-outline" size={17} />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+            <Divider />
+          </>
+        ) : null}
+
+        <EditorialLabel>STARTING POINTS</EditorialLabel>
         {workoutTemplates.map((template) => (
           <View key={template.id} style={styles.templateCard}>
             <View style={styles.templateCopy}>
@@ -1443,10 +1541,20 @@ export default function MovementScreen() {
     return (
       <View style={styles.page}>
         <PageHeading section="MOVE · HISTORY" title="History" />
-        <SegmentedControl options={['All recent', 'By day'] as const} value={historyView} onChange={setHistoryView} />
+        <SegmentedControl options={['Progress', 'All recent', 'By day'] as const} value={historyView} onChange={setHistoryView} />
+        {historyView === 'Progress' ? (
+          <MovementProgress
+            entries={entries}
+            library={library}
+            sessions={sessions}
+            sets={workoutSets}
+            today={today}
+            unit={weightUnit}
+          />
+        ) : null}
         {historyView === 'By day' ? <DayNavigator date={historyDay} today={today} earliest={historyStart(today)} onChange={setHistoryDay} /> : null}
-        <EditorialLabel>SESSIONS</EditorialLabel>
-        {visibleSessions.length === 0 ? (
+        {historyView !== 'Progress' ? <EditorialLabel>SESSIONS</EditorialLabel> : null}
+        {historyView === 'Progress' ? null : visibleSessions.length === 0 ? (
           <View style={styles.emptyHistory}><Text style={styles.templateTitle}>No workouts for this view</Text><Text style={styles.body}>Your recent sessions will appear here after you log one.</Text></View>
         ) : visibleSessions.map((session) => {
           const sessionEntries = entries.filter((entry) => entry.workout_session_id === session.id);
@@ -1470,6 +1578,7 @@ export default function MovementScreen() {
           );
         })}
 
+        {historyView === 'Progress' ? null : (
         <Disclosure title="Movement patterns" detail="Training load, effort and recent trends">
         <Text style={styles.historyInsight}>
           {sessions.length === 0
@@ -1541,6 +1650,7 @@ export default function MovementScreen() {
 
 
         </Disclosure>
+        )}
       </View>
     );
   }
@@ -1566,6 +1676,7 @@ export default function MovementScreen() {
           onMoveExercise={moveQuickExercise}
           onRemoveExercise={removeQuickExercise}
           onRemoveSet={removeQuickSet}
+          onSaveRoutine={saveRoutineFromDraft}
           onRenameExercise={(exerciseId, exercise_name) => updateQuickExercise(exerciseId, { exercise_name })}
           onSkipRest={() => setRestTimer(null)}
           onToggleRest={() => setRestTimer((current) => current ? toggleRestTimer(current, new Date().toISOString()) : current)}
