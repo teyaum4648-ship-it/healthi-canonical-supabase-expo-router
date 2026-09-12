@@ -398,6 +398,7 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
     recommended_actions: actions(input, mode, scores, confidence),
     driver_cards: drivers(scores, input),
     reason_codes: reasonCodes,
-    missing_data: missingData
+    missing_data: missingData,
+    contributions: { baseline: 70, domains: scores.map(domain => ({ ...domain, reasons: [...domain.reasons] })) }
   };
 }

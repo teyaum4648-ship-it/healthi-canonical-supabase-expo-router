@@ -89,4 +89,9 @@ export type DailyReadinessResult = {
   driver_cards: DailyReadinessDriver[];
   reason_codes: string[];
   missing_data: string[];
+  /** Additive audit data; existing daily scoring and recommendations are unchanged. */
+  contributions?: {
+    baseline: number;
+    domains: { domain: DailyReadinessDomain; contribution: number; confidence: DataConfidence; missing: boolean; reasons: string[] }[];
+  };
 };
