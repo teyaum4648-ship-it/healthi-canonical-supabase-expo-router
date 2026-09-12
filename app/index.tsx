@@ -5,7 +5,7 @@ import { Button } from '../src/components/Button';
 import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
 import { isSupabaseConfigured } from '../src/lib/supabase';
-import { colors, fonts, spacing } from '../src/styles/theme';
+import { colors, fonts, spacing } from '../src/styles/mobileTheme';
 
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 

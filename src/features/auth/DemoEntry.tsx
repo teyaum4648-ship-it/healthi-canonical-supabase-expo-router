@@ -20,16 +20,16 @@ export function DemoEntry() {
     finally { setBusy(false); }
   }
   return (
-    <Screen appearance="mobile" contentStyle={{ justifyContent: 'center' }}>
-      <SectionHeader appearance="mobile" eyebrow="Healthi preview" title="Start with your day" body="Explore your sleep, nourishment, movement, and daily plan with a clean profile." />
-      <Card appearance="mobile">
+    <Screen contentStyle={{ justifyContent: 'center' }}>
+      <SectionHeader eyebrow="Healthi preview" title="Start with your day" body="Explore your sleep, nourishment, movement, and daily plan with a clean profile." />
+      <Card>
         <Text style={{ ...type.body, color: colors.textMuted }}>This demo is saved on this device. It starts with onboarding and your own entries; sample health data is never added automatically.</Text>
-        <Button appearance="mobile" label="Continue demo" isLoading={busy} onPress={() => void enter(false)} />
-        <Button appearance="mobile" variant="secondary" label="Start a fresh demo" disabled={busy} onPress={() => setConfirmReset(true)} />
+        <Button label="Continue demo" isLoading={busy} onPress={() => void enter(false)} />
+        <Button variant="secondary" label="Start a fresh demo" disabled={busy} onPress={() => setConfirmReset(true)} />
         {confirmReset ? <View style={{ gap: 12 }}>
           <Text style={{ ...type.body, color: colors.text }}>Reset the demo entries on this device and start onboarding again?</Text>
-          <Button appearance="mobile" label="Reset demo and begin" isLoading={busy} onPress={() => void enter(true)} />
-          <Button appearance="mobile" variant="secondary" label="Keep current demo" onPress={() => setConfirmReset(false)} />
+          <Button label="Reset demo and begin" isLoading={busy} onPress={() => void enter(true)} />
+          <Button variant="secondary" label="Keep current demo" onPress={() => setConfirmReset(false)} />
         </View> : null}
         {error ? <Text accessibilityRole="alert" style={{ ...type.body, color: colors.text }}>{error}</Text> : null}
         <Text style={{ ...type.caption, color: colors.textMuted }}>Personal accounts and cross-device sync will be available when the beta account service is connected.</Text>

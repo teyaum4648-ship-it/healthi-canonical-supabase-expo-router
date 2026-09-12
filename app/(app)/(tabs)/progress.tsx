@@ -61,8 +61,8 @@ export default function ProgressScreen() {
   const summary = model?.summary;
 
   return (
-    <Screen appearance="mobile" contentStyle={styles.content}>
-      <SectionHeader appearance="mobile" eyebrow="Progress" title="Trends" body="Patterns from your logged data." />
+    <Screen contentStyle={styles.content}>
+      <SectionHeader eyebrow="Progress" title="Trends" body="Patterns from your logged data." />
 
       <View accessibilityRole="tablist" style={styles.rangeSelector}>
         {rangeOptions.map((option) => {
@@ -82,13 +82,13 @@ export default function ProgressScreen() {
       </View>
 
       {isLoading || !summary ? (
-        <Card appearance="mobile" style={styles.loadingCard}>
+        <Card style={styles.loadingCard}>
           <ActivityIndicator color={colors.accent} />
           <Text style={styles.loadingText}>Gathering your available signals.</Text>
         </Card>
       ) : (
         <>
-          <Card appearance="mobile" style={styles.overviewCard}>
+          <Card style={styles.overviewCard}>
             <View style={styles.overviewTopline}>
               <Text style={styles.cardEyebrow}>OVERVIEW</Text>
               <Text style={styles.sourceText}>{sourceLabel(model)}</Text>
@@ -99,7 +99,7 @@ export default function ProgressScreen() {
           </Card>
 
           {activeProtocol && activeProtocol.actions.length > 0 ? (
-            <Card appearance="mobile" style={styles.overviewCard}>
+            <Card style={styles.overviewCard}>
               <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
               <Text style={styles.overviewTitle}>{protocolDone}/{activeProtocol.actions.length} actions done</Text>
               <Text style={styles.confidenceText}>Follow-through builds your trends over time.</Text>
@@ -112,7 +112,7 @@ export default function ProgressScreen() {
           </View>
 
           {summary.domain_cards.map((card) => (
-            <Card appearance="mobile" key={card.domain} style={styles.domainCard}>
+            <Card key={card.domain} style={styles.domainCard}>
               <View style={styles.domainHeader}>
                 <Text style={styles.domainTitle}>{card.title}</Text>
                 <Text style={[styles.status, card.status === 'watch' && styles.statusWatch]}>{statusLabel(card)}</Text>
@@ -129,14 +129,14 @@ export default function ProgressScreen() {
           </View>
 
           {summary.insights.map((insight) => (
-            <Card appearance="mobile" key={insight.id} style={styles.insightCard}>
+            <Card key={insight.id} style={styles.insightCard}>
               <Text style={styles.insightTitle}>{insight.title}</Text>
               <Text style={styles.insightDetail}>{insight.detail}</Text>
               <Text style={styles.domainConfidence}>{confidenceLabel(insight.confidence)}</Text>
             </Card>
           ))}
 
-          <Card appearance="mobile" style={styles.focusCard}>
+          <Card style={styles.focusCard}>
             <Text style={styles.cardEyebrow}>NEXT FOCUS</Text>
             <Text style={styles.focusTitle}>{summary.next_focus.title}</Text>
             <Text style={styles.focusDetail}>{summary.next_focus.detail}</Text>

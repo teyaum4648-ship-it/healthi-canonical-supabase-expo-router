@@ -6,12 +6,7 @@ import {
   type PressableProps
 } from 'react-native';
 
-import { colors, fonts, radii, spacing } from '../styles/theme';
-import {
-  colors as mobileColors,
-  fonts as mobileFonts,
-  radii as mobileRadii
-} from '../styles/mobileTheme';
+import { colors, radii, type } from '../styles/mobileTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -19,7 +14,6 @@ type ButtonProps = PressableProps & {
   label: string;
   isLoading?: boolean;
   variant?: ButtonVariant;
-  appearance?: 'default' | 'mobile';
 };
 
 export function Button({
@@ -27,22 +21,19 @@ export function Button({
   disabled,
   isLoading = false,
   variant = 'primary',
-  appearance = 'default',
   style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || isLoading;
-  const usesMobileTheme = appearance === 'mobile';
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(isDisabled), busy: isLoading }}
       disabled={isDisabled}
       style={(state) => [
         styles.base,
         styles[variant],
-        usesMobileTheme ? mobileStyles.base : null,
-        usesMobileTheme ? mobileStyles[variant] : null,
         state.pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
         typeof style === 'function' ? style(state) : style
@@ -50,16 +41,9 @@ export function Button({
       {...props}
     >
       {isLoading ? (
-        <ActivityIndicator color={variant === 'primary' ? (usesMobileTheme ? mobileColors.primaryText : colors.primaryText) : (usesMobileTheme ? mobileColors.primary : colors.primary)} />
+        <ActivityIndicator color={variant === 'primary' ? colors.primaryText : colors.primary} />
       ) : (
-        <Text
-          style={[
-            styles.label,
-            variant === 'primary' ? styles.primaryLabel : null,
-            usesMobileTheme ? mobileStyles.label : null,
-            usesMobileTheme && variant === 'primary' ? mobileStyles.primaryLabel : null
-          ]}
-        >
+        <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : null]}>
           {label}
         </Text>
       )}
@@ -69,75 +53,37 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.lg
-  },
-  primary: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
-    shadowRadius: 16
-  },
-  secondary: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(255, 255, 255, 0.48)'
-  },
-  danger: {
-    borderWidth: 1,
-    borderColor: colors.danger,
-    backgroundColor: colors.surface
-  },
-  pressed: {
-    opacity: 0.82
-  },
-  disabled: {
-    opacity: 0.55
-  },
-  label: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase'
-  },
-  primaryLabel: {
-    color: colors.primaryText
-  }
-});
-
-const mobileStyles = StyleSheet.create({
-  base: {
-    borderRadius: mobileRadii.md,
-    minHeight: 52,
+    borderRadius: radii.md,
     paddingHorizontal: 20
   },
   primary: {
-    backgroundColor: mobileColors.primary,
-    shadowOpacity: 0
+    backgroundColor: colors.primary
   },
   secondary: {
-    backgroundColor: mobileColors.surfaceInset,
-    borderColor: mobileColors.borderStrong
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceInset
   },
   danger: {
-    backgroundColor: mobileColors.surfaceInset,
-    borderColor: mobileColors.danger
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.danger,
+    backgroundColor: colors.surfaceInset
+  },
+  pressed: {
+    opacity: 0.8
+  },
+  disabled: {
+    opacity: 0.45
   },
   label: {
-    color: mobileColors.text,
-    fontFamily: mobileFonts.bodyMedium,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-    textTransform: 'none'
+    ...type.label,
+    color: colors.text,
+    fontSize: 16
   },
   primaryLabel: {
-    color: mobileColors.primaryText
+    color: colors.primaryText
   }
 });

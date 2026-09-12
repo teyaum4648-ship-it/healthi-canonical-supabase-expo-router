@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../../src/components/Screen';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
-import { colors, fonts } from '../../src/styles/theme';
+import { colors, fonts } from '../../src/styles/mobileTheme';
 
 type ReviewQueue = {
   records: Array<{ id: string; record_type: string }>;
