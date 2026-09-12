@@ -14,6 +14,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
+import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/movement/WorkoutSessionLogger';
+import {
+  adjustRestTimer,
+  createRestTimer,
+  toggleRestTimer,
+  type RestTimer
+} from '../../../src/features/movement/restTimer';
+import { DEFAULT_WEIGHT_UNIT, type WeightUnit } from '../../../src/features/movement/weightUnits';
+import { readWeightUnit, weightUnitScope } from '../../../src/features/movement/weightUnitStore';
+import {
+  clearWorkoutDraft,
+  readWorkoutDraft,
+  workoutDraftScope,
+  writeWorkoutDraft
+} from '../../../src/features/movement/workoutDraftStore';
+import { summarizeQuickWorkout, type WorkoutSummary } from '../../../src/features/movement/workoutSummary';
 import {
   calculateMovementSummary,
   generateAdaptiveMovementPlan,
@@ -98,7 +114,7 @@ import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
-const segments: Segment[] = ['Today', 'Library', 'History'];
+const segments: Segment[] = ['Today', 'Train', 'History'];
 const movePalette = {
   background: '#000000',
   surface: '#121214',
@@ -237,6 +253,16 @@ export default function MovementScreen() {
   const [status, setStatus] = useState('Log a workout to begin shaping your movement signal.');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(DEFAULT_WEIGHT_UNIT);
+  const [loggerView, setLoggerView] = useState<LoggerView>('Focus');
+  const [focusIndex, setFocusIndex] = useState(0);
+  const [restTimer, setRestTimer] = useState<RestTimer | null>(null);
+  const [timerNow, setTimerNow] = useState(() => new Date().toISOString());
+  const [undoSnapshot, setUndoSnapshot] = useState<{ draft: QuickWorkoutDraft; label: string } | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [lastSummary, setLastSummary] = useState<WorkoutSummary | null>(null);
+  const draftScope = useMemo(() => workoutDraftScope(user?.id), [user?.id]);
+  const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
   useQuickEntry(openQuickLauncher, !isLoading);
   useEffect(() => {
     const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: scrollPositions.current[activeSegment] ?? 0, animated: false }));
@@ -534,8 +560,144 @@ export default function MovementScreen() {
     updateDraft('exercises', [...draft.exercises, next]);
   }
 
+  // Unit preference lives in Settings; Move only reads it.
+  useEffect(() => {
+    let active = true;
+    void readWeightUnit(unitScope).then((unit) => { if (active) setWeightUnit(unit); });
+    return () => { active = false; };
+  }, [unitScope]);
+
+  // Resume an interrupted session. A workout is unrecoverable if lost, so the
+  // draft is restored before anything else can overwrite it.
+  useEffect(() => {
+    let active = true;
+    void readWorkoutDraft(draftScope).then((stored) => {
+      if (!active || !stored) return;
+      setQuickDraft((current) => {
+        if (current) return current;
+        setDraftRestored(true);
+        return stored;
+      });
+    });
+    return () => { active = false; };
+  }, [draftScope]);
+
+  // Persist every edit, debounced so typing does not thrash storage.
+  useEffect(() => {
+    if (!quickDraft) return;
+    const handle = setTimeout(() => { void writeWorkoutDraft(draftScope, quickDraft); }, 400);
+    return () => clearTimeout(handle);
+  }, [draftScope, quickDraft]);
+
+  // Tick only while resting, and derive remaining time from timestamps so a
+  // backgrounded phone still shows the right number on return.
+  useEffect(() => {
+    if (!restTimer || !restTimer.running_since) return;
+    const handle = setInterval(() => setTimerNow(new Date().toISOString()), 1000);
+    return () => clearInterval(handle);
+  }, [restTimer]);
+
   function isSafetyCompatible(category: string): boolean {
     return adaptivePlan.training_allowed || category === 'mobility' || category === 'recovery';
+  }
+
+  /** Snapshot before a destructive edit so Undo can restore it. */
+  function rememberForUndo(label: string) {
+    if (quickDraft) setUndoSnapshot({ draft: quickDraft, label });
+  }
+
+  function handleUndo() {
+    if (!undoSnapshot) return;
+    setQuickDraft(undoSnapshot.draft);
+    setUndoSnapshot(null);
+  }
+
+  /**
+   * Marking a set complete stamps the time and starts the rest timer, so the
+   * only thing a lifter has to do between sets is one tap.
+   */
+  function completeQuickSet(exerciseId: string, setId: string) {
+    // Read the set from current state rather than from inside the updater: a
+    // state updater is not guaranteed to have run by the next statement, so
+    // deciding the rest timer from a value it assigns would use stale data.
+    const target = quickDraft?.exercises
+      .find((exercise) => exercise.id === exerciseId)?.sets
+      .find((set) => set.id === setId);
+    if (!target) return;
+
+    const completedAt = new Date().toISOString();
+    const nowCompleted = !target.completed;
+    const restSeconds = Number(target.rest_seconds) || 90;
+
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId
+        ? {
+            ...exercise,
+            sets: exercise.sets.map((set) => set.id === setId
+              ? { ...set, completed: nowCompleted, completed_at: nowCompleted ? completedAt : null }
+              : set)
+          }
+        : exercise)
+    } : current);
+
+    if (nowCompleted && restSeconds > 0) {
+      setTimerNow(completedAt);
+      setRestTimer(createRestTimer(exerciseId, setId, restSeconds, completedAt));
+    } else if (!nowCompleted) {
+      setRestTimer((current) => current && current.set_id === setId ? null : current);
+    }
+  }
+
+  function duplicateQuickSet(exerciseId: string, setId: string) {
+    rememberForUndo('Undo duplicate');
+    setQuickDraft((current) => current ? {
+      ...current,
+      exercises: current.exercises.map((exercise) => {
+        if (exercise.id !== exerciseId) return exercise;
+        const source = exercise.sets.find((set) => set.id === setId);
+        if (!source) return exercise;
+        const copy = {
+          ...createQuickSetDraft(exercise.sets.length + 1),
+          weight: source.weight,
+          reps: source.reps,
+          rpe: source.rpe,
+          rest_seconds: source.rest_seconds,
+          warmup: source.warmup
+        };
+        return { ...exercise, sets: [...exercise.sets, copy] };
+      })
+    } : current);
+  }
+
+  function moveQuickExercise(exerciseId: string, direction: -1 | 1) {
+    setQuickDraft((current) => {
+      if (!current) return current;
+      const index = current.exercises.findIndex((exercise) => exercise.id === exerciseId);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= current.exercises.length) return current;
+      const exercises = [...current.exercises];
+      [exercises[index], exercises[target]] = [exercises[target], exercises[index]];
+      return { ...current, exercises };
+    });
+  }
+
+  function removeQuickExercise(exerciseId: string) {
+    rememberForUndo('Undo remove movement');
+    setQuickDraft((current) => {
+      if (!current || current.exercises.length <= 1) return current;
+      return { ...current, exercises: current.exercises.filter((exercise) => exercise.id !== exerciseId) };
+    });
+    setFocusIndex((current) => Math.max(0, current - 1));
+  }
+
+  function discardQuickDraft() {
+    setQuickDraft(null);
+    setRestTimer(null);
+    setUndoSnapshot(null);
+    setIsQuickLogging(false);
+    setDraftRestored(false);
+    void clearWorkoutDraft(draftScope);
   }
 
   function startQuickWorkout(nextDraft: QuickWorkoutDraft) {
@@ -544,11 +706,25 @@ export default function MovementScreen() {
       return;
     }
     setQuickLaunchOpen(false);
-    setQuickDraft(attachPreviousWorkout(nextDraft, sessions, entries, workoutSets));
+    setQuickDraft(attachPreviousWorkout(
+      {
+        ...nextDraft,
+        weight_unit: weightUnit,
+        note: feeling ? `Felt ${feeling.toLowerCase()} before training` : null
+      },
+      sessions,
+      entries,
+      workoutSets
+    ));
+    setFocusIndex(0);
+    setLoggerView('Focus');
+    setRestTimer(null);
+    setUndoSnapshot(null);
+    setDraftRestored(false);
     setActiveSegment('Train');
     setIsLogging(false);
     setIsQuickLogging(true);
-    setStatus('Quick log ready. Previous values stay on the left; today’s entries go on the right.');
+    setStatus('Session ready. One movement at a time, with last time beside today.');
   }
 
   function openQuickFromPrompt() {
@@ -608,6 +784,7 @@ export default function MovementScreen() {
   }
 
   function removeQuickSet(exerciseId: string, setId: string) {
+    rememberForUndo('Undo remove set');
     setQuickDraft((current) => current ? {
       ...current,
       exercises: current.exercises.map((exercise) => exercise.id === exerciseId
@@ -690,12 +867,18 @@ export default function MovementScreen() {
         setDataMode('demo');
         setStatus('Workout saved locally with an automatic date and time.');
       }
+      setLastSummary(summarizeQuickWorkout(quickDraft, finishedAt));
       setQuickDraft(null);
       setQuickPrompt('');
       setIsQuickLogging(false);
+      setRestTimer(null);
+      setUndoSnapshot(null);
+      setDraftRestored(false);
+      setFocusIndex(0);
+      void clearWorkoutDraft(draftScope);
       setActiveSegment('Today');
     } catch {
-      setStatus('Workout could not save. Review the set details and try again.');
+      setStatus('Workout could not be saved yet. It is still here on this device — try again when you have a connection.');
     } finally {
       setIsSaving(false);
     }
@@ -889,40 +1072,55 @@ export default function MovementScreen() {
           </View>
         ) : null}
 
-        <Pressable accessibilityRole="button" onPress={openQuickLauncher} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Ionicons name="add" color="#FFFFFF" size={22} />
-          <Text style={styles.primaryButtonText}>{quickDraft || isLogging ? 'Continue workout' : 'Log a workout'}</Text>
-        </Pressable>
-
-        <View style={styles.verdictBlock}>
-          <EditorialLabel>TODAY'S DIRECTION</EditorialLabel>
-          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
-          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
-          <Text style={styles.whyTitle}>Why this session</Text>
-          <View style={styles.reasonList}>
-            {adaptivePlan.reason_codes.slice(0, 3).map((reason) => (
-              <View key={reason} style={styles.reasonRow}>
-                <View style={styles.reasonDot} />
-                <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
+        {lastSummary ? (
+          <View style={styles.summaryCard}>
+            <View style={styles.rowBetween}>
+              <EditorialLabel>LAST SESSION SAVED</EditorialLabel>
+              <Pressable accessibilityLabel="Dismiss summary" accessibilityRole="button" onPress={() => setLastSummary(null)} style={styles.iconButton}>
+                <Ionicons color={movePalette.slate} name="close" size={16} />
+              </Pressable>
+            </View>
+            <Text style={styles.summaryTitle}>{lastSummary.headline ?? lastSummary.title}</Text>
+            <Text style={styles.summaryMeta}>
+              {lastSummary.working_sets} working set{lastSummary.working_sets === 1 ? '' : 's'}
+              {lastSummary.warmup_sets > 0 ? ` · ${lastSummary.warmup_sets} warm-up` : ''}
+              {lastSummary.duration_minutes !== null ? ` · ${lastSummary.duration_minutes} min` : ''}
+            </Text>
+            {lastSummary.changes.filter((change) => change.direction !== 'new').slice(0, 3).map((change) => (
+              <View key={change.exercise_id} style={styles.summaryRow}>
+                <Ionicons
+                  color={change.direction === 'up' ? movePalette.greenMid : change.direction === 'down' ? colors.danger : movePalette.slate}
+                  name={change.direction === 'up' ? 'trending-up' : change.direction === 'down' ? 'trending-down' : 'remove'}
+                  size={15}
+                />
+                <Text style={styles.summaryRowText}>{change.exercise_name} · {change.detail}</Text>
               </View>
             ))}
           </View>
-        </View>
+        ) : null}
 
-        <Pressable onPress={() => setActiveSegment('Train')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Text style={styles.primaryButtonText}>Start today’s session</Text>
-          <Ionicons color="#FFFFFF" name="arrow-forward" size={18} />
+        {draftRestored && quickDraft ? (
+          <View style={styles.resumeNote}>
+            <Ionicons color={movePalette.greenMid} name="refresh-outline" size={16} />
+            <Text style={styles.resumeNoteText}>Your last session was still open. Pick up where you left off.</Text>
+          </View>
+        ) : null}
+
+        <Pressable accessibilityRole="button" onPress={openQuickLauncher} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
+          <Ionicons name={quickDraft ? 'play' : 'add'} color="#FFFFFF" size={22} />
+          <Text style={styles.primaryButtonText}>{quickDraft ? 'Resume workout' : 'Start workout'}</Text>
         </Pressable>
 
-        <View style={styles.changedRow}>
-          <EditorialLabel>CHANGED SINCE LAST</EditorialLabel>
-          <Text style={styles.changedCopy}>{status}</Text>
-        </View>
+        {quickDraft ? (
+          <Pressable accessibilityRole="button" onPress={discardQuickDraft} style={styles.textAction}>
+            <Text style={styles.textActionLabel}>Discard the open session</Text>
+          </Pressable>
+        ) : null}
 
-        <Divider />
-
-        <View>
-          <EditorialLabel>TODAY'S USEFUL RANGE</EditorialLabel>
+        <View style={styles.verdictBlock}>
+          <EditorialLabel>WHY THIS FITS TODAY</EditorialLabel>
+          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
+          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
           <View style={styles.capacityLabels}>
             {['Restore', 'Technique', 'Build', 'Push'].map((label, index) => (
               <Text key={label} style={[styles.capacityLabel, index === capacityIndex && styles.capacityLabelActive]}>{label}</Text>
@@ -933,18 +1131,30 @@ export default function MovementScreen() {
               <View key={index} style={[styles.capacitySegment, index === capacityIndex && styles.capacitySegmentActive]} />
             ))}
           </View>
-          <View style={styles.capacityPanel}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.capacityTitle}>{titleCase(adaptivePlan.capacity)}</Text>
-              <Text style={styles.monoMeta}>Score {adaptivePlan.readiness_score} · {adaptivePlan.confidence}</Text>
-            </View>
-            <Text style={styles.body}>{adaptivePlan.explanation}</Text>
-            <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10</Text>
+          <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10 · readiness comes from Home</Text>
+          <View style={styles.reasonList}>
+            {adaptivePlan.reason_codes.slice(0, 3).map((reason) => (
+              <View key={reason} style={styles.reasonRow}>
+                <View style={styles.reasonDot} />
+                <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
         <Divider />
 
+        <View style={styles.feelingPanel}>
+          <Text style={styles.feelingTitle}>How are you feeling?</Text>
+          <Text style={styles.feelingHint}>Optional · saved with the session so you can read it back later.</Text>
+          <View style={styles.chipWrap}>
+            {['Heavy', 'Steady', 'Energized', 'Sore'].map((item) => (
+              <Chip key={item} label={item} onPress={() => setFeeling(feeling === item ? null : item)} selected={feeling === item} />
+            ))}
+          </View>
+        </View>
+
+        <Disclosure detail="Objective, what supports today, and your recent mix" title="More about today">
         <View>
           <EditorialLabel>TODAY'S OBJECTIVE</EditorialLabel>
           <Text style={styles.objective}>{adaptivePlan.objective}</Text>
@@ -957,8 +1167,6 @@ export default function MovementScreen() {
             ))}
           </View>
         </View>
-
-        <Divider />
 
         <View>
           <EditorialLabel>SUPPORTING TODAY</EditorialLabel>
@@ -979,18 +1187,6 @@ export default function MovementScreen() {
           </View>
         </View>
 
-        <View style={styles.feelingPanel}>
-          <Text style={styles.feelingTitle}>How are you feeling?</Text>
-          <Text style={styles.feelingHint}>Optional · this check-in does not change today’s score.</Text>
-          <View style={styles.chipWrap}>
-            {['Heavy', 'Steady', 'Energized', 'Sore'].map((item) => (
-              <Chip key={item} label={item} onPress={() => setFeeling(feeling === item ? null : item)} selected={feeling === item} />
-            ))}
-          </View>
-        </View>
-
-        <Divider />
-
         <View>
           <EditorialLabel>YOUR MOVEMENT MIX</EditorialLabel>
           <View style={styles.mixList}>
@@ -1003,6 +1199,7 @@ export default function MovementScreen() {
           </View>
           <Text style={styles.mixInsight}>{adaptivePlan.movement_mix_insight}</Text>
         </View>
+        </Disclosure>
 
         <Divider />
 
@@ -1033,240 +1230,6 @@ export default function MovementScreen() {
             <Text style={styles.monoMeta}>{summary.recent_high_effort_count} high effort</Text>
           </View>
         </View>
-      </View>
-    );
-  }
-
-  function renderQuickLogger() {
-    if (!quickDraft) return null;
-    return (
-      <View style={styles.page}>
-        <PageHeading
-          action={(
-            <Pressable
-              onPress={() => {
-                setIsQuickLogging(false);
-                setQuickDraft(null);
-              }}
-              style={styles.textAction}
-            >
-              <Text style={styles.textActionLabel}>Back</Text>
-            </Pressable>
-          )}
-          section="MOVE · QUICK LOG"
-          title="Workout ledger"
-        />
-
-        <View style={styles.ledgerHero}>
-          <TextInput
-            accessibilityLabel="Workout name"
-            onChangeText={(title) => setQuickDraft((current) => current ? { ...current, title } : current)}
-            placeholder="Workout name"
-            placeholderTextColor="rgba(255, 255, 255, 0.38)"
-            style={styles.ledgerTitleInput}
-            value={quickDraft.title}
-          />
-          <View style={styles.ledgerTimestampRow}>
-            <Ionicons color={movePalette.greenMid} name="time-outline" size={16} />
-            <Text style={styles.ledgerTimestamp}>Started {formatLoggedAt(quickDraft.started_at)} · date and time saved automatically</Text>
-          </View>
-          <Text style={styles.ledgerHelp}>Previous values are reference-only. Tap one to copy it, then enter today’s work beside it.</Text>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.libraryScroller}>
-          <View style={styles.libraryRow}>
-            <Pressable onPress={() => addQuickExercise()} style={styles.addMovementChip}>
-              <Ionicons color={movePalette.green} name="add" size={16} />
-              <Text style={styles.addMovementChipText}>Custom movement</Text>
-            </Pressable>
-            {library.slice(0, 10).map((item) => (
-              <Chip key={item.id} label={item.name} onPress={() => addQuickExercise(item)} />
-            ))}
-          </View>
-        </ScrollView>
-
-        {quickDraft.exercises.map((exercise, exerciseIndex) => (
-          <View key={exercise.id} style={styles.ledgerExerciseCard}>
-            <View style={styles.ledgerExerciseHeading}>
-              <View style={styles.ledgerExerciseTitleWrap}>
-                <Text style={styles.ledgerExerciseIndex}>Movement {exerciseIndex + 1}</Text>
-                <TextInput
-                  accessibilityLabel={`Movement ${exerciseIndex + 1} name`}
-                  onChangeText={(exercise_name) => updateQuickExercise(exercise.id, { exercise_name })}
-                  placeholder="Movement name"
-                  placeholderTextColor="rgba(255, 255, 255, 0.38)"
-                  style={styles.ledgerExerciseTitle}
-                  value={exercise.exercise_name}
-                />
-                <Text style={styles.ledgerPreviousDate}>
-                  {exercise.previous_date ? `Previous · ${formatDate(exercise.previous_date)}` : 'No previous entry yet'}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel={`Remove ${exercise.exercise_name || `movement ${exerciseIndex + 1}`}`}
-                onPress={() => setQuickDraft((current) => current ? {
-                  ...current,
-                  exercises: current.exercises.filter((item) => item.id !== exercise.id)
-                } : current)}
-                style={styles.iconButton}
-              >
-                <Ionicons color={colors.danger} name="close" size={18} />
-              </Pressable>
-            </View>
-
-            <View style={styles.ledgerCategoryRow}>
-              {exerciseCategories.map((category) => (
-                <Pressable
-                  key={category}
-                  onPress={() => updateQuickExercise(exercise.id, { category })}
-                  style={[styles.ledgerCategoryChip, exercise.category === category && styles.ledgerCategoryChipActive]}
-                >
-                  <Text style={[styles.ledgerCategoryText, exercise.category === category && styles.ledgerCategoryTextActive]}>{titleCase(category)}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.ledgerSetCountRow}>
-              <View style={styles.ledgerSetCountCopy}>
-                <Text style={styles.ledgerSetCountTitle}>Sets</Text>
-                <Text style={styles.ledgerSetCountHint}>Match the number you actually completed.</Text>
-              </View>
-              <View style={styles.ledgerSetStepper}>
-                <Pressable
-                  accessibilityLabel={`Remove last set from ${exercise.exercise_name}`}
-                  disabled={exercise.sets.length <= 1}
-                  onPress={() => removeQuickSet(exercise.id, exercise.sets[exercise.sets.length - 1].id)}
-                  style={[styles.ledgerStepperButton, exercise.sets.length <= 1 && styles.disabled]}
-                >
-                  <Ionicons color={movePalette.green} name="remove" size={18} />
-                </Pressable>
-                <Text style={styles.ledgerSetCountValue}>{exercise.sets.length}</Text>
-                <Pressable
-                  accessibilityLabel={`Add set to ${exercise.exercise_name}`}
-                  onPress={() => addQuickSet(exercise.id)}
-                  style={styles.ledgerStepperButton}
-                >
-                  <Ionicons color={movePalette.green} name="add" size={18} />
-                </Pressable>
-              </View>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.ledgerSheet}>
-                <View style={styles.ledgerHeaderRow}>
-                  <Text style={[styles.ledgerHeader, styles.ledgerSetColumn]}>SET</Text>
-                  <Text style={[styles.ledgerHeader, styles.ledgerPreviousColumn]}>PREVIOUS</Text>
-                  <Text style={[styles.ledgerHeader, styles.ledgerInputColumn]}>WEIGHT</Text>
-                  <Text style={[styles.ledgerHeader, styles.ledgerInputColumn]}>REPS</Text>
-                  <Text style={[styles.ledgerHeader, styles.ledgerInputColumn]}>RPE</Text>
-                  <Text style={[styles.ledgerHeader, styles.ledgerRestColumn]}>REST</Text>
-                  <Text style={[styles.ledgerHeader, styles.ledgerDoneColumn]}>DONE</Text>
-                </View>
-                {exercise.sets.map((set) => {
-                  const previous = exercise.previous_sets.find((item) => item.set_index === set.set_index);
-                  const previousLabel = previous
-                    ? `${previous.weight ?? '—'} × ${previous.reps ?? '—'}${previous.rpe ? ` · ${previous.rpe}` : ''}`
-                    : '—';
-                  return (
-                    <View key={set.id} style={[styles.ledgerSetRow, set.completed && styles.ledgerSetRowComplete]}>
-                      <View style={[styles.ledgerSetIdentity, styles.ledgerSetColumn]}>
-                        <Text style={styles.ledgerSetNumber}>{set.set_index}</Text>
-                        <Pressable
-                          accessibilityLabel={`Remove ${exercise.exercise_name} set ${set.set_index}`}
-                          accessibilityRole="button"
-                          disabled={exercise.sets.length <= 1}
-                          onPress={() => removeQuickSet(exercise.id, set.id)}
-                          style={[styles.ledgerRemoveButton, exercise.sets.length <= 1 && styles.disabled]}
-                        >
-                          <Ionicons color={colors.danger} name="remove-circle-outline" size={15} />
-                          <Text style={styles.ledgerRemoveText}>{exercise.sets.length <= 1 ? 'Keep 1' : 'Remove'}</Text>
-                        </Pressable>
-                      </View>
-                      <Pressable
-                        accessibilityHint={previous ? 'Copies this set into today’s fields' : undefined}
-                        accessibilityLabel={`Previous set ${set.set_index}: ${previousLabel}`}
-                        disabled={!previous}
-                        onPress={() => applyPreviousSet(exercise.id, set.set_index)}
-                        style={[styles.ledgerPreviousCell, styles.ledgerPreviousColumn, !previous && styles.disabled]}
-                      >
-                        <Text style={styles.ledgerPreviousValue}>{previousLabel}</Text>
-                        {previous ? <Ionicons color={movePalette.greenMid} name="copy-outline" size={13} /> : null}
-                      </Pressable>
-                      <TextInput
-                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} weight`}
-                        keyboardType="decimal-pad"
-                        onChangeText={(weight) => updateQuickSet(exercise.id, set.id, { weight })}
-                        placeholder="—"
-                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
-                        style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
-                        value={set.weight}
-                      />
-                      <TextInput
-                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} reps`}
-                        keyboardType="numeric"
-                        onChangeText={(reps) => updateQuickSet(exercise.id, set.id, { reps })}
-                        placeholder="—"
-                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
-                        style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
-                        value={set.reps}
-                      />
-                      <TextInput
-                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} RPE`}
-                        keyboardType="decimal-pad"
-                        onChangeText={(rpe) => updateQuickSet(exercise.id, set.id, { rpe })}
-                        placeholder="—"
-                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
-                        style={[styles.ledgerCellInput, styles.ledgerInputColumn]}
-                        value={set.rpe}
-                      />
-                      <TextInput
-                        accessibilityLabel={`${exercise.exercise_name} set ${set.set_index} rest seconds`}
-                        keyboardType="numeric"
-                        onChangeText={(rest_seconds) => updateQuickSet(exercise.id, set.id, { rest_seconds })}
-                        placeholder="90"
-                        placeholderTextColor="rgba(255, 255, 255, 0.30)"
-                        style={[styles.ledgerCellInput, styles.ledgerRestColumn]}
-                        value={set.rest_seconds}
-                      />
-                      <Pressable
-                        accessibilityLabel={`${set.completed ? 'Mark incomplete' : 'Mark complete'} ${exercise.exercise_name} set ${set.set_index}`}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: set.completed }}
-                        onPress={() => updateQuickSet(exercise.id, set.id, {
-                          completed: !set.completed,
-                          completed_at: set.completed ? null : new Date().toISOString()
-                        })}
-                        style={[styles.ledgerDoneButton, styles.ledgerDoneColumn, set.completed && styles.ledgerDoneButtonActive]}
-                      >
-                        <Ionicons color={set.completed ? movePalette.surface : movePalette.green} name="checkmark" size={17} />
-                      </Pressable>
-                    </View>
-                  );
-                })}
-              </View>
-            </ScrollView>
-            <Pressable onPress={() => addQuickSet(exercise.id)} style={({ pressed }) => [styles.ledgerAddSet, pressed && styles.pressed]}>
-              <Ionicons color={movePalette.green} name="add" size={16} />
-              <Text style={styles.ledgerAddSetText}>Add set</Text>
-            </Pressable>
-          </View>
-        ))}
-
-        <View style={styles.ledgerFinishBar}>
-          <View style={styles.ledgerFinishCopy}>
-            <Text style={styles.ledgerFinishTitle}>Finish when you’re done</Text>
-            <Text style={styles.ledgerFinishHint}>Blank rows are ignored. Completed rows keep their automatic timestamp.</Text>
-          </View>
-          <Pressable
-            disabled={isSaving}
-            onPress={handleQuickSave}
-            style={({ pressed }) => [styles.ledgerFinishButton, (pressed || isSaving) && styles.pressed]}
-          >
-            {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons color="#FFFFFF" name="checkmark" size={19} />}
-            <Text style={styles.ledgerFinishButtonText}>{isSaving ? 'Saving…' : 'Finish'}</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.ledgerStatus}>{status}</Text>
       </View>
     );
   }
@@ -1345,7 +1308,6 @@ export default function MovementScreen() {
   }
 
   function renderTrain() {
-    if (isQuickLogging) return renderQuickLogger();
     if (isLogging) return renderLogWorkout();
     return (
       <View style={styles.page}>
@@ -1394,20 +1356,21 @@ export default function MovementScreen() {
           </View>
           <Ionicons color={movePalette.ink} name="arrow-forward" size={17} />
         </Pressable>
-        <Text style={styles.footnote}>Start opens the quick ledger. Edit opens the detailed session form.</Text>
+        <Divider />
+        {renderLibrarySection()}
       </View>
     );
   }
 
-  function renderLibrary() {
+  function renderLibrarySection() {
     return (
       <View style={styles.page}>
-        <PageHeading
-          action={<Pressable onPress={openCustomMovement} style={styles.textAction}><Text style={styles.textActionLabel}>+ Custom</Text></Pressable>}
-          section="MOVE · LIBRARY"
-          title="Library"
-        />
-        <ActionRow title="Workout routines" detail="Choose a template, then make it yours" icon="albums-outline" onPress={() => { setIsLogging(false); setIsQuickLogging(false); setActiveSegment('Train'); }} last />
+        <View style={styles.rowBetween}>
+          <EditorialLabel>MOVEMENT LIBRARY</EditorialLabel>
+          <Pressable accessibilityRole="button" onPress={openCustomMovement} style={styles.textAction}>
+            <Text style={styles.textActionLabel}>+ Custom</Text>
+          </Pressable>
+        </View>
         <View style={styles.searchBox}>
           <Ionicons color={movePalette.slate} name="search" size={17} />
           <TextInput
@@ -1563,6 +1526,44 @@ export default function MovementScreen() {
     );
   }
 
+  // An open session owns the screen. Nothing competes with the set in front of
+  // the lifter, and the finish action stays pinned rather than scrolling away.
+  if (isQuickLogging && quickDraft) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <WorkoutSessionLogger
+          canUndo={undoSnapshot !== null}
+          draft={quickDraft}
+          focusIndex={focusIndex}
+          now={timerNow}
+          onAddExercise={() => addQuickExercise()}
+          onAddSet={addQuickSet}
+          onAdjustRest={(delta) => setRestTimer((current) => current ? adjustRestTimer(current, delta) : current)}
+          onCompleteSet={completeQuickSet}
+          onDuplicateSet={duplicateQuickSet}
+          onExit={() => { setIsQuickLogging(false); setActiveSegment('Today'); }}
+          onFinish={() => void handleQuickSave()}
+          onFocusIndexChange={setFocusIndex}
+          onMoveExercise={moveQuickExercise}
+          onRemoveExercise={removeQuickExercise}
+          onRemoveSet={removeQuickSet}
+          onRenameExercise={(exerciseId, exercise_name) => updateQuickExercise(exerciseId, { exercise_name })}
+          onSkipRest={() => setRestTimer(null)}
+          onToggleRest={() => setRestTimer((current) => current ? toggleRestTimer(current, new Date().toISOString()) : current)}
+          onUndo={handleUndo}
+          onUpdateSet={updateQuickSet}
+          onViewChange={setLoggerView}
+          restTimer={restTimer}
+          saveState={isSaving ? 'saving' : 'idle'}
+          savedLocally={!shouldUseRemote}
+          undoLabel={undoSnapshot?.label ?? null}
+          unit={weightUnit}
+          view={loggerView}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
@@ -1578,7 +1579,6 @@ export default function MovementScreen() {
         {isLoading ? <View style={styles.loading}><ActivityIndicator color={movePalette.green} /><Text style={styles.meta}>Loading movement data…</Text></View> : null}
         {!isLoading && activeSegment === 'Today' ? renderToday() : null}
         {!isLoading && activeSegment === 'Train' ? renderTrain() : null}
-        {!isLoading && activeSegment === 'Library' ? renderLibrary() : null}
         {!isLoading && activeSegment === 'History' ? renderHistory() : null}
       </ScrollView>
       {quickLaunchOpen ? renderQuickLaunch() : null}
@@ -1591,6 +1591,28 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 28 },
   navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
   navigationTitle: { ...type.title, fontSize: 30, lineHeight: 38, color: colors.text },
+  summaryCard: {
+    backgroundColor: movePalette.surface,
+    borderColor: movePalette.lineStrong,
+    borderRadius: 20,
+    borderWidth: hairlineWidth,
+    gap: 8,
+    padding: 18
+  },
+  summaryTitle: { ...type.heading, color: movePalette.ink },
+  summaryMeta: { ...type.caption, color: movePalette.slate },
+  summaryRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  summaryRowText: { ...type.caption, color: movePalette.ink, flex: 1 },
+  resumeNote: {
+    alignItems: 'center',
+    backgroundColor: movePalette.wash,
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  resumeNoteText: { ...type.caption, color: movePalette.ink, flex: 1 },
   segmentRow: {
     borderBottomColor: movePalette.line,
     borderBottomWidth: hairlineWidth,

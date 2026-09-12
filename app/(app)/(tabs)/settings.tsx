@@ -8,8 +8,11 @@ import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
+import { DEFAULT_WEIGHT_UNIT, WEIGHT_UNITS, type WeightUnit } from '../../../src/features/movement/weightUnits';
+import { readWeightUnit, weightUnitScope, writeWeightUnit } from '../../../src/features/movement/weightUnitStore';
 import {
   confidenceLabel as trendsConfidenceLabel,
   type TrendsDomainCard,
@@ -87,6 +90,7 @@ export default function SettingsScreen() {
   const [model, setModel] = useState<ProfileScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [trendRangeDays, setTrendRangeDays] = useState<TrendsRangeDays>(7);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(DEFAULT_WEIGHT_UNIT);
   const [trendsModel, setTrendsModel] = useState<TrendsScreenModel | null>(null);
   const [isTrendsLoading, setIsTrendsLoading] = useState(true);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -137,6 +141,21 @@ export default function SettingsScreen() {
       void loadTrends();
     }, [loadTrends])
   );
+
+  const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void readWeightUnit(unitScope).then((unit) => { if (active) setWeightUnit(unit); });
+      return () => { active = false; };
+    }, [unitScope])
+  );
+
+  function handleWeightUnitChange(unit: WeightUnit) {
+    setWeightUnit(unit);
+    void writeWeightUnit(unitScope, unit);
+  }
 
   async function handleSignOut() {
     try {
@@ -344,6 +363,15 @@ export default function SettingsScreen() {
           </Card>
 
           <Card appearance="mobile">
+            <Text style={styles.cardEyebrow}>TRAINING UNITS</Text>
+            <Text style={styles.preferenceTitle}>Weight unit</Text>
+            <Text style={styles.detail}>New sets are logged in this unit. Sets you have already saved keep the unit they were recorded in.</Text>
+            <View style={styles.unitControl}>
+              <SegmentedControl onChange={handleWeightUnitChange} options={WEIGHT_UNITS} value={weightUnit} />
+            </View>
+          </Card>
+
+          <Card appearance="mobile">
             <Text style={styles.cardEyebrow}>PREFERENCES</Text>
             {baseline.preferences.map((preference) => (
               <View key={preference.id} style={styles.preferenceRow}>
@@ -493,6 +521,7 @@ const styles = StyleSheet.create({
   domainStatus: { color: colors.accentMid, fontFamily: fonts.bodyMedium, fontSize: 12, textAlign: 'right' },
   domainStatusCalibrating: { color: colors.textMuted },
   preferenceRow: { gap: 2, paddingVertical: spacing.xs },
+  unitControl: { marginTop: spacing.sm },
   preferenceTitle: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 14 },
   nextStepsCard: { backgroundColor: colors.surfaceInset },
   stepRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },

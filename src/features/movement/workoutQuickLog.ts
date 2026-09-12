@@ -9,6 +9,7 @@ import type {
   WorkoutSetEntryRow
 } from './movementPersistence';
 import { createDemoWorkoutRows, type WorkoutTemplate } from './workoutForms';
+import { DEFAULT_WEIGHT_UNIT, type WeightUnit } from './weightUnits';
 
 export type QuickSetDraft = {
   id: string;
@@ -19,6 +20,8 @@ export type QuickSetDraft = {
   rest_seconds: string;
   completed: boolean;
   completed_at: string | null;
+  /** Warm-up sets are recorded but excluded from the exercise's headline load. */
+  warmup: boolean;
 };
 
 export type PreviousQuickSet = {
@@ -27,11 +30,15 @@ export type PreviousQuickSet = {
   reps: number | null;
   rpe: number | null;
   rest_seconds: number | null;
+  /** Null for sets recorded before units existed. */
+  weight_unit: WeightUnit | null;
 };
 
 export type QuickExerciseDraft = {
   id: string;
   exercise_name: string;
+  /** Links to the canonical library so one movement keeps one history. */
+  exercise_library_item_id: string | null;
   category: MovementExerciseCategory;
   sets: QuickSetDraft[];
   previous_date: string | null;
@@ -42,6 +49,10 @@ export type QuickWorkoutDraft = {
   title: string;
   workout_type: MovementWorkoutType;
   started_at: string;
+  /** The unit this session's weights were entered in. */
+  weight_unit: WeightUnit;
+  /** Free-text context saved with the session, such as how training felt. */
+  note?: string | null;
   exercises: QuickExerciseDraft[];
 };
 
@@ -67,9 +78,14 @@ export function isMovementLogWithinSafetyGuidance(
 
 let quickDraftSequence = 0;
 
+/**
+ * Draft ids must stay unique across a rehydrated draft, so they carry a random
+ * segment rather than relying on a counter that resets to zero when the app
+ * restarts — a restored set and a newly added one would otherwise collide.
+ */
 function quickId(prefix: string): string {
   quickDraftSequence += 1;
-  return `${prefix}-${quickDraftSequence}`;
+  return `${prefix}-${Date.now().toString(36)}-${quickDraftSequence.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 function normalized(value: string): string {
@@ -125,23 +141,45 @@ export function createQuickSetDraft(
     rpe: '',
     rest_seconds: previous?.rest_seconds?.toString() ?? '90',
     completed: false,
-    completed_at: null
+    completed_at: null,
+    warmup: false
   };
 }
 
 export function createQuickExerciseDraft(
   exerciseName = '',
   category: MovementExerciseCategory = 'strength',
-  setCount = 3
+  setCount = 3,
+  libraryItemId: string | null = null
 ): QuickExerciseDraft {
   return {
     id: quickId('quick-exercise'),
     exercise_name: exerciseName.trim(),
+    exercise_library_item_id: libraryItemId,
     category,
     sets: Array.from({ length: Math.max(1, setCount) }, (_, index) => createQuickSetDraft(index + 1)),
     previous_date: null,
     previous_sets: []
   };
+}
+
+/**
+ * The previous set to show beside today's.
+ *
+ * Falls back to the nearest earlier set rather than showing nothing, so adding
+ * a fourth set to a three-set exercise still has a reference point. The caller
+ * is told which set index the value came from so the UI can say so.
+ */
+export function previousSetFor(
+  exercise: QuickExerciseDraft,
+  setIndex: number
+): { set: PreviousQuickSet; exact: boolean } | null {
+  const exact = exercise.previous_sets.find((set) => set.set_index === setIndex);
+  if (exact) return { set: exact, exact: true };
+  const earlier = exercise.previous_sets
+    .filter((set) => set.set_index < setIndex)
+    .sort((left, right) => right.set_index - left.set_index)[0];
+  return earlier ? { set: earlier, exact: false } : null;
 }
 
 export function removeQuickSetDraft(
@@ -159,7 +197,8 @@ export function removeQuickSetDraft(
 
 export function createQuickWorkoutFromText(
   input: string,
-  startedAt = new Date().toISOString()
+  startedAt = new Date().toISOString(),
+  weightUnit: WeightUnit = DEFAULT_WEIGHT_UNIT
 ): QuickWorkoutDraft | null {
   const names = input
     .split(/[\n,+;&]+/)
@@ -173,18 +212,21 @@ export function createQuickWorkoutFromText(
     title: names.length === 1 ? names[0] : `${names[0]} + ${names.length - 1}`,
     workout_type: workoutTypeFromCategories(categories),
     started_at: startedAt,
+    weight_unit: weightUnit,
     exercises: names.map((name, index) => createQuickExerciseDraft(name, categories[index]))
   };
 }
 
 export function createQuickWorkoutFromTemplate(
   template: WorkoutTemplate,
-  startedAt = new Date().toISOString()
+  startedAt = new Date().toISOString(),
+  weightUnit: WeightUnit = DEFAULT_WEIGHT_UNIT
 ): QuickWorkoutDraft {
   return {
     title: template.title,
     workout_type: template.workout_type,
     started_at: startedAt,
+    weight_unit: weightUnit,
     exercises: template.exercises.map((exercise) =>
       createQuickExerciseDraft(exercise.exercise_name, exercise.category, Math.max(1, Number(exercise.sets) || 1))
     )
@@ -200,7 +242,8 @@ function previousSetsForEntry(entry: WorkoutExerciseEntryRow, sets: WorkoutSetEn
       weight: set.weight,
       reps: set.reps,
       rpe: set.rpe,
-      rest_seconds: set.rest_seconds
+      rest_seconds: set.rest_seconds,
+      weight_unit: set.weight_unit ?? null
     }));
   if (exact.length > 0) return exact;
 
@@ -210,7 +253,8 @@ function previousSetsForEntry(entry: WorkoutExerciseEntryRow, sets: WorkoutSetEn
     weight: entry.weight,
     reps: entry.reps,
     rpe: entry.effort,
-    rest_seconds: null
+    rest_seconds: null,
+    weight_unit: entry.weight_unit ?? null
   }));
 }
 
@@ -241,6 +285,7 @@ export function attachPreviousWorkout(
       const previousSets = previousSetsForEntry(priorEntry, sets);
       return {
         ...exercise,
+        exercise_library_item_id: exercise.exercise_library_item_id ?? priorEntry.exercise_library_item_id ?? null,
         previous_date: priorSession.session_date,
         previous_sets: previousSets,
         sets: previousSets.map((set) => createQuickSetDraft(set.set_index, set))
@@ -286,6 +331,7 @@ export function quickWorkoutToInputs(
       rest_seconds: number | null;
       completed: boolean;
       completed_at: string | null;
+      warmup: boolean;
     }> = [];
     for (const set of exercise.sets) {
       const weight = parseOptionalNumber(set.weight);
@@ -305,21 +351,25 @@ export function quickWorkoutToInputs(
         rpe: rpe ?? null,
         rest_seconds: rest ?? null,
         completed: set.completed,
-        completed_at: set.completed_at
+        completed_at: set.completed_at,
+        warmup: set.warmup
       });
     }
 
-    const lastWithReps = [...parsedSets].reverse().find((set) => set.reps !== null);
-    const lastWithWeight = [...parsedSets].reverse().find((set) => set.weight !== null);
-    const rpeValues = parsedSets.map((set) => set.rpe).filter((value): value is number => value !== null);
+    const workingSets = parsedSets.filter((set) => !set.warmup);
+    const headlineSets = workingSets.length > 0 ? workingSets : parsedSets;
+    const lastWithReps = [...headlineSets].reverse().find((set) => set.reps !== null);
+    const lastWithWeight = [...headlineSets].reverse().find((set) => set.weight !== null);
+    const rpeValues = headlineSets.map((set) => set.rpe).filter((value): value is number => value !== null);
     exercises.push({
-      exercise_library_item_id: null,
+      exercise_library_item_id: exercise.exercise_library_item_id ?? null,
       exercise_name: exercise.exercise_name.trim(),
       category: exercise.category,
       order_index: exerciseIndex,
-      sets: parsedSets.length || null,
+      sets: workingSets.length || parsedSets.length || null,
       reps: lastWithReps?.reps ?? null,
       weight: lastWithWeight?.weight ?? null,
+      weight_unit: lastWithWeight?.weight !== undefined && lastWithWeight?.weight !== null ? draft.weight_unit : null,
       distance: null,
       duration_minutes: null,
       effort: rpeValues.length > 0 ? Math.round(rpeValues.reduce((sum, value) => sum + value, 0) / rpeValues.length) : null,
@@ -335,6 +385,8 @@ export function quickWorkoutToInputs(
       input: {
         set_index: set.set_index,
         weight: set.weight,
+        weight_unit: set.weight === null ? null : draft.weight_unit,
+        warmup: set.warmup,
         reps: set.reps,
         rpe: set.rpe,
         rest_seconds: set.rest_seconds,
@@ -362,7 +414,7 @@ export function quickWorkoutToInputs(
         duration_minutes: elapsedMinutes,
         perceived_effort: rpeValues.length > 0 ? Math.round(rpeValues.reduce((sum, value) => sum + value, 0) / rpeValues.length) : null,
         readiness_before: null,
-        session_note: null,
+        session_note: draft.note?.trim() || null,
         source,
         source_confidence: 'medium',
         reason_codes: source === 'demo'
@@ -399,6 +451,8 @@ export function createDemoQuickWorkoutRows(
       workout_exercise_entry_id: exercise.id,
       set_index: set.input.set_index,
       weight: set.input.weight ?? null,
+      weight_unit: set.input.weight_unit ?? null,
+      warmup: set.input.warmup ?? false,
       reps: set.input.reps ?? null,
       rpe: set.input.rpe ?? null,
       rest_seconds: set.input.rest_seconds ?? null,
