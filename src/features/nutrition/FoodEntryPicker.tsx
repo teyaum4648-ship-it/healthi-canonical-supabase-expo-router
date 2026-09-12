@@ -9,7 +9,7 @@ import type { HealthiProductSnapshot } from './productLookup/productLookupTypes'
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
-import { foodLoggingNutrition } from './foodLoggingNutrition';
+import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
 
 type PickerTab = 'Search' | 'Recent' | 'Saved';
@@ -30,8 +30,10 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   const personal = findPersonalFoods(products, query, tab === 'Saved');
   const logging = selected ? foodLoggingNutrition(selected.product) : null;
   const multiplier = logging?.amountPerPortion ?? 1;
+  const amountStep = multiplier === 100 ? 1 : 0.25;
+  const amount = Number(servings) || 0;
   const portion = portionValue(String(Number(servings) / multiplier));
-  const choose = (product: HealthiProductSnapshot, source: 'search' | 'saved_food') => { setSelected({ product, source }); setServings(String(foodLoggingNutrition(product).amountPerPortion)); setError(''); };
+  const choose = (product: HealthiProductSnapshot, source: 'search' | 'saved_food') => { setSelected({ product, source }); setServings(initialFoodLoggingAmount(product)); setError(''); };
   async function add() {
     if (!selected || portion === null || busy) return;
     setBusy(true);
@@ -60,13 +62,13 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         <Text style={styles.label}>{multiplier === 100 ? 'Amount eaten' : 'Number of servings'}</Text>
         {multiplier === 1 ? <View style={styles.portionRow}>{[0.5, 1, 2].map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} servings`} accessibilityState={{ selected: portion === value }} onPress={() => setServings(String(value))} style={styles.step}><Text style={styles.link}>{value === 0.5 ? '½' : value}×</Text></Pressable>)}</View> : null}
         <View style={styles.portionRow}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={(portion ?? 1) <= 0.25} onPress={() => setServings(String(Math.max(0.25, (portion ?? 1) - 0.25) * multiplier))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
-          <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} keyboardType="decimal-pad" selectTextOnFocus value={servings} onChangeText={setServings} style={styles.portion} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={amount <= amountStep} onPress={() => setServings(String(Math.max(amountStep, amount - amountStep)))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
+          <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} placeholder={multiplier === 100 ? 'Enter amount' : undefined} placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" selectTextOnFocus value={servings} onChangeText={setServings} style={styles.portion} />
           <Text style={styles.label}>{logging?.amountUnit}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Increase portion" disabled={(portion ?? 1) >= 20} onPress={() => setServings(String(Math.min(20, (portion ?? 1) + 0.25) * multiplier))} style={styles.step}><Ionicons name="add" size={22} color={colors.text} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Increase portion" disabled={amount >= 20 * multiplier} onPress={() => setServings(String(Math.min(20 * multiplier, amount + amountStep)))} style={styles.step}><Ionicons name="add" size={22} color={colors.text} /></Pressable>
         </View>
         {portion === null ? <Text accessibilityRole="alert" style={styles.detail}>Enter more than 0 and no more than {20 * multiplier} {logging?.amountUnit}.</Text> : null}
-        {multiplier === 100 ? <Text style={styles.detail}>Using reported nutrition per {logging?.label}; no label serving is assumed.</Text> : null}
+        {multiplier === 100 ? <Text style={styles.detail}>The database has no label serving size. Enter the {logging?.amountUnit === 'g' ? 'weight' : 'volume'} you ate from the package or your measurement. {logging?.label} is only the nutrition reference, not one portion.</Text> : null}
         <View style={styles.nutrients}>{[
           ['Calories', logging?.nutrients.calories, 'kcal'], ['Protein', logging?.nutrients.protein_g, 'g'], ['Carbs', logging?.nutrients.carbs_g, 'g'], ['Fat', logging?.nutrients.fat_g, 'g']
         ].map(([label, amount, unit]) => <View key={String(label)} style={styles.nutrient}><Text style={styles.detail}>{label}</Text><Text style={styles.label}>{typeof amount === 'number' && portion !== null ? `${Math.round(amount * portion * 10) / 10} ${unit}` : 'Not reported'}</Text></View>)}</View>
@@ -82,8 +84,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         {tab === 'Search' ? <>
           {results.length ? <Text style={styles.label}>{results.length} food matches</Text> : null}
           {results.map((product) => {
-            const nutrition = foodLoggingNutrition(product);
-            return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal / portion` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View></View>;
+            return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={foodSearchPortionDetail(product)} onPress={() => choose(product, 'search')} /></View></View>;
           })}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>

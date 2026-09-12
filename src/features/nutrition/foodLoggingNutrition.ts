@@ -32,3 +32,19 @@ export function foodLoggingNutrition(product: HealthiProductSnapshot) {
     amountPerPortion: basis === 'per_100g' || basis === 'per_100ml' ? 100 : 1
   } as const;
 }
+
+/** Reference units are not a suggested portion, so require an explicit amount. */
+export function initialFoodLoggingAmount(product: HealthiProductSnapshot): string {
+  const { basis } = foodLoggingNutrition(product);
+  return basis === 'per_100g' || basis === 'per_100ml' ? '' : '1';
+}
+
+export function foodSearchPortionDetail(product: HealthiProductSnapshot): string {
+  const nutrition = foodLoggingNutrition(product);
+  const reference = nutrition.basis === 'per_100g' || nutrition.basis === 'per_100ml';
+  return [product.brand, product.quantity,
+    reference ? 'Serving size not listed' : nutrition.basis === 'unreported' && !product.serving_size ? 'Serving size not listed' : nutrition.label,
+    nutrition.nutrients.calories === null ? 'Calories not reported'
+      : `${Math.round(nutrition.nutrients.calories)} kcal per ${reference ? nutrition.label : 'serving'}`
+  ].filter(Boolean).join(' · ');
+}

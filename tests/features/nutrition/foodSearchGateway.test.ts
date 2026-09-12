@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleFoodSearch, searchCatalog } from '../../../src/server/foodSearch';
 import { normalizeSearchPayload, normalizeUsdaSearchFood, searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
-const product = { code: '12345678', product_name: 'Hamburger bun', brands: ['Example bakery'], nutriments: { 'energy-kcal_100g': 270, proteins_100g: 9 } };
+const product = { code: '12345678', product_name: 'Hamburger bun', brands: ['Example bakery'], serving_size: '1 bun (50 g)', nutriments: { 'energy-kcal_100g': 270, proteins_100g: 9 } };
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const ctx = { waitUntil: (_promise: Promise<unknown>) => {} };
 describe('server-backed food search', () => {

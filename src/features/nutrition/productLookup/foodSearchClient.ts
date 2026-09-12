@@ -72,7 +72,7 @@ export async function searchFoods(query: string, options: { signal?: AbortSignal
     const payload: unknown = await r.json();
     if (options.signal?.aborted) throw new Error('canceled');
     const products = normalizeSearchPayload(payload, q);
-    const notice = record(payload) && payload.stale ? 'Showing earlier catalog results. Check the package label.' : record(payload) && payload.partial ? 'One database is unavailable; showing the matches we could load.' : undefined;
+    const notice = record(payload) && payload.stale ? 'Showing earlier catalog results. Check the package label.' : record(payload) && payload.partial ? 'One database is unavailable; showing the matches we could load.' : record(payload) && payload.servingDetailsIncomplete ? 'Some label serving sizes could not load. Results marked per 100 g or 100 mL need an amount from the package.' : undefined;
     const result: SearchResult = products.length ? { status: 'found', products, notice } : { status: 'empty', products: [], message: notice ?? 'No readable matches. Try the brand or scan the barcode; not every product is listed.' };
     if (!options.fetcher && products.length && !notice) { if (cache.size >= 30) cache.delete(cache.keys().next().value!); cache.set(key, { at: Date.now(), result }); }
     return result;
