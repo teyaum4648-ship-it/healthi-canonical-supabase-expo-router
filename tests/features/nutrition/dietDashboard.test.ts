@@ -56,4 +56,79 @@ describe('food logging nutrition basis', () => {
     const snapshot = { ...weighed(), nutriments_per_100g: { calories: -20, protein_g: NaN }, nutriments_per_100ml: undefined };
     expect(foodLoggingNutrition(snapshot)).toMatchObject({ basis: 'unreported', nutrients: { calories: null, protein_g: null } });
   });
+  it('names the denominator instead of calling an arbitrary 100 g a portion', () => {
+    expect(foodLoggingNutrition(weighed()).portionLabel).toBe('per 100 g');
+    expect(foodLoggingNutrition({ ...weighed(), nutriments_per_100g: undefined, nutriments_per_100ml: { calories: 40 } }).portionLabel)
+      .toBe('per 100 mL');
+    expect(foodLoggingNutrition({ ...weighed(), serving_size: '1 portion', calories_per_serving: 210 }).portionLabel)
+      .toBe('per serving');
+  });
+});
+
+describe('household servings without a gram figure in the text', () => {
+  const bar = (product: Record<string, unknown>) => normalizeOpenFoodFactsProduct('20000000001', {
+    product_name: 'Protein bar',
+    ingredients_text: 'Almonds, pea protein',
+    categories_tags: ['en:bars'],
+    nutriments: { 'energy-kcal_100g': 378, proteins_100g: 27, carbohydrates_100g: 40, fat_100g: 16 },
+    ...product
+  })!;
+
+  it('recovers the item serving from the provider quantity when the text names only a count', () => {
+    const snapshot = bar({ serving_size: '1 bar', serving_quantity: 45 });
+    expect(snapshot.serving_quantity_g).toBe(45);
+
+    const logging = foodLoggingNutrition(snapshot);
+    expect(logging.isServing).toBe(true);
+    expect(logging.label).toBe('1 bar (45 g)');
+    expect(logging.portionLabel).toBe('per serving');
+    expect(logging.amountPerPortion).toBe(1);
+    // 378 kcal / 100 g over a 45 g bar — not the 378 the old per-100 g fallback showed.
+    expect(logging.nutrients.calories).toBeCloseTo(170.1, 1);
+  });
+
+  it('converts an imperial serving stated in the text', () => {
+    const logging = foodLoggingNutrition(bar({ serving_size: '1 bar (1.6 oz)' }));
+    expect(logging.isServing).toBe(true);
+    expect(logging.nutrients.calories).toBeCloseTo(171.5, 1);
+  });
+
+  it('trusts the provider quantity outright when it carries an explicit unit', () => {
+    const snapshot = bar({ serving_size: '1 scoop', serving_quantity: 30, serving_quantity_unit: 'g' });
+    expect(snapshot.serving_quantity_g).toBe(30);
+    expect(foodLoggingNutrition(snapshot).nutrients.calories).toBeCloseTo(113.4, 1);
+  });
+
+  it('refuses to read a household count as a mass', () => {
+    // Open Food Facts reports serving_quantity 1 for "1 cup" — the count, not grams. Treating
+    // that as 1 g would scale every nutrient to a hundredth of the real serving.
+    const snapshot = bar({ serving_size: '1 cup', serving_quantity: 1 });
+    expect(snapshot.serving_quantity_g).toBeNull();
+
+    const logging = foodLoggingNutrition(snapshot);
+    expect(logging.isServing).toBe(false);
+    expect(logging.basis).toBe('per_100g');
+    expect(logging.portionLabel).toBe('per 100 g');
+    expect(logging.nutrients.calories).toBe(378);
+  });
+
+  it('derives the serving for a stored food whose per-serving values are absent', () => {
+    const logging = foodLoggingNutrition({
+      ...bar({}),
+      serving_size: '1 bar',
+      serving_quantity_g: 45,
+      calories_per_serving: null,
+      protein_g: null,
+      carbs_g: null,
+      fat_g: null,
+      fiber_g: null,
+      sugar_g: null,
+      sodium_mg: null,
+      saturated_fat_g: null,
+      nutriments_per_100g: { calories: 378, protein_g: 27 }
+    });
+    expect(logging).toMatchObject({ basis: 'derived_serving', label: '1 bar (45 g)', amountUnit: 'servings', amountPerPortion: 1, isServing: true });
+    expect(logging.nutrients.calories).toBeCloseTo(170.1, 1);
+    expect(logging.nutrients.protein_g).toBeCloseTo(12.2, 1);
+  });
 });

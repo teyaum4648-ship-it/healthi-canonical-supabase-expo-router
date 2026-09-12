@@ -2311,7 +2311,7 @@ export default function FoodScreen() {
               <View style={styles.builderItemCopy}>
                 <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
                 <Text style={styles.libraryMeta}>{[item.snapshot.brand, foodLoggingNutrition(item.snapshot).label].filter(Boolean).join(' · ')}</Text>
-                <Text style={styles.librarySignal}>{formatProductAmount(foodLoggingNutrition(item.snapshot).nutrients.calories, ' kcal')} per portion</Text>
+                <Text style={styles.librarySignal}>{formatProductAmount(foodLoggingNutrition(item.snapshot).nutrients.calories, ' kcal')} {foodLoggingNutrition(item.snapshot).portionLabel}</Text>
               </View>
               <TextInput
                 accessibilityLabel={`${foodLoggingNutrition(item.snapshot).label} portions of ${item.snapshot.name}`}

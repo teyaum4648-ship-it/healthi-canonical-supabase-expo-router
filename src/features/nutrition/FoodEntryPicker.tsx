@@ -31,7 +31,14 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   const logging = selected ? foodLoggingNutrition(selected.product) : null;
   const multiplier = logging?.amountPerPortion ?? 1;
   const portion = portionValue(String(Number(servings) / multiplier));
-  const choose = (product: HealthiProductSnapshot, source: 'search' | 'saved_food') => { setSelected({ product, source }); setServings(String(foodLoggingNutrition(product).amountPerPortion)); setError(''); };
+  // One serving prefills, because that is what the item is. A per-100 g food has no serving to
+  // assume, so the amount stays empty rather than pre-accepting 100 g on the shopper's behalf.
+  const choose = (product: HealthiProductSnapshot, source: 'search' | 'saved_food') => {
+    const next = foodLoggingNutrition(product);
+    setSelected({ product, source });
+    setServings(next.isServing ? String(next.amountPerPortion) : '');
+    setError('');
+  };
   async function add() {
     if (!selected || portion === null || busy) return;
     setBusy(true);
@@ -60,7 +67,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         <Text style={styles.label}>{multiplier === 100 ? 'Amount eaten' : 'Number of servings'}</Text>
         <View style={styles.portionRow}>
           <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={(portion ?? 1) <= 0.25} onPress={() => setServings(String(Math.max(0.25, (portion ?? 1) - 0.25) * multiplier))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
-          <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} keyboardType="decimal-pad" selectTextOnFocus value={servings} onChangeText={setServings} style={styles.portion} />
+          <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} keyboardType="decimal-pad" selectTextOnFocus placeholder={logging?.isServing ? '1' : '100'} placeholderTextColor={colors.textFaint} value={servings} onChangeText={setServings} style={styles.portion} />
           <Text style={styles.label}>{logging?.amountUnit}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Increase portion" disabled={(portion ?? 1) >= 20} onPress={() => setServings(String(Math.min(20, (portion ?? 1) + 0.25) * multiplier))} style={styles.step}><Ionicons name="add" size={22} color={colors.text} /></Pressable>
         </View>
@@ -82,7 +89,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           {results.length ? <Text style={styles.label}>{results.length} food matches</Text> : null}
           {results.map((product) => {
             const nutrition = foodLoggingNutrition(product);
-            return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal / portion` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View></View>;
+            return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal ${nutrition.portionLabel}` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View></View>;
           })}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
