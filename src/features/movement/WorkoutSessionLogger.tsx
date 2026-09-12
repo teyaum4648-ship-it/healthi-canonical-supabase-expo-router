@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useKeepAwake } from 'expo-keep-awake';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
@@ -234,6 +235,9 @@ function SetCard({
 }
 
 export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
+  // The screen stays awake for as long as this component is mounted, which is
+  // exactly as long as a session is open — no explicit teardown to get wrong.
+  useKeepAwake('healthi-workout-session');
   const { draft, unit, view, focusIndex, now, restTimer } = props;
   const total = draft.exercises.length;
   const safeIndex = Math.min(Math.max(0, focusIndex), Math.max(0, total - 1));

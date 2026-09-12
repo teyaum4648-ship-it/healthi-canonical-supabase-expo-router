@@ -18,6 +18,7 @@ import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/mov
 import {
   adjustRestTimer,
   createRestTimer,
+  restRemainingSeconds,
   toggleRestTimer,
   type RestTimer
 } from '../../../src/features/movement/restTimer';
@@ -29,6 +30,7 @@ import {
   workoutDraftScope,
   writeWorkoutDraft
 } from '../../../src/features/movement/workoutDraftStore';
+import { restCompleteFeedback, sessionSavedFeedback, setLoggedFeedback } from '../../../src/features/movement/sessionFeedback';
 import { summarizeQuickWorkout, type WorkoutSummary } from '../../../src/features/movement/workoutSummary';
 import {
   calculateMovementSummary,
@@ -597,6 +599,20 @@ export default function MovementScreen() {
     return () => clearInterval(handle);
   }, [restTimer]);
 
+  // Announce rest ending once per timer, since the lifter is usually not
+  // watching the screen for it.
+  const restAnnouncedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!restTimer) {
+      restAnnouncedFor.current = null;
+      return;
+    }
+    if (restAnnouncedFor.current === restTimer.set_id) return;
+    if (restRemainingSeconds(restTimer, timerNow) > 0) return;
+    restAnnouncedFor.current = restTimer.set_id;
+    restCompleteFeedback();
+  }, [restTimer, timerNow]);
+
   function isSafetyCompatible(category: string): boolean {
     return adaptivePlan.training_allowed || category === 'mobility' || category === 'recovery';
   }
@@ -640,6 +656,8 @@ export default function MovementScreen() {
           }
         : exercise)
     } : current);
+
+    if (nowCompleted) setLoggedFeedback();
 
     if (nowCompleted && restSeconds > 0) {
       setTimerNow(completedAt);
@@ -867,6 +885,7 @@ export default function MovementScreen() {
         setDataMode('demo');
         setStatus('Workout saved locally with an automatic date and time.');
       }
+      sessionSavedFeedback();
       setLastSummary(summarizeQuickWorkout(quickDraft, finishedAt));
       setQuickDraft(null);
       setQuickPrompt('');
