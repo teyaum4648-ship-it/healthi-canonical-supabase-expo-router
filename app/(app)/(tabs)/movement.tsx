@@ -1193,7 +1193,7 @@ export default function MovementScreen() {
   function renderToday() {
     return (
       <View style={styles.page}>
-        <PageHeading section="MOVE · TODAY" title="Today" />
+        {/* No page heading: the navigation title reads "Move" and the segment above reads "Today". */}
         {trainingLimited ? (
           <View style={styles.protocolNote}>
             <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
@@ -1597,7 +1597,7 @@ export default function MovementScreen() {
     const visibleSessions = historyView === 'All recent' ? sessions : sessions.filter((session) => session.session_date.slice(0, 10) === historyDay);
     return (
       <View style={styles.page}>
-        <PageHeading section="MOVE · HISTORY" title="History" />
+        {/* Same as Today: the segment above already reads "History". */}
         <SegmentedControl options={['Progress', 'All recent', 'By day'] as const} value={historyView} onChange={setHistoryView} />
         {historyView === 'Progress' ? (
           <MovementProgress
