@@ -800,14 +800,12 @@ export default function PlanScreen() {
           <View style={styles.twoCol}>
             <TimeField
               accessibilityLabel="Start time"
-              appearance="mobile"
               label="Start"
               onChange={(value) => updateForm('start_time', value)}
               value={form.start_time}
             />
             <TimeField
               accessibilityLabel="End time"
-              appearance="mobile"
               label="End"
               onChange={(value) => updateForm('end_time', value)}
               value={form.end_time}

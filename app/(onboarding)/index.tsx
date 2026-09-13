@@ -17,7 +17,7 @@ import { onboardingV2FocusLabels, onboardingV2Welcome } from '../../src/features
 import { generateOnboardingV2Result } from '../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2Result } from '../../src/features/onboarding/onboardingV2Types';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
-import { colors, fonts, radii, spacing } from '../../src/styles/theme';
+import { colors, fonts, radii, spacing } from '../../src/styles/mobileTheme';
 import type {
   BiweeklyFocusProfile,
   DynamicScoreSheet,

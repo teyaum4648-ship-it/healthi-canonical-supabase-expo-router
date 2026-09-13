@@ -36,6 +36,7 @@ export type OpenFoodFactsProduct = {
   brands?: unknown;
   serving_size?: unknown;
   serving_quantity?: unknown;
+  serving_quantity_unit?: unknown;
   ingredients_text?: unknown;
   ingredients_text_en?: unknown;
   ingredients?: unknown;
@@ -84,20 +85,63 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+/** Convert a reported quantity to grams or millilitres. Null when the unit isn't mass/volume. */
+function toMetricQuantity(quantity: number | null, rawUnit: string | null): { quantity: number; unit: NutrientMetricUnit } | null {
+  if (quantity === null || quantity <= 0 || !rawUnit) return null;
+  const unit = rawUnit.toLowerCase().replace(/\s+/g, '').replace(/\.$/, '');
+  if (unit === 'g' || unit === 'gram' || unit === 'grams') return { quantity, unit: 'g' };
+  if (unit === 'ml' || unit === 'millilitre' || unit === 'milliliter') return { quantity, unit: 'ml' };
+  if (unit === 'kg') return { quantity: quantity * 1_000, unit: 'g' };
+  if (unit === 'lb') return { quantity: quantity * 453.59237, unit: 'g' };
+  if (unit === 'oz') return { quantity: quantity * 28.349523125, unit: 'g' };
+  if (unit === 'l') return { quantity: quantity * 1_000, unit: 'ml' };
+  if (unit === 'floz') return { quantity: quantity * 29.5735295625, unit: 'ml' };
+  return null;
+}
+
+/** Below this, a reported mass is a unit count that leaked into the quantity field, not a serving. */
+const MIN_PLAUSIBLE_SERVING_METRIC = 2;
+
+/**
+ * Resolve the serving a shopper would actually eat — one bar, one can, one cup.
+ *
+ * `serving_size` text wins because it carries its unit explicitly. When the text names no
+ * mass or volume ("1 bar", "1 packet"), the provider's numeric `serving_quantity` is the
+ * only thing standing between a household-described product and losing per-serving
+ * nutrition entirely — such products otherwise get an `unknown` basis, and logging drops
+ * back to per-100 g.
+ *
+ * That field is ambiguous, though: it is grams for "1 bar" (45) but the bare count for
+ * "1 cup" (1). It is only trusted when something corroborates it as a mass or volume —
+ * an explicit `serving_quantity_unit`, or a value that is neither the leading count in the
+ * serving text nor too small to be a real serving. Guessing wrong here would silently
+ * scale every nutrient on the food, so an unusable serving is preferred to an invented one.
+ */
 function servingDetails(product: OpenFoodFactsProduct): {
   quantity: number | null;
   unit: string | null;
   equivalent: string | null;
 } {
   const servingSize = cleanString(product.serving_size);
-  const metricMatches = [...(servingSize?.matchAll(/([\d.]+)\s*(ml|g)\b/ig) ?? [])];
-  const metric = metricMatches.at(-1) ?? null;
-  const metricQuantity = finiteNumber(metric?.[1]);
-  const metricUnit = metric?.[2]?.toLowerCase() ?? null;
-  const direct = finiteNumber(product.serving_quantity);
+  const metricMatches = [...(servingSize?.matchAll(/([\d.]+)\s*(fl\s*oz|oz|lb|kg|ml|l|g)\b/ig) ?? [])];
+  const fromText = metricMatches
+    .map((match) => toMetricQuantity(finiteNumber(match[1]), match[2]))
+    .filter((value): value is { quantity: number; unit: NutrientMetricUnit } => value !== null)
+    .at(-1) ?? null;
+
+  const reported = finiteNumber(product.serving_quantity);
+  const reportedUnit = cleanString(product.serving_quantity_unit);
+  const leadingCount = finiteNumber(/^\s*([\d.]+)/.exec(servingSize ?? '')?.[1] ?? null);
+  const corroborated = reportedUnit !== null
+    || (reported !== null && reported >= MIN_PLAUSIBLE_SERVING_METRIC && reported !== leadingCount);
+  const fromProvider = corroborated
+    ? toMetricQuantity(reported, reportedUnit ?? 'g')
+    : null;
+
+  const resolved = fromText ?? fromProvider;
   return {
-    quantity: metricQuantity ?? (metricUnit ? direct : null),
-    unit: metricUnit,
+    quantity: resolved?.quantity ?? null,
+    unit: resolved?.unit ?? null,
     equivalent: servingSize
   };
 }
@@ -115,16 +159,7 @@ function metricPackageQuantity(value: unknown): { quantity: number; unit: Nutrie
   const quantityText = cleanString(value);
   const matches = [...(quantityText?.matchAll(/([\d.]+)\s*(fl\s*oz|oz|lb|kg|l|ml|g)\b/ig) ?? [])];
   const match = matches.at(-1);
-  const rawQuantity = signedNumber(match?.[1]);
-  const unit = match?.[2]?.toLowerCase().replace(/\s+/g, '');
-  if (rawQuantity === null || rawQuantity <= 0 || !unit) return null;
-  if (unit === 'g' || unit === 'ml') return { quantity: rawQuantity, unit };
-  if (unit === 'kg') return { quantity: rawQuantity * 1_000, unit: 'g' };
-  if (unit === 'lb') return { quantity: rawQuantity * 453.59237, unit: 'g' };
-  if (unit === 'oz') return { quantity: rawQuantity * 28.349523125, unit: 'g' };
-  if (unit === 'l') return { quantity: rawQuantity * 1_000, unit: 'ml' };
-  if (unit === 'floz') return { quantity: rawQuantity * 29.5735295625, unit: 'ml' };
-  return null;
+  return toMetricQuantity(signedNumber(match?.[1]), match?.[2] ?? null);
 }
 
 const OFF_NUTRIENT_SPECS: Array<{

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, hairlineWidth, type } from '../styles/theme';
-import { colors as mobileColors, type as mobileType } from '../styles/mobileTheme';
+import { colors, hairlineWidth, type } from '../styles/mobileTheme';
 
 type Meridiem = 'AM' | 'PM';
 
@@ -37,16 +36,13 @@ export function TimeField({
   value,
   onChange,
   accessibilityLabel,
-  appearance = 'default'
 }: {
   label: string;
   value: string;
   onChange: (value24h: string) => void;
   accessibilityLabel?: string;
-  appearance?: 'default' | 'mobile';
 }) {
-  const usesMobileTheme = appearance === 'mobile';
-  const fieldColors = usesMobileTheme ? mobileColors : colors;
+  const fieldColors = colors;
   // AM/PM is derived from `value` (never local state) so the toggle can never
   // desync from the canonical time — local buffers are only for smooth typing.
   const parsed = parse24Hour(value) ?? { hour12: 12, minute: 0, meridiem: 'AM' as Meridiem };
@@ -74,7 +70,7 @@ export function TimeField({
 
   return (
     <View style={styles.shell}>
-      <Text style={[styles.label, usesMobileTheme ? mobileStyles.label : null]}>{label}</Text>
+      <Text style={[styles.label, mobileStyles.label]}>{label}</Text>
       <View style={styles.row}>
         <TextInput
           accessibilityLabel={accessibilityLabel ? `${accessibilityLabel} hour` : undefined}
@@ -87,10 +83,10 @@ export function TimeField({
           }}
           placeholder="7"
           placeholderTextColor={fieldColors.textFaint}
-          style={[styles.numberField, usesMobileTheme ? mobileStyles.numberField : null]}
+          style={[styles.numberField, mobileStyles.numberField]}
           value={hour}
         />
-        <Text style={[styles.colon, usesMobileTheme ? mobileStyles.colon : null]}>:</Text>
+        <Text style={[styles.colon, mobileStyles.colon]}>:</Text>
         <TextInput
           accessibilityLabel={accessibilityLabel ? `${accessibilityLabel} minute` : undefined}
           keyboardType="number-pad"
@@ -109,10 +105,10 @@ export function TimeField({
           }}
           placeholder="00"
           placeholderTextColor={fieldColors.textFaint}
-          style={[styles.numberField, usesMobileTheme ? mobileStyles.numberField : null]}
+          style={[styles.numberField, mobileStyles.numberField]}
           value={minute}
         />
-        <View style={[styles.meridiemGroup, usesMobileTheme ? mobileStyles.meridiemGroup : null]}>
+        <View style={[styles.meridiemGroup, mobileStyles.meridiemGroup]}>
           {(['AM', 'PM'] as Meridiem[]).map((option) => (
             <Pressable
               key={option}
@@ -122,15 +118,15 @@ export function TimeField({
               style={[
                 styles.meridiem,
                 meridiem === option ? styles.meridiemActive : null,
-                usesMobileTheme && meridiem === option ? mobileStyles.meridiemActive : null
+                meridiem === option ? mobileStyles.meridiemActive : null
               ]}
             >
               <Text
                 style={[
                   styles.meridiemText,
                   meridiem === option ? styles.meridiemTextActive : null,
-                  usesMobileTheme ? mobileStyles.meridiemText : null,
-                  usesMobileTheme && meridiem === option ? mobileStyles.meridiemTextActive : null
+                  mobileStyles.meridiemText,
+                  meridiem === option ? mobileStyles.meridiemTextActive : null
                 ]}
               >
                 {option}
@@ -202,31 +198,31 @@ const styles = StyleSheet.create({
 
 const mobileStyles = StyleSheet.create({
   label: {
-    ...mobileType.eyebrow,
-    color: mobileColors.textMuted
+    ...type.eyebrow,
+    color: colors.textMuted
   },
   numberField: {
-    backgroundColor: mobileColors.surfaceInset,
-    borderColor: mobileColors.borderStrong,
-    color: mobileColors.text,
-    fontFamily: mobileType.number.fontFamily,
+    backgroundColor: colors.surfaceInset,
+    borderColor: colors.borderStrong,
+    color: colors.text,
+    fontFamily: type.number.fontFamily,
     minHeight: 50
   },
   colon: {
-    ...mobileType.number,
-    color: mobileColors.textMuted
+    ...type.number,
+    color: colors.textMuted
   },
   meridiemGroup: {
-    borderColor: mobileColors.borderStrong
+    borderColor: colors.borderStrong
   },
   meridiemActive: {
-    backgroundColor: mobileColors.accentWash
+    backgroundColor: colors.accentWash
   },
   meridiemText: {
-    ...mobileType.label,
-    color: mobileColors.textMuted
+    ...type.label,
+    color: colors.textMuted
   },
   meridiemTextActive: {
-    color: mobileColors.accent
+    color: colors.accent
   }
 });

@@ -5,6 +5,7 @@ import type {
   MovementSession,
   MovementWorkoutType
 } from '../../engines/movement';
+import type { WeightUnit } from './weightUnits';
 
 export type ExerciseMovementPattern =
   | 'squat'
@@ -88,6 +89,7 @@ export type WorkoutExerciseEntryInput = {
   sets?: number | null;
   reps?: number | null;
   weight?: number | null;
+  weight_unit?: WeightUnit | null;
   distance?: number | null;
   duration_minutes?: number | null;
   effort?: number | null;
@@ -107,6 +109,8 @@ export type WorkoutExerciseEntryInsert = {
   sets: number | null;
   reps: number | null;
   weight: number | null;
+  /** Null for entries recorded before units existed; never assumed. */
+  weight_unit: WeightUnit | null;
   distance: number | null;
   duration_minutes: number | null;
   effort: number | null;
@@ -127,6 +131,8 @@ export type WorkoutSetEntryInput = {
   workout_exercise_entry_id: string;
   set_index: number;
   weight?: number | null;
+  weight_unit?: WeightUnit | null;
+  warmup?: boolean;
   reps?: number | null;
   rpe?: number | null;
   rest_seconds?: number | null;
@@ -143,6 +149,8 @@ export type WorkoutSetEntryInsert = {
   workout_exercise_entry_id: string;
   set_index: number;
   weight: number | null;
+  weight_unit: WeightUnit | null;
+  warmup: boolean;
   reps: number | null;
   rpe: number | null;
   rest_seconds: number | null;
@@ -251,6 +259,7 @@ export function toWorkoutExerciseEntryInsert(
     sets: input.sets ?? null,
     reps: input.reps ?? null,
     weight: input.weight ?? null,
+    weight_unit: input.weight_unit ?? null,
     distance: input.distance ?? null,
     duration_minutes: input.duration_minutes ?? null,
     effort: input.effort ?? null,
@@ -273,6 +282,8 @@ export function toWorkoutSetEntryInsert(
     weight: input.weight ?? null,
     reps: input.reps ?? null,
     rpe: input.rpe ?? null,
+    weight_unit: input.weight_unit ?? null,
+    warmup: input.warmup ?? false,
     rest_seconds: input.rest_seconds ?? null,
     completed_at: input.completed_at ?? null,
     notes: trimOrNull(input.notes),

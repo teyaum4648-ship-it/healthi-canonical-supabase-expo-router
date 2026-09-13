@@ -7,7 +7,7 @@ const config: ExpoConfig = {
   version: '0.1.0',
   icon: './public/icons/healthi-icon-1024.png',
   orientation: 'portrait',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'dark',
   web: {
     bundler: 'metro',
     output: 'single',
@@ -30,7 +30,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#F7F3EC'
+      backgroundColor: '#000000'
     }
   },
   plugins: [

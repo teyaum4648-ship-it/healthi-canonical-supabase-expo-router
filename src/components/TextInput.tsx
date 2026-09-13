@@ -5,7 +5,7 @@ import {
   type TextInputProps as NativeTextInputProps
 } from 'react-native';
 
-import { colors, fonts, radii, spacing } from '../styles/theme';
+import { colors, radii, spacing, type } from '../styles/mobileTheme';
 
 type TextInputProps = NativeTextInputProps & {
   label: string;
@@ -17,7 +17,7 @@ export function TextInput({ label, style, ...props }: TextInputProps) {
       <Text style={styles.label}>{label}</Text>
       <NativeTextInput
         autoCapitalize="none"
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.textFaint}
         style={[styles.input, style]}
         {...props}
       />
@@ -27,21 +27,16 @@ export function TextInput({ label, style, ...props }: TextInputProps) {
 
 const styles = StyleSheet.create({
   label: {
-    color: colors.deepViolet,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase'
+    ...type.caption,
+    color: colors.textMuted
   },
   input: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
+    minHeight: 52,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceInset,
     color: colors.text,
-    fontFamily: fonts.body,
     fontSize: 16,
     paddingHorizontal: spacing.md
   }

@@ -8,8 +8,11 @@ import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
+import { DEFAULT_WEIGHT_UNIT, WEIGHT_UNITS, type WeightUnit } from '../../../src/features/movement/weightUnits';
+import { readWeightUnit, weightUnitScope, writeWeightUnit } from '../../../src/features/movement/weightUnitStore';
 import {
   confidenceLabel as trendsConfidenceLabel,
   type TrendsDomainCard,
@@ -87,6 +90,7 @@ export default function SettingsScreen() {
   const [model, setModel] = useState<ProfileScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [trendRangeDays, setTrendRangeDays] = useState<TrendsRangeDays>(7);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(DEFAULT_WEIGHT_UNIT);
   const [trendsModel, setTrendsModel] = useState<TrendsScreenModel | null>(null);
   const [isTrendsLoading, setIsTrendsLoading] = useState(true);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -138,6 +142,21 @@ export default function SettingsScreen() {
     }, [loadTrends])
   );
 
+  const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void readWeightUnit(unitScope).then((unit) => { if (active) setWeightUnit(unit); });
+      return () => { active = false; };
+    }, [unitScope])
+  );
+
+  function handleWeightUnitChange(unit: WeightUnit) {
+    setWeightUnit(unit);
+    void writeWeightUnit(unitScope, unit);
+  }
+
   async function handleSignOut() {
     try {
       await signOut();
@@ -150,16 +169,15 @@ export default function SettingsScreen() {
   const baseline = model?.baseline;
 
   return (
-    <Screen appearance="mobile" contentStyle={styles.content}>
+    <Screen contentStyle={styles.content}>
       <SectionHeader
-        appearance="mobile"
         eyebrow="Profile"
         title="You"
         body="Your progress, profile and preferences."
       />
 
       {isLoading || !model || !baseline ? (
-        <Card appearance="mobile" style={styles.loadingCard}>
+        <Card style={styles.loadingCard}>
           <ActivityIndicator color={colors.accent} />
           <Text style={styles.loadingText}>Organizing your available data.</Text>
         </Card>
@@ -188,13 +206,13 @@ export default function SettingsScreen() {
           </View>
 
           {isTrendsLoading || !trendsModel ? (
-            <Card appearance="mobile" style={styles.trendLoadingCard}>
+            <Card style={styles.trendLoadingCard}>
               <ActivityIndicator color={colors.accent} />
               <Text style={styles.loadingText}>Gathering your available patterns.</Text>
             </Card>
           ) : (
             <>
-              <Card appearance="mobile" style={styles.trendOverviewCard}>
+              <Card style={styles.trendOverviewCard}>
                 <View style={styles.trendTopline}>
                   <Text style={styles.cardEyebrow}>OVERVIEW</Text>
                   <Text style={styles.trendSource}>{trendSourceLabel(trendsModel)}</Text>
@@ -206,7 +224,7 @@ export default function SettingsScreen() {
 
               <View style={styles.trendDomainGrid}>
                 {trendsModel.summary.domain_cards.map((card) => (
-                  <Card appearance="mobile" key={card.domain} style={styles.trendDomainCard}>
+                  <Card key={card.domain} style={styles.trendDomainCard}>
                     <View style={styles.trendTopline}>
                       <Text style={styles.trendDomainTitle}>{card.title}</Text>
                       <Text style={[styles.trendStatus, card.status === 'watch' && styles.trendStatusWatch]}>{trendStatusLabel(card)}</Text>
@@ -219,7 +237,7 @@ export default function SettingsScreen() {
               </View>
 
               {trendsModel.summary.insights.length > 0 ? (
-                <Card appearance="mobile" style={styles.trendInsightCard}>
+                <Card style={styles.trendInsightCard}>
                   <Text style={styles.cardEyebrow}>WHAT IS SHOWING UP</Text>
                   {trendsModel.summary.insights.map((insight) => (
                     <View key={insight.id} style={styles.trendInsightRow}>
@@ -231,7 +249,7 @@ export default function SettingsScreen() {
                 </Card>
               ) : null}
 
-              <Card appearance="mobile" style={styles.trendFocusCard}>
+              <Card style={styles.trendFocusCard}>
                 <Text style={styles.cardEyebrow}>NEXT FOCUS</Text>
                 <Text style={styles.trendFocusTitle}>{trendsModel.summary.next_focus.title}</Text>
                 <Text style={styles.trendFocusDetail}>{trendsModel.summary.next_focus.detail}</Text>
@@ -245,13 +263,13 @@ export default function SettingsScreen() {
             <Text style={styles.sectionCaption}>Available signals</Text>
           </View>
           {baseline.profile_cards.length ? baseline.profile_cards.map((card) => (
-            <Card appearance="mobile" key={card.id} style={styles.profileCard}>
+            <Card key={card.id} style={styles.profileCard}>
               <Text style={styles.profileTitle}>{card.title}</Text>
               <Text style={styles.profileValue}>{card.value}</Text>
               <Text style={styles.detail}>{card.detail}</Text>
             </Card>
           )) : (
-            <Card appearance="mobile">
+            <Card>
               <Text style={styles.profileTitle}>Baseline details</Text>
               <Text style={styles.detail}>Complete setup to add your goal and personal context.</Text>
             </Card>
@@ -262,7 +280,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionCaption}>What shapes your plan</Text>
           </View>
 
-          <Card appearance="mobile" style={styles.blueprintCard}>
+          <Card style={styles.blueprintCard}>
             <Text style={styles.cardEyebrow}>NOURISHMENT PREFERENCES</Text>
             <Text style={styles.blueprintTitle}>{model.blueprint.nourishment.pattern_label}</Text>
             <Text style={styles.detail}>{model.blueprint.nourishment.detail}</Text>
@@ -285,7 +303,7 @@ export default function SettingsScreen() {
             <Text style={styles.readinessNote}>{model.blueprint.nourishment.readiness_note}</Text>
           </Card>
 
-          <Card appearance="mobile" style={styles.blueprintCard}>
+          <Card style={styles.blueprintCard}>
             <Text style={styles.cardEyebrow}>SLEEP RHYTHM</Text>
             <Text style={styles.blueprintTitle}>Your sleep context</Text>
             <Text style={styles.miniHeading}>Biggest friction</Text>
@@ -302,7 +320,7 @@ export default function SettingsScreen() {
             <Text style={styles.readinessNote}>{model.blueprint.sleep.readiness_note}</Text>
           </Card>
 
-          <Card appearance="mobile" style={styles.blueprintCard}>
+          <Card style={styles.blueprintCard}>
             <Text style={styles.cardEyebrow}>MOVEMENT SUMMARY</Text>
             <Text style={styles.blueprintTitle}>Your training context</Text>
             <View style={styles.movementMetrics}>
@@ -326,7 +344,7 @@ export default function SettingsScreen() {
             <Text style={styles.readinessNote}>{model.blueprint.movement.readiness_note}</Text>
           </Card>
 
-          <Card appearance="mobile" style={styles.calibrationCard}>
+          <Card style={styles.calibrationCard}>
             <Text style={styles.cardEyebrow}>CALIBRATION</Text>
             <Text style={styles.calibrationTitle}>{baseline.calibration.completion_label}</Text>
             <Text style={styles.detail}>{baseline.calibration.detail}</Text>
@@ -343,7 +361,16 @@ export default function SettingsScreen() {
             </View>
           </Card>
 
-          <Card appearance="mobile">
+          <Card>
+            <Text style={styles.cardEyebrow}>TRAINING UNITS</Text>
+            <Text style={styles.preferenceTitle}>Weight unit</Text>
+            <Text style={styles.detail}>New sets are logged in this unit. Sets you have already saved keep the unit they were recorded in.</Text>
+            <View style={styles.unitControl}>
+              <SegmentedControl onChange={handleWeightUnitChange} options={WEIGHT_UNITS} value={weightUnit} />
+            </View>
+          </Card>
+
+          <Card>
             <Text style={styles.cardEyebrow}>PREFERENCES</Text>
             {baseline.preferences.map((preference) => (
               <View key={preference.id} style={styles.preferenceRow}>
@@ -353,7 +380,7 @@ export default function SettingsScreen() {
             ))}
           </Card>
 
-          <Card appearance="mobile" style={styles.nextStepsCard}>
+          <Card style={styles.nextStepsCard}>
             <Text style={styles.cardEyebrow}>NEXT STEPS</Text>
             {baseline.next_steps.map((step) => (
               <View key={step.id} style={styles.stepRow}>
@@ -368,14 +395,14 @@ export default function SettingsScreen() {
 
           </Disclosure>
           <Disclosure title="Account and baseline" detail={model.account.label}>
-          <Card appearance="mobile" style={styles.accountCard}>
+          <Card style={styles.accountCard}>
             <Text style={styles.cardEyebrow}>ACCOUNT</Text>
             <Text style={styles.accountTitle}>{model.account.label}</Text>
             <Text style={styles.detail}>{model.account.detail}</Text>
             <Text style={styles.meta}>{model.account.source_label === 'demo' ? 'Local demo mode' : model.account.source_label === 'logged' ? 'Saved profile data' : 'Setup status'}</Text>
           </Card>
 
-          <Card appearance="mobile" style={styles.baselineCard}>
+          <Card style={styles.baselineCard}>
             <Text style={styles.cardEyebrow}>YOUR BASELINE</Text>
             <Text style={styles.baselineTitle}>{baseline.headline}</Text>
             <Text style={styles.baselineDetail}>{baseline.detail}</Text>
@@ -383,7 +410,7 @@ export default function SettingsScreen() {
           </Card>
 
           {activeProtocol ? (
-            <Card appearance="mobile">
+            <Card>
               <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
               <Text style={styles.baselineTitle}>{activeProtocol.headline}</Text>
               <Text style={styles.meta}>
@@ -392,7 +419,7 @@ export default function SettingsScreen() {
             </Card>
           ) : null}
 
-          <Button appearance="mobile" label="Log out" onPress={handleSignOut} variant="secondary" />
+          <Button label="Log out" onPress={handleSignOut} variant="secondary" />
           </Disclosure>
           <Text style={styles.footer}>Healthi provides general wellness guidance based on available data.</Text>
 
@@ -406,15 +433,15 @@ export default function SettingsScreen() {
           <Text style={styles.detail}>Your demo entries stay on this device. Resetting starts onboarding again with empty sleep, food, movement, and plan history.</Text>
           {confirmDemoReset ? <>
             <Text style={styles.detail}>Remove this device’s demo history? Personal account data is not affected.</Text>
-            <Button appearance="mobile" label="Reset demo and start again" isLoading={isResettingDemo} onPress={async () => {
+            <Button label="Reset demo and start again" isLoading={isResettingDemo} onPress={async () => {
               setIsResettingDemo(true);
               setDemoResetError('');
               try { await startDemo(true); }
               catch { setDemoResetError('Reset could not finish. Please try again.'); }
               finally { setIsResettingDemo(false); }
             }} />
-            <Button appearance="mobile" variant="secondary" label="Cancel" onPress={() => setConfirmDemoReset(false)} />
-          </> : <Button appearance="mobile" variant="secondary" label="Start fresh demo" onPress={() => setConfirmDemoReset(true)} />}
+            <Button variant="secondary" label="Cancel" onPress={() => setConfirmDemoReset(false)} />
+          </> : <Button variant="secondary" label="Start fresh demo" onPress={() => setConfirmDemoReset(true)} />}
           {demoResetError ? <Text accessibilityRole="alert" style={styles.detail}>{demoResetError}</Text> : null}
         </Disclosure>
       ) : null}
@@ -493,6 +520,7 @@ const styles = StyleSheet.create({
   domainStatus: { color: colors.accentMid, fontFamily: fonts.bodyMedium, fontSize: 12, textAlign: 'right' },
   domainStatusCalibrating: { color: colors.textMuted },
   preferenceRow: { gap: 2, paddingVertical: spacing.xs },
+  unitControl: { marginTop: spacing.sm },
   preferenceTitle: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 14 },
   nextStepsCard: { backgroundColor: colors.surfaceInset },
   stepRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },

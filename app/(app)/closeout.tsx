@@ -15,7 +15,7 @@ import {
   type EveningCloseoutAnswers,
   type EveningCloseoutResult
 } from '../../src/features/eveningCloseout';
-import { colors, hairlineWidth, radii, spacing, type } from '../../src/styles/theme';
+import { colors, hairlineWidth, radii, spacing, type } from '../../src/styles/mobileTheme';
 
 type QuestionKey = keyof EveningCloseoutAnswers;
 

@@ -16,7 +16,7 @@ import {
   safetyStatusLabel,
   shouldSurfaceSafety
 } from '../../src/features/dailyProtocol';
-import { colors, hairlineWidth, radii, spacing, type } from '../../src/styles/theme';
+import { colors, hairlineWidth, radii, spacing, type } from '../../src/styles/mobileTheme';
 
 function actionIcon(kind: ProtocolActionKind): keyof typeof Ionicons.glyphMap {
   switch (kind) {

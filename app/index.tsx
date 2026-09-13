@@ -6,7 +6,7 @@ import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
 import { DemoEntry } from '../src/features/auth/DemoEntry';
 import { entryDestination } from '../src/features/auth/entryRouting';
-import { colors, fonts, spacing } from '../src/styles/theme';
+import { colors, fonts, spacing } from '../src/styles/mobileTheme';
 import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
@@ -17,7 +17,7 @@ export default function IndexRoute() {
   const isWide = width >= 820;
 
   const destination = entryDestination({ isLoading, mode, hasSession: Boolean(session), onboardingStatus: profile?.onboarding_status });
-  if (destination === 'loading') return <Screen appearance="mobile"><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening Healthi…</Text></Screen>;
+  if (destination === 'loading') return <Screen><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening Healthi…</Text></Screen>;
   if (destination === 'demo') return <DemoEntry />;
   if (destination !== 'welcome') return <Redirect href={destination} />;
 
