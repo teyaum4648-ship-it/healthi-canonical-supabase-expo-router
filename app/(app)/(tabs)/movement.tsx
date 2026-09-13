@@ -242,7 +242,7 @@ export default function MovementScreen() {
   const [isQuickLogging, setIsQuickLogging] = useState(false);
   const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
   const [historyDay, setHistoryDay] = useState(today);
-  const [historyView, setHistoryView] = useState<'Progress' | 'All recent' | 'By day'>('Progress');
+  const [historyView, setHistoryView] = useState<'Progress' | 'All recent' | 'By day'>('All recent');
   const scrollRef = useRef<ScrollView>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const [quickPrompt, setQuickPrompt] = useState('');
@@ -1193,7 +1193,6 @@ export default function MovementScreen() {
   function renderToday() {
     return (
       <View style={styles.page}>
-        <PageHeading section="MOVE · TODAY" title="Today" />
         {trainingLimited ? (
           <View style={styles.protocolNote}>
             <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
@@ -1248,33 +1247,6 @@ export default function MovementScreen() {
           </Pressable>
         ) : null}
 
-        <View style={styles.verdictBlock}>
-          <EditorialLabel>WHY THIS FITS TODAY</EditorialLabel>
-          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
-          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
-          <View style={styles.capacityLabels}>
-            {['Restore', 'Technique', 'Build', 'Push'].map((label, index) => (
-              <Text key={label} style={[styles.capacityLabel, index === capacityIndex && styles.capacityLabelActive]}>{label}</Text>
-            ))}
-          </View>
-          <View style={styles.capacityRail}>
-            {[0, 1, 2, 3].map((index) => (
-              <View key={index} style={[styles.capacitySegment, index === capacityIndex && styles.capacitySegmentActive]} />
-            ))}
-          </View>
-          <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10 · readiness comes from Home</Text>
-          <View style={styles.reasonList}>
-            {adaptivePlan.reason_codes.slice(0, 3).map((reason) => (
-              <View key={reason} style={styles.reasonRow}>
-                <View style={styles.reasonDot} />
-                <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <Divider />
-
         <View style={styles.feelingPanel}>
           <Text style={styles.feelingTitle}>How are you feeling?</Text>
           <Text style={styles.feelingHint}>Optional · saved with the session so you can read it back later.</Text>
@@ -1286,6 +1258,8 @@ export default function MovementScreen() {
         </View>
 
         <Disclosure detail="Objective, what supports today, and your recent mix" title="More about today">
+        <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
+        <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10</Text>
         <View>
           <EditorialLabel>TODAY'S OBJECTIVE</EditorialLabel>
           <Text style={styles.objective}>{adaptivePlan.objective}</Text>
@@ -1594,11 +1568,11 @@ export default function MovementScreen() {
   }
 
   function renderHistory() {
-    const visibleSessions = historyView === 'All recent' ? sessions : sessions.filter((session) => session.session_date.slice(0, 10) === historyDay);
+    const visibleSessions = historyView === 'By day' ? sessions.filter((session) => session.session_date?.slice(0, 10) === historyDay) : sessions;
     return (
       <View style={styles.page}>
         <PageHeading section="MOVE · HISTORY" title="History" />
-        <SegmentedControl options={['Progress', 'All recent', 'By day'] as const} value={historyView} onChange={setHistoryView} />
+        <SegmentedControl options={['All recent', 'By day', 'Progress'] as const} value={historyView} onChange={setHistoryView} />
         {historyView === 'Progress' ? (
           <MovementProgress
             entries={entries}

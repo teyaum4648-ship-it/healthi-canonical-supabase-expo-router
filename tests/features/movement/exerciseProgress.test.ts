@@ -291,4 +291,17 @@ describe('training coverage', () => {
     // Never a verdict about the body.
     expect(summary).not.toMatch(/weak|behind|deficit|imbalance/i);
   });
+
+  it.each([null, 'other'] as const)('renders coverage when every exercise is unclassified (%s)', (pattern) => {
+    const coverage = buildTrainingCoverage({
+      sessions,
+      entries: [entry('custom-entry', 's2', 'Custom lift')],
+      sets: [set('custom-set', 'custom-entry', 's2', 1, {})],
+      library: pattern ? [libraryItem('custom-library', 'Custom lift', pattern)] : [],
+      today: '2026-09-12'
+    });
+    expect(coverage.total_working_sets).toBe(1);
+    expect(coverage.patterns).toHaveLength(0);
+    expect(coverageSummary(coverage)).toBe('1 working set logged in the last 7 days. Movement patterns are not available for these exercises yet.');
+  });
 });

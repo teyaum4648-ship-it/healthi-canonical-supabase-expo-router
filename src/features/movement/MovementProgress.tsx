@@ -124,12 +124,12 @@ export function MovementProgress({
         </View>
       ) : (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Nothing logged in this window</Text>
-          <Text style={styles.body}>Log a session and the patterns you trained will show up here.</Text>
+          <Text style={styles.emptyTitle}>{coverage.total_working_sets > 0 ? 'Movement patterns unavailable' : 'Nothing logged in this window'}</Text>
+          <Text style={styles.body}>{coverage.total_working_sets > 0 ? 'Your exercises are listed below. Pattern charts need a matching exercise-library entry.' : 'Log a session and the patterns you trained will show up here.'}</Text>
         </View>
       )}
 
-      {coverage.uncovered.length > 0 ? (
+      {coverage.patterns.length > 0 && coverage.uncovered.length > 0 ? (
         <Text style={styles.uncovered}>
           No logged work: {coverage.uncovered.map((pattern) => pattern.label.toLowerCase()).join(', ')}
         </Text>
