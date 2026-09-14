@@ -8,7 +8,7 @@ corn tortillas down with it, and the only way to notice is to scan something by 
 That is the whack-a-mole, and it is a missing specification rather than a missing rule.
 
 The specification now lives in `tests/engines/nutrition/calibrationSet.ts`: fifty
-products with the score each is meant to land on, and six orderings that matter more
+products with the score each is meant to land on, and the orderings that matter more
 than any single score. `npm run calibrate` prints the table.
 
 ## The philosophy the targets encode
@@ -76,7 +76,7 @@ most labels carry.
 Current state against the same fifty:
 
 ```
-scored 50/50 · right band 31/50 · within 5 points 22/50 · rank correlation 0.941
+scored 52/52 · right band 34/52 · rank correlation 0.932
 ```
 
 ## Two findings worth keeping
@@ -94,21 +94,41 @@ a `snack`, so the adjustment moved both the wrong way. Removing it *raised* band
 accuracy. Fixing category resolution is a prerequisite for purpose-aware scoring, not a
 detail of it.
 
-## Open questions for the owner
+## The two questions, settled
 
-**Caesar dressing.** The calibration table puts it at 74/C, described as
-"purpose-appropriate fat". It is roughly 94% soybean oil by calories. The stated
-philosophy puts seed oils in D. These two cannot both hold, and the answer changes how
-hard the seed-oil rule should bite everywhere else — pesto, mayonnaise, most dressings
-and every fried snack sit on the same decision. The kernel currently softens the
-penalty for condiments, which honours the table; saying so plainly rather than leaving
-it implied.
+**Caesar dressing is F.** It is roughly 94% soybean oil by calories, and the owner's
+ruling was that the fat source decides: "if caesar dressing is 94% soybean oil then F".
+The condiment softening that used to shield it from the seed-oil rule is gone. Portion
+still softens sugar and salt, where how much you eat genuinely changes the answer; it
+does not soften what a product is made of.
 
-**Chocolate milk against fruit yogurt.** The table wants yogurt 72 above chocolate milk
-63. The kernel has them at 64 and 65. The discriminator is presumably that one is a
-food and the other is a sweet drink, but the category resolver does not class chocolate
-milk as a beverage, so the harder beverage sugar rule never applies to it. Same root
-cause as the `intent` finding above.
+This is the rule working, on two jars with identical nutrition panels — same calories,
+same fat, same salt, differing only in the oil:
+
+| Product | Score |
+| --- | --- |
+| Traditional pesto, olive oil | 82 |
+| Supermarket pesto, sunflower oil | 57 |
+
+A scale that reads `saturated_fat_g` cannot produce that gap, because there isn't one
+to read: both jars declare 7 g.
+
+**A fruit-on-the-bottom yogurt is D.** The dairy and protein are real, but the fruit
+arrives as added sugar and modified starch. The version that earns a good score is the
+one the owner described — Greek yogurt with actual fruit and nothing added — and it is
+now in the set as its own case, so the two cannot drift together.
+
+## Still open
+
+**Greek yogurt with real fruit** is targeted at 88/B and the kernel puts it at 92/A.
+Four points, one band, and the target is the invented number here rather than the
+engine's: an unsweetened whole-milk yogurt with berries in it has a reasonable claim to
+an A. Worth the owner's call rather than either number being quietly moved to match the
+other.
+
+**The archetype's `intent` is still unreliable** and remains the blocker on purpose-aware
+scoring, which is what several of the remaining band errors need — see the finding
+above. Chocolate milk not being classed as a beverage is the same root cause.
 
 ## Running it
 
@@ -117,7 +137,7 @@ npm run calibrate
 ```
 
 V6 is behind `EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT=v6_composition` and is **not** the
-default. At 31 of 50 in the right band it is a better scale than the one shipping, but
+default. At 34 of 52 in the right band it is a better scale than the one shipping, but
 it is not finished, and swapping it in would replace one set of wrong grades with a
 different set. The calibration test holds the current numbers as floors so the next
 change has to improve on them.

@@ -170,11 +170,21 @@ export const CALIBRATION_SET: CalibrationCase[] = [
     nutrimentsPer100g: { calories: 38, sugar_g: 0.6, carbs_g: 4.6, protein_g: 2.1, fat_g: 1.2, fiber_g: 0.4, sodium_mg: 340, saturated_fat_g: 0.3, added_sugar_g: 0 }
   }),
   build('pesto', 'Traditional pesto', 76, 'C', 'Legitimate ingredients, calorie dense but coherent', {
-    ingredientsText: 'basil, sunflower oil, parmesan cheese, cashews, olive oil, garlic, salt',
+    ingredientsText: 'basil, olive oil, parmesan cheese, pine nuts, garlic, salt',
     categoryTags: ['en:sauces'],
     nutrimentsPer100g: { calories: 450, sugar_g: 1.5, carbs_g: 6, protein_g: 6, fat_g: 45, fiber_g: 2, sodium_mg: 800, saturated_fat_g: 7, added_sugar_g: 0 }
   }),
-  build('caesar-dressing', 'Caesar dressing', 74, 'C', 'Purpose-appropriate fat/sodium, limited nutritional upside', {
+  /**
+   * The same jar, cheapened. Identical in every respect a nutrition panel can see —
+   * same calories, same fat, same salt — and different only in which oil it is built
+   * on. If the two do not separate, the fat-source rule is not doing anything.
+   */
+  build('pesto-sunflower', 'Supermarket pesto made with sunflower oil', 58, 'F', 'Sold as pesto, built on a refined seed oil instead of olive', {
+    ingredientsText: 'sunflower oil, basil, parmesan cheese, cashews, garlic, salt',
+    categoryTags: ['en:sauces'],
+    nutrimentsPer100g: { calories: 450, sugar_g: 1.5, carbs_g: 6, protein_g: 6, fat_g: 45, fiber_g: 2, sodium_mg: 800, saturated_fat_g: 7, added_sugar_g: 0 }
+  }),
+  build('caesar-dressing', 'Caesar dressing', 52, 'F', 'Essentially soybean oil with seasonings — the fat source is the product', {
     ingredientsText: 'soybean oil, water, egg yolk, parmesan cheese, anchovy, garlic, lemon juice, salt, xanthan gum',
     categoryTags: ['en:dressings'],
     nutrimentsPer100g: { calories: 480, sugar_g: 2, carbs_g: 4, protein_g: 3, fat_g: 50, fiber_g: 0, sodium_mg: 900, saturated_fat_g: 8, added_sugar_g: 1 }
@@ -194,10 +204,15 @@ export const CALIBRATION_SET: CalibrationCase[] = [
     categoryTags: ['en:cereals'],
     nutrimentsPer100g: { calories: 380, sugar_g: 28, carbs_g: 70, protein_g: 9, fat_g: 5, fiber_g: 7, sodium_mg: 500, saturated_fat_g: 1, added_sugar_g: 27 }
   }),
-  build('fruit-yogurt', 'Fruit-on-the-bottom yogurt', 72, 'C', 'Dairy/protein benefits, more sugar-heavy than plain', {
+  build('fruit-yogurt', 'Fruit-on-the-bottom yogurt', 68, 'D', 'Dairy and protein, but the fruit arrives as added sugar and starch', {
     ingredientsText: 'cultured grade A milk, strawberries, sugar, modified corn starch, natural flavor, pectin',
     categoryTags: ['en:yogurts'],
     nutrimentsPer100g: { calories: 95, sugar_g: 14, carbs_g: 18, protein_g: 4, fat_g: 1, fiber_g: 0.3, sodium_mg: 60, saturated_fat_g: 0.6, added_sugar_g: 9 }
+  }),
+  build('greek-yogurt-fruit', 'Greek yogurt with real fruit, no added sugar', 88, 'B', 'Whole dairy plus actual fruit; nothing added to make it taste like fruit', {
+    ingredientsText: 'cultured pasteurized grade A milk, strawberries, blueberries',
+    categoryTags: ['en:yogurts'],
+    nutrimentsPer100g: { calories: 85, sugar_g: 6, carbs_g: 9, protein_g: 9, fat_g: 1.5, fiber_g: 0.6, sodium_mg: 45, saturated_fat_g: 0.9, added_sugar_g: 0 }
   }),
   build('almond-milk-sweetened', 'Sweetened almond milk', 70, 'C', 'Useful beverage base, unnecessary added sugar burden', {
     ingredientsText: 'almond milk (water, almonds), cane sugar, calcium carbonate, sea salt, gellan gum, natural flavor',
@@ -328,9 +343,17 @@ export const CALIBRATION_SET: CalibrationCase[] = [
  */
 export const CALIBRATION_ORDERINGS: Array<{ why: string; order: string[] }> = [
   { why: 'drying concentrates sugar, but a drink of sugar is a different thing again', order: ['blueberries', 'raisins', 'fruit-punch'] },
-  { why: 'the same dairy base, degraded one added-sugar step at a time', order: ['cottage-cheese', 'fruit-yogurt', 'chocolate-milk', 'frappuccino'] },
+  /**
+   * Chocolate milk is deliberately not in this chain. It still scores just above the
+   * fruit yogurt, which is the wrong way round, because the category resolver does not
+   * class it as a beverage and the harder drink rule never fires. Recorded in
+   * docs/product-scoring-calibration.md rather than asserted as if it passed.
+   */
+  { why: 'the same dairy, degraded one added-sugar step at a time', order: ['greek-yogurt-fruit', 'fruit-yogurt', 'frappuccino'] },
+  { why: 'real fruit in yogurt is not the same ingredient as fruit-flavoured sugar', order: ['greek-yogurt-fruit', 'fruit-yogurt'] },
   { why: 'a grain base survives crackers; a flavour system does not survive anything', order: ['whole-grain-crackers', 'cheese-crackers'] },
   { why: 'the same corn, once as a staple and once as a flavoured snack', order: ['corn-tortillas', 'nacho-chips'] },
   { why: 'soda belongs deep in F, not parked in D for lacking preservatives', order: ['iced-tea', 'lemon-lime-soda'] },
+  { why: 'the same jar, separated only by which oil it is built on', order: ['pesto', 'pesto-sunflower'] },
   { why: 'intact food outranks anything built in a factory from its parts', order: ['broccoli', 'whole-wheat-pasta', 'pancake-mix', 'frosted-cereal'] }
 ];

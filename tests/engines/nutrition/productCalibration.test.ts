@@ -19,7 +19,7 @@ import { CALIBRATION_ORDERINGS, CALIBRATION_SET } from './calibrationSet';
  * `npm run calibrate` prints the full table.
  */
 
-const BAND_FLOOR = 31;
+const BAND_FLOOR = 34;
 const RANK_FLOOR = 0.93;
 
 /** The kernel under calibration, set here so the suite measures it whatever the default. */
@@ -67,9 +67,7 @@ describe('product scoring, against the calibration set', () => {
     for (const ordering of CALIBRATION_ORDERINGS) {
       const values = ordering.order.map((id) => ({ id, score: scored.get(id)! }));
       const holds = values.every((row, index) => index === 0 || values[index - 1].score > row.score);
-      // Chocolate milk and a fruit yogurt still sit the wrong way round; that one is
-      // named in the doc rather than silently tolerated here.
-      if (!holds && !ordering.order.includes('fruit-yogurt')) {
+      if (!holds) {
         broken.push(`${ordering.why}: ${values.map((row) => `${row.id} ${row.score}`).join(' > ')}`);
       }
     }

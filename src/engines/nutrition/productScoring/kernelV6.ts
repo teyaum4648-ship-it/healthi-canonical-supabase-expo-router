@@ -359,13 +359,17 @@ function nutrition(
     negative.push(note('v6_industrial_fat', 'Built on a hydrogenated or interesterified fat', -20));
   } else if (parts.roles.has('seed_oil')) {
     /**
-     * Scaled by how much of the product the oil is. A chip fried in canola carries it
-     * as half its calories; a dressing is fat by definition and is used by the spoon,
-     * so the same ingredient is weighed differently by purpose rather than waved
-     * through or condemned wholesale.
+     * Scaled by how much of the product the oil actually is.
+     *
+     * Being a condiment is not a defence here. A caesar dressing is ninety-odd percent
+     * soybean oil by calories — the oil is not an ingredient in the product, it is the
+     * product — and softening the rule for it was the kernel deciding that a thing used
+     * by the spoonful cannot be mostly seed oil. Portion still softens sugar and salt
+     * below, where how much you eat genuinely changes the answer; it does not soften
+     * what the product is made of.
      */
     const fatShare = read.fatShare ?? 0.3;
-    const penalty = (spoonful ? 9 : 34) * Math.min(1, fatShare / 0.5);
+    const penalty = 38 * Math.min(1, fatShare / 0.5);
     score -= penalty;
     negative.push(note('v6_seed_oil', 'Built on an industrially refined seed oil', -penalty));
   } else if (parts.roles.has('culinary_fat')) {
