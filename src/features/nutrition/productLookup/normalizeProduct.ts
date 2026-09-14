@@ -51,6 +51,8 @@ export type OpenFoodFactsProduct = {
   completeness?: unknown;
   data_quality_tags?: unknown;
   labels_tags?: unknown;
+  allergens_tags?: unknown;
+  traces_tags?: unknown;
   categories_tags?: unknown;
   packaging_tags?: unknown;
   nova_group?: unknown;
@@ -531,6 +533,8 @@ export function normalizeOpenFoodFactsProduct(
     validation_issues: nutritionValidation.validationIssues,
     provider_resolution_trace: providerResolutionTrace,
     labels: cleanTagList(product.labels_tags),
+    allergen_tags: cleanTagList(product.allergens_tags),
+    trace_tags: cleanTagList(product.traces_tags),
     categories_tags: categories,
     packaging_tags: cleanTagList(product.packaging_tags),
     nutriments_per_100g: {

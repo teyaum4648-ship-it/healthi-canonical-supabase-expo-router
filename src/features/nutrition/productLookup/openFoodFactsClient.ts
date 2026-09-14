@@ -58,6 +58,9 @@ function productFields(locale = 'en'): string {
   'ingredients',
   'ingredients_n',
   'labels_tags',
+  // Curated and language-independent, unlike the printed "Contains" statement.
+  'allergens_tags',
+  'traces_tags',
   'categories_tags',
   'packaging_tags',
   'lang',

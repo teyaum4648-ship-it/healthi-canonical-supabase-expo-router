@@ -170,6 +170,10 @@ export type HealthiProductSnapshot = {
   lab_evidence_resolution?: LabEvidenceResolution;
   lab_evidence_reference?: LabEvidenceReferenceSnapshot;
   labels?: string[];
+  /** Producer-declared allergens. An empty or missing list is no evidence of absence. */
+  allergen_tags?: string[];
+  /** Cross-contact advisories ("may contain"), kept separate from outright declarations. */
+  trace_tags?: string[];
   categories_tags?: string[];
   packaging_tags?: string[];
   nutriments_per_100g?: {
