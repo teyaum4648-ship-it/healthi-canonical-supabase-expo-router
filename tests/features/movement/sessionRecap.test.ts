@@ -64,6 +64,7 @@ function coverage(overrides: Partial<TrainingCoverage> = {}): TrainingCoverage {
     uncovered: [pattern('pull', 'Pull', 0), pattern('carry', 'Carry', 0)],
     total_working_sets: 17,
     unclassified_sets: 0,
+    unclassified_exercises: [],
     ...overrides
   };
 }
@@ -182,6 +183,20 @@ describe('the week, described rather than diagnosed', () => {
     // Carry and rotation are excluded here exactly as coverageSummary excludes them.
     expect(recap().uncovered.map((item) => item.label)).toEqual(['Pull']);
     expect(notableUncovered(coverage()).map((item) => item.label)).toEqual(['Pull']);
+  });
+
+  it('names what it could not place, but only from this session', () => {
+    // An older unplaced movement is not this session's business to clear up.
+    const result = recap({
+      coverage: coverage({
+        unclassified_sets: 5,
+        unclassified_exercises: [
+          { exercise_name: 'bench', working_sets: 3, last_trained: TODAY },
+          { exercise_name: 'sled drag', working_sets: 2, last_trained: '2026-09-09' }
+        ]
+      })
+    });
+    expect(result.unclassified_here).toEqual([{ exercise_name: 'bench', working_sets: 3 }]);
   });
 
   it('counts sets it could not classify rather than quietly dropping them', () => {

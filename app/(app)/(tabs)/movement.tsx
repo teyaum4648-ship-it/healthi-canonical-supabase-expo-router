@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
 import { MovementProgress } from '../../../src/features/movement/MovementProgress';
-import { buildExerciseProgress, exerciseKey } from '../../../src/features/movement/exerciseProgress';
+import { buildExerciseProgress, exerciseKey, normalizeExerciseName } from '../../../src/features/movement/exerciseProgress';
 import { buildTrainingCoverage } from '../../../src/features/movement/trainingCoverage';
 import {
   suggestNextSession,
@@ -67,13 +67,20 @@ import {
   writeWorkoutDraft
 } from '../../../src/features/movement/workoutDraftStore';
 import { restCompleteFeedback, sessionSavedFeedback, setLoggedFeedback } from '../../../src/features/movement/sessionFeedback';
+import {
+  DEFAULT_REST_ENABLED,
+  readRestEnabled,
+  restPreferenceScope,
+  writeRestEnabled
+} from '../../../src/features/movement/restPreferenceStore';
 import { summarizeQuickWorkout } from '../../../src/features/movement/workoutSummary';
 import { buildSessionRecap, type SessionRecap as SessionRecapModel } from '../../../src/features/movement/sessionRecap';
 import { SessionRecap } from '../../../src/features/movement/SessionRecap';
 import {
   calculateMovementSummary,
   generateAdaptiveMovementPlan,
-  generateMovementReadinessSignal
+  generateMovementReadinessSignal,
+  type MovementExerciseCategory
 } from '../../../src/engines/movement';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
@@ -93,6 +100,7 @@ import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhyth
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import {
+  addDemoExerciseLibraryItem,
   addDemoWorkoutExerciseEntries,
   addDemoWorkoutSession,
   addDemoWorkoutSetEntries,
@@ -106,10 +114,12 @@ import {
   getWorkoutExerciseEntriesForSession,
   getWorkoutSetEntriesForSession,
   getWorkoutSessionsForRange,
+  saveExerciseLibraryItem,
   saveWorkoutExerciseEntries,
   saveWorkoutSession,
   saveWorkoutSetEntries,
   type ExerciseLibraryItemRow,
+  type ExerciseMovementPattern,
   type MovementSupabaseClient,
   type WorkoutExerciseEntryRow,
   type WorkoutSessionRow,
@@ -299,10 +309,11 @@ export default function MovementScreen() {
   const [loggerView, setLoggerView] = useState<LoggerView>('Focus');
   const [focusIndex, setFocusIndex] = useState(0);
   const [restTimer, setRestTimer] = useState<RestTimer | null>(null);
+  const [restEnabled, setRestEnabled] = useState(DEFAULT_REST_ENABLED);
   const [timerNow, setTimerNow] = useState(() => new Date().toISOString());
   const [undoSnapshot, setUndoSnapshot] = useState<{ draft: QuickWorkoutDraft; label: string } | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
-  const [recap, setRecap] = useState<{ recap: SessionRecapModel; draft: QuickWorkoutDraft } | null>(null);
+  const [recap, setRecap] = useState<{ draft: QuickWorkoutDraft; finishedAt: string; sessionDate: string } | null>(null);
   /** Why the last finish attempt did not save, shown in the logger's own footer. */
   const [saveNotice, setSaveNotice] = useState('');
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -570,6 +581,37 @@ export default function MovementScreen() {
    * you actually did. Recent reads the entries too, so repeating a session brings its
    * movements rather than only its name.
    */
+  /**
+   * The recap, derived rather than frozen.
+   *
+   * It reads the same engines the screen already runs, so anything that changes what
+   * they know — classifying a movement from the recap itself — changes the recap. The
+   * saved rows are in state by the render that first shows it, because the setters in
+   * the save handler and the one that opens this are applied in the same batch.
+   */
+  const recapModel = useMemo<SessionRecapModel | null>(() => {
+    if (!recap) return null;
+    const progress = buildExerciseProgress({ sessions, entries, sets: workoutSets, unit: weightUnit });
+    const sessionDay = recap.sessionDate.slice(0, 10);
+    return buildSessionRecap({
+      summary: summarizeQuickWorkout(recap.draft, recap.finishedAt),
+      progress,
+      coverage: buildTrainingCoverage({ sessions, entries, sets: workoutSets, library, today }),
+      sessionDate: recap.sessionDate,
+      // Only the movements just trained; a suggestion for something untouched today
+      // would read as a verdict on a session it was not part of.
+      suggestions: progress
+        .filter((item) => item.last_performed?.slice(0, 10) === sessionDay)
+        .map((item) => suggestNextSession({
+          progress: item,
+          capacity: adaptivePlan.capacity,
+          trainingAllowed: adaptivePlan.training_allowed,
+          today,
+          unit: weightUnit
+        }))
+    });
+  }, [adaptivePlan.capacity, adaptivePlan.training_allowed, entries, library, recap, sessions, today, weightUnit, workoutSets]);
+
   const starterSources = useMemo<Record<StarterTab, StarterSource[]>>(() => ({
     Routines: routines.map(routineSource),
     Templates: workoutTemplates.map(templateSource),
@@ -643,6 +685,20 @@ export default function MovementScreen() {
     void readWeightUnit(unitScope).then((unit) => { if (active) setWeightUnit(unit); });
     return () => { active = false; };
   }, [unitScope]);
+
+  const restScope = useMemo(() => restPreferenceScope(userId), [userId]);
+  useEffect(() => {
+    let active = true;
+    void readRestEnabled(restScope).then((enabled) => { if (active) setRestEnabled(enabled); });
+    return () => { active = false; };
+  }, [restScope]);
+
+  /** Turning it off also ends the rest already running; nobody means "after this one". */
+  function updateRestEnabled(enabled: boolean) {
+    setRestEnabled(enabled);
+    if (!enabled) setRestTimer(null);
+    void writeRestEnabled(restScope, enabled);
+  }
 
   // Resume an interrupted session. A workout is unrecoverable if lost, so the
   // draft is restored before anything else can overwrite it.
@@ -734,7 +790,7 @@ export default function MovementScreen() {
 
     if (nowCompleted) setLoggedFeedback();
 
-    if (nowCompleted && restSeconds > 0) {
+    if (nowCompleted && restEnabled && restSeconds > 0) {
       setTimerNow(completedAt);
       setRestTimer(createRestTimer(exerciseId, setId, restSeconds, completedAt));
     } else if (!nowCompleted) {
@@ -1063,37 +1119,13 @@ export default function MovementScreen() {
       }
       sessionSavedFeedback();
 
-      // The recap is composed from the rows just written, not from the state setters
-      // above: those have not applied yet inside this handler, and reading them here
-      // would leave today's sets out of the records and the coverage.
-      const nextSessions = savedRows ? [savedRows.session, ...sessions] : sessions;
-      const nextEntries = savedRows ? [...savedRows.exercises, ...entries] : entries;
-      const nextSets = savedRows ? [...savedRows.sets, ...workoutSets] : workoutSets;
-      const sessionDate = savedRows?.session.session_date ?? today;
-      const progress = buildExerciseProgress({
-        sessions: nextSessions, entries: nextEntries, sets: nextSets, unit: weightUnit
-      });
+      // Only what the recap is *of* is stored; the recap itself is derived below, so
+      // answering a question on it — what kind of movement is this — recomputes the
+      // coverage it was asking about instead of leaving a screen that ignores the tap.
       setRecap({
         draft: quickDraft,
-        recap: buildSessionRecap({
-          summary: summarizeQuickWorkout(quickDraft, finishedAt),
-          progress,
-          coverage: buildTrainingCoverage({
-            sessions: nextSessions, entries: nextEntries, sets: nextSets, library, today
-          }),
-          sessionDate,
-          // Only the movements just trained; a suggestion for something untouched
-          // today would read as a verdict on a session it was not part of.
-          suggestions: progress
-            .filter((item) => item.last_performed?.slice(0, 10) === sessionDate.slice(0, 10))
-            .map((item) => suggestNextSession({
-              progress: item,
-              capacity: adaptivePlan.capacity,
-              trainingAllowed: adaptivePlan.training_allowed,
-              today,
-              unit: weightUnit
-            }))
-        })
+        finishedAt,
+        sessionDate: savedRows?.session.session_date ?? today
       });
 
       setQuickDraft(null);
@@ -1109,6 +1141,52 @@ export default function MovementScreen() {
       setSaveNotice(failure);
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  /**
+   * Teaching the library what a movement is.
+   *
+   * Coverage reads a movement's pattern from the library and never guesses it from a
+   * name, so anything typed freehand — "bench" rather than "Bench Press" — drops out
+   * of the week's balance and the read says so. One answer fixes it everywhere: the
+   * match is by name, so every session already logged under that name is classified
+   * too, not just the ones after this.
+   */
+  async function classifyMovement(exerciseName: string, pattern: ExerciseMovementPattern) {
+    const name = exerciseName.trim();
+    if (!name) return;
+    const now = new Date().toISOString();
+    const input = {
+      name,
+      category: (pattern === 'mobility' ? 'mobility' : pattern === 'locomotion' ? 'cardio' : 'strength') as MovementExerciseCategory,
+      movement_pattern: pattern,
+      primary_muscles: [],
+      equipment: [],
+      is_default: false,
+      source: 'manual' as const,
+      source_confidence: 'high' as const,
+      reason_codes: ['user_classified_movement']
+    };
+
+    try {
+      if (shouldUseRemote && userId) {
+        const saved = await saveExerciseLibraryItem(supabase as unknown as MovementSupabaseClient, userId, input);
+        setLibrary((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+      } else {
+        const row: ExerciseLibraryItemRow = {
+          ...input,
+          id: `classified-${normalizeExerciseName(name).replace(/\s+/g, '-')}`,
+          user_id: 'demo-user',
+          created_at: now,
+          updated_at: now
+        };
+        await addDemoExerciseLibraryItem(row);
+        setLibrary((current) => [row, ...current.filter((item) => item.id !== row.id)]);
+      }
+      setStatus(`${name} counts as ${pattern} work from now on, including what you have already logged.`);
+    } catch {
+      setStatus('That could not be saved just now. Your workout is safe; try again later.');
     }
   }
 
@@ -1747,13 +1825,14 @@ export default function MovementScreen() {
   // A finished session owns the screen before Today does. Saving used to drop a
   // dismissible card onto a screen the lifter had already left, which made the work
   // feel filed rather than finished.
-  if (recap) {
+  if (recap && recapModel) {
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>
         <SessionRecap
           onDone={() => { setRecap(null); setActiveSegment('Today'); }}
+          onClassify={(name, pattern) => void classifyMovement(name, pattern)}
           onSaveRoutine={() => saveRoutineFromDraft(recap.draft)}
-          recap={recap.recap}
+          recap={recapModel}
           savedLocally={!shouldUseRemote}
         />
       </SafeAreaView>
@@ -1794,11 +1873,13 @@ export default function MovementScreen() {
             }));
           })()}
           onRenameExercise={(exerciseId, exercise_name) => updateQuickExercise(exerciseId, { exercise_name })}
+          onSetRestEnabled={updateRestEnabled}
           onSkipRest={() => setRestTimer(null)}
           onToggleRest={() => setRestTimer((current) => current ? toggleRestTimer(current, new Date().toISOString()) : current)}
           onUndo={handleUndo}
           onUpdateSet={updateQuickSet}
           onViewChange={setLoggerView}
+          restEnabled={restEnabled}
           restTimer={restTimer}
           saveState={isSaving ? 'saving' : 'idle'}
           savedLocally={!shouldUseRemote}

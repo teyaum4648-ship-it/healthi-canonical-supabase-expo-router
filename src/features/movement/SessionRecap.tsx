@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import type { ExerciseMovementPattern } from './movementPersistence';
 import {
   baselineNames,
   recapMeta,
@@ -38,10 +39,25 @@ function Eyebrow({ children }: { children: string }) {
   return <Text style={styles.eyebrow}>{children}</Text>;
 }
 
-export function SessionRecap({ recap, onDone, onSaveRoutine, savedLocally }: {
+/** The patterns worth offering. 'other' is a fallback, not something to choose. */
+const CLASSIFY_PATTERNS = [
+  ['push', 'Push'],
+  ['pull', 'Pull'],
+  ['squat', 'Squat'],
+  ['hinge', 'Hinge'],
+  ['lunge', 'Lunge'],
+  ['carry', 'Carry'],
+  ['rotation', 'Rotation'],
+  ['locomotion', 'Cardio'],
+  ['mobility', 'Mobility']
+] as const satisfies ReadonlyArray<readonly [ExerciseMovementPattern, string]>;
+
+export function SessionRecap({ recap, onDone, onSaveRoutine, onClassify, savedLocally }: {
   recap: SessionRecap;
   onDone: () => void;
   onSaveRoutine: (() => void) | null;
+  /** Teaches the library what a movement is. Absent when nothing can be written. */
+  onClassify: ((exerciseName: string, pattern: ExerciseMovementPattern) => void) | null;
   savedLocally: boolean;
 }) {
   const topPattern = recap.patterns[0] ?? null;
@@ -109,7 +125,7 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, savedLocally }: {
             <Eyebrow>WHAT THIS WEEK COVERS NOW</Eyebrow>
             {recap.patterns.slice(0, 4).map((item) => (
               <View key={item.pattern} style={styles.coverageRow}>
-                <Text style={styles.coverageLabel}>{item.label}</Text>
+                <Text numberOfLines={1} style={styles.coverageLabel}>{item.label}</Text>
                 <View style={styles.coverageTrack}>
                   <View
                     style={[
@@ -125,7 +141,7 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, savedLocally }: {
             ))}
             {recap.uncovered.slice(0, 2).map((item) => (
               <View key={item.pattern} style={styles.coverageRow}>
-                <Text style={styles.coverageLabel}>{item.label}</Text>
+                <Text numberOfLines={1} style={styles.coverageLabel}>{item.label}</Text>
                 <View style={styles.coverageTrack} />
                 <Text style={styles.coverageNone}>none</Text>
               </View>
@@ -141,6 +157,34 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, savedLocally }: {
                 {recap.unclassified_sets} working set{recap.unclassified_sets === 1 ? '' : 's'} could not be matched to a
                 movement pattern, so this read is partial.
               </Text>
+            ) : null}
+
+            {/* A pattern is never guessed from a name, so the only way out of a partial
+                read is to be told once. Answering here fixes this week and every week
+                after it, because coverage matches on the name. */}
+            {onClassify && recap.unclassified_here.length > 0 ? (
+              <View style={styles.classify}>
+                {recap.unclassified_here.slice(0, 3).map((item) => (
+                  <View key={item.exercise_name} style={styles.classifyRow}>
+                    <Text style={styles.classifyAsk}>
+                      What kind of movement is <Text style={styles.classifyName}>{item.exercise_name}</Text>?
+                    </Text>
+                    <View style={styles.classifyChips}>
+                      {CLASSIFY_PATTERNS.map(([pattern, label]) => (
+                        <Pressable
+                          accessibilityLabel={`${item.exercise_name} is a ${label.toLowerCase()} movement`}
+                          accessibilityRole="button"
+                          key={pattern}
+                          onPress={() => onClassify(item.exercise_name, pattern)}
+                          style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
+                        >
+                          <Text style={styles.chipText}>{label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : null}
           </View>
         ) : null}
@@ -225,12 +269,31 @@ const styles = StyleSheet.create({
   recordTitle: { ...type.label, color: palette.record, fontSize: 15 },
   recordDetail: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)' },
   coverageRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  coverageLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', width: 68 },
+  // Wide enough for the longest pattern name, and pinned to one line so a narrow
+  // phone breaks the bar instead of the word: "Locomotio / n" reads as a bug.
+  coverageLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', width: 86 },
   coverageTrack: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, flex: 1, height: 6, overflow: 'hidden' },
   coverageFill: { backgroundColor: palette.accent, height: '100%' },
   coverageValue: { ...type.caption, color: palette.accentMid, fontVariant: ['tabular-nums'], textAlign: 'right', width: 52 },
   coverageNone: { ...type.caption, color: palette.faint, textAlign: 'right', width: 52 },
   coverageNote: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)' },
+  classify: { borderTopColor: palette.line, borderTopWidth: hairlineWidth, gap: 14, paddingTop: 14 },
+  classifyRow: { gap: 8 },
+  classifyAsk: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)' },
+  classifyName: { color: palette.ink },
+  classifyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: palette.line,
+    borderRadius: 999,
+    borderWidth: hairlineWidth,
+    justifyContent: 'center',
+    minHeight: 36,
+    paddingHorizontal: 13
+  },
+  chipPressed: { backgroundColor: 'rgba(10, 132, 255, 0.18)' },
+  chipText: { ...type.caption, color: palette.ink },
   nextPanel: {
     backgroundColor: 'rgba(10, 132, 255, 0.10)',
     borderColor: 'rgba(10, 132, 255, 0.26)',

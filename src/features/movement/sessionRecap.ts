@@ -56,6 +56,12 @@ export type SessionRecap = {
   uncovered: CoveragePattern[];
   /** Working sets this week whose exercise matched no known pattern. */
   unclassified_sets: number;
+  /**
+   * Movements trained in this session that the library could not place, most sets
+   * first. Naming them turns a dead-end note into one tap that teaches the library,
+   * which then classifies every past and future session under that name.
+   */
+  unclassified_here: { exercise_name: string; working_sets: number }[];
   /** One suggestion for next time, or null when the history cannot support one. */
   next_time: ProgressionSuggestion | null;
   /** Lowest confidence among the parts that carry one. */
@@ -163,6 +169,11 @@ export function buildSessionRecap(params: {
     patterns: params.coverage.patterns,
     uncovered: notableUncovered(params.coverage),
     unclassified_sets: params.coverage.unclassified_sets,
+    // Only the ones trained today: an older unplaced movement is not this session's
+    // business, and a list of everything the library never learned is a chore.
+    unclassified_here: params.coverage.unclassified_exercises
+      .filter((item) => day(item.last_trained) === day(params.sessionDate))
+      .map((item) => ({ exercise_name: item.exercise_name, working_sets: item.working_sets })),
     next_time: nextTime,
     confidence: confidences.reduce(
       (lowest, item) => (CONFIDENCE_RANK[item] < CONFIDENCE_RANK[lowest] ? item : lowest),

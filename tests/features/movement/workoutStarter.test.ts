@@ -12,6 +12,7 @@ import {
   removeMovement,
   routineSource,
   minimumSets,
+  movementDisplayName,
   starterFromQuickDraft,
   starterTitle,
   starterWorkoutType,
@@ -182,6 +183,18 @@ describe('handing the draft to the session logger', () => {
     expect(quick?.exercises).toHaveLength(1);
     expect(quick?.exercises[0].sets).toHaveLength(3);
     expect(quick?.exercises[0].exercise_name).toBe('Back Squat');
+  });
+
+  it('writes the name the way it will be read back', () => {
+    // "bench" typed in a hurry should not leave a recap saying "First measurement for
+    // bench" — but deliberate capitals are someone's spelling, not a mistake.
+    expect(movementDisplayName('bench')).toBe('Bench');
+    expect(movementDisplayName('  seated   press ')).toBe('Seated Press');
+    expect(movementDisplayName('RDL')).toBe('RDL');
+    expect(movementDisplayName('McGill big 3')).toBe('McGill Big 3');
+    const quick = toQuickWorkoutDraft(draftWith('bench', 'seated press'));
+    expect(quick?.exercises.map((exercise) => exercise.exercise_name)).toEqual(['Bench', 'Seated Press']);
+    expect(quick?.title).toBe('Bench + 1');
   });
 
   it('returns nothing rather than an empty session', () => {

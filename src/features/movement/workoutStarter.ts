@@ -73,6 +73,22 @@ function starterId(): string {
 const normalized = (value: string): string =>
   value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
+/**
+ * The name as it will be read back.
+ *
+ * Typing "bench" in a hurry should not leave a recap saying "First measurement for
+ * bench". Only all-lowercase words are capitalized, so deliberate capitals survive:
+ * RDL stays RDL and McGill stays McGill.
+ */
+export function movementDisplayName(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map((word) => /[A-Z]/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export function createStarterMovement(
   name = '',
   category: MovementExerciseCategory = 'strength',
@@ -113,7 +129,7 @@ export function starterTitle(draft: StarterDraft): string {
   if (typed) return typed;
   const names = namedMovements(draft).map((movement) => movement.name.trim());
   if (names.length === 0) return '';
-  return names.length === 1 ? names[0] : `${names[0]} + ${names.length - 1}`;
+  return names.length === 1 ? movementDisplayName(names[0]) : `${movementDisplayName(names[0])} + ${names.length - 1}`;
 }
 
 function workoutTypeFor(movements: StarterMovement[]): MovementWorkoutType {
@@ -298,9 +314,9 @@ export function applyStarterToQuickDraft(draft: QuickWorkoutDraft, starter: Star
   const exercises = movements.map((movement) => {
     const current = existing.get(movement.id);
     if (!current) {
-      return createQuickExerciseDraft(movement.name.trim(), movement.category, movement.sets, movement.library_item_id);
+      return createQuickExerciseDraft(movementDisplayName(movement.name), movement.category, movement.sets, movement.library_item_id);
     }
-    return resizeSets({ ...current, exercise_name: movement.name.trim() }, movement.sets);
+    return resizeSets({ ...current, exercise_name: movementDisplayName(movement.name) }, movement.sets);
   });
 
   return {
@@ -324,6 +340,6 @@ export function toQuickWorkoutDraft(
     started_at: options.startedAt ?? new Date().toISOString(),
     weight_unit: options.weightUnit ?? DEFAULT_WEIGHT_UNIT,
     exercises: movements.map((movement) =>
-      createQuickExerciseDraft(movement.name.trim(), movement.category, movement.sets, movement.library_item_id))
+      createQuickExerciseDraft(movementDisplayName(movement.name), movement.category, movement.sets, movement.library_item_id))
   };
 }
