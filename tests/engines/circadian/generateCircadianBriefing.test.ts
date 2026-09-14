@@ -108,7 +108,7 @@ describe('generateCircadianBriefing', () => {
     expect(briefing.energy_extrema.some((point) => point.type === 'low')).toBe(true);
   });
 
-  it('sets caffeine cutoff eight hours before target bedtime', () => {
+  it('scales the caffeine cutoff with the dose', () => {
     const briefing = generateCircadianBriefing({
       date: '2026-06-10',
       timezone: 'UTC',
@@ -117,7 +117,76 @@ describe('generateCircadianBriefing', () => {
       preferredBedtime: '22:00'
     });
 
-    expect(briefing.rhythm_plan.caffeine_cutoff).toBe('2026-06-10T14:00:00.000Z');
+    // A standard 107 mg coffee measures 8.8 h before bed, rounded up to 9.
+    expect(briefing.rhythm_plan.caffeine_cutoff).toBe('2026-06-10T13:00:00.000Z');
+    // A pre-workout serving (~217 mg) measures 13.2 h, so it needs its own line.
+    expect(briefing.rhythm_plan.caffeine_cutoff_large_dose).toBe('2026-06-10T09:00:00.000Z');
+  });
+
+  it('places exercise at the temperature peak and clear of bedtime', () => {
+    const briefing = generateCircadianBriefing({
+      date: '2026-06-10',
+      timezone: 'UTC',
+      recentSleepSessions: recentSessions(480),
+      sleepNeed,
+      preferredBedtime: '22:00'
+    });
+
+    // Wake is 06:00 in these fixtures, so wake +8 to +10 is 14:00-16:00, and
+    // bedtime - 4 h (18:00) does not bite.
+    const [primary] = briefing.rhythm_plan.best_exercise_windows;
+    expect(primary.start_at).toBe('2026-06-10T14:00:00.000Z');
+    expect(primary.end_at).toBe('2026-06-10T16:00:00.000Z');
+    expect(primary.label).toBe('suggested exercise timing');
+
+    // The morning slot survives, but labelled as an accommodation rather than the optimum.
+    expect(briefing.rhythm_plan.best_exercise_windows[1].label)
+      .toBe('earlier option if mornings suit you better');
+  });
+
+  it('never suggests training inside four hours of bedtime', () => {
+    // An early bedtime pulls the cap below wake +10, so the window must shorten.
+    const briefing = generateCircadianBriefing({
+      date: '2026-06-10',
+      timezone: 'UTC',
+      recentSleepSessions: recentSessions(480),
+      sleepNeed,
+      preferredBedtime: '19:00'
+    });
+
+    const [primary] = briefing.rhythm_plan.best_exercise_windows;
+    expect(primary.label).toBe('suggested exercise timing');
+    expect(primary.end_at).toBe('2026-06-10T15:00:00.000Z');
+  });
+
+  it('withholds the window rather than showing a sliver', () => {
+    // Bedtime - 4 h lands before wake +8, leaving nothing worth drawing.
+    const briefing = generateCircadianBriefing({
+      date: '2026-06-10',
+      timezone: 'UTC',
+      recentSleepSessions: recentSessions(480),
+      sleepNeed,
+      preferredBedtime: '17:30'
+    });
+
+    expect(briefing.rhythm_plan.best_exercise_windows.map((window) => window.label))
+      .toEqual(['earlier option if mornings suit you better']);
+  });
+
+  it('suggests morning light and an evening dimming time', () => {
+    const briefing = generateCircadianBriefing({
+      date: '2026-06-10',
+      timezone: 'UTC',
+      recentSleepSessions: recentSessions(480),
+      sleepNeed,
+      preferredBedtime: '22:00'
+    });
+
+    const [light] = briefing.rhythm_plan.morning_light_windows;
+    expect(light.start_at).toBe('2026-06-10T06:00:00.000Z');
+    expect(light.end_at).toBe('2026-06-10T07:00:00.000Z');
+    expect(briefing.rhythm_plan.evening_dim_light_start).toBe('2026-06-10T19:00:00.000Z');
+    expect(briefing.rhythm_plan.reason_codes).toContain('morning_light_recommended');
   });
 
   it('sets wind-down start ninety minutes before target bedtime', () => {

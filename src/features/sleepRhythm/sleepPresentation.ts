@@ -24,7 +24,7 @@ export type RhythmConsistencyScore = {
 };
 
 export type SleepProtocolItem = {
-  id: 'light' | 'focus' | 'movement' | 'reset' | 'caffeine' | 'wind_down';
+  id: 'morning_light' | 'light' | 'focus' | 'movement' | 'reset' | 'caffeine' | 'dim_light' | 'wind_down';
   name: string;
   reason: string;
   start_at: string | null;
@@ -359,9 +359,14 @@ function protocolWindow(
 
 export function buildSleepProtocol(briefing: CircadianBriefing): SleepProtocolItem[] {
   return [
+    // First in the list because it is the earliest and the best-evidenced: a single
+    // 30-minute exposure after waking is the strongest phase cue available without
+    // changing sleep times. The effect is a nudge of roughly 11 minutes per morning,
+    // so the reason says "helps set" rather than promising a reset.
+    protocolWindow('morning_light', 'Morning light', 'Helps set your body clock for the day', briefing.rhythm_plan.morning_light_windows[0]),
     protocolWindow('light', 'Walk / light movement', 'Supports the transition into your day', briefing.rhythm_plan.best_walk_windows[0]),
     protocolWindow('focus', 'Deep work', 'Aligned with your estimated first focus peak', briefing.rhythm_plan.deep_work_windows[0]),
-    protocolWindow('movement', 'Exercise', 'Placed within a higher estimated-energy window', briefing.rhythm_plan.best_exercise_windows[0]),
+    protocolWindow('movement', 'Exercise', 'Near your estimated temperature peak, and clear of your sleep window', briefing.rhythm_plan.best_exercise_windows[0]),
     protocolWindow('reset', 'Breathing / reset', 'Placed near your estimated lower-energy window', briefing.rhythm_plan.breathing_windows[0]),
     {
       id: 'caffeine',
@@ -370,6 +375,14 @@ export function buildSleepProtocol(briefing: CircadianBriefing): SleepProtocolIt
       start_at: briefing.rhythm_plan.caffeine_cutoff,
       end_at: null,
       point_in_time: true
+    },
+    {
+      id: 'dim_light',
+      name: 'Start dimming lights',
+      reason: 'Ordinary indoor light is bright enough to hold melatonin back',
+      start_at: briefing.rhythm_plan.evening_dim_light_start,
+      end_at: briefing.rhythm_plan.target_bedtime,
+      point_in_time: false
     },
     {
       id: 'wind_down',

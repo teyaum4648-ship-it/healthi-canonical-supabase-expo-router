@@ -110,7 +110,14 @@ export type RhythmPlan = {
   best_walk_windows: TimeWindow[];
   nap_windows: TimeWindow[];
   breathing_windows: TimeWindow[];
+  /** Bright or outdoor light soon after waking — the strongest available phase cue. */
+  morning_light_windows: TimeWindow[];
+  /** When to start dimming. Melatonin is half-suppressed below ~30 lux. */
+  evening_dim_light_start: string | null;
+  /** Suits a standard coffee (~107 mg). Larger doses need `caffeine_cutoff_large_dose`. */
   caffeine_cutoff: string | null;
+  /** For a pre-workout or large cold brew (~200 mg or more). */
+  caffeine_cutoff_large_dose: string | null;
   wind_down_start: string | null;
   target_bedtime: string | null;
   reason_codes: string[];

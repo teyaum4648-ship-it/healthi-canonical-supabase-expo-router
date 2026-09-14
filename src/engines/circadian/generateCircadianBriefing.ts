@@ -182,33 +182,72 @@ function createEmptyRhythmPlan(): RhythmPlan {
     best_walk_windows: [],
     nap_windows: [],
     breathing_windows: [],
+    morning_light_windows: [],
+    evening_dim_light_start: null,
     caffeine_cutoff: null,
+    caffeine_cutoff_large_dose: null,
     wind_down_start: null,
     target_bedtime: null,
     reason_codes: []
   };
 }
 
+/**
+ * Exercise is placed where two independent lines of evidence agree.
+ *
+ * Physical performance peaks with core body temperature in the late afternoon and
+ * early evening, and exercise ending less than four hours before sleep is
+ * associated with later onset, shorter and worse sleep. For a typical riser those
+ * two facts point at the same stretch of the day, so the window runs from eight
+ * hours after waking to ten, and is then cut off four hours before target bedtime.
+ *
+ * A window narrower than this is withheld rather than shown as a sliver: a short
+ * slot reads as precision the input cannot support.
+ */
+const EXERCISE_START_AFTER_WAKE_H = 8;
+const EXERCISE_END_AFTER_WAKE_H = 10;
+const EXERCISE_SLEEP_BUFFER_H = 4;
+const MIN_EXERCISE_WINDOW_MINUTES = 45;
+
+/** 8.8 h for a standard 107 mg coffee, rounded up; 13.2 h for ~200 mg or more. */
+const CAFFEINE_CUTOFF_H = 9;
+const CAFFEINE_CUTOFF_LARGE_DOSE_H = 13;
+
+/** Melatonin is half-suppressed below ~30 lux, which is ordinary indoor lighting. */
+const DIM_LIGHT_BEFORE_BED_H = 3;
+
 function createRhythmPlan(wakeTime: Date, targetBedtime: Date, averageDebt: number | null): RhythmPlan {
   const windDownStart = addMinutes(targetBedtime, -90);
-  const caffeineCutoff = addHours(targetBedtime, -8);
+  const caffeineCutoff = addHours(targetBedtime, -CAFFEINE_CUTOFF_H);
   const debtIsModerateOrHigh = averageDebt !== null && averageDebt >= 60;
   const reasonCodes = [
     'deep_work_window_suggested',
     'movement_window_suggested',
+    'morning_light_recommended',
     'caffeine_cutoff_recommended',
     'wind_down_recommended'
   ];
+
+  const exerciseStart = addHours(wakeTime, EXERCISE_START_AFTER_WAKE_H);
+  const exerciseLatestEnd = addHours(targetBedtime, -EXERCISE_SLEEP_BUFFER_H);
+  const preferredEnd = addHours(wakeTime, EXERCISE_END_AFTER_WAKE_H);
+  const exerciseEnd = preferredEnd.getTime() < exerciseLatestEnd.getTime() ? preferredEnd : exerciseLatestEnd;
+  const exerciseWindows: TimeWindow[] = [];
+  if (exerciseEnd.getTime() - exerciseStart.getTime() >= MIN_EXERCISE_WINDOW_MINUTES * MINUTE_MS) {
+    exerciseWindows.push(createWindow(exerciseStart, exerciseEnd, 'suggested exercise timing'));
+  }
+  // Kept for people who can only train early. Labelled so it does not read as the
+  // better slot: morning strength and power output measure below the afternoon.
+  exerciseWindows.push(
+    createWindow(addHours(wakeTime, 3), addHours(wakeTime, 5), 'earlier option if mornings suit you better')
+  );
 
   const plan: RhythmPlan = {
     deep_work_windows: [
       createWindow(addHours(wakeTime, 2), addHours(wakeTime, 4), 'likely deep work window'),
       createWindow(addHours(wakeTime, 10), addHours(wakeTime, 11.5), 'likely second focus window')
     ],
-    best_exercise_windows: [
-      createWindow(addHours(wakeTime, 3), addHours(wakeTime, 5), 'suggested exercise timing'),
-      createWindow(addHours(wakeTime, 10), addHours(wakeTime, 12), 'suggested later exercise timing')
-    ],
+    best_exercise_windows: exerciseWindows,
     best_walk_windows: [
       createWindow(addHours(wakeTime, 1), addHours(wakeTime, 1.5), 'suggested light movement'),
       createWindow(addHours(wakeTime, 7), addHours(wakeTime, 7.5), 'suggested afternoon walk')
@@ -218,15 +257,24 @@ function createRhythmPlan(wakeTime: Date, targetBedtime: Date, averageDebt: numb
       createWindow(addHours(wakeTime, 7.5), addHours(wakeTime, 7.75), 'suggested reset window'),
       createWindow(windDownStart, addMinutes(windDownStart, 15), 'suggested wind-down reset')
     ],
+    // A single 30-minute exposure soon after waking is the documented dose. The
+    // window is an hour wide because the 30 minutes need not start at the minute of waking.
+    morning_light_windows: [
+      createWindow(wakeTime, addHours(wakeTime, 1), '30 minutes of outdoor or bright light')
+    ],
+    evening_dim_light_start: toIso(addHours(targetBedtime, -DIM_LIGHT_BEFORE_BED_H)),
     caffeine_cutoff: toIso(caffeineCutoff),
+    caffeine_cutoff_large_dose: toIso(addHours(targetBedtime, -CAFFEINE_CUTOFF_LARGE_DOSE_H)),
     wind_down_start: toIso(windDownStart),
     target_bedtime: toIso(targetBedtime),
     reason_codes: reasonCodes
   };
 
   if (debtIsModerateOrHigh) {
+    // The dip sits 7-8 h after waking; 20 minutes is the dose that avoids waking
+    // out of slow-wave sleep, which begins around 30 minutes in.
     plan.nap_windows = [
-      createWindow(addHours(wakeTime, 7), addHours(wakeTime, 7.5), 'possible short nap window')
+      createWindow(addHours(wakeTime, 7), addHours(wakeTime, 8), 'a 20-minute nap inside this window')
     ];
     plan.reason_codes.push('nap_window_suggested');
   }

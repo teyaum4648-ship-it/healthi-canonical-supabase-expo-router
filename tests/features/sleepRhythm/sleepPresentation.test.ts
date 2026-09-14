@@ -42,7 +42,10 @@ function briefing(): CircadianBriefing {
       best_walk_windows: [{ start_at: '2026-08-08T07:30:00.000Z', end_at: '2026-08-08T08:00:00.000Z', label: 'walk' }],
       nap_windows: [],
       breathing_windows: [{ start_at: '2026-08-08T14:00:00.000Z', end_at: '2026-08-08T14:15:00.000Z', label: 'reset' }],
-      caffeine_cutoff: '2026-08-08T14:30:00.000Z',
+      morning_light_windows: [{ start_at: '2026-08-08T06:30:00.000Z', end_at: '2026-08-08T07:30:00.000Z', label: 'morning light' }],
+      evening_dim_light_start: '2026-08-08T19:30:00.000Z',
+      caffeine_cutoff: '2026-08-08T13:30:00.000Z',
+      caffeine_cutoff_large_dose: '2026-08-08T09:30:00.000Z',
       wind_down_start: '2026-08-08T21:00:00.000Z',
       target_bedtime: '2026-08-08T22:30:00.000Z',
       reason_codes: []
@@ -104,7 +107,11 @@ describe('Sleep presentation model', () => {
 
     expect(phase.label).toBe('First peak');
     expect(phase.energy).toBe('High');
-    expect(protocol).toHaveLength(6);
+    // Morning light and the evening dimming cue join the original six.
+    expect(protocol).toHaveLength(8);
+    expect(protocol.map((item) => item.id)).toEqual([
+      'morning_light', 'light', 'focus', 'movement', 'reset', 'caffeine', 'dim_light', 'wind_down'
+    ]);
     expect(protocol.find((item) => item.id === 'caffeine')?.point_in_time).toBe(true);
   });
 
