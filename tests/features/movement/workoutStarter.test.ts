@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   addMovement,
+  applyStarterToQuickDraft,
   applySource,
   canStart,
   createStarterDraft,
@@ -10,6 +11,8 @@ import {
   recentSources,
   removeMovement,
   routineSource,
+  minimumSets,
+  starterFromQuickDraft,
   starterTitle,
   starterWorkoutType,
   templateSource,
@@ -18,6 +21,7 @@ import {
 } from '../../../src/features/movement/workoutStarter';
 import type { WorkoutExerciseEntryRow, WorkoutSessionRow } from '../../../src/features/movement/movementPersistence';
 import type { Routine } from '../../../src/features/movement/routineStore';
+import { createQuickExerciseDraft, type QuickWorkoutDraft } from '../../../src/features/movement/workoutQuickLog';
 import { workoutTemplates } from '../../../src/features/movement/workoutForms';
 
 function draftWith(...names: string[]) {
@@ -183,5 +187,88 @@ describe('handing the draft to the session logger', () => {
   it('returns nothing rather than an empty session', () => {
     expect(toQuickWorkoutDraft(createStarterDraft())).toBeNull();
     expect(toQuickWorkoutDraft(addMovement(createStarterDraft()))).toBeNull();
+  });
+});
+
+describe('editing a session that is already running', () => {
+  function live(): QuickWorkoutDraft {
+    const bench = createQuickExerciseDraft('Bench Press', 'strength', 3, 'lib-1');
+    // Two sets are done; the third is still empty.
+    bench.sets[0] = { ...bench.sets[0], weight: '135', reps: '8', completed: true };
+    bench.sets[1] = { ...bench.sets[1], weight: '135', reps: '8', completed: true };
+    return {
+      title: 'Upper push',
+      workout_type: 'strength',
+      started_at: '2026-09-14T18:00:00.000Z',
+      weight_unit: 'lb',
+      exercises: [bench, createQuickExerciseDraft('Overhead Press', 'strength', 3)]
+    };
+  }
+
+  it('opens the running session as the screen that built it', () => {
+    const draft = live();
+    const starter = starterFromQuickDraft(draft);
+    expect(starter.title).toBe('Upper push');
+    expect(starter.movements.map((movement) => movement.name)).toEqual(['Bench Press', 'Overhead Press']);
+    expect(starter.movements[0]).toMatchObject({ sets: 3, logged_sets: 2, library_item_id: 'lib-1' });
+    // The ids are the session's own, which is what identifies a movement on the way back.
+    expect(starter.movements.map((movement) => movement.id))
+      .toEqual(draft.exercises.map((exercise) => exercise.id));
+  });
+
+  it('keeps every logged set when a movement is trimmed', () => {
+    // The floor is what has been done, not what the stepper was set to.
+    const draft = live();
+    const starter = starterFromQuickDraft(draft);
+    expect(minimumSets(starter.movements[0])).toBe(2);
+    const trimmed = updateMovement(starter, starter.movements[0].id, { sets: 1 });
+    const applied = applyStarterToQuickDraft(draft, trimmed);
+    expect(applied.exercises[0].sets).toHaveLength(2);
+    expect(applied.exercises[0].sets.every((set) => set.completed)).toBe(true);
+    expect(applied.exercises[0].sets.map((set) => set.set_index)).toEqual([1, 2]);
+  });
+
+  it('drops the empty rows first when a count comes down', () => {
+    const draft = live();
+    const starter = starterFromQuickDraft(draft);
+    const trimmed = updateMovement(starter, starter.movements[1].id, { sets: 1 });
+    expect(applyStarterToQuickDraft(draft, trimmed).exercises[1].sets).toHaveLength(1);
+  });
+
+  it('adds a movement empty and leaves the logged one untouched', () => {
+    const draft = live();
+    const starter = addMovement(starterFromQuickDraft(draft), createStarterMovement('Face Pull', 'strength', 2));
+    const applied = applyStarterToQuickDraft(draft, starter);
+    expect(applied.exercises.map((exercise) => exercise.exercise_name))
+      .toEqual(['Bench Press', 'Overhead Press', 'Face Pull']);
+    expect(applied.exercises[2].sets).toHaveLength(2);
+    expect(applied.exercises[0].sets.filter((set) => set.completed)).toHaveLength(2);
+  });
+
+  it('removes a movement the editor removed, and reorders to match', () => {
+    const draft = live();
+    const starter = starterFromQuickDraft(draft);
+    const removed = removeMovement(starter, starter.movements[1].id);
+    expect(applyStarterToQuickDraft(draft, removed).exercises.map((exercise) => exercise.exercise_name))
+      .toEqual(['Bench Press']);
+    const reordered = moveMovement(starter, starter.movements[1].id, -1);
+    expect(applyStarterToQuickDraft(draft, reordered).exercises.map((exercise) => exercise.exercise_name))
+      .toEqual(['Overhead Press', 'Bench Press']);
+  });
+
+  it('renames in place rather than starting the movement over', () => {
+    const draft = live();
+    const starter = starterFromQuickDraft(draft);
+    const renamed = updateMovement(starter, starter.movements[0].id, { name: 'Incline Bench' });
+    const applied = applyStarterToQuickDraft(draft, renamed);
+    expect(applied.exercises[0].exercise_name).toBe('Incline Bench');
+    expect(applied.exercises[0].sets.filter((set) => set.completed)).toHaveLength(2);
+  });
+
+  it('refuses to empty a running session', () => {
+    // Clearing every row is a slip, not an instruction to throw the workout away.
+    const draft = live();
+    const emptied = { title: 'Upper push', movements: [] };
+    expect(applyStarterToQuickDraft(draft, emptied)).toBe(draft);
   });
 });

@@ -3,7 +3,12 @@ import type { WorkoutExerciseEntryRow, WorkoutSessionRow } from './movementPersi
 import type { Routine } from './routineStore';
 import { DEFAULT_WEIGHT_UNIT, type WeightUnit } from './weightUnits';
 import type { WorkoutTemplate } from './workoutForms';
-import { createQuickExerciseDraft, type QuickWorkoutDraft } from './workoutQuickLog';
+import {
+  createQuickExerciseDraft,
+  createQuickSetDraft,
+  type QuickExerciseDraft,
+  type QuickWorkoutDraft
+} from './workoutQuickLog';
 
 /**
  * One way into a workout.
@@ -28,6 +33,12 @@ export type StarterMovement = {
   sets: number;
   category: MovementExerciseCategory;
   library_item_id: string | null;
+  /**
+   * Sets already completed, when this movement is being edited mid-session. It is the
+   * floor the set count cannot go below, and the reason removing the movement asks
+   * first — logged work is the one thing here that cannot be typed again.
+   */
+  logged_sets?: number;
 };
 
 export type StarterDraft = {
@@ -114,6 +125,11 @@ function workoutTypeFor(movements: StarterMovement[]): MovementWorkoutType {
 
 export function starterWorkoutType(draft: StarterDraft): MovementWorkoutType {
   return workoutTypeFor(namedMovements(draft));
+}
+
+/** The fewest sets a movement can be cut to: never fewer than what is already logged. */
+export function minimumSets(movement: StarterMovement): number {
+  return Math.max(1, movement.logged_sets ?? 0);
 }
 
 export function addMovement(draft: StarterDraft, movement?: StarterMovement): StarterDraft {
@@ -221,6 +237,78 @@ export function recentSources(params: {
   }
 
   return sources;
+}
+
+/**
+ * A live session, opened back up as the screen that built it.
+ *
+ * Mid-session the movement list is the thing people want to change — one more
+ * movement, one fewer, a rename — and the only way to do it was a button inside the
+ * logger's Overview tab. Going back to where the list was made is the obvious move,
+ * so the back arrow does that. Ids carry over from the session's own exercises, which
+ * is what lets the trip back tell an edited movement from a new one.
+ */
+export function starterFromQuickDraft(draft: QuickWorkoutDraft): StarterDraft {
+  return {
+    title: draft.title,
+    movements: draft.exercises.map((exercise) => ({
+      id: exercise.id,
+      name: exercise.exercise_name,
+      sets: exercise.sets.length,
+      category: exercise.category,
+      library_item_id: exercise.exercise_library_item_id,
+      logged_sets: exercise.sets.filter((set) => set.completed).length
+    }))
+  };
+}
+
+/**
+ * Sets kept, added or dropped to match a new count.
+ *
+ * A completed set is never dropped, whatever the count says: it is a record of work
+ * that happened, and no edit on a planning screen should be able to erase it. Trailing
+ * empty rows go first, and the remaining sets are re-indexed so the logger's numbering
+ * and its comparison against last time stay in step.
+ */
+function resizeSets(exercise: QuickExerciseDraft, target: number): QuickExerciseDraft {
+  const completed = exercise.sets.filter((set) => set.completed).length;
+  const wanted = Math.max(Math.max(1, completed), Math.min(10, target));
+  let sets = [...exercise.sets];
+
+  for (let index = sets.length - 1; index >= 0 && sets.length > wanted; index -= 1) {
+    if (!sets[index].completed) sets.splice(index, 1);
+  }
+  while (sets.length < wanted) sets = [...sets, createQuickSetDraft(sets.length + 1)];
+
+  return { ...exercise, sets: sets.map((set, index) => ({ ...set, set_index: index + 1 })) };
+}
+
+/**
+ * The edited list, folded back into the running session.
+ *
+ * A movement the session already had keeps everything it has logged; one that was
+ * added arrives empty; one that was removed is gone. Order follows the editor, because
+ * that is what the person just arranged.
+ */
+export function applyStarterToQuickDraft(draft: QuickWorkoutDraft, starter: StarterDraft): QuickWorkoutDraft {
+  const existing = new Map(draft.exercises.map((exercise) => [exercise.id, exercise]));
+  const movements = namedMovements(starter);
+  if (movements.length === 0) return draft;
+
+  const exercises = movements.map((movement) => {
+    const current = existing.get(movement.id);
+    if (!current) {
+      return createQuickExerciseDraft(movement.name.trim(), movement.category, movement.sets, movement.library_item_id);
+    }
+    return resizeSets({ ...current, exercise_name: movement.name.trim() }, movement.sets);
+  });
+
+  return {
+    ...draft,
+    title: starterTitle(starter) || draft.title,
+    workout_type: workoutTypeFor(movements),
+    exercises
+  };
 }
 
 /** The draft, converted into what the session logger runs on. */

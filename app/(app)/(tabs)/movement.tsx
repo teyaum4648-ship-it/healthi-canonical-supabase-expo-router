@@ -27,11 +27,13 @@ import { WorkoutStarter } from '../../../src/features/movement/WorkoutStarter';
 import {
   addMovement as addStarterMovement,
   applySource,
+  applyStarterToQuickDraft,
   canStart,
   createStarterDraft,
   moveMovement as moveStarterMovement,
   recentSources,
   removeMovement as removeStarterMovement,
+  starterFromQuickDraft,
   routineSource,
   templateSource,
   toQuickWorkoutDraft,
@@ -263,6 +265,8 @@ export default function MovementScreen() {
   const [isLogging, setIsLogging] = useState(false);
   const [isQuickLogging, setIsQuickLogging] = useState(false);
   const [starterOpen, setStarterOpen] = useState(false);
+  /** 'edit' means the starter is changing the session already underway. */
+  const [starterMode, setStarterMode] = useState<'start' | 'edit'>('start');
   const [starterDraft, setStarterDraft] = useState<StarterDraft>(() => createStarterDraft());
   /** Why the last start attempt was refused, shown beside the start button. */
   const [starterNotice, setStarterNotice] = useState('');
@@ -875,8 +879,42 @@ export default function MovementScreen() {
     // A fresh draft each time. Carrying yesterday's half-typed session forward reads
     // as a bug, and the shelf below makes starting from something a single tap anyway.
     setStarterDraft(addStarterMovement(createStarterDraft()));
+    setStarterMode('start');
     setStarterNotice('');
     setStarterOpen(true);
+  }
+
+  /**
+   * Back, from inside a running session.
+   *
+   * The list was built on the starter, so that is where back goes — adding or dropping
+   * a movement mid-session used to mean finding a button inside the logger's Overview
+   * tab. Nothing is applied until the person comes forward again.
+   */
+  function openStarterForEdit() {
+    if (!quickDraft) return;
+    setStarterDraft(starterFromQuickDraft(quickDraft));
+    setStarterMode('edit');
+    setStarterNotice('');
+    setStarterOpen(true);
+  }
+
+  function applyStarterEdit() {
+    if (!quickDraft) return;
+    if (!canStart(starterDraft)) {
+      setStarterNotice('A session needs at least one named movement.');
+      return;
+    }
+    const next = applyStarterToQuickDraft(quickDraft, starterDraft);
+    if (!isSafetyCompatible(next.workout_type)) {
+      setStarterNotice('Today’s protocol keeps this session outside the suggested movement range.');
+      return;
+    }
+    setQuickDraft(next);
+    // The focused movement can outlive the list it pointed into.
+    setFocusIndex((current) => Math.min(current, Math.max(0, next.exercises.length - 1)));
+    setStarterOpen(false);
+    setStarterNotice('');
   }
 
   function startFromStarter() {
@@ -1696,7 +1734,9 @@ export default function MovementScreen() {
           onMoveMovement={(id, direction) => setStarterDraft((current) => moveStarterMovement(current, id, direction))}
           onPickSource={(source) => { setStarterNotice(''); setStarterDraft(applySource(source)); }}
           onRemoveMovement={(id) => setStarterDraft((current) => removeStarterMovement(current, id))}
-          onStart={startFromStarter}
+          mode={starterMode}
+          onLeave={() => { setStarterOpen(false); setIsQuickLogging(false); setActiveSegment('Today'); }}
+          onStart={starterMode === 'edit' ? applyStarterEdit : startFromStarter}
           onUpdateMovement={(id, update) => setStarterDraft((current) => updateStarterMovement(current, id, update))}
           sources={starterSources}
         />
@@ -1735,7 +1775,7 @@ export default function MovementScreen() {
           onAdjustRest={(delta) => setRestTimer((current) => current ? adjustRestTimer(current, delta) : current)}
           onCompleteSet={completeQuickSet}
           onDuplicateSet={duplicateQuickSet}
-          onExit={() => { setIsQuickLogging(false); setActiveSegment('Today'); }}
+          onExit={openStarterForEdit}
           notice={saveNotice || null}
           onFinish={() => void handleQuickSave()}
           onFocusIndexChange={setFocusIndex}

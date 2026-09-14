@@ -326,7 +326,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
     <View style={styles.shell}>
       <View style={styles.topBar}>
         <Pressable
-          accessibilityLabel="Leave the session open and go back"
+          accessibilityLabel="Edit this workout's movements"
           accessibilityRole="button"
           onPress={props.onExit}
           style={({ pressed }) => [styles.topAction, pressed && styles.pressed]}
