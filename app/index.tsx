@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -51,6 +51,16 @@ export default function IndexRoute() {
     } catch (error) {
       setStartError(error instanceof Error ? error.message : 'Could not open Healthi just now. Try again.');
     }
+  }
+
+  /**
+   * Someone who has already finished onboarding does not need the pitch again.
+   * Without this the landing screen is unconditional, so relaunching the installed
+   * app — or reopening the demo — drops a returning person back on the marketing
+   * page with their own data one tap away behind it.
+   */
+  if (!isLoading && session && profile?.onboarding_status === 'completed') {
+    return <Redirect href="/(app)/(tabs)" />;
   }
 
   return (
