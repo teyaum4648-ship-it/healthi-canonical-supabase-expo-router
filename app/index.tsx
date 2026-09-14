@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
@@ -10,28 +11,46 @@ import { colors, fonts, spacing } from '../src/styles/mobileTheme';
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
-  const { profile, session, isLoading, signUp } = useAuth();
+  const { profile, session, isLoading, signUp, startDemo } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 820;
+  const [startError, setStartError] = useState('');
 
+  /**
+   * Entering the app from the landing screen.
+   *
+   * A demo build has no account registration — its auth provider rejects signUp
+   * outright — so the demo path opens the local session with startDemo instead.
+   * Calling signUp there left the button dead: the rejection was never caught, so
+   * the navigation below it never ran and nothing told the person why.
+   *
+   * Anything that does fail now reaches the screen rather than an unhandled
+   * rejection, because a primary call to action that silently does nothing is worse
+   * than one that explains itself.
+   */
   async function handleStart() {
-    if (!isSupabaseConfigured) {
-      await signUp('demo@healthi.local', 'demo-password');
-      router.replace('/(app)/(tabs)');
-      return;
-    }
+    setStartError('');
+    try {
+      if (!isSupabaseConfigured) {
+        await startDemo();
+        router.replace('/(app)/(tabs)');
+        return;
+      }
 
-    if (profile?.onboarding_status === 'completed') {
-      router.replace('/(app)/(tabs)');
-      return;
-    }
+      if (profile?.onboarding_status === 'completed') {
+        router.replace('/(app)/(tabs)');
+        return;
+      }
 
-    if (!session) {
-      router.push('/(auth)/signup');
-      return;
-    }
+      if (!session) {
+        router.push('/(auth)/signup');
+        return;
+      }
 
-    router.push('/(onboarding)');
+      router.push('/(onboarding)');
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : 'Could not open Healthi just now. Try again.');
+    }
   }
 
   return (
@@ -59,6 +78,10 @@ export default function IndexRoute() {
             onPress={handleStart}
             style={styles.cta}
           />
+
+          {startError ? (
+            <Text accessibilityRole="alert" style={styles.startError}>{startError}</Text>
+          ) : null}
 
           <View style={styles.tags}>
             {signalTags.map((tag) => (
@@ -115,6 +138,12 @@ export default function IndexRoute() {
 }
 
 const styles = StyleSheet.create({
+  startError: {
+    color: colors.danger,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20
+  },
   screen: {
     gap: spacing.xl,
     justifyContent: 'center',
