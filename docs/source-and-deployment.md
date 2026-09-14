@@ -42,6 +42,33 @@ preview, omit the relative search URL to use the existing provider fallback.
 USDA search still requires `USDA_API_KEY` in the server environment, never in
 Expo public variables or Git. Demo records stay device-local.
 
+## Photo estimates
+
+Photo estimates ship switched off and cost nothing until a key exists. The
+`photo-estimate` edge function reports `not_configured` whenever
+`ANTHROPIC_API_KEY` is unset, and the app renders that as an ordinary refusal, so
+the whole capture-review-log path can be exercised without any spend.
+
+To turn it on, set these in the Supabase function environment — never in Expo
+public variables or Git, the same rule `USDA_API_KEY` follows:
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | yes | Absent means the feature stays off. |
+| `PHOTO_ESTIMATE_MODEL` | no | Defaults to `claude-opus-5`. Changing the model is a deployment setting, not a code change. |
+
+```sh
+supabase functions deploy photo-estimate
+supabase secrets set ANTHROPIC_API_KEY=...
+```
+
+Estimates require a signed-in account rather than the project anon key, because
+each call spends money; the function also caps one account at 25 estimates a day.
+Cost is dominated by the image, which the client downscales to 1024 px on its
+long edge before upload — roughly 1,000 input tokens instead of 16,000 for a
+full-resolution phone photo. Photos are sent for the estimate and are not stored
+by Healthi or written to the product library.
+
 `EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT=v5_two_axis` selects
 `kernelV5Experimental.ts` and displays the scoring-lab panel. Missing, empty, or
 unrecognized values select `kernelV5.ts`. Expo embeds these settings at build
@@ -62,4 +89,11 @@ requires separate outcome review.
 
 Do not automatically apply every pending Supabase migration as part of a web
 release. See [Meal library rollout](meal-library-and-editing.md) for the approved
-0015–0017 rollout and the deliberately pending 0013/0014 migrations.
+0015–0017 rollout.
+
+Migration state has moved on since this document was first written: 0014 and
+0018 have been applied to the hosted project, and 0013
+(`canonical_product_cache`) is still pending — the barcode scanner falls back to
+direct provider lookups without it. Photo estimates need no migration; an
+estimated item is written through the existing meal-log tables and is never
+cached as a product.
