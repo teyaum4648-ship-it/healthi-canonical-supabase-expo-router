@@ -23,6 +23,23 @@ import {
   type ProgressionSuggestion
 } from '../../../src/features/movement/exerciseProgression';
 import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/movement/WorkoutSessionLogger';
+import { WorkoutStarter } from '../../../src/features/movement/WorkoutStarter';
+import {
+  addMovement as addStarterMovement,
+  applySource,
+  canStart,
+  createStarterDraft,
+  moveMovement as moveStarterMovement,
+  recentSources,
+  removeMovement as removeStarterMovement,
+  routineSource,
+  templateSource,
+  toQuickWorkoutDraft,
+  updateMovement as updateStarterMovement,
+  type StarterDraft,
+  type StarterSource,
+  type StarterTab
+} from '../../../src/features/movement/workoutStarter';
 import {
   readRoutines,
   removeRoutine,
@@ -105,7 +122,6 @@ import {
   createQuickExerciseDraft,
   createQuickSetDraft,
   createQuickWorkoutFromTemplate,
-  createQuickWorkoutFromText,
   isMovementLogWithinSafetyGuidance,
   quickWorkoutToInputs,
   removeQuickSetDraft,
@@ -125,7 +141,6 @@ import {
 } from '../../../src/features/movement/workoutForms';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, hairlineWidth, spacing, type } from '../../../src/styles/mobileTheme';
-import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -247,12 +262,14 @@ export default function MovementScreen() {
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
   const [isLogging, setIsLogging] = useState(false);
   const [isQuickLogging, setIsQuickLogging] = useState(false);
-  const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
+  const [starterOpen, setStarterOpen] = useState(false);
+  const [starterDraft, setStarterDraft] = useState<StarterDraft>(() => createStarterDraft());
+  /** Why the last start attempt was refused, shown beside the start button. */
+  const [starterNotice, setStarterNotice] = useState('');
   const [historyDay, setHistoryDay] = useState(today);
   const [historyView, setHistoryView] = useState<'Progress' | 'All recent' | 'By day'>('Progress');
   const scrollRef = useRef<ScrollView>(null);
   const scrollPositions = useRef<Record<string, number>>({});
-  const [quickPrompt, setQuickPrompt] = useState('');
   const [quickDraft, setQuickDraft] = useState<QuickWorkoutDraft | null>(null);
   const [libraryQuery, setLibraryQuery] = useState('');
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('all');
@@ -544,31 +561,16 @@ export default function MovementScreen() {
     const mostFrequent = Object.entries(counts).sort((left, right) => right[1] - left[1])[0]?.[0] ?? 'calibrating';
     return { averageMinutes, mostFrequent };
   }, [sessions]);
-  const routineChoices = useMemo(() => {
-    const seen = new Set<string>();
-    const recent = sessions.filter((session) => {
-      const key = session.title.trim().toLowerCase();
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }).slice(0, 4).map((session) => ({
-      kind: 'recent' as const,
-      id: `recent-${session.id}`,
-      title: session.title,
-      subtitle: `Last ${formatDate(session.session_date)}`,
-      workoutType: session.workout_type,
-      session
-    }));
-    const templates = workoutTemplates.map((template) => ({
-      kind: 'template' as const,
-      id: `template-${template.id}`,
-      title: template.title,
-      subtitle: `${template.exercises.length} movements · ${template.duration_minutes} min`,
-      workoutType: template.workout_type,
-      template
-    }));
-    return [...recent, ...templates];
-  }, [sessions]);
+  /**
+   * The shelf behind the starter: what you saved, what ships with the app, and what
+   * you actually did. Recent reads the entries too, so repeating a session brings its
+   * movements rather than only its name.
+   */
+  const starterSources = useMemo<Record<StarterTab, StarterSource[]>>(() => ({
+    Routines: routines.map(routineSource),
+    Templates: workoutTemplates.map(templateSource),
+    Recent: recentSources({ sessions, entries, formatDate })
+  }), [entries, routines, sessions]);
 
   function updateDraft<K extends keyof WorkoutDraft>(key: K, value: WorkoutDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -830,7 +832,7 @@ export default function MovementScreen() {
       setStatus('Today’s protocol keeps that routine outside the suggested movement range. Choose mobility or recovery instead.');
       return;
     }
-    setQuickLaunchOpen(false);
+    setStarterOpen(false);
     // Computed once, here, and never again for this session: targets must not
     // change under someone who is mid-workout.
     const prepared = attachPreviousWorkout(
@@ -867,31 +869,33 @@ export default function MovementScreen() {
     setStatus('Session ready. One movement at a time, with last time beside today.');
   }
 
-  function openQuickFromPrompt() {
-    const nextDraft = createQuickWorkoutFromText(quickPrompt);
-    if (!nextDraft) {
-      setStatus('Type a workout focus or one or more movements to begin.');
-      return;
-    }
-    startQuickWorkout(nextDraft);
+  function openQuickLauncher() {
+    if (quickDraft) { setActiveSegment('Train'); setIsQuickLogging(true); return; }
+    if (isLogging) { setActiveSegment('Train'); return; }
+    // A fresh draft each time. Carrying yesterday's half-typed session forward reads
+    // as a bug, and the shelf below makes starting from something a single tap anyway.
+    setStarterDraft(addStarterMovement(createStarterDraft()));
+    setStarterNotice('');
+    setStarterOpen(true);
   }
 
-  function openQuickLauncher() {
-    if (quickDraft) { setActiveSegment('Train'); setIsQuickLogging(true); }
-    else if (isLogging) setActiveSegment('Train');
-    else setQuickLaunchOpen(true);
+  function startFromStarter() {
+    const next = toQuickWorkoutDraft(starterDraft, { weightUnit });
+    if (!next) {
+      setStarterNotice('Name at least one movement to start.');
+      return;
+    }
+    if (!isSafetyCompatible(next.workout_type)) {
+      setStarterNotice('Today’s protocol keeps this session outside the suggested movement range. Mobility or recovery fits better.');
+      return;
+    }
+    setStarterOpen(false);
+    setStarterNotice('');
+    startQuickWorkout(next);
   }
 
   function openQuickTemplate(template: (typeof workoutTemplates)[number]) {
     startQuickWorkout(createQuickWorkoutFromTemplate(template));
-  }
-
-  function openQuickRecent(session: WorkoutSessionRow) {
-    const sessionEntries = entries.filter((entry) => entry.workout_session_id === session.id);
-    const seed = sessionEntries.map((entry) => entry.exercise_name).join(', ') || session.title;
-    const nextDraft = createQuickWorkoutFromText(seed);
-    if (!nextDraft) return;
-    startQuickWorkout({ ...nextDraft, title: session.title, workout_type: session.workout_type });
   }
 
   function updateQuickExercise(exerciseId: string, update: Partial<QuickWorkoutDraft['exercises'][number]>) {
@@ -1055,7 +1059,6 @@ export default function MovementScreen() {
       });
 
       setQuickDraft(null);
-      setQuickPrompt('');
       setIsQuickLogging(false);
       setRestTimer(null);
       setUndoSnapshot(null);
@@ -1180,70 +1183,6 @@ export default function MovementScreen() {
     } catch {
       Alert.alert('Unable to remove workout', 'The workout could not be removed right now.');
     }
-  }
-
-  function renderQuickLaunch() {
-    return <EntrySheet title="Log a workout" onClose={() => setQuickLaunchOpen(false)}>
-        <View style={styles.quickLaunchCard}>
-          <View style={styles.quickLaunchHeading}>
-            <View style={styles.quickLaunchIcon}>
-              <Ionicons color="#FFFFFF" name="flash-outline" size={18} />
-            </View>
-            <View style={styles.quickLaunchCopy}>
-              <Text style={styles.quickLaunchTitle}>Quick log</Text>
-              <Text style={styles.quickLaunchHint}>Type what you’re training, or choose a routine below.</Text>
-            </View>
-          </View>
-          <View style={styles.quickInputRow}>
-            <TextInput
-              accessibilityLabel="Workout focus or movements"
-              onChangeText={setQuickPrompt}
-              onSubmitEditing={openQuickFromPrompt}
-              placeholder="Leg day, or squat + row"
-              placeholderTextColor="rgba(255, 255, 255, 0.42)"
-              returnKeyType="go"
-              style={styles.quickInput}
-              value={quickPrompt}
-            />
-            <Pressable
-              accessibilityLabel="Start quick workout"
-              onPress={openQuickFromPrompt}
-              style={({ pressed }) => [styles.quickGoButton, pressed && styles.pressed]}
-            >
-              <Ionicons color="#FFFFFF" name="arrow-forward" size={19} />
-            </Pressable>
-          </View>
-          <Text style={styles.routineWheelLabel}>Routine wheel</Text>
-          <ScrollView
-            accessibilityLabel="Recent and saved workout routines"
-            contentContainerStyle={styles.routineWheel}
-            decelerationRate="fast"
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={174}
-          >
-            {routineChoices.map((choice) => {
-              const enabled = isSafetyCompatible(choice.workoutType);
-              return (
-                <Pressable
-                  accessibilityHint={enabled ? 'Opens the quick set logger' : 'Unavailable under today’s movement safety guidance'}
-                  accessibilityRole="button"
-                  disabled={!enabled}
-                  key={choice.id}
-                  onPress={() => choice.kind === 'recent' ? openQuickRecent(choice.session) : openQuickTemplate(choice.template)}
-                  style={({ pressed }) => [styles.routineWheelCard, !enabled && styles.disabled, pressed && styles.routineWheelCardPressed]}
-                >
-                  <Text style={styles.routineWheelMeta}>{choice.kind === 'recent' ? 'RECENT' : 'ROUTINE'}</Text>
-                  <Text numberOfLines={2} style={styles.routineWheelTitle}>{choice.title}</Text>
-                  <Text numberOfLines={1} style={styles.routineWheelSubtitle}>{enabled ? choice.subtitle : 'Limited today'}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      <ActionRow title="Start a blank workout" detail="Add movements as you go; no routine needed" icon="add-outline" onPress={() => { setQuickLaunchOpen(false); openBlankWorkout(); }} last />
-      <Text accessibilityLiveRegion="polite" style={styles.meta}>{status}</Text>
-    </EntrySheet>;
   }
 
   function renderToday() {
@@ -1741,6 +1680,30 @@ export default function MovementScreen() {
     );
   }
 
+  if (starterOpen) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <WorkoutStarter
+          capacityNote={adaptivePlan.training_allowed
+            ? `Today reads as a ${adaptivePlan.capacity} day · suggested effort ${adaptivePlan.effort_range.min}–${adaptivePlan.effort_range.max} of 10`
+            : 'Today’s protocol suggests mobility or recovery. Other sessions cannot be started.'}
+          draft={starterDraft}
+          isAllowed={(source) => isSafetyCompatible(source.workout_type)}
+          notice={starterNotice || null}
+          onAddMovement={() => setStarterDraft((current) => addStarterMovement(current))}
+          onChangeTitle={(title) => setStarterDraft((current) => ({ ...current, title }))}
+          onClose={() => { setStarterOpen(false); setStarterNotice(''); }}
+          onMoveMovement={(id, direction) => setStarterDraft((current) => moveStarterMovement(current, id, direction))}
+          onPickSource={(source) => { setStarterNotice(''); setStarterDraft(applySource(source)); }}
+          onRemoveMovement={(id) => setStarterDraft((current) => removeStarterMovement(current, id))}
+          onStart={startFromStarter}
+          onUpdateMovement={(id, update) => setStarterDraft((current) => updateStarterMovement(current, id, update))}
+          sources={starterSources}
+        />
+      </SafeAreaView>
+    );
+  }
+
   // A finished session owns the screen before Today does. Saving used to drop a
   // dismissible card onto a screen the lifter had already left, which made the work
   // feel filed rather than finished.
@@ -1824,7 +1787,6 @@ export default function MovementScreen() {
         {!isLoading && activeSegment === 'Train' ? renderTrain() : null}
         {!isLoading && activeSegment === 'History' ? renderHistory() : null}
       </ScrollView>
-      {quickLaunchOpen ? renderQuickLaunch() : null}
     </SafeAreaView>
   );
 }
@@ -1880,22 +1842,6 @@ const styles = StyleSheet.create({
   reasonLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.65)', flex: 1 },
   protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(10, 132, 255, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
   protocolNoteText: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', flex: 1 },
-  quickLaunchCard: { backgroundColor: movePalette.surface, borderColor: 'rgba(10, 132, 255, 0.16)', borderRadius: 20, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 17, paddingHorizontal: 17, paddingTop: 18 },
-  quickLaunchHeading: { alignItems: 'center', flexDirection: 'row', gap: 12 },
-  quickLaunchIcon: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, height: 42, justifyContent: 'center', width: 42 },
-  quickLaunchCopy: { flex: 1 },
-  quickLaunchTitle: { ...type.heading, color: movePalette.ink, fontSize: 21, lineHeight: 26 },
-  quickLaunchHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.64)', fontSize: 12, lineHeight: 17, marginTop: 2 },
-  quickInputRow: { alignItems: 'center', backgroundColor: movePalette.background, borderColor: movePalette.lineStrong, borderRadius: 14, borderWidth: hairlineWidth, flexDirection: 'row', gap: 8, marginTop: 16, paddingLeft: 13, paddingRight: 5 },
-  quickInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 52, paddingVertical: 11 },
-  quickGoButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, height: 44, justifyContent: 'center', width: 44 },
-  routineWheelLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.64)', fontSize: 13, marginTop: 16 },
-  routineWheel: { gap: 10, paddingRight: 16, paddingTop: 9 },
-  routineWheelCard: { backgroundColor: '#1C1C1E', borderColor: movePalette.line, borderRadius: 14, borderWidth: hairlineWidth, justifyContent: 'space-between', minHeight: 112, padding: 13, width: 164 },
-  routineWheelCardPressed: { backgroundColor: 'rgba(10, 132, 255, 0.10)', borderColor: 'rgba(10, 132, 255, 0.24)' },
-  routineWheelMeta: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 1.2 },
-  routineWheelTitle: { ...type.label, color: movePalette.ink, fontSize: 14, lineHeight: 18, marginTop: 8 },
-  routineWheelSubtitle: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontSize: 13, marginTop: 9 },
   primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: movePalette.green, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
   primaryButtonText: { ...type.label, color: '#FFFFFF', fontSize: 14 },
   changedRow: { gap: 8 },
