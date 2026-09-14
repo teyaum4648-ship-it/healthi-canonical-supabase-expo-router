@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:demo": "EXPO_NO_DOTENV=1 EXPO_PUBLIC_DEMO_MODE=true EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT=v5_two_axis EXPO_PUBLIC_FOOD_SEARCH_URL=/api/food-search expo export --platform web --output-dir dist/client && node scripts/build-food-search-worker.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

@@ -1,0 +1,56 @@
+# Builds and deploys the web demo on every push to main.
+#
+# Typecheck and the test suite run first and the deploy is skipped if either fails,
+# so a broken commit never reaches the demo. Nothing here needs a secret to build —
+# only the deploy step does.
+name: Deploy demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push supersedes one still deploying, rather than racing it.
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      # The secrets context cannot be read directly in an `if`, so it is mapped here.
+      # Until the Cloudflare secrets exist the deploy step skips and the run still
+      # passes on typecheck and tests, rather than failing on every push.
+      CLOUDFLARE_CONFIGURED: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build demo
+        run: npm run build:demo
+
+      - name: Deploy to Cloudflare
+        if: env.CLOUDFLARE_CONFIGURED == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Explain a skipped deploy
+        if: env.CLOUDFLARE_CONFIGURED != 'true'
+        run: |
+          echo "::notice title=Demo not deployed::Build and tests passed, but CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set in repository secrets, so the deploy was skipped. See docs/source-and-deployment.md."
+
