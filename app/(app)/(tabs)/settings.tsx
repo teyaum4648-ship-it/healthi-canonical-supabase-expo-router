@@ -13,6 +13,13 @@ import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import { DEFAULT_WEIGHT_UNIT, WEIGHT_UNITS, type WeightUnit } from '../../../src/features/movement/weightUnits';
 import { readWeightUnit, weightUnitScope, writeWeightUnit } from '../../../src/features/movement/weightUnitStore';
+import { ALLERGEN_GROUPS, ALLERGEN_GROUP_LABELS, type AllergenGroup } from '../../../src/features/nutrition/allergens';
+import {
+  allergenProfileScope,
+  readAllergenProfile,
+  toggleAllergenGroup,
+  writeAllergenProfile
+} from '../../../src/features/nutrition/allergenProfileStore';
 import {
   confidenceLabel as trendsConfidenceLabel,
   type TrendsDomainCard,
@@ -91,6 +98,7 @@ export default function SettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [trendRangeDays, setTrendRangeDays] = useState<TrendsRangeDays>(7);
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(DEFAULT_WEIGHT_UNIT);
+  const [avoidingAllergens, setAvoidingAllergens] = useState<AllergenGroup[]>([]);
   const [trendsModel, setTrendsModel] = useState<TrendsScreenModel | null>(null);
   const [isTrendsLoading, setIsTrendsLoading] = useState(true);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -143,6 +151,7 @@ export default function SettingsScreen() {
   );
 
   const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
+  const allergenScope = useMemo(() => allergenProfileScope(user?.id), [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -152,9 +161,23 @@ export default function SettingsScreen() {
     }, [unitScope])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void readAllergenProfile(allergenScope).then((groups) => { if (active) setAvoidingAllergens(groups); });
+      return () => { active = false; };
+    }, [allergenScope])
+  );
+
   function handleWeightUnitChange(unit: WeightUnit) {
     setWeightUnit(unit);
     void writeWeightUnit(unitScope, unit);
+  }
+
+  function handleAllergenToggle(group: AllergenGroup) {
+    const next = toggleAllergenGroup(avoidingAllergens, group);
+    setAvoidingAllergens(next);
+    void writeAllergenProfile(allergenScope, next);
   }
 
   async function handleSignOut() {
@@ -371,6 +394,34 @@ export default function SettingsScreen() {
           </Card>
 
           <Card>
+            <Text style={styles.cardEyebrow}>ALLERGENS</Text>
+            <Text style={styles.preferenceTitle}>Groups to watch for</Text>
+            <Text style={styles.detail}>
+              Healthi flags these when a food's label declares them. It cannot tell you a food
+              is free of an allergen — many records carry no allergen statement at all — so
+              always check the packet.
+            </Text>
+            <View style={styles.allergenWrap}>
+              {ALLERGEN_GROUPS.map((group) => {
+                const selected = avoidingAllergens.includes(group);
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    key={group}
+                    onPress={() => handleAllergenToggle(group)}
+                    style={[styles.allergenChip, selected && styles.allergenChipSelected]}
+                  >
+                    <Text style={selected ? styles.allergenChipTextSelected : styles.allergenChipText}>
+                      {ALLERGEN_GROUP_LABELS[group]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Card>
+
+          <Card>
             <Text style={styles.cardEyebrow}>PREFERENCES</Text>
             {baseline.preferences.map((preference) => (
               <View key={preference.id} style={styles.preferenceRow}>
@@ -521,6 +572,19 @@ const styles = StyleSheet.create({
   domainStatusCalibrating: { color: colors.textMuted },
   preferenceRow: { gap: 2, paddingVertical: spacing.xs },
   unitControl: { marginTop: spacing.sm },
+  allergenWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: spacing.sm },
+  allergenChip: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceInset
+  },
+  allergenChipSelected: { borderColor: colors.accent, backgroundColor: colors.accentWash },
+  allergenChipText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14 },
+  allergenChipTextSelected: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 14 },
   preferenceTitle: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 14 },
   nextStepsCard: { backgroundColor: colors.surfaceInset },
   stepRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },

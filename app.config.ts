@@ -45,8 +45,15 @@ const config: ExpoConfig = {
       'expo-camera',
       {
         barcodeScannerEnabled: true,
-        cameraPermission: 'Healthi uses the camera to scan product barcodes. You can also enter a barcode manually.',
+        cameraPermission: 'Healthi uses the camera to scan product barcodes and to estimate a meal from a photo. You can also enter a barcode manually or search for a food.',
         recordAudioAndroid: false
+      }
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Healthi reads a photo you choose so it can estimate the foods in that meal. Photos are used for that estimate and are not stored by Healthi.',
+        cameraPermission: 'Healthi uses the camera to estimate a meal from a photo you take.'
       }
     ]
   ]
