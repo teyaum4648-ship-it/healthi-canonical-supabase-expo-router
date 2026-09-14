@@ -137,17 +137,36 @@ minutes wide, which invited a 30-minute nap.
 - **Wind-down at bedtime − 90 min.** No specific figure in the literature
   contradicts it, and it now pairs with the dim-light start at − 3 h.
 
-## Known limitation, not yet addressed
+### Sleep inertia and the first focus window — addressed
 
-**Sleep inertia may be modelled as shorter than it is.** The engine's inertia
-term has a Gaussian width of roughly 0.7–1.3 h. Measured recovery is slower:
-subjective alertness keeps improving for **up to 2 h** after waking, and addition-task
-performance took **up to 3.5 h** to fully dissipate
+The inertia term had a Gaussian width of roughly 0.7–1.3 h, which had grogginess
+gone inside 90 minutes. Measured recovery is slower: subjective alertness keeps
+improving for **up to 2 h** after waking, and addition-task performance took
+**up to 3.5 h** to fully dissipate
 ([PMC3832615](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3832615/)).
-That makes the first deep-work window at wake + 2 h the optimistic end of the
-range. Widening the inertia term would change the shape of the curve for every
-user, so it is flagged here for a deliberate decision rather than adjusted in
-passing.
+
+**Now:** the width is 1.2–2.0 h, so a well-rested morning is mostly clear by
+~2.5 h and an under-rested one drags toward ~4 h. The first deep-work window
+moved from wake +2 h to **wake +2.5 to +4.5 h**, centring it on the modelled
+morning peak instead of opening while inertia is still measurably clearing.
+
+## The reasoning ships with the recommendation
+
+Every protocol row now carries an `evidence` note, shown under **WHY THIS TIME**
+when the row is opened, plus a standing line that the windows are timed from
+logged sleep and wake times and are therefore estimates rather than a measurement.
+
+The copy is constrained by tests, not just by review
+(`tests/features/sleepRhythm/sleepPresentation.test.ts`): no row may use
+*exact*, *precise*, *guarantee*, *optimal time for you*, or assert what the
+reader's body clock **is** doing; and the rows whose effects are small or highly
+variable must name that — morning light as minutes rather than hours, caffeine
+and light sensitivity as varying between people, the focus peak as a population
+average. A later edit that quietly overclaims fails the suite.
+
+That constraint earned its keep immediately: the first draft of the wind-down
+note said "your body clock is still actively pushing alertness up", which states
+as measured fact something inferred from a bedtime field. The test caught it.
 
 ## What would actually raise the ceiling
 

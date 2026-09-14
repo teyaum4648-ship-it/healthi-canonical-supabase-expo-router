@@ -125,3 +125,37 @@ describe('Sleep presentation model', () => {
     expect(schedule.some((step) => step.id === 'stretch')).toBe(false);
   });
 });
+
+describe('protocol evidence copy', () => {
+  const protocol = buildSleepProtocol(briefing());
+
+  it('explains every row, not just some of them', () => {
+    for (const item of protocol) {
+      expect(item.evidence.trim().length).toBeGreaterThan(40);
+    }
+  });
+
+  it('never promises a precision the input cannot carry', () => {
+    // Windows are inferred from self-reported sleep times, which correlate only
+    // weakly with measured circadian phase. Copy must not read as a measurement.
+    for (const item of protocol) {
+      expect(item.evidence).not.toMatch(/\b(exact|exactly|precise|precisely|guarantee|optimal time for you|your body clock is)\b/i);
+    }
+  });
+
+  it('names the size or spread of an effect where it is small or variable', () => {
+    const byId = Object.fromEntries(protocol.map((item) => [item.id, item.evidence]));
+    // A daily nudge of minutes, not a reset.
+    expect(byId.morning_light).toMatch(/minutes rather than hours|nudge/i);
+    // Caffeine clearance and light sensitivity both vary hugely between people.
+    expect(byId.caffeine).toMatch(/different speeds between people|starting point/i);
+    expect(byId.dim_light).toMatch(/varies enormously|less to you/i);
+    // The focus peak is a population average, and says so.
+    expect(byId.focus).toMatch(/population average/i);
+  });
+
+  it('states the sleep boundary that bounds the exercise window', () => {
+    const movement = protocol.find((item) => item.id === 'movement')!;
+    expect(movement.evidence).toMatch(/four hours clear/i);
+  });
+});

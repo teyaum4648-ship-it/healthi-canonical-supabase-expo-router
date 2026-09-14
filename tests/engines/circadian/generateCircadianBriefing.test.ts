@@ -50,7 +50,9 @@ describe('generateCircadianBriefing', () => {
     expect(first.estimated_energy).toBeLessThanOrEqual(100);
     // Curve is sampled every 20 minutes for smooth scrubbing.
     expect(briefing.energy_curve[1]?.time).toBe('2026-06-10T06:20:00.000Z');
-    expect(briefing.rhythm_plan.deep_work_windows[0]?.start_at).toBe('2026-06-10T08:00:00.000Z');
+    // Wake +2.5 h, centred on the modelled morning peak rather than starting while
+    // sleep inertia is still clearing.
+    expect(briefing.rhythm_plan.deep_work_windows[0]?.start_at).toBe('2026-06-10T08:30:00.000Z');
   });
 
   it('reduces estimated energy amplitude when sleep debt is high', () => {

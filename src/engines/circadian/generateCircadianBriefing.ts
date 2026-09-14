@@ -243,8 +243,10 @@ function createRhythmPlan(wakeTime: Date, targetBedtime: Date, averageDebt: numb
   );
 
   const plan: RhythmPlan = {
+    // Centred on the modelled morning peak (~3.5 h after waking) rather than starting at
+    // +2 h, which began while sleep inertia was still measurably clearing.
     deep_work_windows: [
-      createWindow(addHours(wakeTime, 2), addHours(wakeTime, 4), 'likely deep work window'),
+      createWindow(addHours(wakeTime, 2.5), addHours(wakeTime, 4.5), 'likely deep work window'),
       createWindow(addHours(wakeTime, 10), addHours(wakeTime, 11.5), 'likely second focus window')
     ],
     best_exercise_windows: exerciseWindows,
