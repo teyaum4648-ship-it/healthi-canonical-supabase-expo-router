@@ -1248,6 +1248,29 @@ export default function MovementScreen() {
           </Pressable>
         ) : null}
 
+        <View style={styles.verdictBlock}>
+          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
+          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
+          <View style={styles.capacityLabels}>
+            {['Restore', 'Technique', 'Build', 'Push'].map((label, index) => (
+              <Text key={label} style={[styles.capacityLabel, index === capacityIndex && styles.capacityLabelActive]}>{label}</Text>
+            ))}
+          </View>
+          <View style={styles.capacityRail}>
+            {[0, 1, 2, 3].map(index => <View key={index} style={[styles.capacitySegment, index === capacityIndex && styles.capacitySegmentActive]} />)}
+          </View>
+          <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10 · readiness comes from Home</Text>
+          <View style={styles.reasonList}>
+            {adaptivePlan.reason_codes.slice(0, 3).map(reason => (
+              <View key={reason} style={styles.reasonRow}>
+                <View style={styles.reasonDot} />
+                <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        <Divider />
+
         <View style={styles.feelingPanel}>
           <Text style={styles.feelingTitle}>How are you feeling?</Text>
           <Text style={styles.feelingHint}>Optional · saved with the session so you can read it back later.</Text>
@@ -1259,8 +1282,6 @@ export default function MovementScreen() {
         </View>
 
         <Disclosure detail="Objective, what supports today, and your recent mix" title="More about today">
-        <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
-        <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10</Text>
         <View>
           <EditorialLabel>TODAY'S OBJECTIVE</EditorialLabel>
           <Text style={styles.objective}>{adaptivePlan.objective}</Text>

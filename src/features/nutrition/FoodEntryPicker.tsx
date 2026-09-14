@@ -15,7 +15,8 @@ import { AllergenNotice } from './AllergenNotice';
 import type { AllergenGroup } from './allergens';
 
 type PickerTab = 'Search' | 'Recent' | 'Saved';
-export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onManual, onClose, mealLabel, onOpenLibrary, avoidingAllergens }: {
+export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onPhoto, onManual, onClose, mealLabel, onOpenLibrary, avoidingAllergens }: {
+  onPhoto?: () => void;
   onOpenLibrary?: () => void;
   mealLabel?: string;
   /** Groups from the person's allergen profile. Empty means the notice stays hidden. */
@@ -93,6 +94,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           {tab === 'Search' ? <Pressable accessibilityRole="button" accessibilityLabel="Search food database" disabled={searching || query.trim().length < 2} onPress={() => void onSearch()} style={[styles.search, (searching || query.trim().length < 2) && styles.dim]}>{searching ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.primaryText}>Search</Text>}</Pressable> : null}
         </View>
         <SegmentedControl options={['Search', 'Recent', 'Saved'] as const} value={tab} onChange={setTab} />
+        {onPhoto ? <ActionRow title="Photo meal" detail="Take or choose a photo" icon="camera-outline" onPress={onPhoto} last /> : null}
         {onOpenLibrary ? <ActionRow title="Your foods & meals" detail="Search all history and reuse a starred meal" icon="bookmark-outline" onPress={onOpenLibrary} last /> : null}
         {tab === 'Search' ? <>
           {results.length ? <Text style={styles.label}>{catalog.ready.length} foods ready to log</Text> : null}
