@@ -13,6 +13,11 @@ import { generateBaselineProfile } from '../../src/features/onboarding/generateB
 import { generateBiweeklyFocusProfile } from '../../src/features/onboarding/generateBiweeklyFocusProfile';
 import { generateLifestylePlan } from '../../src/features/onboarding/generateLifestylePlan';
 import { onboardingQuestions } from '../../src/features/onboarding/onboardingQuestions';
+import {
+  normalizeTimeAnswer,
+  onboardingSteps,
+  requiredQuestions
+} from '../../src/features/onboarding/onboardingSteps';
 import { onboardingV2FocusLabels, onboardingV2Welcome } from '../../src/features/onboarding/onboardingV2Copy';
 import { generateOnboardingV2Result } from '../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2Result } from '../../src/features/onboarding/onboardingV2Types';
@@ -42,10 +47,7 @@ function getAnswerText(value: OnboardingAnswerValue | undefined) {
 }
 
 function isValidTime(value: OnboardingAnswerValue | undefined): boolean {
-  if (typeof value !== 'string') return false;
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-  if (!match) return false;
-  return Number(match[1]) <= 23 && Number(match[2]) <= 59;
+  return normalizeTimeAnswer(value) !== null;
 }
 
 function isAnswered(question: OnboardingQuestion, value: OnboardingAnswerValue | undefined) {
@@ -285,13 +287,13 @@ export default function OnboardingScreen() {
   const [setupResult, setSetupResult] = useState<OnboardingV2Result | null>(null);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const question = onboardingQuestions[currentIndex];
-  const answer = answers[question.key];
+  const step = onboardingSteps[Math.min(currentIndex, onboardingSteps.length - 1)];
   const draftKey = user ? `healthi:onboarding:${user.id}` : null;
-  const progressPercent = ((currentIndex + 1) / onboardingQuestions.length) * 100;
-  const canContinue = isAnswered(question, answer);
-  const timeEntryNeedsFormat = question.type === 'time' && getAnswerText(answer).length > 0 && !isValidTime(answer);
-  const isLastQuestion = currentIndex === onboardingQuestions.length - 1;
+  const progressPercent = ((currentIndex + 1) / onboardingSteps.length) * 100;
+  // A step advances once its required questions are answered; optional detail can be left.
+  const unanswered = requiredQuestions(step).filter((item) => !isAnswered(item, answers[item.key]));
+  const canContinue = unanswered.length === 0;
+  const isLastStep = currentIndex === onboardingSteps.length - 1;
 
   useEffect(() => {
     if (!draftKey) {
@@ -311,7 +313,7 @@ export default function OnboardingScreen() {
 
         setAnswers(parsed.answers ?? {});
         setCurrentIndex(
-          Math.min(parsed.currentIndex ?? 0, Math.max(onboardingQuestions.length - 1, 0))
+          Math.min(parsed.currentIndex ?? 0, Math.max(onboardingSteps.length - 1, 0))
         );
       })
       .catch(() => {
@@ -354,14 +356,14 @@ export default function OnboardingScreen() {
   }, [profile?.onboarding_status, user?.id]);
 
   const sectionLabel = useMemo(
-    () => `${question.section} · ${currentIndex + 1} of ${onboardingQuestions.length}`,
-    [currentIndex, question.section]
+    () => `Step ${currentIndex + 1} of ${onboardingSteps.length}`,
+    [currentIndex]
   );
 
-  function setAnswer(value: OnboardingAnswerValue) {
+  function setAnswer(key: OnboardingQuestion['key'], value: OnboardingAnswerValue) {
     setAnswers((current) => ({
       ...current,
-      [question.key]: value
+      [key]: value
     }));
   }
 
@@ -370,12 +372,11 @@ export default function OnboardingScreen() {
   }
 
   function handleNext() {
-    if (!canContinue) {
-      Alert.alert('One detail needed', 'Choose an answer to continue.');
-      return;
-    }
+    // The button is disabled while anything required is missing, so there is nothing
+    // to alert about; the unanswered prompts are named inline instead.
+    if (!canContinue) return;
 
-    if (isLastQuestion) {
+    if (isLastStep) {
       void submitOnboarding();
       return;
     }
@@ -528,8 +529,41 @@ export default function OnboardingScreen() {
     router.replace('/(app)/(tabs)');
   }
 
-  function renderAnswerControl() {
+  function renderAnswerControl(question: OnboardingQuestion) {
+    const answer = answers[question.key];
+
     if (question.type === 'scale') {
+      // Labelled buckets where the question supplies them: the model compares these
+      // against thresholds rather than reading the exact number, so three words beat
+      // ten digits. Questions without buckets keep the full row.
+      if (question.scaleLabels?.length) {
+        return (
+          <View style={styles.options}>
+            {question.scaleLabels.map((bucket) => {
+              const selected = answer === bucket.value;
+
+              return (
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  key={bucket.value}
+                  onPress={() => setAnswer(question.key, bucket.value)}
+                  style={({ pressed }) => [
+                    styles.option,
+                    selected ? styles.optionSelected : null,
+                    pressed ? styles.optionPressed : null
+                  ]}
+                >
+                  <Text style={[styles.optionLabel, selected ? styles.optionLabelSelected : null]}>
+                    {bucket.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        );
+      }
+
       const min = question.min ?? 1;
       const max = question.max ?? 10;
       const values = Array.from({ length: max - min + 1 }, (_item, index) => min + index);
@@ -544,16 +578,14 @@ export default function OnboardingScreen() {
                 accessibilityRole="adjustable"
                 accessibilityState={{ selected }}
                 key={value}
-                onPress={() => setAnswer(value)}
+                onPress={() => setAnswer(question.key, value)}
                 style={({ pressed }) => [
                   styles.scaleOption,
                   selected ? styles.scaleOptionSelected : null,
                   pressed ? styles.optionPressed : null
                 ]}
               >
-                <Text
-                  style={[styles.scaleOptionLabel, selected ? styles.optionLabelSelected : null]}
-                >
+                <Text style={[styles.scaleOptionLabel, selected ? styles.optionLabelSelected : null]}>
                   {value}
                 </Text>
               </Pressable>
@@ -569,8 +601,8 @@ export default function OnboardingScreen() {
           autoCapitalize="sentences"
           keyboardType={question.type === 'time' ? 'numbers-and-punctuation' : 'default'}
           label={question.type === 'time' ? 'Time' : 'Answer'}
-          onChangeText={setAnswer}
-          placeholder={question.type === 'time' ? '07:00' : 'Add a note'}
+          onChangeText={(value) => setAnswer(question.key, value)}
+          placeholder={question.type === 'time' ? '10:30pm' : 'Add a note'}
           value={getAnswerText(answer)}
         />
       );
@@ -590,11 +622,17 @@ export default function OnboardingScreen() {
               accessibilityState={{ checked: selected }}
               key={option.value}
               onPress={() => {
-                setAnswer(
-                  question.type === 'multi'
-                    ? updateMultiAnswer(answer, option.value)
-                    : option.value
-                );
+                if (question.type === 'multi') {
+                  const current = isStringArray(answer) ? answer : [];
+                  setAnswer(
+                    question.key,
+                    current.includes(option.value)
+                      ? current.filter((item) => item !== option.value)
+                      : [...current, option.value]
+                  );
+                  return;
+                }
+                setAnswer(question.key, option.value);
               }}
               style={({ pressed }) => [
                 styles.option,
@@ -609,6 +647,27 @@ export default function OnboardingScreen() {
           );
         })}
       </View>
+    );
+  }
+
+  /** One question, with its prompt, so a step can stack several of them. */
+  function renderQuestion(question: OnboardingQuestion) {
+    const answer = answers[question.key];
+    const needsTimeFormat =
+      question.type === 'time' && getAnswerText(answer).length > 0 && !isValidTime(answer);
+
+    return (
+      <Card key={question.key} style={styles.questionCard}>
+        <Text style={styles.questionPrompt}>
+          {question.prompt}
+          {question.optional ? <Text style={styles.optionalTag}>  Optional</Text> : null}
+        </Text>
+        {question.helper ? <Text style={styles.helper}>{question.helper}</Text> : null}
+        {renderAnswerControl(question)}
+        {needsTimeFormat ? (
+          <Text style={styles.timeHint}>That one did not read as a time. Try 10:30pm, 22:30 or 2230.</Text>
+        ) : null}
+      </Card>
     );
   }
 
@@ -753,18 +812,17 @@ export default function OnboardingScreen() {
         <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
       </View>
 
-      <SectionHeader eyebrow={sectionLabel} title="Set up your baseline" body={question.prompt} />
+      <SectionHeader eyebrow={sectionLabel} title={step.title} body={step.intro} />
 
-      <Card>
-        {currentIndex === 0 ? (
-          <Text style={styles.helper}>
-            {onboardingV2Welcome}
-          </Text>
-        ) : null}
-        {question.helper ? <Text style={styles.helper}>{question.helper}</Text> : null}
-        {renderAnswerControl()}
-        {timeEntryNeedsFormat ? <Text style={styles.timeHint}>Use a 24-hour time such as 22:45.</Text> : null}
-      </Card>
+      {currentIndex === 0 ? <Text style={styles.helper}>{onboardingV2Welcome}</Text> : null}
+
+      {step.questions.map(renderQuestion)}
+
+      {unanswered.length > 0 ? (
+        <Text accessibilityRole="alert" style={styles.helper}>
+          Still needed: {unanswered.map((item) => item.prompt).join(' ')}
+        </Text>
+      ) : null}
 
       <View style={styles.actions}>
         <Button
@@ -777,7 +835,7 @@ export default function OnboardingScreen() {
         <Button
           disabled={!canContinue}
           isLoading={isSubmitting}
-          label={isLastQuestion ? 'Review your baseline' : 'Next'}
+          label={isLastStep ? 'Review your baseline' : 'Next'}
           onPress={handleNext}
           style={styles.actionButton}
         />
@@ -787,6 +845,20 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  questionCard: {
+    gap: spacing.sm
+  },
+  questionPrompt: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 17,
+    lineHeight: 24
+  },
+  optionalTag: {
+    color: colors.textFaint,
+    fontFamily: fonts.body,
+    fontSize: 13
+  },
   progressTrack: {
     height: 4,
     overflow: 'hidden',

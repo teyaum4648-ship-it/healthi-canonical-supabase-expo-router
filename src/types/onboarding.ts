@@ -4,7 +4,6 @@ import type { DataConfidence } from './common';
 export type OnboardingQuestionKey =
   | 'primary_goal'
   | 'blocking_factors'
-  | 'result_timeline'
   | 'protein_fat_meal_response'
   | 'carb_meal_response'
   | 'sweet_food_response'
@@ -52,6 +51,14 @@ export type OnboardingQuestion = {
   options?: OnboardingOption[];
   min?: number;
   max?: number;
+  /**
+   * Labelled buckets for a scale question, each carrying the number it records.
+   *
+   * The scoring model only ever compares these against thresholds, so a ten-point
+   * row is false precision and costly to tap. Where buckets are supplied the screen
+   * shows the labels and stores the number, leaving the model untouched.
+   */
+  scaleLabels?: Array<{ value: number; label: string }>;
   optional?: boolean;
 };
 

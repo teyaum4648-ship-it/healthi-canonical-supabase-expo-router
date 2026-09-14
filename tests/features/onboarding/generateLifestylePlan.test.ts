@@ -9,7 +9,6 @@ describe('generateLifestylePlan', () => {
     const answers: OnboardingAnswers = {
       primary_goal: 'body_composition',
       blocking_factors: ['low_energy', 'poor_sleep', 'brain_fog', 'poor_recovery'],
-      result_timeline: '1_to_3_months',
       protein_fat_meal_response: 'energized_satisfied',
       carb_meal_response: 'tired_craving_more',
       sweet_food_response: 'hard_crash',
@@ -52,7 +51,6 @@ describe('generateLifestylePlan', () => {
     const answers: OnboardingAnswers = {
       primary_goal: 'body_composition',
       blocking_factors: ['excess_body_fat', 'low_energy'],
-      result_timeline: '2_to_4_weeks',
       protein_fat_meal_response: 'neutral',
       carb_meal_response: 'neutral',
       sweet_food_response: 'rush_then_drop',
