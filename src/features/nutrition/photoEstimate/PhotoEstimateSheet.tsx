@@ -22,6 +22,14 @@ import type { PhotoEstimate, PhotoEstimateItem } from './photoEstimateTypes';
  * saving. Nothing is written until it is pressed.
  */
 
+/** Shown per item. An em dash means the model did not estimate it, which is not zero. */
+const MACRO_FIELDS = [
+  ['protein_g', 'Protein', 'g'],
+  ['carbs_g', 'Carbs', 'g'],
+  ['fat_g', 'Fat', 'g'],
+  ['fiber_g', 'Fibre', 'g']
+] as const satisfies ReadonlyArray<readonly [keyof PhotoEstimateItem['nutrients'], string, string]>;
+
 const CONFIDENCE_COPY: Record<'low' | 'medium' | 'high', string> = {
   high: 'Fairly sure',
   medium: 'Roughly right',
@@ -90,6 +98,22 @@ function ItemRow({ item, busy, onCorrect, onRemove }: {
           ? 'Calories not estimated'
           : `${Math.round(item.nutrients.calories)} kcal`}
       </Text>
+
+      {/* Macros re-scale with the portion above, so they are shown here rather than only in
+          the diary totals — otherwise correcting a portion gives no visible feedback. */}
+      <View style={styles.macros}>
+        {MACRO_FIELDS.map(([key, label, unit]) => {
+          const amount = item.nutrients[key];
+          return (
+            <View key={key} style={styles.macro}>
+              <Text style={styles.macroLabel}>{label}</Text>
+              <Text style={styles.macroValue}>
+                {amount === null ? '—' : `${Math.round(amount * 10) / 10} ${unit}`}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
 
       <Pressable
         accessibilityRole="button"
@@ -211,6 +235,10 @@ const styles = StyleSheet.create({
   itemName: { flex: 1, gap: 2 },
   name: { ...type.body, color: colors.text, fontWeight: '600' },
   itemCalories: { ...type.body, color: colors.text },
+  macros: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  macro: { minWidth: 64, gap: 2 },
+  macroLabel: { ...type.label, color: colors.textFaint },
+  macroValue: { ...type.body, color: colors.textMuted },
   tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: colors.accentWash },
   tagLow: { backgroundColor: colors.surface },
   tagText: { ...type.label, color: colors.textMuted },
