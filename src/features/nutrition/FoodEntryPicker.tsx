@@ -11,11 +11,15 @@ import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
 import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount, partitionFoodSearchResults, withFoodPortion } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
+import { AllergenNotice } from './AllergenNotice';
+import type { AllergenGroup } from './allergens';
 
 type PickerTab = 'Search' | 'Recent' | 'Saved';
-export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onManual, onClose, mealLabel, onOpenLibrary }: {
+export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onManual, onClose, mealLabel, onOpenLibrary, avoidingAllergens }: {
   onOpenLibrary?: () => void;
   mealLabel?: string;
+  /** Groups from the person's allergen profile. Empty means the notice stays hidden. */
+  avoidingAllergens?: AllergenGroup[];
   query: string; onQueryChange: (value: string) => void; onSearch: () => Promise<void>;
   results: HealthiProductSnapshot[]; searching: boolean; message: string;
   products: UserFoodProductRow[]; onToggleSaved: (product: UserFoodProductRow) => Promise<void>;
@@ -60,6 +64,9 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
         <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><Ionicons name="chevron-back" size={18} color={colors.accentMid} /><Text style={styles.link}>Choose another food</Text></Pressable>
         <View style={styles.productRow}><ProductThumbnail url={selected.product.image_url} name={selected.product.name} size={76} /><View style={styles.libraryCopy}><Text style={styles.title}>{selected.product.name}</Text><Text style={styles.detail}>{selected.product.brand}</Text></View></View>
         <Text style={styles.detail}>Check the name, variety, and pack size—packaging photos may be older.</Text>
+        {/* Placed above the portion controls: an avoid-list declaration should be read
+            before someone starts dialling in how much of it they ate. */}
+        <AllergenNotice avoiding={avoidingAllergens ?? []} product={selected.product} />
         <Text style={styles.detail}>{[selected.product.quantity, logging?.label].filter(Boolean).join(' · ')}</Text>
         {(selected.product.food_portions?.length ?? 0) > 1 ? <View style={styles.portionChoices}>
           <Text style={styles.label}>Portion size</Text>

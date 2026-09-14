@@ -91,6 +91,9 @@ function nullableText(value: string | null | undefined): string | null {
 function productSource(snapshot: HealthiProductSnapshot, source?: UserFoodProductSource): UserFoodProductSource {
   if (source) return source;
   if (snapshot.provider === 'open_food_facts') return 'open_food_facts';
+  // A photo estimate is a guess about one plate, not a product record. It has no place in
+  // the saved library, so it is recorded as manual rather than gaining a provider identity.
+  if (snapshot.provider === 'photo_estimate') return 'manual';
   return snapshot.provider;
 }
 

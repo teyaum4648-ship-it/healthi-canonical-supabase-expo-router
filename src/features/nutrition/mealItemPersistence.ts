@@ -4,7 +4,7 @@ import type { JsonValue } from './persistence';
 import type { ProductProvider } from './productLookup/productLookupTypes';
 import type { ProductQualityLabel } from './productLibraryPersistence';
 
-export type MealItemSource = 'manual' | 'scanner' | 'search' | 'saved_food' | 'demo';
+export type MealItemSource = 'manual' | 'scanner' | 'search' | 'saved_food' | 'photo' | 'demo';
 
 export type MealLogItemPersistenceInput = {
   meal_log_id?: string | null;

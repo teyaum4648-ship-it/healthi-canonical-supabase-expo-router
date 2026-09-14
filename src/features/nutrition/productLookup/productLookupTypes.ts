@@ -34,7 +34,8 @@ import type {
 } from './nutritionValidation';
 import type { LabEvidenceRecord, LabEvidenceReferenceSnapshot, LabEvidenceResolution } from '../labEvidence/labEvidenceTypes';
 
-export type ProductProvider = 'open_food_facts' | 'usda_food_data_central' | 'manual' | 'demo';
+/** `photo_estimate` carries no label evidence: it is what a camera saw, not what a package declared. */
+export type ProductProvider = 'open_food_facts' | 'usda_food_data_central' | 'manual' | 'photo_estimate' | 'demo';
 
 export type ProductEvidenceConfidence = {
   identity: DataConfidence;
@@ -172,6 +173,10 @@ export type HealthiProductSnapshot = {
   lab_evidence_resolution?: LabEvidenceResolution;
   lab_evidence_reference?: LabEvidenceReferenceSnapshot;
   labels?: string[];
+  /** Producer-declared allergens. An empty or missing list is no evidence of absence. */
+  allergen_tags?: string[];
+  /** Cross-contact advisories ("may contain"), kept separate from outright declarations. */
+  trace_tags?: string[];
   categories_tags?: string[];
   packaging_tags?: string[];
   nutriments_per_100g?: {

@@ -167,6 +167,17 @@ import {
   scannedProductToMealLog
 } from '../../../src/features/nutrition/scannedMealLogMapper';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
+import { PhotoEstimateSheet } from '../../../src/features/nutrition/photoEstimate/PhotoEstimateSheet';
+import { capturePhotoForEstimate, type PhotoCaptureSource } from '../../../src/features/nutrition/photoEstimate/photoCapture';
+import { photoEstimateItemToSnapshot } from '../../../src/features/nutrition/photoEstimate/photoEstimate';
+import {
+  photoEstimateRefusalTitle,
+  requestPhotoEstimate,
+  type PhotoEstimateInvoker
+} from '../../../src/features/nutrition/photoEstimate/photoEstimateClient';
+import type { PhotoEstimate } from '../../../src/features/nutrition/photoEstimate/photoEstimateTypes';
+import type { AllergenGroup } from '../../../src/features/nutrition/allergens';
+import { allergenProfileScope, readAllergenProfile } from '../../../src/features/nutrition/allergenProfileStore';
 import {
   colors,
   colors as themeColors,
@@ -568,6 +579,11 @@ export default function FoodScreen() {
   const [isLoadingRemote, setIsLoadingRemote] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [photoEstimate, setPhotoEstimate] = useState<PhotoEstimate | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoNotice, setPhotoNotice] = useState('');
+  const [avoidingAllergens, setAvoidingAllergens] = useState<AllergenGroup[]>([]);
   useEffect(() => {
     const key = scannerOpen ? 'scanner' : activeSegment;
     const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: scrollPositions.current[key] ?? 0, animated: false }));
@@ -619,6 +635,13 @@ export default function FoodScreen() {
   }, [userId, mode]);
   const today = selectedDay;
   const protocolScopeValue = useMemo(() => protocolScope(userId), [userId]);
+  useEffect(() => {
+    let active = true;
+    void readAllergenProfile(allergenProfileScope(userId)).then((groups) => {
+      if (active) setAvoidingAllergens(groups);
+    });
+    return () => { active = false; };
+  }, [userId]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
   const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
@@ -822,19 +845,82 @@ export default function FoodScreen() {
 
   async function addSnapshotToMealBuilder(
     snapshot: HealthiProductSnapshot,
-    source: 'manual' | 'scanner' | 'search' | 'saved_food',
+    source: 'manual' | 'scanner' | 'search' | 'saved_food' | 'photo',
     servings = 1
   ) {
-    const product = await cacheProductSnapshot(snapshot, source === 'scanner' ? 'scanner' : snapshot.provider);
+    // A photo estimate describes one plate rather than a product, so it is never cached as a
+    // reusable library food; it would otherwise come back later looking like label evidence.
+    const product = source === 'photo' || snapshot.provider === 'photo_estimate'
+      ? null
+      : await cacheProductSnapshot(snapshot, source === 'scanner' ? 'scanner' : snapshot.provider);
     setMealBuilder((current) => addMealBuilderItem(current, {
       snapshot,
       productId: product?.id ?? null,
       source,
       servings
     }));
-    setBuilderMessage(product
-      ? `${snapshot.name} is in this meal.`
-      : `${snapshot.name} is in this meal, but could not be added to your recent-food library.`);
+    setBuilderMessage(source === 'photo'
+      ? `${snapshot.name} is in this meal as an estimate.`
+      : product
+        ? `${snapshot.name} is in this meal.`
+        : `${snapshot.name} is in this meal, but could not be added to your recent-food library.`);
+  }
+
+  /**
+   * Takes a photo and asks for an estimate.
+   *
+   * Failures land in an inline notice rather than an alert, and a cancelled picker says
+   * nothing at all — backing out of the camera is not an error worth reporting.
+   */
+  async function handlePhotoEstimate(source: PhotoCaptureSource) {
+    if (photoBusy) return;
+    setPhotoNotice('');
+    setPhotoBusy(true);
+    try {
+      const captured = await capturePhotoForEstimate(source);
+      if (!captured.ok) {
+        if (captured.reason !== 'cancelled') setPhotoNotice(captured.detail);
+        return;
+      }
+      setPhotoUri(captured.uri);
+      const result = await requestPhotoEstimate({
+        // Estimates cost money per call, so they need a signed-in account; in demo mode
+        // there is no client to invoke and the request refuses as not configured.
+        client: canUseRemote ? (supabase as unknown as PhotoEstimateInvoker) : null,
+        imageBase64: captured.base64,
+        mediaType: captured.mediaType
+      });
+      if (!result.ok) {
+        setPhotoUri(null);
+        setPhotoNotice(`${photoEstimateRefusalTitle(result.refusal)} — ${result.refusal.detail}`);
+        return;
+      }
+      setPhotoEstimate(result.estimate);
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  function closePhotoEstimate() {
+    setPhotoEstimate(null);
+    setPhotoUri(null);
+    setPhotoNotice('');
+  }
+
+  /** Confirms the reviewed estimate into the meal builder, one item at a time. */
+  async function confirmPhotoEstimate() {
+    if (!photoEstimate || photoBusy) return;
+    setPhotoBusy(true);
+    try {
+      for (const item of photoEstimate.items) {
+        await addSnapshotToMealBuilder(photoEstimateItemToSnapshot(item), 'photo');
+      }
+      const count = photoEstimate.items.length;
+      closePhotoEstimate();
+      setBuilderMessage(`${count} estimated ${count === 1 ? 'food is' : 'foods are'} in this meal. Check the totals before saving.`);
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   async function handleSearchProducts() {
@@ -2375,6 +2461,21 @@ export default function FoodScreen() {
             <Text style={styles.scannerShortcutText}>Scan Food</Text>
             <Ionicons color={colors.textFaint} name="chevron-forward" size={18} />
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={photoBusy}
+            onPress={() => void handlePhotoEstimate('camera')}
+            style={({ pressed }) => [styles.scannerShortcut, (pressed || photoBusy) && styles.pressed]}
+          >
+            <Ionicons color={colors.accent} name="camera-outline" size={20} />
+            <Text style={styles.scannerShortcutText}>
+              {photoBusy ? 'Estimating from your photo…' : 'Estimate from a photo'}
+            </Text>
+            {photoBusy
+              ? <ActivityIndicator color={colors.accent} />
+              : <Ionicons color={colors.textFaint} name="chevron-forward" size={18} />}
+          </Pressable>
+          {photoNotice ? <Text accessibilityRole="alert" style={styles.fieldLabel}>{photoNotice}</Text> : null}
           <Field label="Meal name" onChangeText={(value) => updateMealForm('name', value)} placeholder="Lunch bowl" value={mealForm.name} />
           <Text style={styles.fieldLabel}>Meal type</Text>
           <View style={styles.chipWrap}>
@@ -2644,6 +2745,7 @@ export default function FoodScreen() {
       </EntrySheet> : null}
       {foodEntryOpen ? <FoodEntryPicker
         mealLabel={mealTypeLabel(mealBuilder.meal_type)}
+        avoidingAllergens={avoidingAllergens}
         query={searchQuery}
         onQueryChange={(value) => { searchGeneration.current += 1; searchController.current?.abort(); setIsSearchingProducts(false); setSearchQuery(value); setSearchResults([]); setSearchMessage(''); }}
         onSearch={handleSearchProducts}
@@ -2670,6 +2772,25 @@ export default function FoodScreen() {
       </EntrySheet> : null}
       {mealEditDraft ? <MealEditSheet draft={mealEditDraft} onChange={setMealEditDraft} onClose={() => setMealEditDraft(null)} onSave={handleSaveMealEdit} busy={savingMealEdit} error={mealEditError} /> : null}
       {mealLibraryOpen ? <MealLibrarySheet key={`${mode}:${userId}`} userId={userId} demo={mode === 'demo'} client={supabase as unknown as MealCollectionClient} meals={meals} items={mealLogItems} foods={productLibrary} initialEntry={libraryInitialEntry} onClose={() => setMealLibraryOpen(false)} onUseMeal={usePreviousMeal} onUseFood={food => { setMealLibraryOpen(false); setSearchQuery(food.name); setSearchResults([food]); setSearchMessage('Choose this food to review your portion.'); setFoodEntryOpen(true); }} /> : null}
+      {photoEstimate ? <PhotoEstimateSheet
+        busy={photoBusy}
+        error={photoNotice}
+        estimate={photoEstimate}
+        onChange={setPhotoEstimate}
+        onClose={closePhotoEstimate}
+        onConfirm={() => void confirmPhotoEstimate()}
+        onSearchInstead={() => {
+          // An estimate that named the food but got the product wrong is best fixed by
+          // searching for it: that swaps a guess for a record with real label evidence.
+          const first = photoEstimate.items[0]?.name ?? '';
+          closePhotoEstimate();
+          setSearchQuery(first);
+          setSearchResults([]);
+          setSearchMessage(first ? `Search for "${first}" — a search result carries label data an estimate cannot.` : '');
+          setFoodEntryOpen(true);
+        }}
+        photoUri={photoUri}
+      /> : null}
     </View>
   );
 }
