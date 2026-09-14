@@ -16,7 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { generateCircadianBriefing } from '../../../src/engines/circadian';
 import { MovementProgress } from '../../../src/features/movement/MovementProgress';
 import { buildExerciseProgress, exerciseKey } from '../../../src/features/movement/exerciseProgress';
-import { suggestionsForSession, type ProgressionSuggestion } from '../../../src/features/movement/exerciseProgression';
+import { buildTrainingCoverage } from '../../../src/features/movement/trainingCoverage';
+import {
+  suggestNextSession,
+  suggestionsForSession,
+  type ProgressionSuggestion
+} from '../../../src/features/movement/exerciseProgression';
 import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/movement/WorkoutSessionLogger';
 import {
   readRoutines,
@@ -43,7 +48,9 @@ import {
   writeWorkoutDraft
 } from '../../../src/features/movement/workoutDraftStore';
 import { restCompleteFeedback, sessionSavedFeedback, setLoggedFeedback } from '../../../src/features/movement/sessionFeedback';
-import { summarizeQuickWorkout, type WorkoutSummary } from '../../../src/features/movement/workoutSummary';
+import { summarizeQuickWorkout } from '../../../src/features/movement/workoutSummary';
+import { buildSessionRecap, type SessionRecap as SessionRecapModel } from '../../../src/features/movement/sessionRecap';
+import { SessionRecap } from '../../../src/features/movement/SessionRecap';
 import {
   calculateMovementSummary,
   generateAdaptiveMovementPlan,
@@ -274,7 +281,9 @@ export default function MovementScreen() {
   const [timerNow, setTimerNow] = useState(() => new Date().toISOString());
   const [undoSnapshot, setUndoSnapshot] = useState<{ draft: QuickWorkoutDraft; label: string } | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
-  const [lastSummary, setLastSummary] = useState<WorkoutSummary | null>(null);
+  const [recap, setRecap] = useState<{ recap: SessionRecapModel; draft: QuickWorkoutDraft } | null>(null);
+  /** Why the last finish attempt did not save, shown in the logger's own footer. */
+  const [saveNotice, setSaveNotice] = useState('');
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [suggestions, setSuggestions] = useState<Map<string, ProgressionSuggestion>>(() => new Map());
   const [acceptedSuggestions, setAcceptedSuggestions] = useState<Set<string>>(() => new Set());
@@ -590,12 +599,13 @@ export default function MovementScreen() {
   }
 
   /** Save what was actually trained, so the next session starts from it. */
-  function saveRoutineFromDraft() {
-    if (!quickDraft) return;
+  function saveRoutineFromDraft(source?: QuickWorkoutDraft) {
+    const draft = source ?? quickDraft;
+    if (!draft) return;
     const routine = routineFromExercises(
-      quickDraft.title,
-      quickDraft.workout_type,
-      quickDraft.exercises.map((exercise) => ({
+      draft.title,
+      draft.workout_type,
+      draft.exercises.map((exercise) => ({
         exercise_name: exercise.exercise_name,
         exercise_library_item_id: exercise.exercise_library_item_id,
         category: exercise.category,
@@ -939,12 +949,18 @@ export default function MovementScreen() {
     } : current);
   }
 
+  // A refusal describes the session that was refused, so it survives until the lifter
+  // changes something — then it is stale and goes.
+  useEffect(() => { setSaveNotice(''); }, [quickDraft]);
+
   async function handleQuickSave() {
     if (!quickDraft) return;
+    setSaveNotice('');
     const finishedAt = new Date().toISOString();
     const result = quickWorkoutToInputs(quickDraft, shouldUseRemote ? 'manual' : 'demo', finishedAt);
     if (!result.ok) {
       setStatus(result.error);
+      setSaveNotice(result.error);
       return;
     }
     if (!isMovementLogWithinSafetyGuidance(
@@ -952,17 +968,21 @@ export default function MovementScreen() {
       result.value.session.workout_type,
       result.value.exercises.map((exercise) => exercise.category)
     )) {
-      setStatus('Today’s protocol keeps this session outside the suggested movement range. Choose mobility or recovery instead.');
+      const refusal = 'Today’s protocol keeps this session outside the suggested movement range. Choose mobility or recovery instead.';
+      setStatus(refusal);
+      setSaveNotice(refusal);
       return;
     }
 
     setIsSaving(true);
+    let savedRows: { session: WorkoutSessionRow; exercises: WorkoutExerciseEntryRow[]; sets: WorkoutSetEntryRow[] } | null = null;
     try {
       if (usePreviewFixture) {
         const rows = createDemoQuickWorkoutRows(result.value, 'development-move-preview', finishedAt);
         setSessions((current) => [rows.session, ...current]);
         setEntries((current) => [...rows.exercises, ...current]);
         setWorkoutSets((current) => [...rows.sets, ...current]);
+        savedRows = { session: rows.session, exercises: rows.exercises, sets: rows.sets };
         setStatus('Preview workout added for this render only. Nothing was saved.');
       } else if (shouldUseRemote && userId) {
         const client = supabase as unknown as MovementSupabaseClient;
@@ -984,6 +1004,7 @@ export default function MovementScreen() {
         setSessions((current) => [session, ...current]);
         setEntries((current) => [...savedExercises, ...current]);
         setWorkoutSets((current) => [...savedSets, ...current]);
+        savedRows = { session, exercises: savedExercises, sets: savedSets };
         setDataMode('remote');
         setStatus('Workout saved with an automatic date and time.');
       } else {
@@ -994,11 +1015,45 @@ export default function MovementScreen() {
         setSessions((current) => [rows.session, ...current]);
         setEntries((current) => [...rows.exercises, ...current]);
         setWorkoutSets((current) => [...rows.sets, ...current]);
+        savedRows = { session: rows.session, exercises: rows.exercises, sets: rows.sets };
         setDataMode('demo');
         setStatus('Workout saved locally with an automatic date and time.');
       }
       sessionSavedFeedback();
-      setLastSummary(summarizeQuickWorkout(quickDraft, finishedAt));
+
+      // The recap is composed from the rows just written, not from the state setters
+      // above: those have not applied yet inside this handler, and reading them here
+      // would leave today's sets out of the records and the coverage.
+      const nextSessions = savedRows ? [savedRows.session, ...sessions] : sessions;
+      const nextEntries = savedRows ? [...savedRows.exercises, ...entries] : entries;
+      const nextSets = savedRows ? [...savedRows.sets, ...workoutSets] : workoutSets;
+      const sessionDate = savedRows?.session.session_date ?? today;
+      const progress = buildExerciseProgress({
+        sessions: nextSessions, entries: nextEntries, sets: nextSets, unit: weightUnit
+      });
+      setRecap({
+        draft: quickDraft,
+        recap: buildSessionRecap({
+          summary: summarizeQuickWorkout(quickDraft, finishedAt),
+          progress,
+          coverage: buildTrainingCoverage({
+            sessions: nextSessions, entries: nextEntries, sets: nextSets, library, today
+          }),
+          sessionDate,
+          // Only the movements just trained; a suggestion for something untouched
+          // today would read as a verdict on a session it was not part of.
+          suggestions: progress
+            .filter((item) => item.last_performed?.slice(0, 10) === sessionDate.slice(0, 10))
+            .map((item) => suggestNextSession({
+              progress: item,
+              capacity: adaptivePlan.capacity,
+              trainingAllowed: adaptivePlan.training_allowed,
+              today,
+              unit: weightUnit
+            }))
+        })
+      });
+
       setQuickDraft(null);
       setQuickPrompt('');
       setIsQuickLogging(false);
@@ -1007,9 +1062,10 @@ export default function MovementScreen() {
       setDraftRestored(false);
       setFocusIndex(0);
       void clearWorkoutDraft(draftScope);
-      setActiveSegment('Today');
     } catch {
-      setStatus('Workout could not be saved yet. It is still here on this device — try again when you have a connection.');
+      const failure = 'Workout could not be saved yet. It is still here on this device — try again when you have a connection.';
+      setStatus(failure);
+      setSaveNotice(failure);
     } finally {
       setIsSaving(false);
     }
@@ -1200,33 +1256,6 @@ export default function MovementScreen() {
             <Text style={styles.protocolNoteText}>
               Today's protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
             </Text>
-          </View>
-        ) : null}
-
-        {lastSummary ? (
-          <View style={styles.summaryCard}>
-            <View style={styles.rowBetween}>
-              <EditorialLabel>LAST SESSION SAVED</EditorialLabel>
-              <Pressable accessibilityLabel="Dismiss summary" accessibilityRole="button" onPress={() => setLastSummary(null)} style={styles.iconButton}>
-                <Ionicons color={movePalette.slate} name="close" size={16} />
-              </Pressable>
-            </View>
-            <Text style={styles.summaryTitle}>{lastSummary.headline ?? lastSummary.title}</Text>
-            <Text style={styles.summaryMeta}>
-              {lastSummary.working_sets} working set{lastSummary.working_sets === 1 ? '' : 's'}
-              {lastSummary.warmup_sets > 0 ? ` · ${lastSummary.warmup_sets} warm-up` : ''}
-              {lastSummary.duration_minutes !== null ? ` · ${lastSummary.duration_minutes} min` : ''}
-            </Text>
-            {lastSummary.changes.filter((change) => change.direction !== 'new').slice(0, 3).map((change) => (
-              <View key={change.exercise_id} style={styles.summaryRow}>
-                <Ionicons
-                  color={change.direction === 'up' ? movePalette.greenMid : change.direction === 'down' ? colors.danger : movePalette.slate}
-                  name={change.direction === 'up' ? 'trending-up' : change.direction === 'down' ? 'trending-down' : 'remove'}
-                  size={15}
-                />
-                <Text style={styles.summaryRowText}>{change.exercise_name} · {change.detail}</Text>
-              </View>
-            ))}
           </View>
         ) : null}
 
@@ -1712,7 +1741,23 @@ export default function MovementScreen() {
     );
   }
 
-  // An open session owns the screen. Nothing competes with the set in front of
+  // A finished session owns the screen before Today does. Saving used to drop a
+  // dismissible card onto a screen the lifter had already left, which made the work
+  // feel filed rather than finished.
+  if (recap) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <SessionRecap
+          onDone={() => { setRecap(null); setActiveSegment('Today'); }}
+          onSaveRoutine={() => saveRoutineFromDraft(recap.draft)}
+          recap={recap.recap}
+          savedLocally={!shouldUseRemote}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // An open session owns the screen too. Nothing competes with the set in front of
   // the lifter, and the finish action stays pinned rather than scrolling away.
   if (isQuickLogging && quickDraft) {
     return (
@@ -1728,6 +1773,7 @@ export default function MovementScreen() {
           onCompleteSet={completeQuickSet}
           onDuplicateSet={duplicateQuickSet}
           onExit={() => { setIsQuickLogging(false); setActiveSegment('Today'); }}
+          notice={saveNotice || null}
           onFinish={() => void handleQuickSave()}
           onFocusIndexChange={setFocusIndex}
           onMoveExercise={moveQuickExercise}
@@ -1788,18 +1834,6 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 28 },
   navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
   navigationTitle: { ...type.title, fontSize: 30, lineHeight: 38, color: colors.text },
-  summaryCard: {
-    backgroundColor: movePalette.surface,
-    borderColor: movePalette.lineStrong,
-    borderRadius: 20,
-    borderWidth: hairlineWidth,
-    gap: 8,
-    padding: 18
-  },
-  summaryTitle: { ...type.heading, color: movePalette.ink },
-  summaryMeta: { ...type.caption, color: movePalette.slate },
-  summaryRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  summaryRowText: { ...type.caption, color: movePalette.ink, flex: 1 },
   resumeNote: {
     alignItems: 'center',
     backgroundColor: movePalette.wash,

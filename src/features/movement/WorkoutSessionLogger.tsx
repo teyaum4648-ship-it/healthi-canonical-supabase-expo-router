@@ -60,6 +60,12 @@ export type WorkoutSessionLoggerProps = {
   undoLabel: string | null;
   saveState: SaveState;
   savedLocally: boolean;
+  /**
+   * Why the last finish attempt did not save. It belongs here rather than only on the
+   * Move screen: a refusal rendered on a screen the lifter is not looking at makes the
+   * primary button read as broken.
+   */
+  notice: string | null;
 };
 
 /** A number field that keeps only digits and a single decimal point. */
@@ -543,6 +549,9 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
       </ScrollView>
 
       <View style={styles.footer}>
+        {props.notice ? (
+          <Text accessibilityRole="alert" style={styles.notice}>{props.notice}</Text>
+        ) : null}
         <Pressable
           accessibilityLabel="Finish and save this workout"
           accessibilityRole="button"
@@ -679,6 +688,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
     minHeight: 48,
+    // On the web a text input keeps a default intrinsic width of about twenty
+    // characters, which at this type size refuses to shrink and pushes the reps
+    // stepper off the side of a phone screen. Native ignores this; the web needs it.
+    minWidth: 0,
     textAlign: 'center'
   },
 
@@ -736,6 +749,7 @@ const styles = StyleSheet.create({
     minHeight: 52
   },
   finishText: { ...type.label, color: colors.primaryText, fontSize: 16 },
+  notice: { ...type.caption, color: colors.danger, marginBottom: 10 },
 
   suggestion: {
     backgroundColor: colors.surfaceInset,
