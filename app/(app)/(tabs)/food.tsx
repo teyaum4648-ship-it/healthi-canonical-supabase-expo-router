@@ -814,19 +814,25 @@ export default function FoodScreen() {
 
   async function addSnapshotToMealBuilder(
     snapshot: HealthiProductSnapshot,
-    source: 'manual' | 'scanner' | 'search' | 'saved_food',
+    source: 'manual' | 'scanner' | 'search' | 'saved_food' | 'photo',
     servings = 1
   ) {
-    const product = await cacheProductSnapshot(snapshot, source === 'scanner' ? 'scanner' : snapshot.provider);
+    // A photo estimate describes one plate rather than a product, so it is never cached as a
+    // reusable library food; it would otherwise come back later looking like label evidence.
+    const product = source === 'photo' || snapshot.provider === 'photo_estimate'
+      ? null
+      : await cacheProductSnapshot(snapshot, source === 'scanner' ? 'scanner' : snapshot.provider);
     setMealBuilder((current) => addMealBuilderItem(current, {
       snapshot,
       productId: product?.id ?? null,
       source,
       servings
     }));
-    setBuilderMessage(product
-      ? `${snapshot.name} is in this meal.`
-      : `${snapshot.name} is in this meal, but could not be added to your recent-food library.`);
+    setBuilderMessage(source === 'photo'
+      ? `${snapshot.name} is in this meal as an estimate.`
+      : product
+        ? `${snapshot.name} is in this meal.`
+        : `${snapshot.name} is in this meal, but could not be added to your recent-food library.`);
   }
 
   async function handleSearchProducts() {

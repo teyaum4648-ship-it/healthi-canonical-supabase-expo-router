@@ -34,7 +34,8 @@ import type {
 } from './nutritionValidation';
 import type { LabEvidenceRecord, LabEvidenceReferenceSnapshot, LabEvidenceResolution } from '../labEvidence/labEvidenceTypes';
 
-export type ProductProvider = 'open_food_facts' | 'usda_food_data_central' | 'manual' | 'demo';
+/** `photo_estimate` carries no label evidence: it is what a camera saw, not what a package declared. */
+export type ProductProvider = 'open_food_facts' | 'usda_food_data_central' | 'manual' | 'photo_estimate' | 'demo';
 
 export type ProductEvidenceConfidence = {
   identity: DataConfidence;

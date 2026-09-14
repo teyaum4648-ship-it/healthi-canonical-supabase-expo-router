@@ -49,6 +49,7 @@ export type NutritionReasonCode =
   | 'manual_food_log'
   | 'barcode_food_logged'
   | 'product_label_data'
+  | 'photo_estimated_food_log'
   | 'user_corrected_food_log'
   | 'source_low_confidence'
   | 'partial_nutrition_data'
