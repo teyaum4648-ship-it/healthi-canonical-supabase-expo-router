@@ -53,8 +53,13 @@ export function DietIntakeSummary({ summary, targets, onNutrients }: {
   const partial = summary.reason_codes.includes('partial_nutrition_data');
   const { fontScale } = useWindowDimensions();
   const macros = [
-    { label: 'Protein', amount: summary.protein_g, target: targets.protein_g_target, color: dietAccents.protein, icon: 'fitness-outline' },
-    { label: 'Carbs', amount: summary.carbs_g, target: targets.carbs_g_target, color: dietAccents.carbs, icon: 'leaf-outline' },
+    /*
+     * Ionicons names are not descriptions. "fitness-outline" is a heart with a pulse
+     * line through it, which put a cardiac symbol under Protein; each icon now says
+     * what the macronutrient does — build, burn, store.
+     */
+    { label: 'Protein', amount: summary.protein_g, target: targets.protein_g_target, color: dietAccents.protein, icon: 'barbell-outline' },
+    { label: 'Carbs', amount: summary.carbs_g, target: targets.carbs_g_target, color: dietAccents.carbs, icon: 'flash-outline' },
     { label: 'Fat', amount: summary.fat_g, target: targets.fat_g_target, color: dietAccents.fat, icon: 'water-outline' }
   ] as const;
   const energyDetail = energy.amount === null ? 'Log a food to begin' : energy.target === null ? 'No working calorie target set' : partial ? 'Includes partial nutrition entries' : energy.remaining! >= 0 ? `${rounded(energy.remaining)} kcal to working target` : `${rounded(-energy.remaining!)} kcal above working target`;

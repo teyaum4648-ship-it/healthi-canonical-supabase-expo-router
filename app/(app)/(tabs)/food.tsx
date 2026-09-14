@@ -36,6 +36,8 @@ import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features
 import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
 import { MealEditSheet } from '../../../src/features/nutrition/MealEditSheet';
 import { MealLibrarySheet, MealMacroGrid } from '../../../src/features/nutrition/MealLibrarySheet';
+import { FoodQualityReviewPanel } from '../../../src/features/nutrition/FoodQualityReview';
+import { buildFoodQualityReview } from '../../../src/features/nutrition/foodQualityReview';
 import { buildEditedMeal, createMealCollectionEntry, mealEntryToBuilder, type MealCollectionEntry } from '../../../src/features/nutrition/mealLibrary';
 import { persistMealItemEdit, type MealCollectionClient } from '../../../src/features/nutrition/mealCollectionStore';
 import { applyMealEdit, createMealEditDraft, persistMealEdit, type MealEditClient, type MealEditDraft } from '../../../src/features/nutrition/mealEditing';
@@ -207,7 +209,7 @@ const productQualityExperimentEnabled = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_
 
 const defaultTargets: NutritionTargets = unsetNutritionTargets;
 
-const dietTabs = ['Diary', 'Nutrients', 'Guidance'] as const;
+const dietTabs = ['Diary', 'Nutrients', 'Quality'] as const;
 type DietTab = typeof dietTabs[number];
 type Segment = DietTab | 'Today' | 'Timeline' | 'Profile' | 'Build Meal' | 'Log Meal' | 'Response Log' | 'Food Pattern Test' | 'Insights';
 
@@ -638,6 +640,30 @@ export default function FoodScreen() {
   const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
   const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
   const todayMeals = useMemo(() => mealsForDay(meals, today), [meals, today]);
+  /**
+   * Today's logged items, graded. Every meal item already carries the score the scanner
+   * gave it, so this needs no lookup; the product library is joined only to read the
+   * ingredient lists behind the low grades.
+   */
+  const qualityReview = useMemo(() => {
+    const todayIds = new Set(todayMeals.map((meal) => meal.id));
+    return buildFoodQualityReview({
+      items: mealLogItems
+        .filter((entry) => entry.meal_log_id === null || todayIds.has(entry.meal_log_id))
+        .map((entry) => ({
+          id: entry.id,
+          name: entry.name,
+          quality_score: entry.quality_score,
+          logged_at: entry.logged_at,
+          barcode: entry.barcode
+        })),
+      products: productLibrary.map((product) => ({
+        barcode: product.barcode,
+        name: product.name,
+        ingredients_text: product.ingredients_text
+      }))
+    });
+  }, [mealLogItems, productLibrary, todayMeals]);
 
   const nutrientSummary = useMemo(
     () => calculateNutrientSummary({ date: today, meals: todayMeals, targets }),
@@ -2004,164 +2030,11 @@ export default function FoodScreen() {
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
         <View style={styles.diarySection}><ActionRow title="Your foods & meals" detail="Search history, starred meals, and saved favorites" icon="bookmark-outline" onPress={() => openMealLibrary()} last /></View>
         <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={meal => { setMealDetailMessage(''); setSelectedMeal(meal); }} />
-        <ActionRow title="How food is supporting you" detail="Personal responses and nourishment guidance" icon="leaf-outline" onPress={() => setActiveSegment('Guidance')} last />
+        <ActionRow title="How good was what you ate" detail="Grades for everything you logged, and what earned them" icon="ribbon-outline" onPress={() => setActiveSegment('Quality')} last />
       </View>
     );
   }
 
-  function renderGuidance() {
-    const recentMeal = todayMeals
-      .slice()
-      .sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0] ?? null;
-
-    return (
-      <View style={styles.adaptivePage}>
-        {protocolNourishment.length > 0 ? (
-          <View style={styles.adaptiveSection}>
-            <Text style={styles.adaptiveSectionLabel}>From today’s protocol</Text>
-            {protocolNourishment.map((action) => (
-              <View key={action.id} style={styles.adaptiveReasonRow}>
-                <View style={styles.adaptiveReasonDot} />
-                <Text style={styles.adaptiveReasonText}>{action.title}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        <View style={styles.adaptiveHero}>
-          <Text style={styles.adaptiveSectionLabel}>Nutrition · Today</Text>
-          <Text style={styles.adaptiveKicker}>{adaptiveDiet.verdict.kicker}</Text>
-          <Text style={styles.adaptiveVerdict}>{adaptiveDiet.verdict.line}</Text>
-          <View style={styles.adaptiveReasonList}>
-            {adaptiveDiet.verdict.reasons.map((reason) => (
-              <View key={reason} style={styles.adaptiveReasonRow}>
-                <View style={styles.adaptiveReasonDot} />
-                <Text style={styles.adaptiveReasonText}>{reason}</Text>
-              </View>
-            ))}
-          </View>
-          <View
-            accessibilityLabel={`Confidence ${adaptiveDiet.verdict.confidence}`}
-            style={styles.adaptiveConfidenceRow}
-          >
-            <Text style={styles.adaptiveConfidenceLabel}>Confidence</Text>
-            <View style={styles.adaptiveConfidenceSegments}>
-              {[0, 1, 2].map((segment) => {
-                const filled = segment < ({ low: 1, medium: 2, high: 3 }[adaptiveDiet.verdict.confidence]);
-                return <View key={segment} style={[styles.adaptiveConfidenceSegment, filled && styles.adaptiveConfidenceSegmentFilled]} />;
-              })}
-            </View>
-            <Text style={styles.adaptiveConfidenceValue}>{confidenceLabel(adaptiveDiet.verdict.confidence)}</Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => openAdaptiveDestination(adaptiveDiet.priorities[0]?.destination ?? 'Nutrients')}
-            style={({ pressed }) => [styles.adaptivePrimaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.adaptivePrimaryButtonText}>{adaptiveDiet.verdict.cta}</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.adaptiveSection}>
-          <View style={styles.adaptiveSectionHeading}>
-            <Text style={styles.adaptiveSectionLabel}>Priorities</Text>
-            <Text style={styles.adaptiveSectionAside}>At most three</Text>
-          </View>
-          <View style={styles.adaptivePriorityList}>
-            {adaptiveDiet.priorities.map((priority) => (
-              <View key={priority.id} style={styles.adaptivePriority}>
-                <View style={styles.adaptiveSectionHeading}>
-                  <Text style={[styles.adaptivePriorityTag, priority.tag === 'Act now' && styles.adaptivePriorityTagUrgent]}>{priority.tag}</Text>
-                  <Text style={styles.adaptiveMono}>{priority.horizon}</Text>
-                </View>
-                <Text style={styles.adaptivePriorityTitle}>{priority.title}</Text>
-                <Text style={styles.adaptivePriorityReason}>{priority.reason}</Text>
-                <View style={styles.adaptivePriorityActions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => openAdaptiveDestination(priority.destination)}
-                    style={({ pressed }) => [styles.adaptiveInlineAction, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.adaptiveInlineActionText}>{priority.action}</Text>
-                  </Pressable>
-                  <Text style={styles.adaptivePriorityConfidence}>{confidenceLabel(priority.confidence)} confidence</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.adaptiveSection}>
-          <Text style={styles.adaptiveSectionLabel}>Adaptive nutrient field</Text>
-          <Text style={styles.adaptiveSectionVoice}>Navigation groups, not diagnoses.</Text>
-          <View style={styles.adaptiveLaneList}>
-            {adaptiveDiet.lanes.map((lane) => {
-              const open = expandedLane === lane.id;
-              return (
-                <View key={lane.id} style={styles.adaptiveLane}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ expanded: open }}
-                    onPress={() => setExpandedLane((current) => current === lane.id ? null : lane.id)}
-                    style={({ pressed }) => [styles.adaptiveLaneButton, pressed && styles.pressed]}
-                  >
-                    <View style={styles.adaptiveSectionHeading}>
-                      <Text style={styles.adaptiveLaneName}>{lane.name}</Text>
-                      <Text style={[styles.adaptiveLaneState, lane.state === 'Underrepresented' && styles.adaptiveLaneStateWarm]}>{lane.state}</Text>
-                    </View>
-                    <View style={styles.adaptiveLaneTrackRow}>
-                      <View style={[styles.adaptiveLaneTrack, lane.state === 'Limited data' && styles.adaptiveLaneTrackLimited]}>
-                        <View style={[styles.adaptiveLaneFill, { width: `${lane.progress}%` }]} />
-                      </View>
-                      <Text style={styles.adaptiveLaneMeta}>{confidenceLabel(lane.confidence)} · {lane.horizon}</Text>
-                    </View>
-                  </Pressable>
-                  {open ? <Text style={styles.adaptiveLaneDetail}>{lane.detail}</Text> : null}
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.adaptiveSection}>
-          <Text style={styles.adaptiveSectionLabel}>Coverage builder</Text>
-          <Text style={styles.adaptiveCoverageLabel}>Current need</Text>
-          <Text style={styles.adaptiveCoverageNeed}>{adaptiveDiet.coverage.need}</Text>
-          <View style={styles.adaptiveInsetCard}>
-            <Text style={styles.adaptiveCoverageLabel}>Suggested addition</Text>
-            <Text style={styles.adaptiveCoverageSuggestion}>{adaptiveDiet.coverage.suggestion}</Text>
-            <Text style={styles.adaptivePriorityReason}>{adaptiveDiet.coverage.explanation}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => openAdaptiveDestination(adaptiveDiet.coverage.destination)}
-              style={({ pressed }) => [styles.adaptivePrimaryButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.adaptivePrimaryButtonText}>{adaptiveDiet.coverage.action}</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {recentMeal ? (
-          <View style={styles.adaptiveSection}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                updateResponseForm('meal_log_id', recentMeal.id ?? null);
-                setActiveSegment('Response Log');
-              }}
-              style={({ pressed }) => [styles.adaptiveRecent, pressed && styles.pressed]}
-            >
-              <View style={styles.adaptiveRecentCopy}>
-                <Text numberOfLines={1} style={styles.adaptiveRecentTitle}>{recentMeal.name} · <Text style={styles.adaptiveMono}>{formatClock(recentMeal.logged_at)}</Text></Text>
-                <Text style={styles.adaptivePriorityReason}>Add or review your response to this meal</Text>
-              </View>
-              <Ionicons color="#0A84FF" name="arrow-forward" size={18} />
-            </Pressable>
-          </View>
-        ) : null}
-      </View>
-    );
-  }
 
   function renderTimeline() {
     const timelineMeals = todayMeals
@@ -2705,7 +2578,7 @@ export default function FoodScreen() {
               <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Food</Text>
               <Text style={styles.diaryDetail}>{modeLabel}</Text>
             </View>
-            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Guidance'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Guidance'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
+            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
               <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
                 <Ionicons name="chevron-back" size={20} color={colors.accentMid} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
               </Pressable>
@@ -2713,7 +2586,14 @@ export default function FoodScreen() {
             {/saved|logged|could not|unavailable|not saved/i.test(status) ? <Text accessibilityLiveRegion="polite" style={styles.diaryStatus}>{status}</Text> : null}
             {scannerOpen ? renderScanner() : null}
             {!scannerOpen && (activeSegment === 'Diary' || activeSegment === 'Today') ? renderDiary() : null}
-            {!scannerOpen && activeSegment === 'Guidance' ? <>{renderGuidance()}<ActionRow title="Food preferences" detail="Your food pattern and personal responses" onPress={() => setActiveSegment('Profile')} last /></> : null}
+            {!scannerOpen && activeSegment === 'Quality' ? (
+              <FoodQualityReviewPanel
+                onOpenPreferences={() => setActiveSegment('Profile')}
+                onOpenScanner={() => openScanner('log')}
+                review={qualityReview}
+                windowLabel="Today"
+              />
+            ) : null}
             {!scannerOpen && activeSegment === 'Timeline' ? renderTimeline() : null}
             {!scannerOpen && activeSegment === 'Nutrients' ? renderNutrients() : null}
             {!scannerOpen && activeSegment === 'Profile' ? renderProfile() : null}
@@ -2725,6 +2605,19 @@ export default function FoodScreen() {
           </ScrollView>
           {!inFlow ? <View style={styles.adaptiveActionDock}>
             <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color="#FFFFFF" size={22} /><Text style={styles.adaptivePrimaryButtonText}>Add meal</Text></Pressable>
+            {/*
+              Scanning was three taps inside the add-meal sheet, which is a long way
+              round for the thing people stand in a shop holding. It gets its own key
+              on the same bar — no label, because a barcode is already the word.
+            */}
+            <Pressable
+              accessibilityLabel="Scan a product barcode"
+              accessibilityRole="button"
+              onPress={() => openScanner('log')}
+              style={({ pressed }) => [styles.dockScan, pressed && styles.pressed]}
+            >
+              <Ionicons name="barcode-outline" color={colors.accent} size={24} />
+            </Pressable>
           </View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -2824,6 +2717,18 @@ const styles = StyleSheet.create({
   diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: colors.accentMid, fontWeight: '500' },
   diaryStatus: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted, paddingVertical: 8 },
   diaryAdd: { flex: 1, backgroundColor: colors.accent, minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
+  // Fixed width rather than a flex share, so the primary action keeps the bar and this
+  // stays a key beside it at roughly a fifth of the width on a phone.
+  dockScan: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceInset,
+    borderColor: colors.borderStrong,
+    borderRadius: 16,
+    borderWidth: hairlineWidth,
+    justifyContent: 'center',
+    minHeight: 52,
+    width: 68
+  },
   diaryTabs: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
   screen: {
     flex: 1,
@@ -3076,73 +2981,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     lineHeight: 15,
     textTransform: 'uppercase'
-  },
-  adaptiveKicker: {
-    color: '#0A84FF',
-    fontFamily: sansMedium,
-    fontSize: 12,
-    letterSpacing: 1.5,
-    lineHeight: 15,
-    marginTop: 14,
-    textTransform: 'uppercase'
-  },
-  adaptiveVerdict: {
-    color: '#F5F5F7',
-    fontFamily: serifLight,
-    fontSize: 25,
-    letterSpacing: -0.25,
-    lineHeight: 33,
-    marginTop: 10
-  },
-  adaptiveReasonList: {
-    gap: 9,
-    marginTop: 18
-  },
-  adaptiveReasonRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 11
-  },
-  adaptiveReasonDot: {
-    backgroundColor: '#5AC8FA',
-    borderRadius: 3,
-    height: 5,
-    marginTop: 8,
-    width: 5
-  },
-  adaptiveReasonText: {
-    color: '#F5F5F7',
-    flex: 1,
-    fontFamily: sans,
-    fontSize: 14.5,
-    lineHeight: 21
-  },
-  adaptiveConfidenceRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 20
-  },
-  adaptiveConfidenceLabel: {
-    color: '#A1A1A6',
-    fontFamily: sansMedium,
-    fontSize: 12,
-    letterSpacing: 1.1,
-    lineHeight: 14,
-    textTransform: 'uppercase'
-  },
-  adaptiveConfidenceSegments: {
-    flexDirection: 'row',
-    gap: 3
-  },
-  adaptiveConfidenceSegment: {
-    backgroundColor: 'rgba(255, 255, 255,0.14)',
-    borderRadius: 2,
-    height: 4,
-    width: 16
-  },
-  adaptiveConfidenceSegmentFilled: {
-    backgroundColor: '#F5F5F7'
   },
   adaptiveConfidenceValue: {
     color: '#F5F5F7',
