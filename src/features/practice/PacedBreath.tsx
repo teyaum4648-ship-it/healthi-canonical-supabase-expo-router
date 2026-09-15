@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useReducedMotion } from '../../components/mobile/useReducedMotion';
 import { colors, type } from '../../styles/mobileTheme';
 import { cycleMs, type BreathRhythm } from './practiceModel';
 
@@ -15,6 +16,11 @@ import { cycleMs, type BreathRhythm } from './practiceModel';
  * It counts what was actually done rather than what was chosen. A person who starts a
  * five-minute session and stops after ninety seconds did ninety seconds, and recording
  * the five would be the same lie as averaging in a meal nobody ate.
+ *
+ * Under reduced motion the circle stops scaling and breathes in opacity instead. That
+ * is the distinction the preference actually asks for — vestibular motion goes, the
+ * information stays — and dropping the cue altogether would leave the pacer with
+ * nothing to pace against.
  */
 
 type Palette = {
@@ -42,13 +48,14 @@ export function PacedBreath({ rhythm, palette = DEFAULT_PALETTE, onSession, idle
 }) {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const scale = useRef(new Animated.Value(1)).current;
+  const reduced = useReducedMotion();
+  const wave = useRef(new Animated.Value(0)).current;
   const startedAt = useRef<number | null>(null);
 
   useEffect(() => {
     if (!running) {
-      scale.stopAnimation();
-      scale.setValue(1);
+      wave.stopAnimation();
+      wave.setValue(0);
       return;
     }
     /*
@@ -57,14 +64,18 @@ export function PacedBreath({ rhythm, palette = DEFAULT_PALETTE, onSession, idle
      */
     const cycle = Animated.loop(
       Animated.sequence([
-        Animated.timing(scale, { toValue: 1.28, duration: rhythm.inhaleMs, useNativeDriver: true }),
+        Animated.timing(wave, { toValue: 1, duration: rhythm.inhaleMs, useNativeDriver: true }),
         Animated.delay(rhythm.holdMs),
-        Animated.timing(scale, { toValue: 1, duration: rhythm.exhaleMs, useNativeDriver: true })
+        Animated.timing(wave, { toValue: 0, duration: rhythm.exhaleMs, useNativeDriver: true })
       ])
     );
     cycle.start();
     return () => cycle.stop();
-  }, [running, rhythm, scale]);
+  }, [running, rhythm, wave]);
+
+  /* One driver, two readings: the size of the breath, or only its brightness. */
+  const scale = wave.interpolate({ inputRange: [0, 1], outputRange: [1, reduced ? 1 : 1.28] });
+  const glowOpacity = wave.interpolate({ inputRange: [0, 1], outputRange: reduced ? [0.25, 0.75] : [0.45, 0.45] });
 
   // A visible clock, because "how long have I been doing this" is the only thing a
   // person wants to know mid-session and counting cycles in your head defeats the point.
@@ -100,7 +111,7 @@ export function PacedBreath({ rhythm, palette = DEFAULT_PALETTE, onSession, idle
         onPress={toggle}
         style={styles.button}
       >
-        <Animated.View style={[styles.glow, { backgroundColor: palette.accentSoft, transform: [{ scale }] }]} />
+        <Animated.View style={[styles.glow, { backgroundColor: palette.accentSoft, opacity: glowOpacity, transform: [{ scale }] }]} />
         <Animated.View style={[styles.ring, { borderColor: palette.accent, transform: [{ scale }] }]} />
         <Animated.View style={[styles.core, { backgroundColor: palette.accent, transform: [{ scale }] }]}>
           <Text style={[styles.coreText, { color: palette.primaryText }]}>{running ? clock : idleLabel}</Text>
@@ -109,7 +120,9 @@ export function PacedBreath({ rhythm, palette = DEFAULT_PALETTE, onSession, idle
       <Text style={[styles.hint, { color: palette.faint }]}>
         {running
           ? `Tap to stop · ${Math.round(cycleMs(rhythm) / 1000)}s a cycle`
-          : 'Tap to start, and follow the circle'}
+          : reduced
+            ? 'Tap to start, and follow the glow'
+            : 'Tap to start, and follow the circle'}
       </Text>
     </View>
   );
@@ -118,7 +131,7 @@ export function PacedBreath({ rhythm, palette = DEFAULT_PALETTE, onSession, idle
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: 10 },
   button: { alignItems: 'center', height: 210, justifyContent: 'center', width: 210 },
-  glow: { borderRadius: 105, height: 210, opacity: 0.45, position: 'absolute', width: 210 },
+  glow: { borderRadius: 105, height: 210, position: 'absolute', width: 210 },
   ring: { borderRadius: 82, borderWidth: 1, height: 164, position: 'absolute', width: 164 },
   core: { alignItems: 'center', borderRadius: 66, height: 132, justifyContent: 'center', width: 132 },
   coreText: { ...type.label, fontVariant: ['tabular-nums'] },
