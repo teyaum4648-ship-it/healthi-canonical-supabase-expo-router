@@ -11,7 +11,7 @@ score = clamp(70 + Σ contributions, 0, 100)
   schedule              −10 …  +6
 ```
 
-Everyone starts at **70**. A shift worker with a wrecked gut and a 41/81 stress burden
+Everyone starts at **70**. A shift worker with a wrecked gut and a 34/66 stress burden
 starts where a well-slept athlete starts, and the four domains then nudge that constant
 around. The demo reads `85 / 100 · Demo signals · low confidence`, which is a number
 about nobody.
@@ -115,7 +115,7 @@ Three sources, cheapest first:
 | You Are When You Eat | 50 | nourishment timing | Diet |
 | Digestive System Health | 83 | nourishment load | Diet |
 | Detoxification System Health | 88 | mind and energy load | Mood |
-| Stress | 81 | `mind_life_load` | Mood |
+| Stress | 66 | `mind_life_load` | Mood |
 | Circadian Health | 90 | `recovery_rhythm` | Sleep |
 | Metabolic (A/B typing) | — | how the diet load is read | Diet |
 
