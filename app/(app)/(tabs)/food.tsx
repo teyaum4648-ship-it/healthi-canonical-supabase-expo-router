@@ -205,7 +205,19 @@ const serifLight = themeFonts.displayLight;
 const serifItalic = themeFonts.displayItalic;
 const sans = themeFonts.body;
 const sansMedium = themeFonts.bodyMedium;
-const productQualityExperimentEnabled = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT === 'v5_two_axis';
+/*
+ * Which scoring kernel this build shipped with.
+ *
+ * Expo inlines the value at build time, so a bundle carries exactly one answer and the
+ * losing branches are stripped. That is fine until someone is looking at a screenshot
+ * and cannot tell a current build from a stale one that a browser is still caching —
+ * which has now cost two rounds of "it doesn't update". So whichever experiment is
+ * live says its own name on the scanner, and a build with no banner at all is the
+ * shipping default rather than an unlabelled unknown.
+ */
+const productQualityExperiment = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT ?? '';
+const productQualityExperimentEnabled = productQualityExperiment === 'v5_two_axis';
+const compositionKernelEnabled = productQualityExperiment === 'v6_composition';
 
 const defaultTargets: NutritionTargets = unsetNutritionTargets;
 
@@ -1502,12 +1514,18 @@ export default function FoodScreen() {
       : null;
     return (
       <View style={styles.stack}>
-        {productQualityExperimentEnabled ? (
+        {productQualityExperimentEnabled || compositionKernelEnabled ? (
           <View style={styles.scoringLabBanner}>
             <Ionicons color={colors.accent} name="flask-outline" size={18} />
             <View style={styles.scannerHeadingCopy}>
-              <Text style={styles.scoringLabBannerTitle}>Temporary scoring lab</Text>
-              <Text style={styles.scoringLabBannerText}>The ZIP-based V5 model is active in this preview only.</Text>
+              <Text style={styles.scoringLabBannerTitle}>
+                {compositionKernelEnabled ? 'Scoring lab · V6 composition' : 'Scoring lab · V5 two axis'}
+              </Text>
+              <Text style={styles.scoringLabBannerText}>
+                {compositionKernelEnabled
+                  ? 'Products are judged by what they are made of, and a fat by its source rather than its saturation.'
+                  : 'The ZIP-based V5 model is active in this preview only.'}
+              </Text>
             </View>
           </View>
         ) : null}
