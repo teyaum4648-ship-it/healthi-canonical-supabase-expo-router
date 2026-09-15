@@ -154,6 +154,31 @@ function namesOf(items: RoledIngredient[]): string {
   return listOf(items.map((item) => item.name));
 }
 
+/**
+ * What a particular starch is, in the words its own value was set from. Two starches in
+ * one product are usually not the same proposition, and saying "both are refined" when
+ * the engine has just scored them eight points apart puts the screen at odds with the
+ * number it is explaining.
+ */
+function starchKind(item: RoledIngredient): string {
+  if (item.foodValue >= 0.75) return 'the whole root dried and ground, so its fibre is still there';
+  if (item.foodValue >= 0.62) return 'milled flour, stripped of the bran but not of its protein';
+  if (item.foodValue >= 0.5) return 'the starch pulled out of the food, with the fibre and protein left behind';
+  return 'a hydrolysed starch — a processing aid that was food two steps ago';
+}
+
+/**
+ * How fast that kind arrives, as its own clause. Gluing one speed claim onto every
+ * starch produced a sentence that said cassava flour still has its fibre and then, in
+ * the same breath, that a starch with little fibre behind it arrives like glucose.
+ */
+function starchSpeed(item: RoledIngredient): string {
+  if (item.foodValue >= 0.75) return 'which puts it at the gentle end of refined starch rather than the fast end';
+  if (item.foodValue >= 0.62) return 'which makes it faster than the grain it was milled from';
+  if (item.foodValue >= 0.5) return 'which puts it close to glucose for speed';
+  return 'which makes it faster than table sugar';
+}
+
 export function explainProductScore(params: {
   ingredientsText: string | null | undefined;
   /** The same per-100 basis the kernel scored, so a stated gram matches the score. */
@@ -234,13 +259,27 @@ export function explainProductScore(params: {
   if (starches.length > 0) {
     const share = shareOf('refined_starch');
     const fibreClause = fiber !== null ? `, against ${grams(fiber)} g of fibre per ${basis} to slow it down` : '';
+    const sorted = [...starches].sort((left, right) => left.foodValue - right.foodValue);
+    const fastest = sorted[0];
+    const gentlest = sorted[sorted.length - 1];
+    /**
+     * Refined starch is not one thing, so the sentence does not pretend it is. Where the
+     * two ends of a product's starches are far enough apart to have been scored
+     * differently, both are named; where they are the same kind, saying it twice would
+     * be noise.
+     */
+    const graded = gentlest.foodValue - fastest.foodValue >= 0.15
+      ? ` They are not the same thing, though: ${gentlest.name} is ${starchKind(gentlest)}.`
+      : '';
+    // The heaviest starch is the one whose speed the product actually has.
+    const dominant = [...starches].sort((left, right) => right.weight - left.weight)[0];
     findings.push(
       starches.length >= 2
         ? {
           id: 'starch_stack',
           tone: 'cost',
           headline: `${sentenceCase(namesOf(starches.slice(0, 3)))}, ${positionsOf(starches.slice(0, 3))}`,
-          mechanism: `${starches.length === 2 ? 'Both' : 'These'} are starches with the fibre milled out, so they digest close to as fast as glucose does. Stacked, they are ${pct(share)} of the list${fibreClause}.`,
+          mechanism: `Together they are ${pct(share)} of the list${fibreClause}. ${sentenceCase(dominant.name)}, the larger of them, is ${starchKind(dominant)}, ${starchSpeed(dominant)}.${graded}`,
           weight: weightFor('v6_structure_rebuilt', 'v6_reconstruction') ?? 45
         }
         : {
@@ -249,7 +288,7 @@ export function explainProductScore(params: {
           headline: starches[0].position === 0
             ? `${sentenceCase(starches[0].name)} is the first ingredient`
             : `${sentenceCase(starches[0].name)}, ${ordinal(starches[0].position)}`,
-          mechanism: `A starch with the fibre milled out digests close to as fast as glucose does${fibreClause}.`,
+          mechanism: `${sentenceCase(starches[0].name)} is ${starchKind(starches[0])}, ${starchSpeed(starches[0])}${starches[0].foodValue >= 0.75 ? '' : fibreClause}.`,
           weight: weightFor('v6_structure_rebuilt', 'v6_reconstruction') ?? 45
         }
     );
@@ -283,7 +322,9 @@ export function explainProductScore(params: {
       id: 'culinary_fat',
       tone: 'strength',
       headline: `${sentenceCase(namesOf(culinary.slice(0, 2)))}, ${positionsOf(culinary.slice(0, 2))}`,
-      mechanism: 'Pressed or rendered, and used as it is. Where a fat came from is the question here, not how much of it is saturated.',
+      mechanism: culinary[0].foodValue >= 1
+        ? 'Pressed from a fruit under nothing but pressure, and used as it is. Where a fat came from is the question here, not how much of it is saturated — this one is a credit, not an absence of harm.'
+        : 'Pressed or rendered, and used as it is. Where a fat came from is the question here, not how much of it is saturated.',
       weight: weightFor('v6_culinary_fat') ?? 10
     });
   }

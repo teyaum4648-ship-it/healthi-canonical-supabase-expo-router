@@ -150,6 +150,43 @@ cracker's food-structure dimension from 90 to 68, which is the honest reading.
 An ingredient the table cannot place is now named on screen rather than silently scored
 as nothing.
 
+## One number per role was still one size fits all
+
+Roles replaced a red-flag list, and then made the same mistake one level up: every
+refined starch was worth 0.68, so maltodextrin, enriched wheat flour and cassava flour
+were the same proposition. A rule can now carry its own value, and the gradient is how
+far the milling went.
+
+| | value | what is left of the food |
+| --- | --- | --- |
+| cassava flour, plantain flour, sweet potato flour | 0.80 | the whole root, dried and ground; the fibre survives |
+| enriched and white wheat flour, semolina | 0.68 | endosperm milled; the protein survives |
+| rice flour, soy flour, potato flour | 0.60 | milled, and little protein to show for it |
+| tapioca, potato and corn starch, arrowroot | 0.52 | the starch extracted; fibre and protein left behind |
+| maltodextrin, dextrin, modified starch | 0.40 | hydrolysed; a processing aid that was food two steps ago |
+
+Fats are graded the same way. Extra virgin olive oil, avocado oil and virgin coconut oil
+are 1.0 — a credit rather than the absence of a seed oil — against 0.9 for the rest of
+the culinary fats and 0.82 for the ones usually refined on the way to the bottle. An
+unnamed "vegetable oil" is 0.32 against 0.4 for a named seed oil, because a blend you
+cannot identify is worse than one you can.
+
+Three chips with identical panels, differing only in the starch:
+
+| Product | flat | graded |
+| --- | --- | --- |
+| cassava flour + avocado oil | 72/C | **75/C** |
+| tapioca starch + avocado oil | 72/C | **70/C** |
+| maltodextrin + avocado oil | 72/C | **67/D** |
+
+Eight points of spread where there had been none, and the fat still dominates: the same
+cassava chip made with canola oil scores 56.
+
+Across the fifty-two, this is close to a no-op — six products move by a point or two,
+none change band, rank correlation is unchanged at 0.932. The set has no cassava product
+and no avocado-oil product, so it cannot see the difference. That is a gap in the set
+rather than evidence the gradient does not matter.
+
 ## Saying why, not just what
 
 Every reason the scanner gave was an enthymeme — a conclusion with the interesting half

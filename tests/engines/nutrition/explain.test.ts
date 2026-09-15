@@ -68,7 +68,7 @@ describe('why the score is the score', () => {
     const stack = explanation.findings.find((finding) => finding.id === 'starch_stack');
     expect(stack).toBeDefined();
     expect(stack!.headline).toBe('Tapioca and cassava, 2nd and 3rd');
-    expect(stack!.mechanism).toContain('as fast as glucose');
+    expect(stack!.mechanism).toContain('close to glucose for speed');
     // The share and the fibre are read off the label, not asserted.
     expect(stack!.mechanism).toContain('39% of the list');
     expect(stack!.mechanism).toContain('3.6 g of fibre per 100 g');
@@ -140,6 +140,47 @@ describe('why the score is the score', () => {
       ingredientsText: 'almonds, kaniwa, tapioca, sunflower oil'
     });
     expect(explanation.unrecognised).toContain('kaniwa');
+  });
+
+  it('refuses to call two different starches the same thing', () => {
+    // "Refined starch" covering maltodextrin, white flour and cassava flour with one
+    // number was the one-size-fits-all the roles existed to replace.
+    const { explanation } = explain(crackers);
+    const stack = explanation.findings.find((finding) => finding.id === 'starch_stack');
+    expect(stack!.mechanism).toContain('They are not the same thing');
+    expect(stack!.mechanism).toContain('cassava is the whole root dried and ground');
+    // And the heavier of the two is the one whose speed the product actually has.
+    expect(stack!.mechanism).toContain('Tapioca, the larger of them');
+  });
+
+  it('scores a root flour, an extracted starch and a processing aid apart', () => {
+    const chip = (starch: string) => explain({
+      name: 'Chip',
+      ingredientsText: `${starch}, avocado oil, sea salt`,
+      categoryTags: ['en:chips'],
+      nutrimentsPer100g: {
+        calories: 500, fat_g: 25, saturated_fat_g: 3, carbs_g: 64,
+        fiber_g: 3, sugar_g: 1, protein_g: 2, sodium_mg: 500, added_sugar_g: 0
+      }
+    }).result.displayScore!;
+    // Identical labels, identical panels: the only difference is which starch it is.
+    expect(chip('cassava flour')).toBeGreaterThan(chip('tapioca starch'));
+    expect(chip('tapioca starch')).toBeGreaterThan(chip('maltodextrin'));
+  });
+
+  it('treats avocado oil as a credit, not as the absence of a seed oil', () => {
+    const { explanation } = explain({
+      name: 'Chip',
+      ingredientsText: 'cassava flour, avocado oil, sea salt',
+      categoryTags: ['en:chips'],
+      nutrimentsPer100g: {
+        calories: 500, fat_g: 25, saturated_fat_g: 3, carbs_g: 64,
+        fiber_g: 3, sugar_g: 1, protein_g: 2, sodium_mg: 500, added_sugar_g: 0
+      }
+    });
+    const fat = explanation.findings.find((finding) => finding.id === 'culinary_fat');
+    expect(fat!.tone).toBe('strength');
+    expect(fat!.mechanism).toContain('a credit, not an absence of harm');
   });
 
   it('states what the band means rather than how confident the model is', () => {

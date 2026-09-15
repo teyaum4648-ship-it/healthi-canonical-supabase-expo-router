@@ -52,7 +52,44 @@ export const FORMULATION_ROLES: ReadonlySet<IngredientRole> = new Set([
   'flavor_system', 'color', 'high_intensity_sweetener', 'sugar_alcohol'
 ]);
 
-type Rule = { role: IngredientRole; pattern: RegExp };
+type Rule = {
+  role: IngredientRole;
+  pattern: RegExp;
+  /**
+   * What this particular ingredient is worth, where the role's own number is too blunt.
+   *
+   * A role answers "what kind of thing is this", and for most ingredients that is the
+   * whole answer. It is not for all of them: maltodextrin, enriched wheat flour and
+   * cassava flour are all refined starch, and treating them as one number says that a
+   * hydrolysed processing aid and a dried ground root are the same proposition. They
+   * are not, and an ingredient list is the only place that difference is visible.
+   */
+  value?: number;
+};
+
+/**
+ * What a role is worth when the ingredient itself has nothing more specific to say.
+ * On a gradient from 1 (arrived as it grew) to 0 (doing a cosmetic job).
+ */
+export const ROLE_FOOD_VALUE: Record<IngredientRole, number> = {
+  whole_food: 1,
+  culinary_fat: 0.9,
+  refined_starch: 0.68,
+  isolate: 0.4,
+  seed_oil: 0.4,
+  texturizer: 0.25,
+  preservative: 0.15,
+  added_sugar: 0.1,
+  sugar_alcohol: 0.1,
+  industrial_fat: 0.05,
+  high_intensity_sweetener: 0.05,
+  flavor_system: 0.05,
+  color: 0,
+  // Neither credited nor punished; an unrecognised name should not decide a grade.
+  unknown: 0.55,
+  neutral: 0,
+  fortificant: 0
+};
 
 /**
  * Order matters: the first match wins, so the specific precedes the general. "cocoa
@@ -62,11 +99,20 @@ const RULES: Rule[] = [
   // Industrial fats first — these names contain other fat names inside them.
   { role: 'industrial_fat', pattern: /\b(partially hydrogenated|fully hydrogenated|hydrogenated|interesterified|shortening|palm kernel oil|margarine)\b/ },
 
-  // Traditional culinary fats, judged by source rather than by saturation.
-  { role: 'culinary_fat', pattern: /\b(extra virgin olive oil|olive oil|avocado oil|coconut oil|virgin coconut oil|cocoa butter|butter|clarified butter|ghee|butterfat|milkfat|beef tallow|tallow|lard|duck fat|sesame oil|peanut oil|palm fruit oil|red palm oil)\b/ },
+  /*
+   * Traditional culinary fats, judged by source rather than by saturation, and graded
+   * within that. An avocado or an olive gives up its oil to pressure alone, which is
+   * why those two sit at the top rather than merely out of the seed-oil bucket.
+   */
+  { role: 'culinary_fat', pattern: /\b(extra virgin olive oil|avocado oil|virgin coconut oil)\b/, value: 1 },
+  { role: 'culinary_fat', pattern: /\b(olive oil|coconut oil|cocoa butter|butter|clarified butter|ghee|butterfat|milkfat|beef tallow|tallow|lard|duck fat)\b/ },
+  // Usually refined on the way to the bottle, even when the seed is a food.
+  { role: 'culinary_fat', pattern: /\b(sesame oil|peanut oil|palm fruit oil|red palm oil)\b/, value: 0.82 },
 
   // Industrially refined seed and vegetable oils, including unnamed blends.
-  { role: 'seed_oil', pattern: /\b(canola oil|rapeseed oil|soybean oil|soy oil|corn oil|cottonseed oil|sunflower oil|high oleic sunflower oil|safflower oil|grapeseed oil|rice bran oil|palm oil|vegetable oil|vegetable oils|vegetable oil blend|oil blend|blend of [a-z ,]*oils?)\b/ },
+  // An unnamed blend is worse than a named oil: you cannot know what you are eating.
+  { role: 'seed_oil', pattern: /\b(vegetable oil|vegetable oils|vegetable oil blend|oil blend|blend of [a-z ,]*oils?)\b/, value: 0.32 },
+  { role: 'seed_oil', pattern: /\b(canola oil|rapeseed oil|soybean oil|soy oil|corn oil|cottonseed oil|sunflower oil|high oleic sunflower oil|safflower oil|grapeseed oil|rice bran oil|palm oil)\b/ },
 
   /**
    * Whole grains, read before the refined rule below. "whole durum wheat semolina" and
@@ -85,17 +131,31 @@ const RULES: Rule[] = [
   { role: 'sugar_alcohol', pattern: /\b(erythritol|xylitol|sorbitol|maltitol|mannitol|isomalt|lactitol|allulose|sugar alcohols?)\b/ },
 
   // Refined carbohydrate structure. Whole flours are caught by the whole-food rule below.
-  { role: 'refined_starch', pattern: /\b(enriched (?:wheat |bleached |unbleached )*flour|bleached flour|white flour|refined (?:wheat )?flour|wheat flour|rice flour|soy flour|modified (?:food |corn |potato |tapioca |rice |wheat )?starch|corn ?starch|tapioca starch|potato starch|rice starch|maltodextrin|dextrin|semolina|milled corn|degerminated corn ?meal)\b/ },
-
   /**
-   * Root starches, which a grain-free product uses in place of flour and which an
-   * earlier version of this table did not recognise at all — tapioca and cassava came
-   * back `unknown`, so in an almond-flour cracker the second and third ingredients,
-   * two fifths of the product, counted as neither food nor formulation. They are the
-   * same proposition as white flour and are read that way: a starch stripped of the
-   * fibre that would have slowed it down.
+   * Refined starch, graded by how much of the food is still in it.
+   *
+   * One number for this whole role said that maltodextrin, enriched wheat flour and
+   * cassava flour are the same proposition, which is the one-size-fits-all the roles
+   * were supposed to replace. The gradient is how far the milling went: a root dried
+   * and ground keeps its fibre, an endosperm milled to flour keeps its protein, an
+   * extracted starch keeps neither, and a hydrolysed one is a processing aid that was
+   * food two steps ago.
+   *
+   * Order runs most-specific first, because these names nest: "modified corn starch"
+   * contains "corn starch", and "sweet potato flour" contains "potato flour".
    */
-  { role: 'refined_starch', pattern: /\b(tapioca|cassava(?: flour| starch| root)?|yuca|arrowroot(?: flour| starch)?|potato flour|sweet potato flour|plantain flour|water chestnut flour|sago)\b/ },
+  // Hydrolysed or chemically modified: the furthest from the food it started as.
+  { role: 'refined_starch', pattern: /\b(maltodextrin|dextrin|modified (?:food |corn |potato |tapioca |rice |wheat )?starch)\b/, value: 0.4 },
+  // The whole root or fruit, dried and ground. The fibre survives the milling.
+  { role: 'refined_starch', pattern: /\b(cassava flour|cassava|yuca|plantain flour|green banana flour|sweet potato flour|water chestnut flour)\b/, value: 0.8 },
+  // Starch extracted out of the food, with the fibre and protein left behind.
+  { role: 'refined_starch', pattern: /\b(tapioca starch|tapioca|potato starch|corn ?starch|rice starch|arrowroot(?: flour| starch)?|sago)\b/, value: 0.52 },
+  // Milled to flour, but carrying little of the protein that makes a flour worth eating.
+  { role: 'refined_starch', pattern: /\b(rice flour|soy flour|potato flour)\b/, value: 0.6 },
+  // Endosperm milled and refortified: refined, and still the flour most food is made of.
+  { role: 'refined_starch', pattern: /\b(enriched (?:wheat |bleached |unbleached )*flour|bleached flour|white flour|refined (?:wheat )?flour|wheat flour|semolina|milled corn|degerminated corn ?meal)\b/ },
+
+
 
   // Fractions of food standing in for the food.
   { role: 'isolate', pattern: /\b(protein isolate|protein concentrate|isolated protein|hydroly[sz]ed (?:protein|collagen)|whey protein|pea protein|soy protein isolate|milk protein concentrate|inulin|chicory root fiber|soluble (?:corn )?fiber|acacia fiber|fiber isolate|yeast extract|monosodium glutamate|msg)\b/ },
@@ -128,14 +188,22 @@ const RULES: Rule[] = [
   { role: 'neutral', pattern: /\b(water|carbonated water|filtered water|sea salt|kosher salt|salt|sodium chloride|yeast|baking soda|baking powder|leavening|sodium bicarbonate|sodium carbonate|vinegar|apple cider vinegar|citric acid|lactic acid|malic acid|phosphoric acid|caffeine|carbon dioxide|cultures?|cheese cultures|live cultures|enzymes?|rennet|lime\b|calcium hydroxide|air|nitrogen)\b/ }
 ];
 
+/** The role of one ingredient name, and what it is worth, read left to right. */
+export function ingredientReading(name: string): { role: IngredientRole; foodValue: number } {
+  const text = name.toLowerCase().trim();
+  if (text) {
+    for (const rule of RULES) {
+      if (rule.pattern.test(text)) {
+        return { role: rule.role, foodValue: rule.value ?? ROLE_FOOD_VALUE[rule.role] };
+      }
+    }
+  }
+  return { role: 'unknown', foodValue: ROLE_FOOD_VALUE.unknown };
+}
+
 /** The role of one ingredient name, read left to right so the specific wins. */
 export function ingredientRole(name: string): IngredientRole {
-  const text = name.toLowerCase().trim();
-  if (!text) return 'unknown';
-  for (const rule of RULES) {
-    if (rule.pattern.test(text)) return rule.role;
-  }
-  return 'unknown';
+  return ingredientReading(name).role;
 }
 
 export type RoledIngredient = {
@@ -145,6 +213,12 @@ export type RoledIngredient = {
   position: number;
   /** Share of the product this position implies, normalised across the list. */
   weight: number;
+  /**
+   * What this ingredient is worth, from the rule that matched rather than from the role
+   * alone — so cassava flour and maltodextrin are not one number because both are
+   * starch.
+   */
+  foodValue: number;
 };
 
 /**
@@ -162,7 +236,7 @@ export function roleIngredients(names: string[]): RoledIngredient[] {
   const total = raw.reduce((sum, value) => sum + value, 0) || 1;
   return names.map((name, index) => ({
     name,
-    role: ingredientRole(name),
+    ...ingredientReading(name),
     position: index,
     weight: raw[index] / total
   }));
