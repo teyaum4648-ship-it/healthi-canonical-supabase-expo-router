@@ -764,10 +764,20 @@ export default function DashboardScreen() {
             <Text style={styles.date}>{displayDate(today)}</Text>
             <Text style={styles.greeting}>{greeting}, {firstName}</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
-            <Ionicons name="calendar-outline" color={homePalette.blueSoft} size={22} />
-            <Text style={styles.calendarLabel}>Plan</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
+              <Ionicons name="calendar-outline" color={homePalette.blueSoft} size={22} />
+              <Text style={styles.calendarLabel}>Plan</Text>
+            </Pressable>
+            {/*
+              "You" used to hold a fifth of the tab bar. Mood needed that slot and is a
+              pillar rather than a settings screen, so the profile lives here instead —
+              the place every other app keeps it.
+            */}
+            <Pressable accessibilityRole="button" accessibilityLabel="Open your profile and settings" onPress={() => router.navigate('/settings')} style={({ pressed }) => [styles.profileButton, pressed && styles.pressed]}>
+              <Ionicons name="person-outline" color={homePalette.blueSoft} size={21} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.heroCard}>
@@ -833,6 +843,15 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  profileButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    height: 44,
+    justifyContent: 'center',
+    width: 44
+  },
   calendarButton: { alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: homePalette.surfaceRaised },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
