@@ -133,11 +133,13 @@ answer to.
 | Category | Low | Moderate | High |
 | --- | --- | --- | --- |
 | You Are What You Eat | 15–20 | 21–40 | 41–130 |
-| Stress | 10–20 | 21–40 | 41–81 |
+| Stress | 8–16 | 17–33 | 34–66 |
 | Circadian Health | 15–30 | 31–50 | 51–90 |
 | You Are When You Eat | 5–10 | 11–20 | 21–50 |
 | Digestive System Health | 10–20 | 21–40 | 41–83 |
 | Detoxification System Health | 10–20 | 21–40 | 41–88 |
+
+Stress is the one set that is not Chek's, and the reason is in the next section.
 
 **Score per category, never the total.** The workbook's own hidden Maximum Check columns
 say *"this doesn't add up right"* twice: the category maxima sum to 522 against a stated
@@ -189,15 +191,96 @@ reads as packaged microwave meals.
 points and it stays there. Municipal water is "safe" in the regulatory sense and still
 worth filtering; reverse osmosis is the reasonable default.
 
-## Handle with care
+## The medication item is removed, and the bands are rescaled to match
 
-**Stress Q11 is the heaviest item in its category** — 15 points for taking medication
-related to stress or a psychological disorder. A wellness score partly derived from that
-must never present as clinical, must never read as a penalty for being treated, and needs
-its framing decided before it is built rather than after.
+Stress Q11 asks whether the person takes medication related to stress or a psychological
+disorder, and it is worth 15 points — the heaviest item in that category. **It is out.**
+A wellness score has no business pricing someone's prescription, and the assumption we
+are comfortable making is that a doctor is already accounting for whatever that
+medication does.
 
-**Rights.** The workbook is marked *© Paul Chek, 1999. Reproduced with permission* — a
-permission granted to a recipient, not a licence to redistribute. Encoding the structure
-is one thing; shipping the questions, the exercise cueing and the illustrations is
-another. Our own copy, credit to Chek and the book by name, and a conversation with the
-CHEK Institute before anything commercial.
+Removing it is only honest if the bands move with it. The category max drops from 81 to
+66, so leaving Chek's thresholds in place would quietly make everyone healthier: the same
+person would score the same points against a lower ceiling and land a band lower. That is
+exactly the tampering that dropping the question was supposed to avoid.
+
+So the thresholds are scaled by 66/81 and rounded to stay contiguous:
+
+| | Chek, out of 81 | ours, out of 66 |
+| --- | --- | --- |
+| Low | 10–20 | 8–16 |
+| Moderate | 21–40 | 17–33 |
+| High | 41–81 | 34–66 |
+
+The assumption this rests on, stated so it can be argued with: that the remaining eleven
+items carry burden in roughly the same proportion as the twelve did. Removing a
+high-signal item removes signal, not only points, and proportional rescaling cannot
+recover that. It is the most defensible option available, not a free one.
+
+## Red flags belong to the safety engine, not to a score
+
+The single heaviest item in the entire instrument is not in Stress. It is Digestive Q9 —
+**20 points** for abdominal pain or cramps more than twice a week. Several others are the
+same shape: frequent headaches, skin reactions with no identified cause, mental
+sluggishness and poor memory.
+
+A number is the wrong response to any of those. The app already has the right machinery:
+`reviewSafetySignals` carries a `professional_guidance` status, and `generateDailyReadiness`
+already honours a `professional_guidance` baseline mode. High-weight symptom items route
+there — a plain suggestion to get it looked at — **in addition to** scoring, never instead
+of it. Suppressing the score would be its own dishonesty; leading with it would be worse.
+
+## Inferring a night without asking
+
+The goal is device-level: did this person touch their phone at all, not just this app.
+That is the right target and it is worth being precise about what each platform actually
+allows, because the answer differs sharply.
+
+**Android can do this today.** `UsageStatsManager` reports screen-on and screen-off
+events and per-app usage once the user grants `PACKAGE_USAGE_STATS` through a settings
+screen. That is a real permission with a real prompt, and it gives exactly the bracket
+the model wants.
+
+**iOS cannot, in the ordinary case.** A sandboxed app has no API for device-wide unlock
+or screen-on events. The one legitimate route is the `DeviceActivity` framework with the
+Family Controls entitlement, which Apple grants selectively and designed for
+screen-time and parental-control apps. It is a request to Apple, not a build setting, and
+it may be refused.
+
+**So the ladder, cheapest and most portable first:**
+
+1. **Our own interaction bracket.** Last time this app was open at night, first time in
+   the morning. No permission, works everywhere including the web demo, and combined with
+   the learned fourteen-night average it is a defensible estimate for a night someone
+   forgot.
+2. **The learned rhythm alone**, when there is not even that — a prior, labelled as one.
+3. **Platform sleep data.** HealthKit on iOS increasingly carries a window from the phone
+   alone when Sleep Schedule is set, without a watch.
+4. **Device-level usage.** `UsageStatsManager` on Android now; `DeviceActivity` on iOS if
+   the entitlement is granted.
+
+None of 3 or 4 works in the web demo, and that is fine — the demo proves the model, the
+device proves the accuracy. What matters is that the ladder degrades instead of giving up:
+every rung produces a window with a stated provenance, and the bottom rung still beats
+"Still calibrating".
+
+## Rights: take the structure, write our own words
+
+The workbook is marked *© Paul Chek, 1999. Reproduced with permission* — permission
+granted to a recipient, not a licence to redistribute. The line to hold is the ordinary
+one: **a method is not owned, the words expressing it are.** Which zone relates to which
+system, that a category bands into low, moderate and high, that a fat is judged by source
+— those are mechanisms. His question wording, his exercise cueing and his illustrations
+are expression, and none of it ships.
+
+The convenient part is that *assessing rather than guessing* shrinks this problem in the
+direction the product was already heading. A measurement is not a paraphrase of a
+question. "Waking un-rested more than three times a week" read off fourteen nights of
+sleep logs is not Chek's sentence reworded, it is a different artefact that happens to
+answer the same thing better. The items that survive as questions are only the ones no
+log can reach — money worry, relationship strain, chemical exposure, diet history — and
+those get written from scratch.
+
+Naming follows the same rule, which is why the tab is **Mood** rather than Dr. Happiness.
+Credit Chek and the book by name, take the structure, write everything a person reads.
+And talk to the CHEK Institute before anything commercial ships.
