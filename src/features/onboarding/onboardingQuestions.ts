@@ -32,28 +32,17 @@ export const onboardingQuestions: OnboardingQuestion[] = [
     ]
   },
   {
-    key: 'result_timeline',
-    section: 'Starting point',
-    prompt: 'What pace feels right for your first changes?',
-    type: 'single',
-    options: [
-      { value: '2_to_4_weeks', label: 'A focused first few weeks' },
-      { value: '1_to_3_months', label: 'A steady first season' },
-      { value: 'long_term_lifestyle', label: 'A long-term lifestyle shift' }
-    ]
-  },
-  {
     key: 'bedtime',
     section: 'Recovery rhythm',
     prompt: 'What time do you usually start trying to sleep?',
-    helper: 'Use a simple 24-hour time, such as 22:45.',
+    helper: 'However you write it — 10:30pm, 22:30 or 2230.',
     type: 'time'
   },
   {
     key: 'wake_time',
     section: 'Recovery rhythm',
     prompt: 'What time do you usually wake up?',
-    helper: 'Use a simple 24-hour time, such as 06:45.',
+    helper: 'However you write it — 6:45am, 06:45 or 645.',
     type: 'time'
   },
   {
@@ -62,7 +51,14 @@ export const onboardingQuestions: OnboardingQuestion[] = [
     prompt: 'How restored do you feel most mornings?',
     type: 'scale',
     min: 1,
-    max: 10
+    max: 10,
+    // 2 clears the model's "under-rested" thresholds (<= 4, and <= 3 for restore mode);
+    // 5 and 8 sit clear of both.
+    scaleLabels: [
+      { value: 2, label: 'Rarely rested' },
+      { value: 5, label: 'Some mornings' },
+      { value: 8, label: 'Usually rested' }
+    ]
   },
   {
     key: 'overnight_waking',
@@ -90,10 +86,15 @@ export const onboardingQuestions: OnboardingQuestion[] = [
     key: 'diet_quality_score',
     section: 'Nourishment',
     prompt: 'How steady do your nourishment habits feel?',
-    helper: '1 means very inconsistent; 10 means very steady for you.',
     type: 'scale',
     min: 1,
-    max: 10
+    max: 10,
+    // 3 clears the model's <= 4 threshold for nourishment priority.
+    scaleLabels: [
+      { value: 3, label: 'Inconsistent' },
+      { value: 6, label: 'Mixed' },
+      { value: 8, label: 'Fairly steady' }
+    ]
   },
   {
     key: 'water_intake',
@@ -172,7 +173,14 @@ export const onboardingQuestions: OnboardingQuestion[] = [
     helper: 'This helps Healthi make plans that fit your actual capacity.',
     type: 'scale',
     min: 1,
-    max: 10
+    max: 10,
+    // The model reads two separate tiers here, >= 7 and >= 8, so both are kept
+    // reachable: 7 lands on the first, 9 on the second, 4 on neither.
+    scaleLabels: [
+      { value: 4, label: 'Manageable' },
+      { value: 7, label: 'Busy' },
+      { value: 9, label: 'Overloaded' }
+    ]
   },
   {
     key: 'daily_schedule',

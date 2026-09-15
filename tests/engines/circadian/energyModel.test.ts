@@ -90,3 +90,23 @@ describe('deriveEnergyExtrema', () => {
     expect(extrema).toContainEqual({ type: 'low', time: '2026-06-10T07:00:00.000Z', energy: 30 });
   });
 });
+
+describe('sleep inertia clears on the measured timescale', () => {
+  it('still shows residual grogginess two hours after waking', () => {
+    const rested = 0.9;
+    const atWake = circadianEnergyAt(0, 16 * 60, rested);
+    const atTwoHours = circadianEnergyAt(2 * 60, 14 * 60, rested);
+    const atPeak = circadianEnergyAt(3.5 * 60, 12.5 * 60, rested);
+
+    // Recovering, but not yet at the peak: alertness keeps improving for ~2 h.
+    expect(atTwoHours).toBeGreaterThan(atWake);
+    expect(atTwoHours).toBeLessThan(atPeak);
+  });
+
+  it('drags inertia out further when the night was poor', () => {
+    const rested = circadianEnergyAt(2 * 60, 14 * 60, 0.9);
+    const depleted = circadianEnergyAt(2 * 60, 14 * 60, 0.2);
+    // A short night should still be climbing out of inertia at the two-hour mark.
+    expect(depleted).toBeLessThan(rested);
+  });
+});

@@ -60,6 +60,15 @@ export type WorkoutSessionLoggerProps = {
   undoLabel: string | null;
   saveState: SaveState;
   savedLocally: boolean;
+  /** When off, finishing a set starts no timer and the bar is replaced by a way back. */
+  restEnabled: boolean;
+  onSetRestEnabled: (enabled: boolean) => void;
+  /**
+   * Why the last finish attempt did not save. It belongs here rather than only on the
+   * Move screen: a refusal rendered on a screen the lifter is not looking at makes the
+   * primary button read as broken.
+   */
+  notice: string | null;
 };
 
 /** A number field that keeps only digits and a single decimal point. */
@@ -320,7 +329,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
     <View style={styles.shell}>
       <View style={styles.topBar}>
         <Pressable
-          accessibilityLabel="Leave the session open and go back"
+          accessibilityLabel="Edit this workout's movements"
           accessibilityRole="button"
           onPress={props.onExit}
           style={({ pressed }) => [styles.topAction, pressed && styles.pressed]}
@@ -380,12 +389,39 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
             <Text style={styles.restAdjustText}>+{REST_ADJUST_STEP_SECONDS}s</Text>
           </Pressable>
           <Pressable
-            accessibilityLabel="Skip rest"
+            accessibilityLabel="Skip this rest"
             accessibilityRole="button"
             onPress={props.onSkipRest}
             style={({ pressed }) => [styles.restSkip, pressed && styles.pressed]}
           >
             <Text style={styles.restSkipText}>Skip</Text>
+          </Pressable>
+          {/* Skip ends this rest; off ends all of them. Both belong here, because the
+              moment someone decides they are done being timed is a moment they are
+              looking at the timer. */}
+          <Pressable
+            accessibilityLabel="Turn the rest timer off for now"
+            accessibilityRole="button"
+            onPress={() => props.onSetRestEnabled(false)}
+            style={({ pressed }) => [styles.restSkip, pressed && styles.pressed]}
+          >
+            <Text style={styles.restOffText}>Off</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* Off is a state, not an absence, so it says so and stays one tap from on. */}
+      {!props.restEnabled ? (
+        <View style={styles.restOffBar}>
+          <Ionicons color={colors.textFaint} name="timer-outline" size={16} />
+          <Text style={styles.restOffLabel}>Rest timer off</Text>
+          <Pressable
+            accessibilityLabel="Turn the rest timer back on"
+            accessibilityRole="button"
+            onPress={() => props.onSetRestEnabled(true)}
+            style={({ pressed }) => [styles.restSkip, pressed && styles.pressed]}
+          >
+            <Text style={styles.restSkipText}>Turn on</Text>
           </Pressable>
         </View>
       ) : null}
@@ -543,6 +579,9 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
       </ScrollView>
 
       <View style={styles.footer}>
+        {props.notice ? (
+          <Text accessibilityRole="alert" style={styles.notice}>{props.notice}</Text>
+        ) : null}
         <Pressable
           accessibilityLabel="Finish and save this workout"
           accessibilityRole="button"
@@ -679,6 +718,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
     minHeight: 48,
+    // On the web a text input keeps a default intrinsic width of about twenty
+    // characters, which at this type size refuses to shrink and pushes the reps
+    // stepper off the side of a phone screen. Native ignores this; the web needs it.
+    minWidth: 0,
     textAlign: 'center'
   },
 
@@ -736,6 +779,18 @@ const styles = StyleSheet.create({
     minHeight: 52
   },
   finishText: { ...type.label, color: colors.primaryText, fontSize: 16 },
+  notice: { ...type.caption, color: colors.danger, marginBottom: 10 },
+  restOffText: { ...type.label, color: colors.textMuted },
+  restOffBar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginHorizontal: 12,
+    marginBottom: 6,
+    minHeight: 40,
+    paddingHorizontal: 12
+  },
+  restOffLabel: { ...type.caption, color: colors.textFaint, flex: 1 },
 
   suggestion: {
     backgroundColor: colors.surfaceInset,

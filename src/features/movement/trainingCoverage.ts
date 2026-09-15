@@ -41,6 +41,15 @@ export type TrainingCoverage = {
   total_working_sets: number;
   /** Working sets whose exercise could not be matched to a known pattern. */
   unclassified_sets: number;
+  /**
+   * The movements behind that count, named.
+   *
+   * A pattern is never guessed from a name, so a movement the library has not seen
+   * drops out of the balance entirely — "bench" is not "Bench Press". Reporting only
+   * a number leaves nothing to do about it; naming them is what lets a screen offer
+   * to learn one, which fixes every past and future session at once.
+   */
+  unclassified_exercises: { exercise_name: string; working_sets: number; last_trained: string }[];
 };
 
 const PATTERN_LABELS: Record<ExerciseMovementPattern, string> = {
@@ -97,6 +106,7 @@ export function buildTrainingCoverage(params: {
   const buckets = new Map<ExerciseMovementPattern, Bucket>();
   let totalWorkingSets = 0;
   let unclassified = 0;
+  const unmatched = new Map<string, { exercise_name: string; working_sets: number; last_trained: string }>();
 
   for (const entry of params.entries) {
     const session = sessionsInWindow.get(entry.workout_session_id);
@@ -113,6 +123,13 @@ export function buildTrainingCoverage(params: {
     if (!pattern) {
       // An exercise with no known pattern is counted but never guessed at.
       unclassified += working.length;
+      const key = normalizeExerciseName(entry.exercise_name);
+      const seen = unmatched.get(key);
+      unmatched.set(key, {
+        exercise_name: seen?.exercise_name ?? entry.exercise_name,
+        working_sets: (seen?.working_sets ?? 0) + working.length,
+        last_trained: seen && seen.last_trained > session.session_date ? seen.last_trained : session.session_date
+      });
       continue;
     }
 
@@ -156,7 +173,9 @@ export function buildTrainingCoverage(params: {
     patterns: covered,
     uncovered,
     total_working_sets: totalWorkingSets,
-    unclassified_sets: unclassified
+    unclassified_sets: unclassified,
+    unclassified_exercises: [...unmatched.values()]
+      .sort((left, right) => right.working_sets - left.working_sets || right.last_trained.localeCompare(left.last_trained))
   };
 }
 

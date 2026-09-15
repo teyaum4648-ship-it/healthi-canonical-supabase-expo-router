@@ -24,12 +24,21 @@ export type RhythmConsistencyScore = {
 };
 
 export type SleepProtocolItem = {
-  id: 'light' | 'focus' | 'movement' | 'reset' | 'caffeine' | 'wind_down';
+  id: 'morning_light' | 'light' | 'focus' | 'movement' | 'reset' | 'caffeine' | 'dim_light' | 'wind_down';
   name: string;
   reason: string;
   start_at: string | null;
   end_at: string | null;
   point_in_time: boolean;
+  /**
+   * Why this window sits where it does, in the person's own terms.
+   *
+   * Kept on the item rather than buried in a docs file so the reasoning ships with
+   * the recommendation. Each line reports what was measured and, where the effect is
+   * small or contested, says so — the timing is inferred from sleep times, which
+   * carry far less information than an actual circadian phase measurement.
+   */
+  evidence: string;
 };
 
 export type WindDownStep = {
@@ -345,7 +354,8 @@ function protocolWindow(
   id: SleepProtocolItem['id'],
   name: string,
   reason: string,
-  window: TimeWindow | undefined
+  window: TimeWindow | undefined,
+  evidence: string
 ): SleepProtocolItem {
   return {
     id,
@@ -353,23 +363,57 @@ function protocolWindow(
     reason,
     start_at: window?.start_at ?? null,
     end_at: window?.end_at ?? null,
-    point_in_time: false
+    point_in_time: false,
+    evidence
   };
 }
 
+/**
+ * Plain-language notes on where each window comes from.
+ *
+ * Written to be readable by someone who has not read a chronobiology paper, and to
+ * avoid overstating: the morning-light note names the size of the effect, and the
+ * focus note admits the peak is a population average rather than a personal one.
+ */
+const PROTOCOL_EVIDENCE = {
+  morning_light: 'Light soon after waking is the strongest signal your body clock takes from the day. A single 30-minute dose measurably shifts it earlier, though by minutes rather than hours — it is a nudge repeated daily, not a reset.',
+  light: 'Easy movement early helps the transition out of sleep. Grogginess after waking clears over roughly two to four hours, so the first stretch of the day is better suited to something light than to your hardest work.',
+  focus: 'Alertness tends to climb to a first peak around three to four hours after waking, once grogginess has cleared. That is a population average — if your own best hours differ, trust what you notice over this window.',
+  movement: 'Strength and power measure highest in the late afternoon, when core body temperature peaks. This window is also kept at least four hours clear of your target sleep time, because training closer than that is linked to falling asleep later and sleeping worse.',
+  reset: 'Alertness dips around seven to eight hours after waking. It happens whether or not you eat lunch, so it is worth planning for rather than pushing through.',
+  caffeine: 'A standard coffee measures about nine hours of effect on sleep, and a pre-workout or large cold brew closer to thirteen. Caffeine clears at very different speeds between people, so treat this as a starting point and adjust to what you notice.',
+  dim_light: 'Melatonin is held back by surprisingly little light — ordinary room lighting and screens are bright enough. Sensitivity varies enormously between people, so if you fall asleep easily this matters less to you than the average.',
+  wind_down: 'Sleep pressure builds all day, but for most people the couple of hours before their usual bedtime are when the body clock is still pushing alertness up — which is why sleep can feel hard to reach right before bed. A calmer transition works with that rather than against it.'
+} as const satisfies Record<SleepProtocolItem['id'], string>;
+
 export function buildSleepProtocol(briefing: CircadianBriefing): SleepProtocolItem[] {
   return [
-    protocolWindow('light', 'Walk / light movement', 'Supports the transition into your day', briefing.rhythm_plan.best_walk_windows[0]),
-    protocolWindow('focus', 'Deep work', 'Aligned with your estimated first focus peak', briefing.rhythm_plan.deep_work_windows[0]),
-    protocolWindow('movement', 'Exercise', 'Placed within a higher estimated-energy window', briefing.rhythm_plan.best_exercise_windows[0]),
-    protocolWindow('reset', 'Breathing / reset', 'Placed near your estimated lower-energy window', briefing.rhythm_plan.breathing_windows[0]),
+    // First in the list because it is the earliest and the best-evidenced: a single
+    // 30-minute exposure after waking is the strongest phase cue available without
+    // changing sleep times. The effect is a nudge of roughly 11 minutes per morning,
+    // so the reason says "helps set" rather than promising a reset.
+    protocolWindow('morning_light', 'Morning light', 'Helps set your body clock for the day', briefing.rhythm_plan.morning_light_windows[0], PROTOCOL_EVIDENCE.morning_light),
+    protocolWindow('light', 'Walk / light movement', 'Supports the transition into your day', briefing.rhythm_plan.best_walk_windows[0], PROTOCOL_EVIDENCE.light),
+    protocolWindow('focus', 'Deep work', 'Aligned with your estimated first focus peak', briefing.rhythm_plan.deep_work_windows[0], PROTOCOL_EVIDENCE.focus),
+    protocolWindow('movement', 'Exercise', 'Near your estimated temperature peak, and clear of your sleep window', briefing.rhythm_plan.best_exercise_windows[0], PROTOCOL_EVIDENCE.movement),
+    protocolWindow('reset', 'Breathing / reset', 'Placed near your estimated lower-energy window', briefing.rhythm_plan.breathing_windows[0], PROTOCOL_EVIDENCE.reset),
     {
       id: 'caffeine',
       name: 'Caffeine cutoff',
       reason: 'Estimated from your target sleep time',
       start_at: briefing.rhythm_plan.caffeine_cutoff,
       end_at: null,
-      point_in_time: true
+      point_in_time: true,
+      evidence: PROTOCOL_EVIDENCE.caffeine
+    },
+    {
+      id: 'dim_light',
+      name: 'Start dimming lights',
+      reason: 'Ordinary indoor light is bright enough to hold melatonin back',
+      start_at: briefing.rhythm_plan.evening_dim_light_start,
+      end_at: briefing.rhythm_plan.target_bedtime,
+      point_in_time: false,
+      evidence: PROTOCOL_EVIDENCE.dim_light
     },
     {
       id: 'wind_down',
@@ -377,7 +421,8 @@ export function buildSleepProtocol(briefing: CircadianBriefing): SleepProtocolIt
       reason: 'A calmer transition before your target sleep time',
       start_at: briefing.rhythm_plan.wind_down_start,
       end_at: briefing.rhythm_plan.target_bedtime,
-      point_in_time: false
+      point_in_time: false,
+      evidence: PROTOCOL_EVIDENCE.wind_down
     }
   ];
 }

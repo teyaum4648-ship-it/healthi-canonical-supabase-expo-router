@@ -17,7 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/features/auth/AuthProvider';
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Fraunces_300Light,
     Fraunces_400Regular,
     Fraunces_400Regular_Italic,
@@ -26,7 +26,14 @@ export default function RootLayout() {
     Ionicons: require('../assets/fonts/Ionicons.ttf')
   });
 
-  if (!fontsLoaded) {
+  /**
+   * Fonts gate the first render, but they must never gate it forever. A font file that
+   * fails to load — a bad path, a blocked request, a host that serves the app from a
+   * subdirectory — leaves fontsLoaded false for good, and returning null on that path
+   * means the whole app is a black screen with nothing said about why. Rendering on
+   * the error instead degrades to the system typeface, which is legible.
+   */
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

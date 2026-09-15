@@ -281,6 +281,26 @@ describe('training coverage', () => {
     });
     expect(coverage.unclassified_sets).toBe(1);
     expect(coverage.patterns.every((item) => item.pattern !== 'other')).toBe(true);
+    // Named as well as counted, so a screen can offer to learn it.
+    expect(coverage.unclassified_exercises).toEqual([
+      { exercise_name: 'Some Custom Thing', working_sets: 1, last_trained: '2026-09-12' }
+    ]);
+  });
+
+  it('gathers one unmatched movement across the sessions it appears in', () => {
+    // The same name typed twice is one thing to be told about, not two.
+    const first = entry('e9', 's1', 'Some Custom Thing');
+    const again = entry('e10', 's2', 'some custom thing');
+    const coverage = buildTrainingCoverage({
+      sessions,
+      entries: [...entries, first, again],
+      sets: [...sets, set('x9', 'e9', 's1', 1, {}), set('x10', 'e10', 's2', 1, {}), set('x11', 'e10', 's2', 2, {})],
+      library,
+      today: '2026-09-12',
+      windowDays: 7
+    });
+    expect(coverage.unclassified_exercises).toHaveLength(1);
+    expect(coverage.unclassified_exercises[0]).toMatchObject({ working_sets: 3, last_trained: '2026-09-12' });
   });
 
   it('describes the window without judging it', () => {

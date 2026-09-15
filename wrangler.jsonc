@@ -1,0 +1,21 @@
+{
+  // Serves the exported web app plus the /api/food-search route from one Worker.
+  //
+  // The Worker only runs for /api/* — everything else is served straight from the
+  // edge as a static asset, which is faster and cheaper than routing every request
+  // through script. Deep links are handled by not_found_handling rather than by the
+  // Worker's own fallback, so a refresh on /food resolves to the app shell.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "healthi-demo",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

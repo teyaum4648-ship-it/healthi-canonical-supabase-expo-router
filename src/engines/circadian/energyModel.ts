@@ -14,7 +14,7 @@ import type {
  * restorative the prior night was (`restorationFactor`).
  *
  * The shape encodes documented features:
- *  - sleep inertia dip in the first ~30–60 min after wake (deeper/longer when under-rested)
+ *  - sleep inertia clearing over the first ~2–4 h after wake (deeper/longer when under-rested)
  *  - a morning peak ~3–4 h after wake
  *  - the post-lunch dip ~7 h after wake (deeper with sleep debt)
  *  - the late-day wake-maintenance-zone "second wind" ~3–4 h before bedtime
@@ -97,8 +97,13 @@ export function circadianEnergyAt(
   const base = 40 + 15 * R;
   const amp = 0.6 + 0.4 * R;
 
+  // Sleep inertia clears more slowly than a "groggy first hour" would suggest:
+  // subjective alertness keeps improving for up to ~2 h after waking, and some task
+  // performance takes up to ~3.5 h to fully dissipate (PMC3832615). The Gaussian width
+  // is set so a well-rested morning is mostly clear by ~2.5 h and an under-rested one
+  // drags toward ~4 h, rather than both being gone inside 90 minutes.
   const inertiaDepth = 18 * (1.4 - 0.8 * R);
-  const inertiaTau = 0.7 + 0.6 * (1 - R);
+  const inertiaTau = 1.2 + 0.8 * (1 - R);
   const inertia = inertiaDepth * gaussian(h, 0, inertiaTau);
 
   const morningPeak = 30 * amp * gaussian(h, 3.5, 2.2);

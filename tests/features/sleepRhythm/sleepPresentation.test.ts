@@ -42,7 +42,10 @@ function briefing(): CircadianBriefing {
       best_walk_windows: [{ start_at: '2026-08-08T07:30:00.000Z', end_at: '2026-08-08T08:00:00.000Z', label: 'walk' }],
       nap_windows: [],
       breathing_windows: [{ start_at: '2026-08-08T14:00:00.000Z', end_at: '2026-08-08T14:15:00.000Z', label: 'reset' }],
-      caffeine_cutoff: '2026-08-08T14:30:00.000Z',
+      morning_light_windows: [{ start_at: '2026-08-08T06:30:00.000Z', end_at: '2026-08-08T07:30:00.000Z', label: 'morning light' }],
+      evening_dim_light_start: '2026-08-08T19:30:00.000Z',
+      caffeine_cutoff: '2026-08-08T13:30:00.000Z',
+      caffeine_cutoff_large_dose: '2026-08-08T09:30:00.000Z',
       wind_down_start: '2026-08-08T21:00:00.000Z',
       target_bedtime: '2026-08-08T22:30:00.000Z',
       reason_codes: []
@@ -104,7 +107,11 @@ describe('Sleep presentation model', () => {
 
     expect(phase.label).toBe('First peak');
     expect(phase.energy).toBe('High');
-    expect(protocol).toHaveLength(6);
+    // Morning light and the evening dimming cue join the original six.
+    expect(protocol).toHaveLength(8);
+    expect(protocol.map((item) => item.id)).toEqual([
+      'morning_light', 'light', 'focus', 'movement', 'reset', 'caffeine', 'dim_light', 'wind_down'
+    ]);
     expect(protocol.find((item) => item.id === 'caffeine')?.point_in_time).toBe(true);
   });
 
@@ -116,5 +123,39 @@ describe('Sleep presentation model', () => {
     expect(schedule.at(-1)?.start_minutes).toBe(22 * 60 + 30);
     expect(formatClockMinutes(schedule[0].start_minutes)).toMatch(/PM$/);
     expect(schedule.some((step) => step.id === 'stretch')).toBe(false);
+  });
+});
+
+describe('protocol evidence copy', () => {
+  const protocol = buildSleepProtocol(briefing());
+
+  it('explains every row, not just some of them', () => {
+    for (const item of protocol) {
+      expect(item.evidence.trim().length).toBeGreaterThan(40);
+    }
+  });
+
+  it('never promises a precision the input cannot carry', () => {
+    // Windows are inferred from self-reported sleep times, which correlate only
+    // weakly with measured circadian phase. Copy must not read as a measurement.
+    for (const item of protocol) {
+      expect(item.evidence).not.toMatch(/\b(exact|exactly|precise|precisely|guarantee|optimal time for you|your body clock is)\b/i);
+    }
+  });
+
+  it('names the size or spread of an effect where it is small or variable', () => {
+    const byId = Object.fromEntries(protocol.map((item) => [item.id, item.evidence]));
+    // A daily nudge of minutes, not a reset.
+    expect(byId.morning_light).toMatch(/minutes rather than hours|nudge/i);
+    // Caffeine clearance and light sensitivity both vary hugely between people.
+    expect(byId.caffeine).toMatch(/different speeds between people|starting point/i);
+    expect(byId.dim_light).toMatch(/varies enormously|less to you/i);
+    // The focus peak is a population average, and says so.
+    expect(byId.focus).toMatch(/population average/i);
+  });
+
+  it('states the sleep boundary that bounds the exercise window', () => {
+    const movement = protocol.find((item) => item.id === 'movement')!;
+    expect(movement.evidence).toMatch(/four hours clear/i);
   });
 });

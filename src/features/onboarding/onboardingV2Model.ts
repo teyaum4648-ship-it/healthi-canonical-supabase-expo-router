@@ -201,9 +201,12 @@ export function generateOnboardingV2Result(input: GenerateOnboardingV2Input): On
   const hints = hintsForAnswers(input.answers, priorities).sort((left, right) => right.priority - left.priority);
   const completed = Boolean(stringAnswer(input.answers, 'primary_goal')) && Object.values(input.answers).filter(hasAnswer).length >= 8;
   const topHint = hints[0];
-  const focusLabel = onboardingV2FocusLabels[focus].toLowerCase();
+  // "centers on balanced starting point" read as a typo, because the balanced label is
+  // a noun phrase rather than a domain name. Each focus gets a sentence that fits it.
   const summary = completed
-    ? `Your first baseline centers on ${focusLabel}. Healthi will keep the next steps practical while your logged data adds context.`
+    ? focus === 'balanced'
+      ? 'Your first baseline is balanced across recovery, nourishment, movement and daily load. Healthi will keep the next steps practical while your logged data adds context.'
+      : `Your first baseline centers on ${onboardingV2FocusLabels[focus].toLowerCase()}. Healthi will keep the next steps practical while your logged data adds context.`
     : 'Your baseline is still forming. Add a few core details to make the first steps more personal.';
 
   return {

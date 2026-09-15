@@ -1,4 +1,5 @@
 import { Redirect, router } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
@@ -12,14 +13,61 @@ import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
-  const { profile, session, isLoading, mode } = useAuth();
+  const { profile, session, isLoading, mode, startDemo } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 820;
+  const [startError, setStartError] = useState('');
 
   const destination = entryDestination({ isLoading, mode, hasSession: Boolean(session), onboardingStatus: profile?.onboarding_status });
   if (destination === 'loading') return <Screen><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening Healthi…</Text></Screen>;
   if (destination === 'demo') return <DemoEntry />;
   if (destination !== 'welcome') return <Redirect href={destination} />;
+  /**
+   * Entering the app from the landing screen.
+   *
+   * A demo build has no account registration — its auth provider rejects signUp
+   * outright — so the demo path opens the local session with startDemo instead.
+   * Calling signUp there left the button dead: the rejection was never caught, so
+   * the navigation below it never ran and nothing told the person why.
+   *
+   * Anything that does fail now reaches the screen rather than an unhandled
+   * rejection, because a primary call to action that silently does nothing is worse
+   * than one that explains itself.
+   */
+  async function handleStart() {
+    setStartError('');
+    try {
+      if (mode === 'demo') {
+        await startDemo();
+        router.replace('/(app)/(tabs)');
+        return;
+      }
+
+      if (profile?.onboarding_status === 'completed') {
+        router.replace('/(app)/(tabs)');
+        return;
+      }
+
+      if (!session) {
+        router.push('/(auth)/signup');
+        return;
+      }
+
+      router.push('/(onboarding)');
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : 'Could not open Healthi just now. Try again.');
+    }
+  }
+
+  /**
+   * Someone who has already finished onboarding does not need the pitch again.
+   * Without this the landing screen is unconditional, so relaunching the installed
+   * app — or reopening the demo — drops a returning person back on the marketing
+   * page with their own data one tap away behind it.
+   */
+  if (!isLoading && session && profile?.onboarding_status === 'completed') {
+    return <Redirect href="/(app)/(tabs)" />;
+  }
 
   return (
     <Screen contentStyle={styles.screen}>
@@ -43,9 +91,13 @@ export default function IndexRoute() {
           <Button
             disabled={isLoading}
             label="Get started on your wellness test"
-            onPress={() => router.push('/(auth)/signup')}
+            onPress={() => void handleStart()}
             style={styles.cta}
           />
+
+          {startError ? (
+            <Text accessibilityRole="alert" style={styles.startError}>{startError}</Text>
+          ) : null}
 
           <View style={styles.tags}>
             {signalTags.map((tag) => (
@@ -102,6 +154,12 @@ export default function IndexRoute() {
 }
 
 const styles = StyleSheet.create({
+  startError: {
+    color: colors.danger,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20
+  },
   screen: {
     gap: spacing.xl,
     justifyContent: 'center',

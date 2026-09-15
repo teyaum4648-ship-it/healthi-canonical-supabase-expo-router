@@ -42,6 +42,49 @@ preview, omit the relative search URL to use the existing provider fallback.
 USDA search still requires `USDA_API_KEY` in the server environment, never in
 Expo public variables or Git. Demo records stay device-local.
 
+## Automatic demo deploys
+
+Every push to `main` runs `.github/workflows/deploy-demo.yml`: typecheck, the test
+suite, `npm run build:demo`, then a Cloudflare deploy. A failing typecheck or test
+stops the deploy, so a broken commit cannot reach the demo. Concurrent pushes
+supersede rather than race each other.
+
+One Worker serves both halves. `wrangler.jsonc` binds `dist/client` as static
+assets and `dist/server/index.js` as the script, with `run_worker_first` scoped to
+`/api/*` so only the food-search route costs a Worker invocation and everything
+else is served from the edge. `not_found_handling: "single-page-application"`
+means a refresh on a deep link resolves to the app shell.
+
+### What has to be configured once
+
+| Where | Name | Purpose |
+| --- | --- | --- |
+| GitHub repository secrets | `CLOUDFLARE_API_TOKEN` | Token with the *Edit Cloudflare Workers* template. |
+| GitHub repository secrets | `CLOUDFLARE_ACCOUNT_ID` | From the Cloudflare dashboard sidebar. |
+| Worker secret | `USDA_API_KEY` | Optional. `npx wrangler secret put USDA_API_KEY`. Without it, food search falls back to Open Food Facts alone. Never a GitHub secret and never an Expo public variable — it must not reach the client bundle. |
+
+Until both GitHub secrets exist the workflow still runs and passes; the deploy step
+skips and logs a notice saying why.
+
+### On an iPhone
+
+The export already ships a web manifest with `display: standalone`, portrait
+orientation, a black background and maskable icons, so **Share → Add to Home
+Screen** in Safari gives a full-screen app shell with no browser chrome. It is a
+web app, not a native build: no App Store, no TestFlight, and no native camera or
+haptics.
+
+### What the demo deliberately does not do
+
+The demo build carries no Supabase credentials, so records stay device-local and
+photo estimates report themselves as not configured — they need a signed-in
+account. Barcode scanning is limited by browser camera support. Sleep, Move and
+the diary work in full.
+
+This Worker publishes to a `workers.dev` subdomain, which is a different address
+from the existing hosted demo; pointing a custom domain at the Worker is a
+Cloudflare dashboard setting, not a change to this repository.
+
 ## Photo estimates
 
 Photo estimates ship switched off and cost nothing until a key exists. The
@@ -83,8 +126,10 @@ requires separate outcome review.
 3. With approval, commit and push the exact source to this GitHub repository.
 4. Build from that clean commit with explicit non-secret mode settings; put
    secrets only in the deployment service's environment configuration.
-5. With deployment approval, publish that build through Sites using the same
-   commit SHA as its source provenance. Verify the terminal deployment result.
+5. The Cloudflare demo deploys itself from `main` (see *Automatic demo deploys*).
+   This step now applies only to the separate Sites deployment: with approval,
+   publish that build using the same commit SHA as its source provenance, and
+   verify the terminal deployment result.
 6. Record the resulting GitHub SHA, Sites version, and build mode in release notes.
 
 Do not automatically apply every pending Supabase migration as part of a web
