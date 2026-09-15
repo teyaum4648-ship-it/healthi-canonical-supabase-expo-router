@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
@@ -11,6 +11,8 @@ import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
 import { foodLoggingNutrition } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
+import { ScoreRing } from './ScoreRing';
+import { calculateProductQuality } from './productLookup/productQuality';
 import { AllergenNotice } from './AllergenNotice';
 import type { AllergenGroup } from './allergens';
 
@@ -32,6 +34,22 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const personal = findPersonalFoods(products, query, tab === 'Saved');
+  /**
+   * Scores for the search results, computed once per result set.
+   *
+   * Scanning a barcode is usually a question about quality; searching a name is usually
+   * about tracking. The ring means the second case answers the first one anyway, and
+   * every food added from here already carries its score into the meal — so the ring is
+   * showing what the diary was going to record either way rather than adding a new
+   * number to the product.
+   */
+  const searchScores = useMemo(
+    () => new Map(results.map((product) => [
+      `${product.provider}-${product.barcode}-${product.name}`,
+      calculateProductQuality(product).score
+    ])),
+    [results]
+  );
   const logging = selected ? foodLoggingNutrition(selected.product) : null;
   const multiplier = logging?.amountPerPortion ?? 1;
   const portion = portionValue(String(Number(servings) / multiplier));
@@ -96,12 +114,13 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           {results.length ? <Text style={styles.label}>{results.length} food matches</Text> : null}
           {results.map((product) => {
             const nutrition = foodLoggingNutrition(product);
-            return <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal ${nutrition.portionLabel}` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View></View>;
+            const key = `${product.provider}-${product.barcode}-${product.name}`;
+            return <View key={key} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal ${nutrition.portionLabel}` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View><ScoreRing score={searchScores.get(key) ?? null} label={`${product.name}: quality ${searchScores.get(key) ?? 'not scored'}`} /></View>;
           })}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
         </> : <>
-          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.accentMid} /></Pressable></View>)}
+          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><ScoreRing score={product.quality_score} size={34} label={`${product.name}: quality ${product.quality_score ?? 'not scored'}`} /><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.accentMid} /></Pressable></View>)}
           {!personal.length ? <Text style={styles.detail}>{query ? 'No matching foods in this list. Try Search for more options.' : tab === 'Saved' ? 'Bookmark foods in Recent to keep them here for next time.' : 'Foods you use will appear here. Search or scan to begin.'}</Text> : null}
         </>}
         {error ? <Text accessibilityRole="alert" style={styles.detail}>{error}</Text> : null}

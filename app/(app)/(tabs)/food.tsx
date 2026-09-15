@@ -147,6 +147,7 @@ import { calculateProductQuality } from '../../../src/features/nutrition/product
 import { buildProductQualityScorePresentation } from '../../../src/features/nutrition/productLookup/productQualityPresentation';
 import { explainProductScore } from '../../../src/engines/nutrition/productScoring/explain';
 import { ProductVerdict } from '../../../src/features/nutrition/ProductVerdict';
+import { ScoreRing } from '../../../src/features/nutrition/ScoreRing';
 import { mergeProductSnapshots } from '../../../src/features/nutrition/productLookup/mergeProductEvidence';
 import {
   derivePrimaryScannerState,
@@ -2179,6 +2180,11 @@ export default function FoodScreen() {
           </View>
           {mealBuilder.items.map((item) => (
             <View key={item.id} style={styles.builderItemRow}>
+              <ScoreRing
+                label={`${item.snapshot.name}: quality ${item.quality.score ?? 'not scored'}`}
+                score={item.quality.score}
+                size={34}
+              />
               <View style={styles.builderItemCopy}>
                 <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
                 <Text style={styles.libraryMeta}>{[item.snapshot.brand, foodLoggingNutrition(item.snapshot).label].filter(Boolean).join(' · ')}</Text>
