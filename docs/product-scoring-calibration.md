@@ -79,12 +79,32 @@ Current state against the same fifty:
 scored 52/52 · right band 34/52 · rank correlation 0.932
 ```
 
-## Two findings worth keeping
+## Three findings worth keeping
 
 **A calibration curve does not help.** Fitting a line, and several curves that compress
 toward a centre, was tried: least squares moved band accuracy from 31 to 31 and the
 compressions made it worse. The residual error is per-product, not a scale problem, so
 a curve would be a fudge that buys a point of mean error and hides the real gaps.
+
+**Scaling the seed-oil penalty by the oil's own share makes the set worse.** The
+penalty is `38 × min(1, fatShare/0.5)`, and `fatShare` is the product's *total* fat, so
+an almond-flour cracker is charged for the fat in its almonds as if it had come from the
+sunflower oil sitting fourth. That is a real defect and the obvious fix does not pay
+for itself:
+
+| floor / divisor on the oil's positional share | right band |
+| --- | --- |
+| baseline (no scaling) | 34/52 |
+| 0.35 / 0.30 | 30/52 |
+| 0.60 / 0.20 | 33/52 |
+| 0.70 / 0.20 | 33/52 |
+| 0.80 / 0.25 | 34/52 (rank 0.933) |
+| 0.90 / 0.30 | 33/52 |
+
+It rescues one product and breaks four. The single setting that holds the line changes
+nothing — the cracker still lands on 69, still D. The correct reading is that the
+almond-fat objection is real but not what decides this product, and the rule keeps its
+current shape until something better than a knife-edge constant is on offer.
 
 **The archetype's `intent` is not reliable enough to build on.** Judging a snack harder
 than a staple is the obvious next move — the same refined flour is a different
@@ -117,6 +137,32 @@ to read: both jars declare 7 g.
 arrives as added sugar and modified starch. The version that earns a good score is the
 one the owner described — Greek yogurt with actual fruit and nothing added — and it is
 now in the set as its own case, so the two cannot drift together.
+
+## What the roles were missing
+
+`tapioca` and `cassava` matched nothing and came back `unknown`. In a grain-free cracker
+those are the second and third ingredients — two fifths of the product by position —
+counted as neither food nor formulation. They are the same proposition as white flour: a
+starch with the fibre that would have slowed it milled out. Adding them, along with
+arrowroot, yuca, sago and the root flours, holds the set at 34/52 and moves the almond
+cracker's food-structure dimension from 90 to 68, which is the honest reading.
+
+An ingredient the table cannot place is now named on screen rather than silently scored
+as nothing.
+
+## Saying why, not just what
+
+Every reason the scanner gave was an enthymeme — a conclusion with the interesting half
+missing. "Built on an industrially refined seed oil" only lands on someone who already
+believes seed oils are a problem, and "Nutrition profile: What the label delivers" does
+not manage even that.
+
+`explain.ts` supplies the missing premise, and the premise is always a mechanism: two
+starches are marked down because the fibre is milled out and they arrive about as fast
+as glucose; a seed oil because of how it is extracted, which is a thing the
+`saturated_fat_g` figure cannot see. Findings name the actual ingredients and their
+positions, quote only numbers that are on the label, and are ordered by the kernel's own
+ledger so the reason that weighed most is the reason that leads.
 
 ## Still open
 

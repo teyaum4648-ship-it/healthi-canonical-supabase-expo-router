@@ -87,6 +87,16 @@ const RULES: Rule[] = [
   // Refined carbohydrate structure. Whole flours are caught by the whole-food rule below.
   { role: 'refined_starch', pattern: /\b(enriched (?:wheat |bleached |unbleached )*flour|bleached flour|white flour|refined (?:wheat )?flour|wheat flour|rice flour|soy flour|modified (?:food |corn |potato |tapioca |rice |wheat )?starch|corn ?starch|tapioca starch|potato starch|rice starch|maltodextrin|dextrin|semolina|milled corn|degerminated corn ?meal)\b/ },
 
+  /**
+   * Root starches, which a grain-free product uses in place of flour and which an
+   * earlier version of this table did not recognise at all — tapioca and cassava came
+   * back `unknown`, so in an almond-flour cracker the second and third ingredients,
+   * two fifths of the product, counted as neither food nor formulation. They are the
+   * same proposition as white flour and are read that way: a starch stripped of the
+   * fibre that would have slowed it down.
+   */
+  { role: 'refined_starch', pattern: /\b(tapioca|cassava(?: flour| starch| root)?|yuca|arrowroot(?: flour| starch)?|potato flour|sweet potato flour|plantain flour|water chestnut flour|sago)\b/ },
+
   // Fractions of food standing in for the food.
   { role: 'isolate', pattern: /\b(protein isolate|protein concentrate|isolated protein|hydroly[sz]ed (?:protein|collagen)|whey protein|pea protein|soy protein isolate|milk protein concentrate|inulin|chicory root fiber|soluble (?:corn )?fiber|acacia fiber|fiber isolate|yeast extract|monosodium glutamate|msg)\b/ },
 
@@ -115,7 +125,7 @@ const RULES: Rule[] = [
    * Salt is here rather than penalised as an ingredient, because sodium is a nutrient
    * question that the nutrition dimension already answers from the label.
    */
-  { role: 'neutral', pattern: /\b(water|carbonated water|filtered water|sea salt|kosher salt|salt|sodium chloride|yeast|baking soda|baking powder|leavening|sodium bicarbonate|sodium carbonate|vinegar|apple cider vinegar|citric acid|lactic acid|malic acid|cultures?|cheese cultures|live cultures|enzymes?|rennet|lime\b|calcium hydroxide|air|nitrogen)\b/ }
+  { role: 'neutral', pattern: /\b(water|carbonated water|filtered water|sea salt|kosher salt|salt|sodium chloride|yeast|baking soda|baking powder|leavening|sodium bicarbonate|sodium carbonate|vinegar|apple cider vinegar|citric acid|lactic acid|malic acid|phosphoric acid|caffeine|carbon dioxide|cultures?|cheese cultures|live cultures|enzymes?|rennet|lime\b|calcium hydroxide|air|nitrogen)\b/ }
 ];
 
 /** The role of one ingredient name, read left to right so the specific wins. */
