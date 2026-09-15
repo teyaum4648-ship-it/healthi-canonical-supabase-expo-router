@@ -11,5 +11,9 @@ yarn-error.log*
 .DS_Store
 ._*
 Archive.zip
-.claude/
+# Local agent state stays out — settings.local.json holds per-machine permissions.
+# Skills are shared craft rules and are tracked, or they would not survive a fresh
+# clone, which is how every cloud session starts.
+.claude/*
+!.claude/skills/
 reports/
