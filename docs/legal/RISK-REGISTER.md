@@ -43,6 +43,11 @@ Worth stating plainly, because each one is a category of risk you do **not** hav
   (`public/icons/`). No stock photography, no scraped product shots bundled. One
   confirmation needed — **R2**.
 - **No precise location, no contacts, no microphone, no advertising ID.**
+- **No third-party embeds at all.** No YouTube or Vimeo players, no embedded maps, no
+  social widgets, no chat bubble, no CDN-loaded fonts — `@expo-google-fonts` bundles Inter
+  and Fraunces into the app rather than fetching them from Google at runtime, so not even
+  a font request leaks a user's IP to a third party. Nothing on the page can set a cookie
+  you did not write.
 - **Row-level security is on** across the schema, with dedicated security tests in
   `supabase/tests/`. That is better than most funded startups.
 - **Accessibility was already half-done**: 113 `accessibilityLabel`, 186
@@ -213,6 +218,28 @@ What must not happen:
 `terms.html` §9 already includes a no-affiliation statement. If you ever want to reference
 the framework commercially by name, that is a licensing conversation with the CHEK
 Institute, not a fair-use judgement call.
+
+### C2 · CalOPPA — the one that applies to you with no threshold
+**Severity: P1 · DONE, but worth naming so your attorney sees it was considered**
+
+Most privacy statutes have size thresholds you do not meet. **CCPA/CPRA almost certainly
+does not apply to you yet** — it requires revenue over ~$25M (CPI-adjusted), or buying,
+selling or sharing the personal information of 100,000+ consumers a year, or deriving 50%+
+of revenue from selling or sharing it. None of those describe you today.
+
+**CalOPPA has no threshold at all.** Cal. Bus. & Prof. Code § 22575 requires any
+commercial website or online service collecting personally identifiable information from
+California residents to conspicuously post a privacy policy containing: the categories of
+PII collected, the categories of third parties it is shared with, the process for a
+consumer to review and request changes, how policy changes are announced, the effective
+date, and a disclosure of how the service responds to Do Not Track signals.
+
+`privacy.html` was written to satisfy each of those — §2, §6, §8, §15, the date in the
+masthead, and §14 respectively. The DNT section is the element most sites miss.
+
+`privacy.html` §9 also answers CCPA's substantive obligations voluntarily, which costs
+nothing (you do not sell or share, so there is nothing to build) and means the policy does
+not need rewriting on the day you cross a threshold.
 
 ### C1 · Cookie consent — the answer is no, and here is why
 **Severity: P1 as a documented decision · DONE**
