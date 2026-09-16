@@ -9,6 +9,13 @@ import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { DemoEntry } from '../../src/features/auth/DemoEntry';
+import {
+  consentIsComplete,
+  EMPTY_CONSENT,
+  type ConsentState
+} from '../../src/features/legal/consentModel';
+import { CONSENT_VERSION } from '../../src/features/legal/legalLinks';
+import { SignupConsent } from '../../src/features/legal/SignupConsent';
 import { colors, spacing } from '../../src/styles/mobileTheme';
 
 export default function SignupScreen() {
@@ -16,6 +23,8 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consent, setConsent] = useState<ConsentState>(EMPTY_CONSENT);
+  const [consentError, setConsentError] = useState(false);
   const [feedback, setFeedback] = useState<{
     message: string;
     tone: 'error' | 'success';
@@ -30,11 +39,28 @@ export default function SignupScreen() {
       return;
     }
 
+    /*
+     * Checked before the request rather than after it, so an account is never created
+     * in a state where we cannot show what its owner agreed to.
+     */
+    if (!consentIsComplete(consent)) {
+      setConsentError(true);
+      setFeedback(null);
+      return;
+    }
+
+    setConsentError(false);
     setFeedback(null);
     setIsSubmitting(true);
 
     try {
-      await signUp(email.trim(), password);
+      await signUp(email.trim(), password, {
+        version: CONSENT_VERSION,
+        terms: consent.agreement,
+        privacy: consent.agreement,
+        ageConfirmed: consent.agreement,
+        healthData: consent.healthData
+      });
       setFeedback({
         message: 'Check your email to confirm the account, then return here and log in.',
         tone: 'success'
@@ -73,6 +99,7 @@ export default function SignupScreen() {
           secureTextEntry
           value={password}
         />
+        <SignupConsent onChange={setConsent} showError={consentError} value={consent} />
         <Button isLoading={isSubmitting} label="Create account" onPress={handleSignup} />
         {feedback ? (
           <View

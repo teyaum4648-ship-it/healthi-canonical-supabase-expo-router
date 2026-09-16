@@ -101,7 +101,7 @@ function formatHourLabel(ms: number): string {
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: 'rgba(10, 132, 255, 0.14)',
+  deep_work: 'rgba(30, 144, 255, 0.14)',
   exercise: 'rgba(255, 212, 121, 0.14)',
   light_movement: 'rgba(90, 200, 250, 0.14)',
   wind_down: 'rgba(255, 105, 97, 0.12)',

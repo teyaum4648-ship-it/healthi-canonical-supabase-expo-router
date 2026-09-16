@@ -25,9 +25,25 @@ type AuthContextValue = {
   mode: 'demo' | 'account';
   startDemo: (fresh?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, consent?: SignupConsentRecord) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+};
+
+/**
+ * What the signup form agreed to, carried into `auth.users.raw_user_meta_data` so the
+ * database trigger can write it into `user_consents` the moment the account exists.
+ *
+ * It has to travel this way rather than as a client insert: with email confirmation on,
+ * there is no session at signup, so row-level security would reject a direct write and
+ * the record of what someone agreed to would be the one thing missing.
+ */
+export type SignupConsentRecord = {
+  version: string;
+  terms: boolean;
+  privacy: boolean;
+  healthData: boolean;
+  ageConfirmed: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -113,7 +129,7 @@ function DemoAuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signIn = useCallback(async () => { throw new Error('This preview uses a local demo. Choose Continue demo to enter.'); }, []);
-  const signUp = useCallback(async () => { throw new Error('Account registration is not enabled in this demo build.'); }, []);
+  const signUp = useCallback(async (_email: string, _password: string, _consent?: SignupConsentRecord) => { throw new Error('Account registration is not enabled in this demo build.'); }, []);
 
   const signOut = useCallback(async () => {
     await AsyncStorage.removeItem(demoSessionActiveKey);
@@ -258,10 +274,11 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
     await synchronizeSession(data.session);
   }, [synchronizeSession]);
 
-  const signUp = useCallback(async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string, consent?: SignupConsentRecord) => {
     const { data, error } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: consent ? { data: { healthi_consent: consent } } : undefined
     });
 
     if (error) {

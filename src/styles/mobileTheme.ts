@@ -7,76 +7,7 @@ const systemFont =
     web: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif'
   }) ?? 'sans-serif';
 
-export const palette = {
-  ink: '#F5F5F7',
-  inkSoft: '#D1D1D6',
-  ivory: '#000000',
-  paper: '#121214',
-  muted: '#A1A1A6',
-  faint: '#6E6E73',
-  hairline: 'rgba(255, 255, 255, 0.075)',
-  hairlineSoft: 'rgba(255, 255, 255, 0.055)',
-  sand: '#2C2C2E',
-  forest: '#0A84FF',
-  forestMid: '#5AC8FA',
-  forestSoft: '#63E6CE',
-  forestPale: 'rgba(10, 132, 255, 0.24)',
-  forestWash: 'rgba(10, 132, 255, 0.12)',
-  clayDark: '#FF6961'
-} as const;
-
-export const colors = {
-  background: palette.ivory,
-  surface: palette.paper,
-  surfaceInset: '#1C1C1E',
-  surfaceMuted: '#242426',
-  text: palette.ink,
-  textMuted: palette.muted,
-  textFaint: palette.faint,
-  textSubtle: palette.faint,
-  textInverse: '#FFFFFF',
-  hairline: palette.hairline,
-  hairlineSoft: palette.hairlineSoft,
-  border: palette.hairline,
-  borderMuted: palette.hairlineSoft,
-  borderStrong: 'rgba(255, 255, 255, 0.12)',
-  track: palette.sand,
-  accent: palette.forest,
-  accentMid: palette.forestMid,
-  accentSoft: palette.forestSoft,
-  accentPale: palette.forestPale,
-  accentWash: palette.forestWash,
-  primary: palette.forest,
-  primaryPressed: '#0071E3',
-  primaryMuted: palette.forestWash,
-  primaryText: '#FFFFFF',
-  danger: palette.clayDark,
-  success: palette.forestSoft,
-  dim: palette.faint,
-  glow: 'rgba(10, 132, 255, 0.24)',
-
-  // Legacy aliases let established screens adopt the mobile shell without
-  // changing their data or interaction logic.
-  gold: palette.forest,
-  goldSoft: palette.forestMid,
-  deepViolet: palette.ink,
-  midnightPlum: palette.paper,
-  plum: '#242426',
-  softViolet: palette.forestSoft,
-  mutedViolet: palette.faint,
-  violetMuted: palette.muted,
-  lavender: palette.forestMid,
-  lavenderMist: palette.forestWash,
-  teal: palette.forestSoft,
-  warmIvory: palette.ivory,
-  cosmicWhite: palette.ink,
-  signalGreen: palette.forestSoft,
-  signalGold: '#FFD479',
-  signalAmber: '#FFD479',
-  signalCoral: palette.clayDark,
-  priorityYellow: '#FFD479',
-  priorityRed: palette.clayDark
-} as const;
+export { palette, colors, spacing, radii } from './tokens';
 
 export const fonts = {
   display: systemFont,
@@ -84,22 +15,6 @@ export const fonts = {
   displayItalic: systemFont,
   body: systemFont,
   bodyMedium: systemFont
-} as const;
-
-export const spacing = {
-  xs: 6,
-  sm: 10,
-  md: 16,
-  lg: 24,
-  xl: 34
-} as const;
-
-export const radii = {
-  sm: 10,
-  md: 14,
-  lg: 20,
-  xl: 28,
-  full: 999
 } as const;
 
 export const hairlineWidth = StyleSheet.hairlineWidth;

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cookies &amp; Local Storage · Healthi</title>
+<meta name="description" content="Healthi sets no cookies. This page lists every item it does store on your device, and why.">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/healthi-icon-192.png">
+<link rel="stylesheet" href="/legal/legal.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the policy</a>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="brand">
+    <img src="/icons/healthi-icon-192.png" alt="">
+    <a href="/">Healthi</a>
+  </div>
+  <h1>Cookies &amp; Local Storage</h1>
+  <p class="meta">Version 1.0 · Effective <span class="fill">{{EFFECTIVE_DATE}}</span></p>
+</header>
+
+<main id="main">
+
+<p class="lede">Healthi does not use cookies. Not necessary ones, not analytics ones, not advertising ones &mdash; none. This page exists because &ldquo;we don&rsquo;t use cookies&rdquo; is a claim worth being able to check, so below is the complete list of what the app <em>does</em> keep on your device, and what each item is for.</p>
+
+<div class="panel panel--note">
+  <h2>Why there is no cookie banner</h2>
+  <p>A consent banner exists to get your permission for storage that is <em>not</em> essential &mdash; analytics, advertising, profiling. Healthi has none of that to ask about. Everything in the table below is either required to keep you logged in or is a preference you set yourself, both of which are exempt from consent requirements under the ePrivacy rules and are not &ldquo;sales&rdquo; or &ldquo;sharing&rdquo; under California law.</p>
+  <p>Putting a banner up anyway would imply there is hidden tracking to switch off. There isn&rsquo;t, and we would rather show you the list.</p>
+  <p><strong>If that ever changes</strong> &mdash; if we add analytics or any third-party tag &mdash; we will ask for your consent before it loads, not after, and this page will be updated first.</p>
+</div>
+
+<h2>What Healthi stores on your device</h2>
+<p>On the web the app uses your browser&rsquo;s <code>localStorage</code>. On a phone it uses the operating system&rsquo;s app storage, and your login token specifically goes into the secure keystore (Keychain on iOS, Keystore on Android) rather than ordinary storage.</p>
+
+<div class="tablewrap" role="region" tabindex="0" aria-label="Every item Healthi writes to your device">
+<table>
+  <caption>Every item Healthi writes to your device</caption>
+  <thead>
+    <tr><th scope="col">Name</th><th scope="col">Purpose</th><th scope="col">Type</th><th scope="col">Lifetime</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sb-&hellip;-auth-token</code></td>
+      <td>Keeps you logged in, so you are not asked for your password on every screen. Set by our authentication provider.</td>
+      <td>Strictly necessary</td>
+      <td>Until you log out, or the session expires</td>
+    </tr>
+    <tr>
+      <td><code>healthi:onboarding:*</code></td>
+      <td>Remembers that you finished setup, so you are not walked through it twice.</td>
+      <td>Strictly necessary</td>
+      <td>Until you log out or reset</td>
+    </tr>
+    <tr>
+      <td><code>healthi:movement:routines:v1</code></td>
+      <td>Your saved workout routines, held on the device so they open instantly.</td>
+      <td>Preference you set</td>
+      <td>Until you delete them</td>
+    </tr>
+    <tr>
+      <td><code>healthi:movement:weight-unit:*</code></td>
+      <td>Whether you want kilograms or pounds.</td>
+      <td>Preference you set</td>
+      <td>Until you change it</td>
+    </tr>
+    <tr>
+      <td><code>healthi:practice:breath:v1</code></td>
+      <td>Your breathing-practice sessions, so the app can show what you did today.</td>
+      <td>Preference you set</td>
+      <td>Until you delete it</td>
+    </tr>
+    <tr>
+      <td><code>healthi:demo:*</code></td>
+      <td>Only in the public demo: keeps demo entries on your device so the demo has something to show. Nothing here reaches our servers.</td>
+      <td>Strictly necessary (demo only)</td>
+      <td>Until you reset the demo</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2>What is <em>not</em> there</h2>
+<ul>
+  <li>No Google Analytics, Meta Pixel, TikTok pixel, Google Ads or any other advertising or measurement tag.</li>
+  <li>No session-recording or heatmap tools.</li>
+  <li>No third-party cookies, and no embedded content that could set them &mdash; no YouTube players, no Google Fonts loaded at runtime, no social widgets, no chat bubbles, no embedded maps. Our fonts are bundled with the app rather than fetched from anyone else.</li>
+  <li>No advertising identifier, no fingerprinting, no cross-app or cross-site tracking.</li>
+</ul>
+
+<h2>Our hosting provider</h2>
+<p>Our web hosting sits behind Cloudflare. Cloudflare may set a security cookie of its own, such as <code>__cf_bm</code>, to tell humans from bots. That is a security function we do not control the contents of and cannot read; it carries no advertising purpose. See <a href="https://developers.cloudflare.com/fundamentals/reference/policies-compliances/cloudflare-cookies/" rel="noopener">Cloudflare&rsquo;s cookie documentation</a> if you want the detail.</p>
+
+<h2>How to clear it</h2>
+<ul>
+  <li><strong>In the app:</strong> logging out clears your session. Settings has a reset for demo data.</li>
+  <li><strong>On the web:</strong> clearing site data for this site in your browser removes everything in the table. The app will then behave as if you are new, which is the point.</li>
+  <li><strong>Deleting your account</strong> removes what is on our servers as well. See the <a href="/legal/privacy.html#retention">Privacy Policy</a>.</li>
+</ul>
+<p>Clearing this storage does not lose your health history if you have an account, because that lives on the server. It does lose anything listed above as device-only, including all demo data.</p>
+
+<h2>Questions</h2>
+<p>Write to <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY_EMAIL}}</span></a>.</p>
+
+</main>
+
+<footer class="pagefoot">
+  <ul>
+    <li><a href="/legal/">All policies</a></li>
+    <li><a href="/legal/privacy.html">Privacy</a></li>
+    <li><a href="/legal/terms.html">Terms</a></li>
+    <li><a href="/legal/refunds.html">Refunds</a></li>
+    <li><a href="/legal/accessibility.html">Accessibility</a></li>
+    <li><a href="/legal/attributions.html">Attributions</a></li>
+  </ul>
+  <p><span class="fill">{{LEGAL_ENTITY}}</span> · San Diego, California</p>
+</footer>
+
+</div>
+</body>
+</html>

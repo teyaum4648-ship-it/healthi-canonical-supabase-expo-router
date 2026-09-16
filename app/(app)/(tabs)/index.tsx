@@ -83,7 +83,7 @@ const homePalette = {
   surfaceSoft: '#242426',
   border: 'rgba(255, 255, 255, 0.075)',
   borderStrong: 'rgba(255, 255, 255, 0.12)',
-  blue: '#0A84FF',
+  blue: '#1E90FF',
   blueBright: '#64D2FF',
   blueSoft: '#5AC8FA',
   cyan: '#63E6CE',
@@ -91,7 +91,7 @@ const homePalette = {
   amber: '#FFD479',
   text: '#F5F5F7',
   textMuted: '#A1A1A6',
-  textFaint: '#6E6E73',
+  textFaint: '#8E8E93',
   track: '#2C2C2E',
   white: '#FFFFFF'
 } as const;
@@ -1011,7 +1011,7 @@ const styles = StyleSheet.create({
   livePill: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(10, 132, 255, 0.12)',
+    backgroundColor: 'rgba(30, 144, 255, 0.12)',
     borderRadius: 999,
     flexDirection: 'row',
     gap: 7,
@@ -1226,7 +1226,7 @@ const styles = StyleSheet.create({
   },
   primaryActionIcon: {
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 132, 255, 0.13)',
+    backgroundColor: 'rgba(30, 144, 255, 0.13)',
     borderRadius: 15,
     height: 42,
     justifyContent: 'center',
@@ -1475,7 +1475,7 @@ const styles = StyleSheet.create({
   },
   actionIndex: {
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 132, 255, 0.13)',
+    backgroundColor: 'rgba(30, 144, 255, 0.13)',
     borderRadius: 10,
     height: 24,
     justifyContent: 'center',
