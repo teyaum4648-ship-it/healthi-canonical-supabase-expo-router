@@ -35,7 +35,7 @@ export type RegionRelease = {
   /** Our own cueing, one step per line. */
   steps: string[];
   minutes: number;
-  /** Paces the movement — see BREATH_RHYTHMS. */
+  /** Paces the movement — a technique id, see BREATH_TECHNIQUES. */
   rhythmId: string;
   /** Shown when there is a real reason to be careful, and left off when there is not. */
   caution?: string;

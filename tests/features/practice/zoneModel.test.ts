@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { BREATH_RHYTHMS } from '../../../src/features/practice/practiceModel';
+import { BREATH_TECHNIQUES } from '../../../src/features/practice/breathTechniques';
 import {
   REGION_RELEASES,
   regionRelease,
@@ -21,9 +21,12 @@ describe('REGION_RELEASES', () => {
     expect(ids).toEqual(['jaw', 'chest', 'upper_back', 'low_back', 'hips']);
   });
 
-  it('paces every movement with a rhythm that exists', () => {
+  it('paces every movement with a technique that exists and can cycle', () => {
     for (const release of REGION_RELEASES) {
-      expect(BREATH_RHYTHMS.some((rhythm) => rhythm.id === release.rhythmId)).toBe(true);
+      const technique = BREATH_TECHNIQUES.find((entry) => entry.id === release.rhythmId);
+      expect(technique, release.id).toBeDefined();
+      /* A rounds technique cannot pace a held stretch — it would stop itself partway. */
+      expect(technique?.structure, release.id).toBe('cycle');
     }
   });
 

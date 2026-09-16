@@ -5,10 +5,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { protocolScope } from '../../../src/features/dailyProtocol';
+import { CyclicBreathRounds } from '../../../src/features/practice/CyclicBreathRounds';
 import { DaylightLog } from '../../../src/features/practice/DaylightLog';
+import { MoodHabits } from '../../../src/features/practice/MoodHabits';
 import { PacedBreath } from '../../../src/features/practice/PacedBreath';
 import { PulseCheck } from '../../../src/features/practice/PulseCheck';
+import { TechniquePicker } from '../../../src/features/practice/TechniquePicker';
 import { ZoneRelease } from '../../../src/features/practice/ZoneRelease';
+import {
+  patternLine,
+  techniqueById,
+  type BreathTechnique
+} from '../../../src/features/practice/breathTechniques';
+import {
+  createCustomHabit,
+  DEFAULT_HABIT_IDS,
+  localCustomHabitStore,
+  localHabitCompletionStore,
+  localRoutineStore,
+  resolveRoutine,
+  summariseHabitDay,
+  type HabitCompletion,
+  type MoodHabit
+} from '../../../src/features/practice/moodHabits';
 import {
   anchorDetail,
   anchorHeadline,
@@ -22,7 +41,6 @@ import {
 } from '../../../src/features/practice/daylightModel';
 import { localDateKey } from '../../../src/features/practice/practiceDate';
 import {
-  BREATH_RHYTHMS,
   practiceDayLine,
   summarisePracticeDay,
   type PracticeSession
@@ -83,7 +101,11 @@ export default function MoodScreen() {
   const [pulses, setPulses] = useState<PulseReading[]>([]);
   const [bouts, setBouts] = useState<DaylightBout[]>([]);
   const [zones, setZones] = useState<ZoneSession[]>([]);
-  const [rhythmId, setRhythmId] = useState(BREATH_RHYTHMS[0].id);
+  const [techniqueId, setTechniqueId] = useState('settle');
+  const [routineIds, setRoutineIds] = useState<string[]>(DEFAULT_HABIT_IDS);
+  const [customHabits, setCustomHabits] = useState<MoodHabit[]>([]);
+  const [completions, setCompletions] = useState<HabitCompletion[]>([]);
+  const [roundsAcknowledged, setRoundsAcknowledged] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
 
   useFocusEffect(
@@ -93,13 +115,22 @@ export default function MoodScreen() {
         localPracticeStore.read(scope),
         localPulseStore.read(scope),
         localDaylightStore.read(scope),
-        localZoneStore.read(scope)
-      ]).then(([breath, pulse, daylight, zone]) => {
+        localZoneStore.read(scope),
+        localHabitCompletionStore.read(scope),
+        localCustomHabitStore.read(scope),
+        localRoutineStore.read(scope)
+      ]).then(([breath, pulse, daylight, zone, done, custom, routine]) => {
         if (!active) return;
         setSessions(breath);
         setPulses(pulse);
         setBouts(daylight);
         setZones(zone);
+        setCompletions(done);
+        setCustomHabits(custom);
+        /* An empty store means a new person, not an emptied routine — those are
+           different, and the second one writes a row with an empty list. */
+        if (routine.length > 0) setRoutineIds(routine[0].habitIds);
+        setRoundsAcknowledged(breath.some((row) => row.rhythmId === 'cyclic_hyperventilation'));
       });
       return () => { active = false; };
     }, [scope])
@@ -117,14 +148,19 @@ export default function MoodScreen() {
     [pulseDay.latest, baseline]
   );
 
-  const rhythm = BREATH_RHYTHMS.find((item) => item.id === rhythmId) ?? BREATH_RHYTHMS[0];
+  const technique = techniqueById(techniqueId);
+  const routine = useMemo(() => resolveRoutine(routineIds, customHabits), [routineIds, customHabits]);
+  const habitDay = useMemo(
+    () => summariseHabitDay(completions, routine, date),
+    [completions, routine, date]
+  );
   const evening = eveningNote(daylightDay);
 
   async function recordBreath(seconds: number) {
     const session: PracticeSession = {
       id: `breath-${Date.now()}`,
       date,
-      rhythmId: rhythm.id,
+      rhythmId: technique.id,
       seconds,
       finishedAt: new Date().toISOString()
     };
@@ -163,6 +199,49 @@ export default function MoodScreen() {
     setBusy(null);
   }
 
+  async function persistRoutine(ids: string[]) {
+    setRoutineIds(ids);
+    /* A single replaced row rather than an append, so the routine has one current value
+       rather than a history that has to be folded. */
+    await localRoutineStore.replace(scope, [{ id: 'routine', habitIds: ids }]);
+  }
+
+  async function addHabit(id: string) {
+    if (routineIds.includes(id)) return;
+    await persistRoutine([...routineIds, id]);
+  }
+
+  async function removeHabit(id: string) {
+    await persistRoutine(routineIds.filter((existing) => existing !== id));
+  }
+
+  async function addCustomHabit(name: string, minutes: number) {
+    const habit = createCustomHabit(name, minutes);
+    setCustomHabits((current) => [...current, habit]);
+    setCustomHabits(await localCustomHabitStore.append(scope, habit));
+    await persistRoutine([...routineIds, habit.id]);
+  }
+
+  async function toggleHabit(habit: MoodHabit) {
+    const alreadyDone = habitDay.completedIds.includes(habit.id);
+    if (alreadyDone) {
+      /* Unticking drops today's rows for that habit rather than writing a negative one,
+         so a mis-tap leaves no trace to reason about later. */
+      const kept = completions.filter((row) => !(row.date === date && row.habitId === habit.id));
+      setCompletions(kept);
+      setCompletions(await localHabitCompletionStore.replace(scope, kept));
+      return;
+    }
+    const row: HabitCompletion = {
+      id: `habit-${Date.now()}`,
+      date,
+      habitId: habit.id,
+      completedAt: new Date().toISOString()
+    };
+    setCompletions((current) => [...current, row]);
+    setCompletions(await localHabitCompletionStore.append(scope, row));
+  }
+
   async function recordZone(region: TensionRegion, seconds: number) {
     const session: ZoneSession = {
       id: `zone-${Date.now()}`,
@@ -186,34 +265,45 @@ export default function MoodScreen() {
           <Text style={styles.meta}>{practiceDayLine(day)}</Text>
         </View>
 
+        {/*
+          Rounds get their own runner. The pattern is fast breaths, then a retention only
+          the person can end, then a fixed recovery hold — a repeating cycle cannot
+          express that, and pretending it could would mean pacing a technique wrongly.
+        */}
         <View style={styles.panel}>
-          <PacedBreath onSession={(seconds) => void recordBreath(seconds)} rhythm={rhythm} />
+          {technique.structure === 'rounds' ? (
+            <CyclicBreathRounds
+              acknowledged={roundsAcknowledged}
+              onAcknowledge={() => setRoundsAcknowledged(true)}
+              onSession={(seconds) => void recordBreath(seconds)}
+              technique={technique}
+            />
+          ) : (
+            <>
+              <View style={styles.breathHead}>
+                <Text style={styles.breathName}>{technique.name}</Text>
+                <Text style={styles.ratio}>{patternLine(technique)}</Text>
+              </View>
+              <PacedBreath onSession={(seconds) => void recordBreath(seconds)} technique={technique} />
+              <Text style={styles.purpose}>{technique.when}</Text>
+              {technique.caution ? <Text style={styles.inlineCaution}>{technique.caution}</Text> : null}
+            </>
+          )}
         </View>
 
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>PACE</Text>
-          <View style={styles.chips}>
-            {BREATH_RHYTHMS.map((item) => {
-              const active = item.id === rhythm.id;
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  key={item.id}
-                  onPress={() => setRhythmId(item.id)}
-                  style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.name}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.purpose}>{rhythm.purpose}</Text>
-          <Text style={styles.ratio}>
-            {Math.round(rhythm.inhaleMs / 1000)} in
-            {rhythm.holdMs > 0 ? ` · ${Math.round(rhythm.holdMs / 1000)} hold` : ''}
-            {` · ${Math.round(rhythm.exhaleMs / 1000)} out`}
-          </Text>
+          <TechniquePicker onSelect={(next: BreathTechnique) => setTechniqueId(next.id)} selectedId={technique.id} />
+        </View>
+
+        <View style={styles.panel}>
+          <MoodHabits
+            day={habitDay}
+            onAdd={(habit) => void addHabit(habit.id)}
+            onAddCustom={(name, minutes) => void addCustomHabit(name, minutes)}
+            onRemove={(habit) => void removeHabit(habit.id)}
+            onToggle={(habit) => void toggleHabit(habit)}
+            routine={routine}
+          />
         </View>
 
         <View style={styles.panel}>
@@ -281,13 +371,13 @@ export default function MoodScreen() {
           <View style={styles.panel}>
             <Text style={styles.eyebrow}>BREATHING TODAY</Text>
             {day.sessions.map((session, index) => {
-              const item = BREATH_RHYTHMS.find((entry) => entry.id === session.rhythmId);
+              const item = techniqueById(session.rhythmId);
               const minutes = Math.floor(session.seconds / 60);
               return (
                 <View key={session.id}>
                   {index > 0 ? <View style={styles.divider} /> : null}
                   <View style={styles.row}>
-                    <Text style={styles.rowName}>{item?.name ?? 'Breathing'}</Text>
+                    <Text style={styles.rowName}>{item.name}</Text>
                     <Text style={styles.rowValue}>
                       {minutes > 0 ? `${minutes}m ${session.seconds % 60}s` : `${session.seconds}s`}
                     </Text>
@@ -343,6 +433,9 @@ const styles = StyleSheet.create({
   chipText: { ...type.label, color: colors.textMuted },
   chipTextActive: { color: colors.primaryText },
   purpose: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
+  breathHead: { alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
+  breathName: { ...type.heading, color: colors.text },
+  inlineCaution: { ...type.caption, color: colors.danger, lineHeight: 19 },
   ratio: { ...type.label, color: colors.textFaint, fontVariant: ['tabular-nums'] },
 
   readingHeadline: { ...type.heading, color: colors.text },

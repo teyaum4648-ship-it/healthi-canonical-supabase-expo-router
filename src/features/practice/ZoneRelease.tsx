@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { techniqueById } from './breathTechniques';
 import { PacedBreath } from './PacedBreath';
-import { rhythmById } from './practiceModel';
 import { REGION_RELEASES, regionRelease, type TensionRegion } from './zoneModel';
 
 /**
@@ -63,7 +63,7 @@ export function ZoneRelease({
   }
 
   const release = regionRelease(region);
-  const rhythm = rhythmById(release.rhythmId);
+  const technique = techniqueById(release.rhythmId);
 
   return (
     <View style={styles.wrap}>
@@ -93,10 +93,10 @@ export function ZoneRelease({
         <PacedBreath
           idleLabel="Begin"
           onSession={(seconds) => { if (!busy) onSession(region, seconds); }}
-          rhythm={rhythm}
+          technique={technique}
         />
         <Text style={styles.pacerNote}>
-          {release.minutes} minutes at the {rhythm.name.toLowerCase()} pace. The circle sets
+          {release.minutes} minutes at the {technique.name.toLowerCase()} pace. The circle sets
           the tempo — the movement follows the breath, not the other way round.
         </Text>
       </View>
