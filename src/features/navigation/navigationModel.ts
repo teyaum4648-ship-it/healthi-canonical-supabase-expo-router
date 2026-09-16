@@ -1,10 +1,18 @@
 /** Presentation-only routes. Logging still uses each feature's existing save path. */
+/**
+ * The bar is the four doctors plus a way home.
+ *
+ * Diet, Movement and Sleep were already Chek's Dr. Diet, Dr. Movement and Dr. Quiet
+ * under other names; Mood is the fourth, which the app had never had. "You" comes off
+ * the bar and moves into the Home header, because a pillar and a settings screen do not
+ * deserve equal standing and six tabs at phone width reads as a menu.
+ */
 export const mainTabs = [
   { route: 'index', label: 'Home', outline: 'home-outline', filled: 'home' },
-  { route: 'food', label: 'Food', outline: 'nutrition-outline', filled: 'nutrition' },
-  { route: 'movement', label: 'Move', outline: 'body-outline', filled: 'body' },
+  { route: 'food', label: 'Diet', outline: 'nutrition-outline', filled: 'nutrition' },
+  { route: 'movement', label: 'Movement', outline: 'body-outline', filled: 'body' },
   { route: 'rhythm', label: 'Sleep', outline: 'moon-outline', filled: 'moon' },
-  { route: 'settings', label: 'You', outline: 'person-outline', filled: 'person' }
+  { route: 'mood', label: 'Mood', outline: 'happy-outline', filled: 'happy' }
 ] as const;
 
 export type QuickEntry = 'food' | 'workout' | 'sleep';

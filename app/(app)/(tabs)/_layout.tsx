@@ -64,6 +64,13 @@ export default function AppTabsLayout() {
           href: null
         }}
       />
+      {/* Reached from the Home header rather than the bar; see mainTabs. */}
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null
+        }}
+      />
       <Tabs.Screen
         name="progress"
         options={{

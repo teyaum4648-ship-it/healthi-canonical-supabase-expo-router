@@ -86,25 +86,6 @@ const PASSIVE_ROLES: ReadonlySet<IngredientRole> = new Set(['neutral', 'fortific
  * Reading it as "not food" was what collapsed the middle of the scale: every everyday
  * staple fell to the bottom alongside sweets.
  */
-const FOOD_VALUE: Record<IngredientRole, number> = {
-  whole_food: 1,
-  culinary_fat: 0.9,
-  refined_starch: 0.68,
-  isolate: 0.4,
-  seed_oil: 0.4,
-  texturizer: 0.25,
-  preservative: 0.15,
-  added_sugar: 0.1,
-  sugar_alcohol: 0.1,
-  industrial_fat: 0.05,
-  high_intensity_sweetener: 0.05,
-  flavor_system: 0.05,
-  color: 0,
-  // Neither credited nor punished; an unrecognised name should not decide a grade.
-  unknown: 0.55,
-  neutral: 0,
-  fortificant: 0
-};
 
 type Composition = {
   ingredients: RoledIngredient[];
@@ -131,7 +112,7 @@ function composition(names: string[]): Composition {
 
   const foodValue = activeWeight === 0
     ? 0
-    : active.reduce((sum, item) => sum + FOOD_VALUE[item.role] * item.weight, 0) / activeWeight;
+    : active.reduce((sum, item) => sum + item.foodValue * item.weight, 0) / activeWeight;
 
   return {
     ingredients,

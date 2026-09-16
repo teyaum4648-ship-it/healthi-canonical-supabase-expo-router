@@ -147,6 +147,9 @@ import { searchOpenFoodFactsProducts } from '../../../src/features/nutrition/pro
 import { lookupResolvedProduct } from '../../../src/features/nutrition/productLookup/productResolverClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
 import { buildProductQualityScorePresentation } from '../../../src/features/nutrition/productLookup/productQualityPresentation';
+import { explainProductScore } from '../../../src/engines/nutrition/productScoring/explain';
+import { ProductVerdict } from '../../../src/features/nutrition/ProductVerdict';
+import { ScoreRing } from '../../../src/features/nutrition/ScoreRing';
 import { mergeProductSnapshots } from '../../../src/features/nutrition/productLookup/mergeProductEvidence';
 import {
   derivePrimaryScannerState,
@@ -208,7 +211,19 @@ const serifLight = themeFonts.displayLight;
 const serifItalic = themeFonts.displayItalic;
 const sans = themeFonts.body;
 const sansMedium = themeFonts.bodyMedium;
-const productQualityExperimentEnabled = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT === 'v5_two_axis';
+/*
+ * Which scoring kernel this build shipped with.
+ *
+ * Expo inlines the value at build time, so a bundle carries exactly one answer and the
+ * losing branches are stripped. That is fine until someone is looking at a screenshot
+ * and cannot tell a current build from a stale one that a browser is still caching —
+ * which has now cost two rounds of "it doesn't update". So whichever experiment is
+ * live says its own name on the scanner, and a build with no banner at all is the
+ * shipping default rather than an unlabelled unknown.
+ */
+const productQualityExperiment = process.env.EXPO_PUBLIC_PRODUCT_QUALITY_EXPERIMENT ?? '';
+const productQualityExperimentEnabled = productQualityExperiment === 'v5_two_axis';
+const compositionKernelEnabled = productQualityExperiment === 'v6_composition';
 
 const defaultTargets: NutritionTargets = unsetNutritionTargets;
 
@@ -695,6 +710,24 @@ export default function FoodScreen() {
     () => scannerProduct ? calculateProductQuality(scannerProduct) : null,
     [scannerProduct]
   );
+  /**
+   * Why the score is the score, read from the same label and the same ledger the score
+   * came from. Derived rather than held, so it cannot go stale against the product.
+   */
+  const productExplanation = useMemo(() => {
+    if (!scannerProduct || !productQuality) return null;
+    const basis = productQuality.nutrient_basis ?? null;
+    const perHundred = basis?.type === 'per_100g';
+    return explainProductScore({
+      ingredientsText: scannerProduct.ingredients_text ?? null,
+      nutrients: basis?.nutrients ?? null,
+      basisLabel: perHundred
+        ? (scannerProduct.nutriments_per_100ml && !scannerProduct.nutriments_per_100g ? '100 ml' : '100 g')
+        : scannerProduct.serving_size ?? 'serving',
+      dimensions: productQuality.dimensions ?? [],
+      grade: productQuality.letter_grade ?? null
+    });
+  }, [scannerProduct, productQuality]);
   const primaryScannerState = derivePrimaryScannerState({
     lookupState: scannerLookupState,
     hasProduct: Boolean(scannerProduct),
@@ -1519,17 +1552,20 @@ export default function FoodScreen() {
 
   function renderScanner() {
     const qualityPresentation = productQuality ? buildProductQualityScorePresentation(productQuality) : null;
-    const experimentalAggregation = productQualityExperimentEnabled
-      ? productQuality?.dimension_aggregation
-      : null;
     return (
       <View style={styles.stack}>
-        {productQualityExperimentEnabled ? (
+        {productQualityExperimentEnabled || compositionKernelEnabled ? (
           <View style={styles.scoringLabBanner}>
             <Ionicons color={colors.accent} name="flask-outline" size={18} />
             <View style={styles.scannerHeadingCopy}>
-              <Text style={styles.scoringLabBannerTitle}>Temporary scoring lab</Text>
-              <Text style={styles.scoringLabBannerText}>The ZIP-based V5 model is active in this preview only.</Text>
+              <Text style={styles.scoringLabBannerTitle}>
+                {compositionKernelEnabled ? 'Scoring lab · V6 composition' : 'Scoring lab · V5 two axis'}
+              </Text>
+              <Text style={styles.scoringLabBannerText}>
+                {compositionKernelEnabled
+                  ? 'Products are judged by what they are made of, and a fat by its source rather than its saturation.'
+                  : 'The ZIP-based V5 model is active in this preview only.'}
+              </Text>
             </View>
           </View>
         ) : null}
@@ -1619,33 +1655,23 @@ export default function FoodScreen() {
           </Text>
         </Card>
 
+        {scannerProduct && productQuality && productExplanation ? (
+          <ProductVerdict
+            brand={scannerProduct.brand}
+            certaintyNote={productQuality.grade_certainty?.state === 'stable'
+              ? null
+              : qualityPresentation?.gradeCertaintyLine ?? null}
+            explanation={productExplanation}
+            grade={productQuality.letter_grade ?? null}
+            name={scannerProduct.name}
+            score={productQuality.score ?? null}
+            sourceNote={`Read from the label · ${displayLabel(scannerProduct.provider)}`}
+          />
+        ) : null}
+
         {scannerProduct && productQuality ? (
           <Card style={styles.productCard}>
-            <View style={styles.productHeader}>
-              <View style={styles.productHeaderCopy}>
-                <Text style={styles.eyebrow}>Product Snapshot</Text>
-                <Text style={styles.productName}>{scannerProduct.name}</Text>
-                <Text style={styles.productMeta}>
-                  {[scannerProduct.brand, scannerProduct.serving_size ?? 'Serving size unavailable'].filter(Boolean).join(' · ')}
-                </Text>
-                {featureFlags.labEvidence && labEvidenceResolution?.labEvidence.some((item) =>
-                  item.provenance === 'independent'
-                  && (item.matchLevel === 'exact_lot' || item.matchLevel === 'exact_product')
-                  && item.freshness === 'current'
-                ) ? (
-                  <Text style={styles.evidenceSource}>Third-party tested</Text>
-                ) : null}
-              </View>
-              <View style={styles.qualityScore}>
-                <Text style={styles.qualityScoreValue}>
-                  {qualityPresentation?.grade ?? '—'}
-                </Text>
-                <Text style={styles.qualityScoreLabel}>
-                  {qualityPresentation ? `${qualityPresentation.scoreLine.toUpperCase()}${qualityPresentation.stateLine === 'Final' ? '' : ` · ${qualityPresentation.stateLine.toUpperCase()}`}` : 'MORE DATA NEEDED'}
-                </Text>
-              </View>
-            </View>
-
+            <Text style={styles.eyebrow}>ON THE LABEL</Text>
             <View style={styles.productMetrics}>
               <Metric label="Calories" value={formatProductAmount(scannerProduct.calories_per_serving)} tone={colors.accent} />
               <Metric label="Protein" value={formatProductAmount(scannerProduct.protein_g, 'g')} />
@@ -1654,119 +1680,6 @@ export default function FoodScreen() {
               <Metric label="Fiber" value={formatProductAmount(scannerProduct.fiber_g, 'g')} />
               <Metric label="Sugar" value={formatProductAmount(scannerProduct.sugar_g, 'g')} />
               <Metric label="Sodium" value={formatProductAmount(scannerProduct.sodium_mg, 'mg')} />
-            </View>
-
-            {experimentalAggregation ? (
-              <View style={styles.scoringLabPanel}>
-                <Text style={styles.eyebrow}>EXPERIMENTAL V5 · TWO AXIS</Text>
-                <Text style={styles.cardTitle}>Contribution and formulation load</Text>
-                <View style={styles.scoringLabAxisRow}>
-                  <View style={styles.scoringLabAxisCell}>
-                    <Text style={styles.scoringLabAxisValue}>
-                      {typeof experimentalAggregation.contribution === 'number'
-                        ? Math.round(experimentalAggregation.contribution)
-                        : '—'}
-                    </Text>
-                    <Text style={styles.scoringLabAxisLabel}>CONTRIBUTION</Text>
-                  </View>
-                  <View style={styles.scoringLabAxisDivider} />
-                  <View style={styles.scoringLabAxisCell}>
-                    <Text style={styles.scoringLabAxisValue}>
-                      {typeof experimentalAggregation.load === 'number'
-                        ? Math.round(experimentalAggregation.load)
-                        : '—'}
-                    </Text>
-                    <Text style={styles.scoringLabAxisLabel}>FORMULATION LOAD</Text>
-                  </View>
-                  <View style={styles.scoringLabAxisDivider} />
-                  <View style={styles.scoringLabAxisCell}>
-                    <Text style={styles.scoringLabAxisValue}>{experimentalAggregation.tier?.tier ?? '—'}</Text>
-                    <Text style={styles.scoringLabAxisLabel}>MODEL REGION</Text>
-                  </View>
-                </View>
-                {experimentalAggregation.tier?.rationale ? (
-                  <Text style={styles.body}>{experimentalAggregation.tier.rationale}</Text>
-                ) : null}
-                <Text style={styles.confidenceLine}>
-                  Public grade: {productQuality.letter_grade ?? 'unresolved'} · Required bands remain A 90–100, B 80–89, C 70–79, D 60–69, F below 60.
-                </Text>
-                {experimentalAggregation.tier?.tier && productQuality.letter_grade
-                  && experimentalAggregation.tier.tier !== productQuality.letter_grade ? (
-                  <Text style={styles.scoringLabMismatch}>
-                    Review flag: the ZIP model region and its numeric-score grade disagree.
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-
-            <View style={styles.qualityPanel}>
-              <View style={styles.rowBetween}>
-                <Text style={styles.cardTitle}>Food Quality Signal</Text>
-                <Text style={styles.qualityLabel}>
-                  {productQuality.grade_certainty?.state === 'unresolved'
-                    ? `Grade uncertain · Confidence: ${displayLabel(productQuality.confidence)}`
-                    : productQuality.result_state === 'estimated'
-                    ? `Estimated · Confidence: ${displayLabel(productQuality.confidence)}`
-                    : productQuality.result_state === 'provisional'
-                      ? `Provisional · Confidence: ${displayLabel(productQuality.confidence)}`
-                    : productQuality.result_state === 'more_data_needed'
-                      ? 'More data needed'
-                      : productQuality.letter_grade
-                    ? `${productQuality.letter_grade} · ${productQuality.grade_label ?? displayLabel(productQuality.label)}`
-                    : 'More data needed'}
-                </Text>
-              </View>
-              <Text style={styles.body}>{productQuality.summary}</Text>
-              {qualityPresentation?.rangeLine ? (
-                <Text style={styles.confidenceLine}>
-                  {qualityPresentation.rangeLine} · {qualityPresentation.confidenceLine}
-                </Text>
-              ) : null}
-              {qualityPresentation?.gradeCertaintyLine ? (
-                <Text style={styles.confidenceLine}>{qualityPresentation.gradeCertaintyLine}</Text>
-              ) : null}
-              {qualityPresentation?.supportedDimensionsLine ? (
-                <Text style={styles.confidenceLine}>{qualityPresentation.supportedDimensionsLine}</Text>
-              ) : null}
-              {qualityPresentation?.contextLine ? (
-                <Text style={styles.confidenceLine}>{qualityPresentation.contextLine}</Text>
-              ) : null}
-              {productQuality.positives.length > 0 ? (
-                <View style={styles.signalSection}>
-                  <Text style={styles.signalSectionTitle}>WHAT HELPS</Text>
-                  {productQuality.positives.slice(0, 4).map((item) => (
-                    <View key={item} style={styles.signalReasonRow}>
-                      <View style={styles.signalReasonDot} />
-                      <Text style={styles.signalReasonText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-              {productQuality.considerations.length > 0 ? (
-                <View style={styles.signalSection}>
-                  <Text style={styles.signalSectionTitle}>WHAT TO CONSIDER</Text>
-                  {productQuality.considerations.slice(0, 5).map((item) => (
-                    <View key={item} style={styles.signalReasonRow}>
-                      <View style={[styles.signalReasonDot, styles.considerationDot]} />
-                      <Text style={styles.signalReasonText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-              {(productQuality.missing_evidence?.length ?? 0) > 0 && productQuality.result_state !== 'final' ? (
-                <View style={styles.signalSection}>
-                  <Text style={styles.signalSectionTitle}>AVAILABLE DATA NOTE</Text>
-                  {productQuality.missing_evidence?.slice(0, 3).map((item) => (
-                    <Text key={item} style={styles.signalReasonText}>{item}</Text>
-                  ))}
-                </View>
-              ) : null}
-              <Text style={styles.confidenceLine}>
-                Based on available label data · {displayLabel(scannerProduct.provider)} · Confidence: {displayLabel(productQuality.confidence)}
-                {productQuality.evidence_confidence
-                  ? ` · Ingredients: ${displayLabel(productQuality.evidence_confidence.ingredients)}`
-                  : ''}
-              </Text>
             </View>
 
             {(productQuality.better_options?.length ?? 0) > 0 ? (
@@ -2290,6 +2203,11 @@ export default function FoodScreen() {
           </View>
           {mealBuilder.items.map((item) => (
             <View key={item.id} style={styles.builderItemRow}>
+              <ScoreRing
+                label={`${item.snapshot.name}: quality ${item.quality.score ?? 'not scored'}`}
+                score={item.quality.score}
+                size={34}
+              />
               <View style={styles.builderItemCopy}>
                 <Text numberOfLines={1} style={styles.libraryName}>{item.snapshot.name}</Text>
                 <Text style={styles.libraryMeta}>{[item.snapshot.brand, foodLoggingNutrition(item.snapshot).label].filter(Boolean).join(' · ')}</Text>
@@ -3918,66 +3836,20 @@ const styles = StyleSheet.create({
     borderColor: palette.forestPale,
     padding: 20
   },
-  productHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 14,
-    justifyContent: 'space-between'
-  },
   productHeaderCopy: {
     flex: 1,
     minWidth: 0
-  },
-  productName: {
-    ...themeType.heading,
-    color: C.ink,
-    fontFamily: serif,
-    fontSize: 24,
-    lineHeight: 30,
-    marginTop: 7
   },
   productMeta: {
     ...themeType.caption,
     color: C.sub,
     marginTop: 5
   },
-  qualityScore: {
-    alignItems: 'center',
-    backgroundColor: colors.accentWash,
-    borderColor: palette.forestPale,
-    borderRadius: 36,
-    borderWidth: 1,
-    height: 72,
-    justifyContent: 'center',
-    width: 72
-  },
-  qualityScoreValue: {
-    color: colors.accent,
-    fontFamily: serif,
-    fontSize: 30,
-    lineHeight: 34
-  },
-  qualityScoreLabel: {
-    color: C.muted,
-    fontFamily: sansMedium,
-    fontSize: 7,
-    letterSpacing: 0.8,
-    lineHeight: 10
-  },
   productMetrics: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 20
-  },
-  qualityPanel: {
-    backgroundColor: palette.ivory,
-    borderColor: C.hairline,
-    borderRadius: 18,
-    borderWidth: 1,
-    marginBottom: 18,
-    marginTop: 18,
-    padding: 15
   },
   scoringLabBanner: {
     alignItems: 'center',
@@ -3999,46 +3871,6 @@ const styles = StyleSheet.create({
     color: C.sub,
     marginTop: 2
   },
-  scoringLabPanel: {
-    backgroundColor: palette.ivory,
-    borderColor: colors.accentMid,
-    borderRadius: 18,
-    borderWidth: 1,
-    marginTop: 18,
-    padding: 15
-  },
-  scoringLabAxisRow: {
-    alignItems: 'stretch',
-    flexDirection: 'row',
-    marginVertical: 14
-  },
-  scoringLabAxisCell: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 4
-  },
-  scoringLabAxisDivider: {
-    backgroundColor: C.hairline,
-    width: hairlineWidth
-  },
-  scoringLabAxisValue: {
-    color: C.ink,
-    fontFamily: serif,
-    fontSize: 28,
-    lineHeight: 32
-  },
-  scoringLabAxisLabel: {
-    ...themeType.eyebrow,
-    color: C.muted,
-    fontSize: 10,
-    lineHeight: 12,
-    textAlign: 'center'
-  },
-  scoringLabMismatch: {
-    ...themeType.caption,
-    color: palette.clayDark,
-    marginTop: 8
-  },
   qualityLabel: {
     color: colors.accent,
     fontFamily: sansMedium,
@@ -4047,33 +3879,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     textAlign: 'right'
   },
-  signalSection: {
-    borderTopColor: C.hairline,
-    borderTopWidth: hairlineWidth,
-    marginTop: 14,
-    paddingTop: 12
-  },
-  signalSectionTitle: {
-    ...themeType.eyebrow,
-    color: C.muted,
-    fontSize: 12,
-    lineHeight: 12
-  },
   signalReasonRow: {
     alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 9,
     marginTop: 10
-  },
-  signalReasonDot: {
-    backgroundColor: colors.accentMid,
-    borderRadius: 3,
-    height: 5,
-    marginTop: 8,
-    width: 5
-  },
-  considerationDot: {
-    backgroundColor: palette.clayDark
   },
   signalReasonText: {
     ...themeType.caption,

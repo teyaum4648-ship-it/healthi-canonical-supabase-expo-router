@@ -208,6 +208,7 @@ export function calculateProductQuality(snapshot: HealthiProductSnapshot): Produ
     nutrient_basis: {
       type: scored.nutrientBasis.type,
       source: scored.nutrientBasis.source,
+      nutrients: { ...scored.nutrientBasis.nutrients },
       confidence: scored.nutrientBasis.confidence
     },
     macro_context: {

@@ -224,7 +224,13 @@ export type ProductQualitySnapshot = {
   category_comparison_available?: boolean;
   product_form?: ProductForm | null;
   prepared_use?: string | null;
-  nutrient_basis?: Omit<ProductNutrientBasis, 'nutrients'>;
+  /**
+   * The basis the score was computed on, nutrients included. The nutrients used to be
+   * omitted here, which left anything downstream to guess which panel the grade came
+   * from — and a per-serving product then had its fibre quietly dropped out of the
+   * explanation while the grade kept using it.
+   */
+  nutrient_basis?: ProductNutrientBasis;
   macro_context?: ProductMacroContext;
   top_drivers?: ProductScoreFactor[];
   source_confidence?: DataConfidence;
