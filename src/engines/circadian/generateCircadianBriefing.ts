@@ -1,9 +1,13 @@
 import { calculateSleepDebt } from './calculateSleepDebt';
+import { circularDifference, estimateCircadianPhase, type CircadianPhaseEstimate } from './circadianPhase';
 import {
   circadianEnergyAt,
-  computeRestorationFactor,
+  computeRestoration,
+  deriveDayOutlook,
   deriveEnergyExtrema,
-  deriveEnergyZones
+  deriveEnergyZones,
+  type DayOutlook,
+  type EnergyModifiers
 } from './energyModel';
 import { calculateSleepDuration } from './calculateSleepDuration';
 import type {
@@ -25,7 +29,25 @@ type GenerateCircadianBriefingParams = {
   sleepNeed: SleepNeedEstimate;
   preferredBedtime?: string | null;
   now?: string;
+  /** How refreshed the person said they felt on waking, 1–5. Null when unasked. */
+  refreshment?: number | null;
+  /** Local dates (YYYY-MM-DD) on which meaningful morning light was logged. */
+  morningLightDates?: string[];
+  /** Minutes of morning light logged today. */
+  morningLightMinutes?: number | null;
+  /** Estimated caffeine still on board right now, mg. */
+  caffeineOnBoardMg?: number | null;
 };
+
+/**
+ * How old last night's record may be before it stops describing today.
+ *
+ * `findMostRecentSession` will happily return a session from last week, and the curve was
+ * then anchored to a week-old wake time at full confidence. Past this age the record is no
+ * longer evidence about this morning, so the rhythm falls back to the body clock's own
+ * expected wake and the briefing says so.
+ */
+const MAX_SESSION_AGE_DAYS = 2;
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
@@ -62,6 +84,25 @@ function createWindow(start: Date, end: Date, label: string): TimeWindow {
     end_at: toIso(end),
     label
   };
+}
+
+/** Whole days from `earlier` to `later`, on calendar dates. Null if either is unparseable. */
+function daysBetweenDates(later: string, earlier: string): number | null {
+  const a = new Date(`${later.slice(0, 10)}T00:00:00.000Z`);
+  const b = new Date(`${earlier.slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+  return Math.round((a.getTime() - b.getTime()) / (24 * HOUR_MS));
+}
+
+/**
+ * The clock time the body expected to wake: its mid-sleep, plus half a night's sleep need.
+ * Used when last night's record is missing or stale, so the rhythm still has an anchor.
+ */
+function expectedWakeFromPhase(date: string, phaseMinutes: number, sleepNeedMinutes: number): Date | null {
+  const midnight = new Date(`${date.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(midnight.getTime())) return null;
+  const wakeMinutes = ((phaseMinutes + sleepNeedMinutes / 2) % 1440 + 1440) % 1440;
+  return new Date(midnight.getTime() + wakeMinutes * MINUTE_MS);
 }
 
 function getSessionDistance(date: string, session: SleepSession): number {
@@ -155,7 +196,12 @@ function getPhase(hoursSinceWake: number, minutesUntilBed: number): CircadianPha
 
 const ENERGY_SAMPLE_STEP_MINUTES = 20;
 
-function generateEnergyCurve(wakeTime: Date, targetBedtime: Date, restorationFactor: number): CircadianEnergyPoint[] {
+function generateEnergyCurve(
+  wakeTime: Date,
+  targetBedtime: Date,
+  restorationFactor: number,
+  modifiers: EnergyModifiers = {}
+): CircadianEnergyPoint[] {
   const points: CircadianEnergyPoint[] = [];
   const stepMs = ENERGY_SAMPLE_STEP_MINUTES * MINUTE_MS;
   const endMs = targetBedtime.getTime();
@@ -167,7 +213,18 @@ function generateEnergyCurve(wakeTime: Date, targetBedtime: Date, restorationFac
 
     points.push({
       time: toIso(new Date(cursorMs)),
-      estimated_energy: circadianEnergyAt(minutesSinceWake, minutesUntilBed, restorationFactor),
+      estimated_energy: circadianEnergyAt(minutesSinceWake, minutesUntilBed, restorationFactor, {
+        ...modifiers,
+        /*
+         * The clock offset is constant across the day — it is how late this morning's
+         * wake was relative to what the body expected — so adding it to each sample's
+         * minutes-since-wake puts the rhythm back on clock time.
+         */
+        minutesSinceCircadianWake:
+          modifiers.minutesSinceCircadianWake === null || modifiers.minutesSinceCircadianWake === undefined
+            ? null
+            : minutesSinceWake + modifiers.minutesSinceCircadianWake
+      }),
       label: phase
     });
   }
@@ -284,16 +341,13 @@ function createRhythmPlan(wakeTime: Date, targetBedtime: Date, averageDebt: numb
   return plan;
 }
 
-function combineConfidence(
-  sourceConfidence: DataConfidence,
-  sleepNeedConfidence: DataConfidence,
-  debtConfidence: DataConfidence
-): DataConfidence {
-  if ([sourceConfidence, sleepNeedConfidence, debtConfidence].includes('low')) {
+/** Variadic so new signals can join without another positional argument. Weakest wins. */
+function combineConfidence(...parts: DataConfidence[]): DataConfidence {
+  if (parts.includes('low')) {
     return 'low';
   }
 
-  if (sourceConfidence === 'high' && sleepNeedConfidence === 'high' && debtConfidence === 'high') {
+  if (parts.every((part) => part === 'high')) {
     return 'high';
   }
 
@@ -324,7 +378,24 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
   });
   const source: SleepDataSource = session?.source ?? 'estimated';
   const sourceConfidence: DataConfidence = session?.source_confidence ?? 'low';
-  const wakeTime = parseDate(session?.sleep_end_at);
+
+  const phaseEstimate = estimateCircadianPhase({
+    sessions: params.recentSleepSessions,
+    morningLightDates: params.morningLightDates
+  });
+
+  /*
+   * A session older than a couple of days is not evidence about this morning. Rather than
+   * anchoring the whole day to a stale wake time, or blanking the chart entirely, the
+   * rhythm falls back to the clock's own expected wake and the briefing reports it.
+   */
+  const sessionAgeDays = session ? daysBetweenDates(params.date, session.date) : null;
+  const sessionIsStale = sessionAgeDays === null || sessionAgeDays > MAX_SESSION_AGE_DAYS;
+  const actualWake = sessionIsStale ? null : parseDate(session?.sleep_end_at);
+  const expectedWake = phaseEstimate
+    ? expectedWakeFromPhase(params.date, phaseEstimate.phaseMinutes, params.sleepNeed.minutes)
+    : null;
+  const wakeTime = actualWake ?? expectedWake;
 
   if (!wakeTime) {
     return {
@@ -344,28 +415,82 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
       source_summary: {
         sleep_source: source,
         source_confidence: sourceConfidence
-      }
+      },
+      day_outlook: null,
+      circadian_phase: phaseEstimate,
+      limiter: null,
+      input_coverage: 0
     };
   }
 
   const targetBedtime = getTargetBedtime(wakeTime, params.preferredBedtime, params.date);
-  const restorationFactor = computeRestorationFactor({
-    quality: session?.sleep_quality ?? null,
-    durationMinutes:
-      session?.duration_minutes ?? calculateSleepDuration(session?.sleep_start_at ?? null, session?.sleep_end_at ?? null),
+  const restoration = computeRestoration({
+    quality: sessionIsStale ? null : session?.sleep_quality ?? null,
+    refreshment: params.refreshment ?? null,
+    durationMinutes: sessionIsStale
+      ? null
+      : session?.duration_minutes ?? calculateSleepDuration(session?.sleep_start_at ?? null, session?.sleep_end_at ?? null),
     sleepNeedMinutes: params.sleepNeed.minutes,
-    avgDebtMinutes: sleepDebt7Day.nightly_average_debt_minutes
+    avgDebtMinutes: sleepDebt7Day.nightly_average_debt_minutes,
+    regularityScore: phaseEstimate?.regularityScore ?? null,
+    misalignmentMinutes: sessionIsStale ? null : phaseEstimate?.misalignmentMinutes ?? null
   });
-  const energyCurve = generateEnergyCurve(wakeTime, targetBedtime, restorationFactor);
+  const restorationFactor = restoration.factor;
+
+  /* Positive when this morning's wake was later than the clock expected. */
+  const clockOffsetMinutes =
+    actualWake && expectedWake
+      ? circularDifference(
+          actualWake.getHours() * 60 + actualWake.getMinutes(),
+          expectedWake.getHours() * 60 + expectedWake.getMinutes()
+        )
+      : null;
+
+  const energyCurve = generateEnergyCurve(wakeTime, targetBedtime, restorationFactor, {
+    misalignmentMinutes: sessionIsStale ? null : phaseEstimate?.misalignmentMinutes ?? null,
+    caffeineOnBoardMg: params.caffeineOnBoardMg ?? null,
+    morningLightMinutes: params.morningLightMinutes ?? null,
+    minutesSinceCircadianWake: clockOffsetMinutes
+  });
+  const dayOutlook = deriveDayOutlook(energyCurve, restoration.coverage, ENERGY_SAMPLE_STEP_MINUTES);
   const energyZones = deriveEnergyZones(energyCurve);
   const energyExtrema = deriveEnergyExtrema(energyCurve);
   const rhythmPlan = createRhythmPlan(wakeTime, targetBedtime, sleepDebt7Day.nightly_average_debt_minutes);
-  const confidence = combineConfidence(sourceConfidence, params.sleepNeed.confidence, sleepDebt7Day.confidence);
+  /*
+   * Thin input lowers confidence rather than the score, which is the rule the previous
+   * version broke by filling unknown terms with a flattering placeholder.
+   */
+  const coverageConfidence: DataConfidence =
+    restoration.coverage >= 0.7 ? 'high' : restoration.coverage >= 0.35 ? 'medium' : 'low';
+  const confidence = combineConfidence(
+    sessionIsStale ? 'low' : sourceConfidence,
+    params.sleepNeed.confidence,
+    sleepDebt7Day.confidence,
+    coverageConfidence,
+    phaseEstimate?.confidence ?? 'low'
+  );
   const reasonCodes = [
     'circadian_phase_estimated',
     ...sleepDebt7Day.reason_codes,
     ...rhythmPlan.reason_codes
   ];
+
+  if (sessionIsStale) {
+    /* The rhythm is anchored to the clock's expected wake, not to a real record. */
+    reasonCodes.push('sleep_data_stale', 'wake_time_estimated');
+  }
+  if (restoration.coverage < 0.35) {
+    reasonCodes.push('sleep_inputs_thin');
+  }
+  if (phaseEstimate && phaseEstimate.misalignmentMinutes !== null && Math.abs(phaseEstimate.misalignmentMinutes) >= 60) {
+    reasonCodes.push('rhythm_out_of_step');
+  }
+  if (phaseEstimate?.regularityScore !== null && phaseEstimate?.regularityScore !== undefined && phaseEstimate.regularityScore < 0.5) {
+    reasonCodes.push('schedule_irregular');
+  }
+  if (restoration.limiter) {
+    reasonCodes.push(`limiter_${restoration.limiter}`);
+  }
 
   if (session?.corrected_by_user) {
     reasonCodes.push('user_corrected_sleep');
@@ -390,7 +515,11 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     source_summary: {
       sleep_source: source,
       source_confidence: sourceConfidence
-    }
+    },
+    day_outlook: dayOutlook,
+    circadian_phase: phaseEstimate,
+    limiter: restoration.limiter,
+    input_coverage: restoration.coverage
   };
 }
 

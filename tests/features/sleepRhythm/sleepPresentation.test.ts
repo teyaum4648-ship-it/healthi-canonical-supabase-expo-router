@@ -72,7 +72,11 @@ function briefing(): CircadianBriefing {
     },
     confidence: 'medium',
     reason_codes: [],
-    source_summary: { sleep_source: 'manual', source_confidence: 'high' }
+    source_summary: { sleep_source: 'manual', source_confidence: 'high' },
+    day_outlook: null,
+    circadian_phase: null,
+    limiter: null,
+    input_coverage: 0
   };
 }
 

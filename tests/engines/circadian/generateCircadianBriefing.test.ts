@@ -308,3 +308,111 @@ describe('generateCircadianBriefing', () => {
   });
 });
 
+
+describe('rhythm anchoring, staleness and the day outlook', () => {
+  const need: SleepNeedEstimate = { minutes: 480, confidence: 'high', basis: ['onboarding'], updated_at: '2026-09-01T00:00:00.000Z' };
+
+  /** A night ending on `date`, given in local clock times. */
+  function night(date: string, bedHour: number, wakeHour: number): SleepSession {
+    const prev = new Date(`${date}T00:00:00`);
+    prev.setDate(prev.getDate() - 1);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startDay = bedHour >= 12
+      ? `${prev.getFullYear()}-${pad(prev.getMonth() + 1)}-${pad(prev.getDate())}`
+      : date;
+    return {
+      date,
+      sleep_start_at: `${startDay}T${pad(bedHour)}:00:00`,
+      sleep_end_at: `${date}T${pad(wakeHour)}:00:00`,
+      duration_minutes: null,
+      sleep_quality: 4,
+      source: 'manual',
+      source_confidence: 'high'
+    } as SleepSession;
+  }
+
+  const steady = Array.from({ length: 12 }, (_, i) =>
+    night(`2026-09-${String(i + 1).padStart(2, '0')}`, 23, 7));
+
+  it('produces a day outlook with a band and carries input coverage', () => {
+    const briefing = generateCircadianBriefing({
+      date: '2026-09-12',
+      timezone: 'UTC',
+      recentSleepSessions: steady,
+      sleepNeed: need,
+      refreshment: 4,
+      now: '2026-09-12T10:00:00'
+    });
+
+    expect(briefing.day_outlook).not.toBeNull();
+    expect(briefing.day_outlook!.score).toBeGreaterThan(0);
+    expect(['sharp', 'steady', 'slow', 'flat']).toContain(briefing.day_outlook!.band);
+    expect(briefing.input_coverage).toBeGreaterThan(0.5);
+    expect(briefing.circadian_phase).not.toBeNull();
+    expect(briefing.circadian_phase!.regularityScore).toBeGreaterThan(0.8);
+  });
+
+  it('reports a lie-in as misalignment instead of moving the whole rhythm', () => {
+    const lieIn = [...steady, night('2026-09-13', 2, 11)];
+    const briefing = generateCircadianBriefing({
+      date: '2026-09-13',
+      timezone: 'UTC',
+      recentSleepSessions: lieIn,
+      sleepNeed: need,
+      refreshment: 4,
+      now: '2026-09-13T13:00:00'
+    });
+
+    expect(Math.abs(briefing.circadian_phase!.misalignmentMinutes!)).toBeGreaterThan(90);
+    expect(briefing.reason_codes).toContain('rhythm_out_of_step');
+  });
+
+  it('falls back to the clock rather than anchoring to a week-old wake time', () => {
+    /*
+     * findMostRecentSession will return any session dated on or before today, so a
+     * week-old record used to anchor the curve at full confidence.
+     */
+    const briefing = generateCircadianBriefing({
+      date: '2026-09-20',
+      timezone: 'UTC',
+      recentSleepSessions: steady, // newest is 2026-09-12, eight days earlier
+      sleepNeed: need,
+      now: '2026-09-20T10:00:00'
+    });
+
+    expect(briefing.reason_codes).toContain('sleep_data_stale');
+    expect(briefing.confidence).toBe('low');
+    // Still useful: the clock's own expected wake keeps a curve on screen.
+    expect(briefing.wake_time).not.toBeNull();
+    expect(briefing.energy_curve.length).toBeGreaterThan(0);
+  });
+
+  it('drops last night from restoration when it is stale, rather than crediting it', () => {
+    const fresh = generateCircadianBriefing({
+      date: '2026-09-12', timezone: 'UTC', recentSleepSessions: steady, sleepNeed: need, now: '2026-09-12T10:00:00'
+    });
+    const stale = generateCircadianBriefing({
+      date: '2026-09-20', timezone: 'UTC', recentSleepSessions: steady, sleepNeed: need, now: '2026-09-20T10:00:00'
+    });
+    expect(stale.input_coverage).toBeLessThan(fresh.input_coverage);
+    expect(stale.reason_codes).toContain('sleep_inputs_thin');
+  });
+
+  it('flags an irregular schedule', () => {
+    const irregular = [
+      night('2026-09-01', 22, 6), night('2026-09-02', 1, 9), night('2026-09-03', 23, 6),
+      night('2026-09-04', 3, 11), night('2026-09-05', 21, 5), night('2026-09-06', 2, 10)
+    ];
+    const briefing = generateCircadianBriefing({
+      date: '2026-09-06', timezone: 'UTC', recentSleepSessions: irregular, sleepNeed: need, now: '2026-09-06T12:00:00'
+    });
+    expect(briefing.reason_codes).toContain('schedule_irregular');
+  });
+
+  it('lets caffeine lift the day and says nothing when it is unknown', () => {
+    const base = { date: '2026-09-12', timezone: 'UTC', recentSleepSessions: steady, sleepNeed: need, refreshment: 3, now: '2026-09-12T13:00:00' };
+    const plain = generateCircadianBriefing(base);
+    const caffeinated = generateCircadianBriefing({ ...base, caffeineOnBoardMg: 150 });
+    expect(caffeinated.day_outlook!.score).toBeGreaterThan(plain.day_outlook!.score);
+  });
+});
