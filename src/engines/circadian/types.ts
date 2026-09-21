@@ -1,5 +1,5 @@
 import type { CircadianPhaseEstimate } from './circadianPhase';
-import type { DayOutlook, Restoration } from './energyModel';
+import type { DayOutlook, Restoration, TypicalBand } from './energyModel';
 
 import type { DataConfidence } from '../../types/common';
 
@@ -158,6 +158,8 @@ export type CircadianBriefing = {
   limiter: Restoration['limiter'];
   /** 0–1: how much of the restoration weight was actually known. Drives confidence, not score. */
   input_coverage: number;
+  /** This person's own typical day, for the chart to read today against. */
+  typical_band: TypicalBand | null;
 };
 
 export type DailySignalNeed =

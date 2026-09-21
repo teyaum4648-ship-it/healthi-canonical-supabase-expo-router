@@ -76,7 +76,8 @@ function briefing(): CircadianBriefing {
     day_outlook: null,
     circadian_phase: null,
     limiter: null,
-    input_coverage: 0
+    input_coverage: 0,
+    typical_band: null
   };
 }
 

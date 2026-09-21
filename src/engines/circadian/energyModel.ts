@@ -85,6 +85,16 @@ type TermName = NonNullable<Restoration['limiter']>;
 /** Neutral midpoint used only when nothing at all is known. */
 const NEUTRAL_FACTOR = 0.5;
 
+/**
+ * Below this much coverage the forecast is still calibrating and should say so.
+ *
+ * Set at the point where neither the subjective signal nor a rhythm is available: duration
+ * and debt read off a single night come to 0.40, which is genuinely thin however confident
+ * the arithmetic looks. Exported because the engine and the copy must not each hardcode
+ * their own idea of thin — they disagreed the first time, and a test caught it.
+ */
+export const THIN_COVERAGE = 0.5;
+
 /*
  * Weights over the terms that are present. Refreshment outranks stored quality because it
  * is the better-posed question; duration and debt carry the objective load; regularity
@@ -280,6 +290,63 @@ export function circadianEnergyAt(
     base - inertia + morningPeak - afternoonDip + eveningPeak - windDown
       - misalignmentPenalty + caffeineLift + lightLift
   );
+}
+
+/**
+ * The floor and ceiling of a typical day for this person, so today's curve can be read
+ * against their own normal rather than against an abstract 0–100.
+ *
+ * The chart used to render a fixed 0–100 axis, which meant a good day and a bad day both
+ * filled the same vertical space and neither had anything to be compared to. A reference
+ * band is the honest way to make the axis mean something: the scale can move, but there
+ * is always something behind it that does not.
+ */
+export type TypicalBand = {
+  low: number;
+  high: number;
+  /** Nights the band was built from. Below about five it is a guess, and says so. */
+  nights: number;
+};
+
+/**
+ * Build the band from the median of recent nights.
+ *
+ * The median rather than the mean, for the same reason the sleep baseline uses it: one
+ * catastrophic night should not redefine what normal looks like for a fortnight.
+ */
+export function deriveTypicalBand(
+  nightlySleepMinutes: number[],
+  sleepNeedMinutes: number,
+  wakingMinutes = 16 * 60
+): TypicalBand | null {
+  const usable = nightlySleepMinutes.filter((value) => Number.isFinite(value) && value > 0);
+  if (usable.length === 0) return null;
+
+  const sorted = [...usable].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  const medianMinutes = sorted.length % 2 === 1
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+
+  /*
+   * Duration is the only term available across a run of nights — refreshment and
+   * misalignment are per-night and often absent — so the band is deliberately a
+   * duration-only reference, and `nights` lets the caller hedge it.
+   */
+  const reference = computeRestorationFactor({
+    durationMinutes: medianMinutes,
+    sleepNeedMinutes
+  });
+
+  let low = 100;
+  let high = 0;
+  for (let m = 0; m <= wakingMinutes; m += 20) {
+    const value = circadianEnergyAt(m, wakingMinutes - m, reference);
+    if (value < low) low = value;
+    if (value > high) high = value;
+  }
+
+  return { low, high, nights: usable.length };
 }
 
 export type OutlookBand = 'sharp' | 'steady' | 'slow' | 'flat';

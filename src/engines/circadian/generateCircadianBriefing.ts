@@ -6,6 +6,8 @@ import {
   deriveDayOutlook,
   deriveEnergyExtrema,
   deriveEnergyZones,
+  deriveTypicalBand,
+  THIN_COVERAGE,
   type DayOutlook,
   type EnergyModifiers
 } from './energyModel';
@@ -392,6 +394,15 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
   const sessionAgeDays = session ? daysBetweenDates(params.date, session.date) : null;
   const sessionIsStale = sessionAgeDays === null || sessionAgeDays > MAX_SESSION_AGE_DAYS;
   const actualWake = sessionIsStale ? null : parseDate(session?.sleep_end_at);
+
+  /*
+   * Misalignment from one or two nights is structurally zero — the phase estimate starts
+   * at the first night's mid-sleep, so a single night is by construction in step with
+   * itself. Counting that as a known term flattered coverage and made a first-ever log
+   * look better established than it was.
+   */
+  const usableMisalignment =
+    phaseEstimate && phaseEstimate.nightsUsed >= 3 ? phaseEstimate.misalignmentMinutes : null;
   const expectedWake = phaseEstimate
     ? expectedWakeFromPhase(params.date, phaseEstimate.phaseMinutes, params.sleepNeed.minutes)
     : null;
@@ -419,7 +430,8 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
       day_outlook: null,
       circadian_phase: phaseEstimate,
       limiter: null,
-      input_coverage: 0
+      input_coverage: 0,
+      typical_band: null
     };
   }
 
@@ -433,7 +445,7 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     sleepNeedMinutes: params.sleepNeed.minutes,
     avgDebtMinutes: sleepDebt7Day.nightly_average_debt_minutes,
     regularityScore: phaseEstimate?.regularityScore ?? null,
-    misalignmentMinutes: sessionIsStale ? null : phaseEstimate?.misalignmentMinutes ?? null
+    misalignmentMinutes: sessionIsStale ? null : usableMisalignment
   });
   const restorationFactor = restoration.factor;
 
@@ -447,7 +459,7 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
       : null;
 
   const energyCurve = generateEnergyCurve(wakeTime, targetBedtime, restorationFactor, {
-    misalignmentMinutes: sessionIsStale ? null : phaseEstimate?.misalignmentMinutes ?? null,
+    misalignmentMinutes: sessionIsStale ? null : usableMisalignment,
     caffeineOnBoardMg: params.caffeineOnBoardMg ?? null,
     morningLightMinutes: params.morningLightMinutes ?? null,
     minutesSinceCircadianWake: clockOffsetMinutes
@@ -461,7 +473,7 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
    * version broke by filling unknown terms with a flattering placeholder.
    */
   const coverageConfidence: DataConfidence =
-    restoration.coverage >= 0.7 ? 'high' : restoration.coverage >= 0.35 ? 'medium' : 'low';
+    restoration.coverage >= 0.7 ? 'high' : restoration.coverage >= THIN_COVERAGE ? 'medium' : 'low';
   const confidence = combineConfidence(
     sessionIsStale ? 'low' : sourceConfidence,
     params.sleepNeed.confidence,
@@ -479,10 +491,10 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     /* The rhythm is anchored to the clock's expected wake, not to a real record. */
     reasonCodes.push('sleep_data_stale', 'wake_time_estimated');
   }
-  if (restoration.coverage < 0.35) {
+  if (restoration.coverage < THIN_COVERAGE) {
     reasonCodes.push('sleep_inputs_thin');
   }
-  if (phaseEstimate && phaseEstimate.misalignmentMinutes !== null && Math.abs(phaseEstimate.misalignmentMinutes) >= 60) {
+  if (usableMisalignment !== null && Math.abs(usableMisalignment) >= 60) {
     reasonCodes.push('rhythm_out_of_step');
   }
   if (phaseEstimate?.regularityScore !== null && phaseEstimate?.regularityScore !== undefined && phaseEstimate.regularityScore < 0.5) {
@@ -519,7 +531,14 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     day_outlook: dayOutlook,
     circadian_phase: phaseEstimate,
     limiter: restoration.limiter,
-    input_coverage: restoration.coverage
+    input_coverage: restoration.coverage,
+    typical_band: deriveTypicalBand(
+      sleepDebt14Day.nights
+        .map((night) => night.sleep_minutes)
+        .filter((minutes): minutes is number => typeof minutes === 'number'),
+      params.sleepNeed.minutes,
+      (targetBedtime.getTime() - wakeTime.getTime()) / MINUTE_MS
+    )
   };
 }
 

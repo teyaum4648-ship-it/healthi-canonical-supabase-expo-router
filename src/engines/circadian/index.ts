@@ -9,14 +9,17 @@ export {
   deriveDayOutlook,
   deriveEnergyExtrema,
   deriveEnergyZones,
+  deriveTypicalBand,
   getRecommendedActivityAt,
   outlookLabel,
+  THIN_COVERAGE,
   type DayOutlook,
   type EnergyModifiers,
   type OutlookBand,
   type RecommendedActivity,
   type Restoration,
-  type RestorationInput
+  type RestorationInput,
+  type TypicalBand
 } from './energyModel';
 export {
   circularDifference,

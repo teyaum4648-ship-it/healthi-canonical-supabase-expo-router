@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateCircadianBriefing } from '../../../src/engines/circadian';
+import { generateCircadianBriefing, THIN_COVERAGE } from '../../../src/engines/circadian';
 import type { SleepNeedEstimate, SleepSession } from '../../../src/engines/circadian';
 
 const sleepNeed: SleepNeedEstimate = {
@@ -414,5 +414,32 @@ describe('rhythm anchoring, staleness and the day outlook', () => {
     const plain = generateCircadianBriefing(base);
     const caffeinated = generateCircadianBriefing({ ...base, caffeineOnBoardMg: 150 });
     expect(caffeinated.day_outlook!.score).toBeGreaterThan(plain.day_outlook!.score);
+  });
+});
+
+describe('a single night does not fake an established rhythm', () => {
+  const need2: SleepNeedEstimate = {
+    minutes: 480, confidence: 'high', basis: ['onboarding'], updated_at: '2026-09-01T00:00:00.000Z'
+  };
+
+  it('does not count misalignment until there are enough nights to mean anything', () => {
+    /*
+     * The phase estimate starts at the first night's mid-sleep, so one night is in step
+     * with itself by construction. Counting that zero as a known term made a first-ever
+     * log look better established than it was.
+     */
+    const one: SleepSession = {
+      date: '2026-09-01',
+      sleep_start_at: '2026-08-31T23:00:00',
+      sleep_end_at: '2026-09-01T07:00:00',
+      duration_minutes: null, sleep_quality: null, source: 'manual', source_confidence: 'high'
+    } as SleepSession;
+
+    const single = generateCircadianBriefing({
+      date: '2026-09-01', timezone: 'UTC', recentSleepSessions: [one], sleepNeed: need2, now: '2026-09-01T11:00:00'
+    });
+    expect(single.circadian_phase!.nightsUsed).toBe(1);
+    expect(single.reason_codes).toContain('sleep_inputs_thin');
+    expect(single.input_coverage).toBeLessThan(THIN_COVERAGE);
   });
 });

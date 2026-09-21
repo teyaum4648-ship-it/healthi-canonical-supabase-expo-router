@@ -1,3 +1,4 @@
+import { describeMisalignment, outlookLabel, THIN_COVERAGE } from '../../engines/circadian';
 import type {
   CircadianBriefing,
   CircadianPhase,
@@ -437,3 +438,83 @@ export function scheduleWindDown(steps: WindDownStep[], bedtimeMinutes: number):
     return scheduled;
   });
 }
+
+/**
+ * Today's outlook, in words.
+ *
+ * The chart can show the shape of a day but not why it has that shape. This is the
+ * sentence underneath it: which single input cost the most, and whether the problem was
+ * the hours or the timing — the distinction the model could not previously make at all.
+ *
+ * Language stays estimative throughout. This is general wellness guidance, and the honest
+ * register for a forecast built partly from self-report is "suggests", not "shows".
+ */
+
+const LIMITER_COPY: Record<string, string> = {
+  refreshment: 'You said you woke unrefreshed, which is the strongest single signal here.',
+  quality: 'Reported sleep quality is what is holding the estimate down.',
+  duration: 'A short night is the main factor.',
+  debt: 'Accumulated sleep debt across recent nights is the main factor.',
+  regularity: 'An irregular recent schedule is the main factor — the nights vary more than they settle.',
+  misalignment: 'The hours were there; the timing was not. Your body clock and last night disagree.'
+};
+
+export type OutlookSummary = {
+  eyebrow: string;
+  /** The band word — Sharp, Steady, Slow or Flat. */
+  headline: string;
+  /** Score and peak, for the right-hand side of the card header. */
+  meta: string;
+  /** Why it looks like this. Null when nothing stands out. */
+  body: string | null;
+  /** Timing note, when last night sat meaningfully out of step. */
+  timing: string | null;
+  /** Shown instead of confidence claims when the inputs are thin. */
+  calibrating: boolean;
+};
+
+export function describeOutlook(briefing: CircadianBriefing): OutlookSummary | null {
+  const outlook = briefing.day_outlook;
+  if (!outlook) return null;
+
+  const hours = Math.round((outlook.highMinutes / 60) * 10) / 10;
+  const meta = outlook.highMinutes > 0
+    ? `${outlook.score} · ${hours}h in your best range`
+    : `${outlook.score} · peaks around ${outlook.peakEnergy}`;
+
+  const misalignment = briefing.circadian_phase?.misalignmentMinutes ?? null;
+  const timing = misalignment !== null && Math.abs(misalignment) >= 60
+    ? describeMisalignment(misalignment)
+    : null;
+
+  return {
+    eyebrow: 'Today’s outlook',
+    headline: outlookLabel(outlook.band),
+    meta,
+    /* Timing already has its own line, so it is not repeated as the limiter. */
+    body: briefing.limiter && briefing.limiter !== 'misalignment'
+      ? LIMITER_COPY[briefing.limiter] ?? null
+      : null,
+    timing,
+    calibrating: briefing.input_coverage < THIN_COVERAGE
+  };
+}
+
+/**
+ * How refreshed a person felt on waking, as anchored choices rather than bare numbers.
+ *
+ * The input used to be the digits 1 to 5 with no reference point, carrying the largest
+ * single weight in the model while being the least reliable thing in it. "How did it
+ * feel?" invites a judgement about a night spent unconscious; "how refreshed were you?"
+ * asks about something observable, and reads sleep inertia directly.
+ *
+ * Deliberately no default. Unanswered has to mean unanswered — a pre-selected 4 asserts a
+ * good night on behalf of someone who never said so.
+ */
+export const REFRESHMENT_CHOICES: Array<{ value: string; label: string; detail: string }> = [
+  { value: '1', label: 'Wrecked', detail: 'Could have gone straight back to sleep' },
+  { value: '2', label: 'Groggy', detail: 'Slow to get going' },
+  { value: '3', label: 'OK', detail: 'Took a while, but I was up' },
+  { value: '4', label: 'Clear', detail: 'Awake within a few minutes' },
+  { value: '5', label: 'Sharp', detail: 'Woke before the alarm, ready' }
+];
