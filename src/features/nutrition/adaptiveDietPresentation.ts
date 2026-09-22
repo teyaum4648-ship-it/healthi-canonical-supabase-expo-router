@@ -7,6 +7,27 @@ import type {
   NutritionTargets
 } from '../../engines/nutrition';
 
+import {
+  MICRONUTRIENTS,
+  dailyValueFraction,
+  formatMicronutrientAmount
+} from '../../engines/nutrition/micronutrients';
+
+/**
+ * Coverage as one of the words the lanes already use.
+ *
+ * The count belongs in the detail rather than the state: the state is a shared vocabulary
+ * across every lane, and a lane that invents its own reads as a different kind of thing.
+ */
+function micronutrientLaneState(summary: NutrientSummary): 'Steady' | 'Building' | 'Underrepresented' | 'Limited data' {
+  if (summary.meal_count === 0) return 'Limited data';
+  const covered = summary.micronutrient_coverage.fraction;
+  if (covered < 0.25) return 'Limited data';
+  if (covered < 0.5) return 'Underrepresented';
+  if (covered < 0.75) return 'Building';
+  return 'Steady';
+}
+
 export type AdaptiveDietDestination = 'Build Meal' | 'Log Meal' | 'Response Log' | 'Nutrients';
 
 export type AdaptiveDietPriority = {
@@ -233,11 +254,13 @@ export function buildAdaptiveDietPresentation(input: {
     {
       id: 'micronutrients',
       name: 'Micronutrient coverage',
-      state: 'Limited data',
-      progress: 0,
-      confidence: 'low',
-      horizon: 'This week',
-      detail: 'The current nutrition log does not provide complete micronutrient coverage.'
+      state: micronutrientLaneState(summary),
+      progress: summary.micronutrient_coverage.fraction,
+      confidence: summary.micronutrient_coverage.fraction >= 0.5 ? summary.confidence : 'low',
+      horizon: 'Today',
+      detail: summary.meal_count === 0
+        ? 'Log a food to begin reading the panel.'
+        : `${summary.micronutrient_coverage.reported} of ${summary.micronutrient_coverage.tracked} tracked nutrients reported today. Packaged foods carry the label panel and little else, so coverage runs higher on whole foods. Unreported nutrients lower confidence, not your result.`
     }
   ];
 
@@ -247,10 +270,26 @@ export function buildAdaptiveDietPresentation(input: {
     { id: 'fat', name: 'Fat', amount: amount(summary.fat_g, ' g'), context: targets.fat_g_target ? `Working range context · ${Math.round(targets.fat_g_target)} g` : 'No working range available', confidence: summary.confidence },
     { id: 'fiber', name: 'Fiber', amount: amount(summary.fiber_g, ' g'), context: targets.fiber_g_target ? `Working range context · ${Math.round(targets.fiber_g_target)} g` : 'No working range available', confidence: summary.confidence },
     { id: 'sodium', name: 'Sodium', amount: amount(summary.sodium_mg, ' mg'), context: 'Shown as label context, not a universal quality score', confidence: summary.confidence },
-    { id: 'potassium', name: 'Potassium', amount: 'Not reported', context: 'Current meal records do not persist this nutrient', confidence: 'low' },
-    { id: 'calcium', name: 'Calcium', amount: 'Not reported', context: 'Current meal records do not persist this nutrient', confidence: 'low' },
-    { id: 'iron', name: 'Iron', amount: 'Not reported', context: 'Current meal records do not persist this nutrient', confidence: 'low' },
-    { id: 'calories', name: 'Energy', amount: amount(summary.calories, ' cal'), context: 'Context only; Healthi is not a calorie-tracking app', confidence: summary.confidence }
+    { id: 'calories', name: 'Energy', amount: amount(summary.calories, ' cal'), context: 'Context only; Healthi is not a calorie-tracking app', confidence: summary.confidence },
+    /*
+     * The tracked panel. These three rows used to be potassium, calcium and iron with
+     * the amount hardcoded to "Not reported" and the context reading "current meal
+     * records do not persist this nutrient" — which was true, under a heading that said
+     * "Full spectrum, honestly reported". The providers were always sending the panel.
+     */
+    ...MICRONUTRIENTS.map((definition) => {
+      const reported = formatMicronutrientAmount(definition.id, summary.micronutrients[definition.id]);
+      const share = dailyValueFraction(definition.id, summary.micronutrients[definition.id]);
+      return {
+        id: definition.id,
+        name: definition.label,
+        amount: reported ?? 'Not reported',
+        context: reported !== null && share !== null
+          ? `${Math.round(share * 100)}% of a day's reference amount`
+          : 'None of the foods you logged reported this',
+        confidence: reported !== null ? summary.confidence : ('low' as const)
+      };
+    })
   ];
 
   const primaryGap = priorities[0]?.id;

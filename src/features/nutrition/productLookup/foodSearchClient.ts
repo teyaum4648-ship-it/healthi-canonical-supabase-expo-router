@@ -1,6 +1,7 @@
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
 import { searchOpenFoodFactsProducts, type ProductSearchResult } from './openFoodFactsClient';
 import { canonicalBarcodeIdentity } from './barcodeUtils';
+import { readUsdaMicronutrients } from './micronutrientReaders';
 import type { HealthiProductSnapshot } from './productLookupTypes';
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -18,7 +19,7 @@ export function normalizeUsdaSearchFood(food: RecordValue): HealthiProductSnapsh
   const kcal = nutrient(1008, 'kcal') ?? nutrient(2048, 'kcal') ?? nutrient(2047, 'kcal');
   return { barcode: text(food.gtinUpc), provider: 'usda_food_data_central', provider_product_id: String(food.fdcId), name: text(food.description), brand: text(food.brandName) || text(food.brandOwner) || null,
     ingredients_text: text(food.ingredients) || null, image_url: null, serving_size: null,
-    nutriments_per_100g: { calories: kcal, protein_g: nutrient(1003, 'g'), carbs_g: nutrient(1005, 'g'), fat_g: nutrient(1004, 'g'), fiber_g: nutrient(1079, 'g'), sugar_g: nutrient(2000, 'g'), added_sugar_g: nutrient(1235, 'g'), saturated_fat_g: nutrient(1258, 'g'), sodium_mg: nutrient(1093, 'mg') },
+    nutriments_per_100g: { calories: kcal, protein_g: nutrient(1003, 'g'), carbs_g: nutrient(1005, 'g'), fat_g: nutrient(1004, 'g'), fiber_g: nutrient(1079, 'g'), sugar_g: nutrient(2000, 'g'), added_sugar_g: nutrient(1235, 'g'), saturated_fat_g: nutrient(1258, 'g'), sodium_mg: nutrient(1093, 'mg'), micronutrients: readUsdaMicronutrients(food.foodNutrients) },
     confidence: 'medium', quality_flags: [], reason_codes: [] };
 }
 export function normalizeSearchPayload(payload: unknown, query: string): HealthiProductSnapshot[] {

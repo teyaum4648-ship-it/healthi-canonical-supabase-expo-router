@@ -1,3 +1,8 @@
+import {
+  addMicronutrients,
+  micronutrientCoverage,
+  type MicronutrientAmounts
+} from './micronutrients';
 import type {
   DataConfidence,
   MealLog,
@@ -44,6 +49,28 @@ function sumKnown(meals: MealLog[], key: NutrientKey, reasons: Set<NutritionReas
 
   return round(sum);
 }
+
+/**
+ * Micronutrient totals for the day.
+ *
+ * Summed only across the meals that reported each nutrient, so a day of three foods where
+ * one carried a vitamin C figure totals that one figure rather than treating the other two
+ * as zero. That is the same rule the macros already follow, and the reason coverage is
+ * reported alongside the totals: a number summed over one of three meals is a real number
+ * about an incomplete day, and the app should say which.
+ */
+function sumMicronutrients(meals: MealLog[]): MicronutrientAmounts {
+  let totals: MicronutrientAmounts = {};
+  for (const meal of meals) {
+    const reported = meal.micronutrients;
+    if (!reported || typeof reported !== 'object') continue;
+    totals = addMicronutrients(totals, reported);
+  }
+  return totals;
+}
+
+/** Below this share of the panel, the day is too thin to read anything into. */
+const THIN_MICRONUTRIENT_COVERAGE = 0.25;
 
 function progress(current: number | null, target: number | null | undefined): number | null {
   if (current === null || !target || target <= 0) {
@@ -143,6 +170,12 @@ export function calculateNutrientSummary(params: {
     addReason(reasonCodes, 'sodium_high');
   }
 
+  const micronutrients = sumMicronutrients(meals);
+  const coverage = micronutrientCoverage(micronutrients);
+  if (meals.length > 0 && coverage.fraction < THIN_MICRONUTRIENT_COVERAGE) {
+    addReason(reasonCodes, 'micronutrient_coverage_thin');
+  }
+
   return {
     date,
     meal_count: meals.length,
@@ -155,6 +188,8 @@ export function calculateNutrientSummary(params: {
     sodium_mg: sodiumMg,
     targets: params.targets ?? null,
     target_progress: targetProgress,
+    micronutrients,
+    micronutrient_coverage: coverage,
     confidence: confidenceFromMeals(meals, params.targets),
     reason_codes: [...reasonCodes]
   };

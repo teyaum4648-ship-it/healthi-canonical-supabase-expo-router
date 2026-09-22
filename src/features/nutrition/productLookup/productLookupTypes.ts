@@ -1,3 +1,4 @@
+import type { MicronutrientAmounts } from '../../../engines/nutrition/micronutrients';
 import type {
   DataConfidence,
   FoodQualityFlag,
@@ -187,6 +188,8 @@ export type HealthiProductSnapshot = {
     sodium_mg?: number | null;
     saturated_fat_g?: number | null;
     caffeine_mg?: number | null;
+    /** Whatever of the tracked panel the provider reported. Absent means not reported. */
+    micronutrients?: MicronutrientAmounts;
   };
   nutriments_per_100ml?: {
     calories?: number | null;
@@ -199,6 +202,8 @@ export type HealthiProductSnapshot = {
     sodium_mg?: number | null;
     saturated_fat_g?: number | null;
     caffeine_mg?: number | null;
+    /** Whatever of the tracked panel the provider reported. Absent means not reported. */
+    micronutrients?: MicronutrientAmounts;
   };
   quality_flags: FoodQualityFlag[];
   confidence: DataConfidence;

@@ -6,6 +6,7 @@ import type {
 import type { HealthiProductSnapshot } from './productLookupTypes';
 import { resolveIngredientEvidence } from './ingredientEvidenceResolver';
 import { canonicalBarcodeIdentity } from './barcodeUtils';
+import { readOpenFoodFactsMicronutrients } from './micronutrientReaders';
 import { productThumbnail } from './productImage';
 import type {
   NutrientEvidenceLedger,
@@ -547,7 +548,8 @@ export function normalizeOpenFoodFactsProduct(
       fiber_g: per100gNutrition.fiber_g ?? null,
       sodium_mg: per100gNutrition.sodium_mg ?? null,
       saturated_fat_g: per100gNutrition.saturated_fat_g ?? null,
-      caffeine_mg: per100gNutrition.caffeine_mg ?? null
+      caffeine_mg: per100gNutrition.caffeine_mg ?? null,
+      micronutrients: readOpenFoodFactsMicronutrients(nutriments)
     },
     nutriments_per_100ml: {
       calories: per100mlNutrition.calories ?? null,

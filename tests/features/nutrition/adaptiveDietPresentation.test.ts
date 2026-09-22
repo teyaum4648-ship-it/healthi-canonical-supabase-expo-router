@@ -26,6 +26,8 @@ function summary(overrides: Partial<NutrientSummary> = {}): NutrientSummary {
   return {
     date: '2026-07-29',
     meal_count: 2,
+    micronutrients: {},
+    micronutrient_coverage: { reported: 0, tracked: 27, fraction: 0 },
     calories: 1200,
     protein_g: 78,
     carbs_g: 125,
@@ -153,11 +155,18 @@ describe('buildAdaptiveDietPresentation', () => {
       confidence: 'low',
       progress: 0
     });
-    expect(result.nutrients.filter((nutrient) => ['potassium', 'calcium', 'iron'].includes(nutrient.id))).toEqual([
-      expect.objectContaining({ id: 'potassium', amount: 'Not reported', confidence: 'low' }),
-      expect.objectContaining({ id: 'calcium', amount: 'Not reported', confidence: 'low' }),
-      expect.objectContaining({ id: 'iron', amount: 'Not reported', confidence: 'low' })
-    ]);
+    /*
+     * This assertion used to pin potassium, calcium and iron in that order with the
+     * amount fixed at "Not reported" — which described the placeholder rows rather than
+     * any behaviour, and would have passed forever whatever the providers sent. What is
+     * worth holding is the property: a nutrient nothing reported says so, at low
+     * confidence, and never as a zero.
+     */
+    for (const id of ['potassium', 'calcium', 'iron', 'vitamin_c', 'folate']) {
+      const row = result.nutrients.find((nutrient) => nutrient.id === id);
+      expect(row).toBeDefined();
+      expect(row).toMatchObject({ amount: 'Not reported', confidence: 'low' });
+    }
   });
 
   it('treats an unreported nutrient as missing rather than as zero or a deficit', () => {

@@ -9,6 +9,7 @@ import type {
   NutritionTargets
 } from '../../engines/nutrition';
 
+import type { MicronutrientAmounts } from '../../engines/nutrition/micronutrients';
 export type JsonValue =
   | string
   | number
@@ -39,6 +40,8 @@ export type MealLogInsert = {
   fiber_g: number | null;
   sugar_g: number | null;
   sodium_mg: number | null;
+  /** Sparse panel keyed by nutrient id; an absent key means unreported, not zero. */
+  micronutrients: MicronutrientAmounts | null;
   ingredients: string[] | null;
   quality_flags: FoodQualityFlag[];
   user_response: MealUserResponse | null;
@@ -133,6 +136,7 @@ export function toMealLogInsert(
     fiber_g: mealLog.fiber_g ?? null,
     sugar_g: mealLog.sugar_g ?? null,
     sodium_mg: mealLog.sodium_mg ?? null,
+    micronutrients: mealLog.micronutrients ? { ...mealLog.micronutrients } : null,
     ingredients: mealLog.ingredients ? [...mealLog.ingredients] : null,
     quality_flags: [...mealLog.quality_flags],
     user_response: mealLog.user_response ? { ...mealLog.user_response } : null,

@@ -1,3 +1,4 @@
+import type { MicronutrientAmounts } from './micronutrients';
 import type { DataConfidence } from '../../types/common';
 
 export type { DataConfidence };
@@ -53,6 +54,7 @@ export type NutritionReasonCode =
   | 'user_corrected_food_log'
   | 'source_low_confidence'
   | 'partial_nutrition_data'
+  | 'micronutrient_coverage_thin'
   | 'food_response_missing'
   | 'food_response_steady'
   | 'nutrition_signal_supportive'
@@ -81,6 +83,11 @@ export type MealLog = {
   fiber_g?: number | null;
   sugar_g?: number | null;
   sodium_mg?: number | null;
+  /**
+   * Whatever of the tracked micronutrient panel the provider reported for this food.
+   * A missing key means unreported, which is not zero — see MicronutrientAmounts.
+   */
+  micronutrients?: MicronutrientAmounts | null;
   ingredients?: string[] | null;
   quality_flags: FoodQualityFlag[];
   user_response?: MealUserResponse | null;
@@ -120,6 +127,16 @@ export type NutrientSummary = {
     fiber?: number | null;
     sodium?: number | null;
   };
+  /** Micronutrient totals across the day, summed only over meals that reported each one. */
+  micronutrients: MicronutrientAmounts;
+  /**
+   * How much of the tracked panel today's records actually report.
+   *
+   * Packaged food carries the label panel and little else, so this is genuinely low on a
+   * packaged day. Saying so is the honest alternative to showing fourteen numbers and
+   * blank rows that read as zeroes.
+   */
+  micronutrient_coverage: { reported: number; tracked: number; fraction: number };
   confidence: DataConfidence;
   reason_codes: NutritionReasonCode[];
 };

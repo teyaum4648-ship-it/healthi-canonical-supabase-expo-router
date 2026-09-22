@@ -74,6 +74,7 @@ describe('nutrition persistence mapping', () => {
       fiber_g: 11,
       sugar_g: 8,
       sodium_mg: 680,
+      micronutrients: null,
       ingredients: ['chicken', 'rice', 'greens'],
       quality_flags: ['balanced_meal', 'whole_food_emphasis'],
       user_response: {
@@ -187,6 +188,23 @@ describe('nutrition persistence mapping', () => {
     expect(payload.correction_of_meal_id).toBe('11111111-1111-1111-1111-111111111111');
     expect(payload.original_source_id).toBe('demo-meal-1');
     expect(payload.raw_source_payload).toEqual(rawPayload);
+  });
+
+  it('preserves a micronutrient panel without mutating the source', () => {
+    const micronutrients = { vitamin_c: 32, iron: 2.1 };
+    const payload = toMealLogInsert(baseMeal({ micronutrients }), userId);
+
+    expect(payload.micronutrients).toEqual({ vitamin_c: 32, iron: 2.1 });
+
+    payload.micronutrients!.folate = 400;
+    expect(micronutrients).toEqual({ vitamin_c: 32, iron: 2.1 });
+  });
+
+  it('persists a meal with no panel as null rather than as an empty object', () => {
+    // An empty object would read back as "we looked and found nothing", which is a
+    // different claim from "this food never carried a panel".
+    expect(toMealLogInsert(baseMeal({ micronutrients: undefined }), userId).micronutrients).toBeNull();
+    expect(toMealLogInsert(baseMeal({ micronutrients: null }), userId).micronutrients).toBeNull();
   });
 
   it('preserves reason codes without mutating the source array', () => {

@@ -45,6 +45,7 @@ export function mealLogRowToMealLog(row: MealLogRow): MealLog {
     fiber_g: row.fiber_g,
     sugar_g: row.sugar_g,
     sodium_mg: row.sodium_mg,
+    micronutrients: row.micronutrients ?? null,
     ingredients: row.ingredients,
     quality_flags: row.quality_flags,
     user_response: row.user_response,
