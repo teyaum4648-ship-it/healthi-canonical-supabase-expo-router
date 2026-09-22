@@ -32,6 +32,14 @@ export type GenerateDailyReadinessInput = {
   };
   nutrition?: {
     meal_count?: number;
+    /**
+     * The nourishment pillar score, 0-100, when one could be calculated.
+     *
+     * Preferred over readiness_adjustment where present: the adjustment is a handful of
+     * reason codes turned into a few points, while the pillar reads energy, protein,
+     * fibre, the micronutrient panel, food quality and how the food sat.
+     */
+    nourishment_score?: number | null;
     readiness_adjustment?: number;
     food_quality_label?: string;
     food_response_label?: string;

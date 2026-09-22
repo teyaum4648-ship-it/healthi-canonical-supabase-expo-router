@@ -1,4 +1,8 @@
-export { READINESS_BASELINE, generateDailyReadiness } from './generateDailyReadiness';
+export {
+  READINESS_BASELINE,
+  generateDailyReadiness,
+  nourishmentContribution
+} from './generateDailyReadiness';
 export {
   contributionLabel,
   missingDomainPrompt,

@@ -221,10 +221,20 @@ describe('composeDashboardModel', () => {
       nutritionTargets
     });
 
+    /*
+     * The claim in the name is about the missing case, and it still holds: nothing
+     * logged contributes nothing and lowers confidence instead. The two bounds that
+     * used to follow pinned a [-3, +2] squash applied to days that DID have data, which
+     * is the thing that kept food from ever moving readiness — a week of eating badly
+     * moved the day less than one short night. That clamp is gone, so what is asserted
+     * now is the rule rather than the old constant.
+     */
     expect(withoutMeals.nutrition.summary.confidence).toBe('low');
     expect(withoutMeals.nutrition.summary.readiness_adjustment).toBe(0);
-    expect(withMeals.nutrition.summary.readiness_adjustment).toBeGreaterThanOrEqual(-3);
-    expect(withMeals.nutrition.summary.readiness_adjustment).toBeLessThanOrEqual(2);
+    expect(withoutMeals.nutrition.summary.nourishment_score).toBeNull();
+
+    expect(withMeals.nutrition.summary.readiness_adjustment).not.toBe(0);
+    expect(withMeals.nutrition.summary.nourishment_score).not.toBeNull();
   });
 
   it('does not introduce blocked language in generated dashboard copy', () => {

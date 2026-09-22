@@ -66,3 +66,20 @@ export type {
   RankedCatalogProduct,
   ScoredCatalogProduct
 } from './productScoring';
+export { calculateNourishmentScore } from './calculateNourishmentScore';
+export {
+  MICRONUTRIENTS,
+  MICRONUTRIENT_IDS,
+  addMicronutrients,
+  dailyValueFraction,
+  formatMicronutrientAmount,
+  micronutrientById,
+  micronutrientCoverage,
+  micronutrientDisplayUnit
+} from './micronutrients';
+export type {
+  MicronutrientAmounts,
+  MicronutrientDefinition,
+  MicronutrientGroup,
+  MicronutrientUnit
+} from './micronutrients';

@@ -9,6 +9,7 @@ import {
   type NutritionTargets
 } from '../../engines/nutrition';
 
+import { calculateNourishmentScore } from '../../engines/nutrition/calculateNourishmentScore';
 export type DashboardReadinessState = 'primed' | 'steady' | 'maintain' | 'recover';
 export type DashboardActionId = 'log_meal' | 'start_workout' | 'log_sleep';
 
@@ -24,6 +25,8 @@ export type DashboardNutritionSummary = {
   next_action: string;
   reason_codes: string[];
   readiness_adjustment: number;
+  /** The nourishment pillar, 0-100, or null when there is nothing to read. */
+  nourishment_score: number | null;
 };
 
 export type DashboardSignalTile = {
@@ -170,11 +173,6 @@ function uniqueReasons(reasons: Array<string | NutritionReasonCode>): string[] {
   return [...new Set(reasons)];
 }
 
-function smallNutritionAdjustment(value: number, hasMeals: boolean): number {
-  if (!hasMeals) return 0;
-  return Math.max(-3, Math.min(2, Math.round(value)));
-}
-
 export function composeDashboardNutritionSummary(params: {
   date: string;
   meals?: MealLog[];
@@ -195,6 +193,13 @@ export function composeDashboardNutritionSummary(params: {
   const foodResponse = calculateFoodResponse({
     date: params.date,
     meals
+  });
+  const nourishment = calculateNourishmentScore({
+    date: params.date,
+    nutrientSummary,
+    foodQuality,
+    foodResponse,
+    targets: params.targets
   });
   const readinessSignal = generateNutritionReadinessSignal({
     date: params.date,
@@ -225,7 +230,8 @@ export function composeDashboardNutritionSummary(params: {
         ...foodResponse.reason_codes,
         ...readinessSignal.reason_codes
       ]),
-      readiness_adjustment: 0
+      readiness_adjustment: 0,
+      nourishment_score: null
     };
   }
 
@@ -250,7 +256,8 @@ export function composeDashboardNutritionSummary(params: {
       ...foodResponse.reason_codes,
       ...readinessSignal.reason_codes
     ]),
-    readiness_adjustment: smallNutritionAdjustment(readinessSignal.score_adjustment, hasMeals)
+    readiness_adjustment: hasMeals ? readinessSignal.score_adjustment : 0,
+    nourishment_score: nourishment.score
   };
 }
 

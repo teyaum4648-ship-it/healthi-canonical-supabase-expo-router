@@ -31,6 +31,45 @@ const CONFIDENCE_VALUE: Record<DataConfidence, number> = { low: 0, medium: 1, hi
  */
 export const READINESS_BASELINE = 70;
 
+/**
+ * What food is allowed to do to the day.
+ *
+ * Until the nourishment pillar existed, nutrition reached readiness as a handful of
+ * reason codes squashed into a range of five points, so a week of eating badly moved the
+ * score less than one short night. That made "your meals have been low and it shows"
+ * something the app could say but not something its arithmetic supported.
+ *
+ * The range is wider now and still deliberately narrower than recovery's, because a bad
+ * day of food is a real drag and a bad night of sleep is a bigger one. NEUTRAL is the
+ * pillar score that moves nothing: below it the day loses points, above it gains them,
+ * and the asymmetry matches the caps — falling short costs more than excelling pays,
+ * which is how bodies work.
+ */
+const NOURISHMENT_NEUTRAL = 70;
+const NOURISHMENT_CEILING = 10;
+const NOURISHMENT_FLOOR = -18;
+/**
+ * The pillar score at which the floor is reached, rather than zero.
+ *
+ * Spreading the downside across all seventy points below neutral made the slope gentler
+ * than the upside — a day at 40 lost less than a perfect day gained, which is not how
+ * food works and not what the constants were supposed to say. A nourishment score of 30
+ * is already a poor day and scores below it are rare, so the drop is spent over the range
+ * people actually occupy and anything worse sits on the floor.
+ */
+const NOURISHMENT_FLOOR_SCORE = 30;
+
+/** A nourishment pillar score as points on the day, or null when there is no score. */
+export function nourishmentContribution(score: number | null | undefined): number | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
+  const bounded = clamp(score, 0, 100);
+  if (bounded >= NOURISHMENT_NEUTRAL) {
+    return ((bounded - NOURISHMENT_NEUTRAL) / (100 - NOURISHMENT_NEUTRAL)) * NOURISHMENT_CEILING;
+  }
+  const shortfall = Math.min(1, (NOURISHMENT_NEUTRAL - bounded) / (NOURISHMENT_NEUTRAL - NOURISHMENT_FLOOR_SCORE));
+  return shortfall * NOURISHMENT_FLOOR;
+}
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
@@ -84,17 +123,25 @@ function rhythmScore(input: GenerateDailyReadinessInput['rhythm']): DomainScore 
 
 function nutritionScore(input: GenerateDailyReadinessInput['nutrition']): DomainScore {
   if (!input) return { domain: 'nourishment', contribution: 0, confidence: 'low', missing: true, reasons: ['nutrition_data_missing'] };
-  let contribution = clamp(input.readiness_adjustment ?? 0, -8, 8);
   const quality = normalized(input.food_quality_label);
   const response = normalized(input.food_response_label);
   const reasons = [...(input.reason_codes ?? [])];
 
-  if (quality === 'supportive') contribution += 2;
-  if (quality === 'watch') contribution -= 3;
-  if (response === 'steady' || response === 'supportive') contribution += 1;
-  if (response === 'watch' || response === 'mixed') contribution -= 2;
+  // The pillar reads the whole day's food; the label bonuses below are the older, thinner
+  // path, kept for callers that have not been given a pillar score yet.
+  const fromPillar = nourishmentContribution(input.nourishment_score);
+  let contribution = fromPillar ?? clamp(input.readiness_adjustment ?? 0, -8, 8);
+
+  if (fromPillar === null) {
+    if (quality === 'supportive') contribution += 2;
+    if (quality === 'watch') contribution -= 3;
+    if (response === 'steady' || response === 'supportive') contribution += 1;
+    if (response === 'watch' || response === 'mixed') contribution -= 2;
+  }
+
   const hasSignal =
     (input.meal_count ?? 0) > 0 ||
+    fromPillar !== null ||
     Boolean(input.readiness_adjustment) ||
     isAvailableLabel(quality) ||
     isAvailableLabel(response);
@@ -102,7 +149,7 @@ function nutritionScore(input: GenerateDailyReadinessInput['nutrition']): Domain
 
   return {
     domain: 'nourishment',
-    contribution: clamp(contribution, -10, 8),
+    contribution: Math.round(clamp(contribution, NOURISHMENT_FLOOR, NOURISHMENT_CEILING)),
     confidence: input.confidence ?? 'low',
     missing: !hasSignal,
     reasons: unique(reasons)

@@ -56,6 +56,7 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
       ? {
           meal_count: nutrition.meal_count,
           readiness_adjustment: nutrition.readiness_adjustment,
+          nourishment_score: nutrition.nourishment_score,
           food_quality_label: nutrition.food_quality_label,
           food_response_label: nutrition.food_response_label,
           confidence: nutrition.confidence,
