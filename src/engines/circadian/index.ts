@@ -51,3 +51,15 @@ export type {
   SleepSession,
   TimeWindow
 } from './types';
+export {
+  CHRONOTYPE_QUESTIONS,
+  MIDDLE_CLOCK_MID_SLEEP_MINUTES,
+  scoreChronotype,
+  suggestDayArchitecture
+} from './chronotypeQuiz';
+export type {
+  ChronotypeId,
+  ChronotypeQuestion,
+  ChronotypeResult,
+  DaySlot
+} from './chronotypeQuiz';

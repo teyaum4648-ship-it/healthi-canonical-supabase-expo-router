@@ -149,12 +149,20 @@ export type CircadianPhaseEstimate = {
   regularityScore: number | null;
   nightsUsed: number;
   confidence: DataConfidence;
+  /**
+   * Whether this came from logged nights or from what the person told us.
+   *
+   * A caller showing a schedule needs to know the difference: a measured clock can be
+   * asserted, a stated one should be offered for agreement and revised as nights arrive.
+   */
+  source: 'measured' | 'self_reported';
 };
 
 /**
  * Track the clock forward through a run of nights.
  *
- * Starts at the oldest night's mid-sleep and lets each subsequent night pull the estimate
+ * Starts from the chronotype prior where there is one and from the oldest night's
+ * mid-sleep otherwise, then lets each night pull the estimate
  * by at most one night's worth of drift. A week of 2am nights followed by one 10pm night
  * leaves the clock near 2am, which is the point — and is why that 10pm night will feel
  * like lying awake rather than like an early start.
@@ -166,6 +174,16 @@ export function estimateCircadianPhase(params: {
   morningLightDates?: string[];
   /** How many trailing nights to consider. */
   windowNights?: number;
+  /**
+   * Where to start the clock before any night has been seen, from the chronotype quiz.
+   *
+   * Without it the walk starts at the first logged night, which means the first night a
+   * person records is treated as the truth about their clock and everything after is a
+   * drift away from one arbitrary evening. Seeding from what they told us puts the first
+   * night in context instead, and because each night can still move the estimate by up to
+   * an hour, a handful of real nights overrides a questionnaire within a week.
+   */
+  priorMidSleepMinutes?: number | null;
 }): CircadianPhaseEstimate | null {
   const windowNights = params.windowNights ?? 14;
   const lightDates = new Set(params.morningLightDates ?? []);
@@ -176,10 +194,27 @@ export function estimateCircadianPhase(params: {
     .sort((left, right) => left.session.date.localeCompare(right.session.date))
     .slice(-windowNights);
 
-  if (nights.length === 0) return null;
+  const prior = typeof params.priorMidSleepMinutes === 'number' && Number.isFinite(params.priorMidSleepMinutes)
+    ? wrapMinutes(params.priorMidSleepMinutes)
+    : null;
 
-  let phase = nights[0].mid;
-  for (let index = 1; index < nights.length; index++) {
+  // A stated clock is better than no clock, so the quiz alone yields an estimate.
+  if (nights.length === 0) {
+    if (prior === null) return null;
+    return {
+      phaseMinutes: Math.round(prior),
+      behaviouralMinutes: null,
+      misalignmentMinutes: null,
+      regularitySdMinutes: null,
+      regularityScore: null,
+      nightsUsed: 0,
+      confidence: 'low',
+      source: 'self_reported'
+    };
+  }
+
+  let phase = prior ?? nights[0].mid;
+  for (let index = prior === null ? 1 : 0; index < nights.length; index++) {
     const night = nights[index];
     const delta = circularDifference(night.mid, phase);
     /* Light only helps pull the clock earlier; it cannot make a delay happen faster. */
@@ -198,6 +233,7 @@ export function estimateCircadianPhase(params: {
     phaseMinutes: Math.round(phase),
     behaviouralMinutes: behavioural,
     misalignmentMinutes: Math.round(circularDifference(behavioural, phase)),
+    source: 'measured',
     regularitySdMinutes: sd === null ? null : Math.round(sd),
     regularityScore: sd === null ? null : clamp01(1 - sd / REGULARITY_CEILING_MINUTES),
     nightsUsed: nights.length,
