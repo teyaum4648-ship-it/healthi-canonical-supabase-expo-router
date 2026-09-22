@@ -17,6 +17,8 @@ function readiness(overrides: Partial<DailyReadinessResult> = {}): DailyReadines
   return {
     date: DATE,
     score: 65,
+    baseline_score: 70,
+    raw_score: 65,
     label: 'steady',
     mode: 'maintain',
     confidence: 'high',

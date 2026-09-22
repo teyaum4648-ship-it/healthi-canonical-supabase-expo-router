@@ -12,6 +12,7 @@ import { generateCircadianBriefing, type SleepNeedEstimate, type SleepSession } 
 import { generateDayPlan } from '../../../src/engines/dayPlan';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
+import { contributionLabel, readinessLedgerSummary } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
 import {
@@ -823,10 +824,10 @@ export default function DashboardScreen() {
           />
         </Panel>
 
-        <Disclosure title="What informed today?" detail={`${foundationSourceCount} of 4 foundations have available signals`}>
-          <Text style={styles.homeDetail}>These are the inputs behind your daily guidance. Missing information lowers confidence, not your score.</Text>
+        <Disclosure title="Why this estimate?" detail={readinessLedgerSummary(morningBriefing.readiness.baseline_score, morningBriefing.readiness.score, morningBriefing.readiness.raw_score)}>
+          <Text style={styles.homeDetail}>These are the inputs behind your daily guidance, and the points each one moved. Missing information lowers confidence, not your score — {foundationSourceCount} of 4 foundations have signals today.</Text>
           {morningBriefing.driver_cards.map((driver, index) => (
-            <ActionRow key={driver.domain} title={driver.label} detail={driver.detail} value={titleCase(driver.status)} icon={readinessIcon(driver.domain)} onPress={() => router.navigate(foundationRoute(driver.domain))} last={index === morningBriefing.driver_cards.length - 1} />
+            <ActionRow key={driver.domain} title={driver.label} detail={driver.detail} value={contributionLabel(driver)} icon={readinessIcon(driver.domain)} onPress={() => router.navigate(foundationRoute(driver.domain))} last={index === morningBriefing.driver_cards.length - 1} />
           ))}
           <ActionRow title="See the full daily protocol" detail="Reasons, confidence and your next steps" icon="list-outline" onPress={() => router.navigate('/protocol')} last />
         </Disclosure>

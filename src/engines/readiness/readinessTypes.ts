@@ -73,6 +73,15 @@ export type DailyReadinessDriver = {
   label: string;
   status: 'supportive' | 'steady' | 'watch' | 'calibrating';
   detail: string;
+  /**
+   * Points this domain moved the score, signed. The engine has always computed this and
+   * then thrown it away at the boundary, which is why the app could say "conserve" but
+   * never "because you are three hours down on sleep". A score a person cannot take
+   * apart is a verdict; one they can is a reading.
+   */
+  contribution: number;
+  /** No signal at all. Contributes zero by design — absence lowers confidence, not score. */
+  missing: boolean;
   confidence: DataConfidence;
   reason_codes: string[];
 };
@@ -80,6 +89,16 @@ export type DailyReadinessDriver = {
 export type DailyReadinessResult = {
   date: string;
   score: number;
+  /** Where every day starts before any signal is read. The rest of the score is the ledger. */
+  baseline_score: number;
+  /**
+   * Baseline plus every contribution, before the 0-100 clamp.
+   *
+   * A very good day sums past 100 and a very bad one below 0, and when that happens the
+   * ledger and the ring disagree unless the ceiling is said out loud. Carrying the raw
+   * total is what lets the explanation stay arithmetic instead of becoming a story.
+   */
+  raw_score: number;
   label: DailyReadinessLabel;
   mode: DailyReadinessMode;
   confidence: DataConfidence;

@@ -1,4 +1,4 @@
-import { readinessSummary } from './readinessCopy';
+import { missingDomainPrompt, readinessSummary } from './readinessCopy';
 import type {
   DailyReadinessAction,
   DailyReadinessDomain,
@@ -20,6 +20,16 @@ type DomainScore = {
 };
 
 const CONFIDENCE_VALUE: Record<DataConfidence, number> = { low: 0, medium: 1, high: 2 };
+
+/**
+ * Where a day starts before anything is known about it.
+ *
+ * A domain with no data contributes nothing, so a profile with nothing logged reads
+ * exactly 70 — deliberately, because missing data must lower confidence rather than the
+ * score. The cost is that 70 looks like a finding when it is an absence, which is what
+ * the driver ledger and its prompts exist to make visible.
+ */
+export const READINESS_BASELINE = 70;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -201,7 +211,7 @@ function driverStatus(score: DomainScore): DailyReadinessDriver['status'] {
 }
 
 function driverDetail(score: DomainScore, input: GenerateDailyReadinessInput): string {
-  if (score.missing) return 'More logged data will sharpen this signal.';
+  if (score.missing) return missingDomainPrompt(score.domain);
   if (score.domain === 'recovery_rhythm') {
     const hours = input.rhythm?.sleep_duration_hours;
     return typeof hours === 'number'
@@ -229,6 +239,8 @@ function drivers(scores: DomainScore[], input: GenerateDailyReadinessInput): Dai
     label: labels[score.domain],
     status: driverStatus(score),
     detail: driverDetail(score, input),
+    contribution: score.contribution,
+    missing: score.missing,
     confidence: score.confidence,
     reason_codes: [...score.reasons]
   }));
@@ -373,7 +385,8 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
     movementScore(input.movement),
     scheduleScore(input.schedule)
   ];
-  const score = clamp(70 + scores.reduce((sum, domain) => sum + domain.contribution, 0), 0, 100);
+  const rawScore = READINESS_BASELINE + scores.reduce((sum, domain) => sum + domain.contribution, 0);
+  const score = clamp(rawScore, 0, 100);
   const missingData = scores.filter((domain) => domain.missing).map((domain) => domain.domain);
   const confidence = combinedConfidence(scores);
   const label = readinessLabel(score, missingData.length);
@@ -390,6 +403,8 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
   return {
     date: input.date.slice(0, 10),
     score,
+    baseline_score: READINESS_BASELINE,
+    raw_score: rawScore,
     label,
     mode,
     confidence,
