@@ -18,7 +18,6 @@ import { composeDashboardNutritionSummary } from '../../../src/features/dashboar
 import {
   aggregateDashboardMacros,
   boundedProgress,
-  driverStatusProgress,
   greetingForHour,
   recentSleepTrend
 } from '../../../src/features/dashboard/homeDashboardPresentation';

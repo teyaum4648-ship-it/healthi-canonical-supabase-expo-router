@@ -88,7 +88,7 @@ function measure(): CoverageRow[] {
  * a short list is doing more damage than one that appears six times in last place,
  * because position weight is what the score reads.
  */
-function unmatchedByCost(rows: CoverageRow[]): Array<{ name: string; occurrences: number; cost: number }> {
+function unmatchedByCost(): Array<{ name: string; occurrences: number; cost: number }> {
   const tally = new Map<string, { occurrences: number; cost: number }>();
   for (const { text } of corpus()) {
     for (const item of roleIngredients(splitIngredientList(text))) {
@@ -149,7 +149,7 @@ describe('ingredient recognition coverage', () => {
     const rows = measure();
     const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
     const worst = [...rows].sort((left, right) => right.unknownWeight - left.unknownWeight);
-    const unmatched = unmatchedByCost(rows);
+    const unmatched = unmatchedByCost();
 
     const lines = [
       'Ingredient recognition coverage',

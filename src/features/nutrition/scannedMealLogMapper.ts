@@ -1,4 +1,5 @@
 import type { MealType, NutritionReasonCode } from '../../engines/nutrition';
+import { micronutrientsForPortion } from './micronutrientPortion';
 import type { MealLogPersistenceInput } from './persistence';
 import type { HealthiProductSnapshot } from './productLookup/productLookupTypes';
 
@@ -58,6 +59,7 @@ export function scannedProductToMealLog(params: ScannedMealLogParams): MealLogPe
     fiber_g: scale(params.snapshot.fiber_g, quantity),
     sugar_g: scale(params.snapshot.sugar_g, quantity),
     sodium_mg: scale(params.snapshot.sodium_mg, quantity),
+    micronutrients: micronutrientsForPortion(params.snapshot, quantity),
     ingredients: params.snapshot.ingredients_text
       ? params.snapshot.ingredients_text.split(',').map((item) => item.trim()).filter(Boolean)
       : null,

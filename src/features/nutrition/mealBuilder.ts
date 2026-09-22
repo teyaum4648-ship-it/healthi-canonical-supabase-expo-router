@@ -8,6 +8,7 @@ import { canonicalBarcodeIdentity } from './productLookup/barcodeUtils';
 import { safeProductImageUrl } from './productLookup/productImage';
 import { foodLoggingNutrition } from './foodLoggingNutrition';
 
+import { micronutrientsForItems } from './micronutrientPortion';
 export type MealBuilderItem = {
   id: string;
   food_product_id: string | null;
@@ -248,6 +249,9 @@ export function mealBuilderToAggregateMealLog(
     fiber_g: totals.fiber_g,
     sugar_g: totals.sugar_g,
     sodium_mg: totals.sodium_mg,
+    micronutrients: micronutrientsForItems(
+      builder.items.map((item) => ({ snapshot: item.snapshot, servings: item.servings }))
+    ),
     ingredients: builder.items.map((item) => item.snapshot.name),
     quality_flags: qualityFlags,
     user_response: null,
