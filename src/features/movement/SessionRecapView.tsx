@@ -26,10 +26,10 @@ const palette = {
   background: '#000000',
   surface: '#121214',
   ink: '#F5F5F7',
-  accent: '#0A84FF',
+  accent: '#1E90FF',
   accentMid: '#5AC8FA',
   slate: '#A1A1A6',
-  faint: '#6E6E73',
+  faint: '#8E8E93',
   line: 'rgba(255, 255, 255, 0.075)',
   record: '#FF9F0A',
   up: '#63E6CE'
@@ -292,11 +292,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: 13
   },
-  chipPressed: { backgroundColor: 'rgba(10, 132, 255, 0.18)' },
+  chipPressed: { backgroundColor: 'rgba(30, 144, 255, 0.18)' },
   chipText: { ...type.caption, color: palette.ink },
   nextPanel: {
-    backgroundColor: 'rgba(10, 132, 255, 0.10)',
-    borderColor: 'rgba(10, 132, 255, 0.26)',
+    backgroundColor: 'rgba(30, 144, 255, 0.10)',
+    borderColor: 'rgba(30, 144, 255, 0.26)',
     borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 8,

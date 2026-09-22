@@ -19,7 +19,7 @@ const RING_COLOR: Record<ProductLetterGrade, string> = {
 };
 
 /** The colour for a score, or a muted grey when there is no score to show. */
-export function scoreRingColor(score: number | null | undefined, unscored = '#6E6E73'): string {
+export function scoreRingColor(score: number | null | undefined, unscored = '#8E8E93'): string {
   if (typeof score !== 'number' || !Number.isFinite(score)) return unscored;
   return RING_COLOR[productLetterGrade(score)];
 }

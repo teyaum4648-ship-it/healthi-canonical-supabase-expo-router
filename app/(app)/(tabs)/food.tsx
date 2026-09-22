@@ -2048,7 +2048,7 @@ export default function FoodScreen() {
             accessibilityLabel="Search nutrients"
             onChangeText={setNutrientQuery}
             placeholder="Search nutrients"
-            placeholderTextColor="#6E6E73"
+            placeholderTextColor="#8E8E93"
             style={styles.adaptiveSearch}
             value={nutrientQuery}
           />
@@ -2702,7 +2702,7 @@ const styles = StyleSheet.create({
   },
   trackerCard: {
     backgroundColor: '#121214',
-    borderColor: 'rgba(10, 132, 255, 0.20)',
+    borderColor: 'rgba(30, 144, 255, 0.20)',
     borderRadius: 22,
     borderWidth: 1
   },
@@ -2715,14 +2715,14 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(10, 132, 255, 0.12)',
+    borderBottomColor: 'rgba(30, 144, 255, 0.12)',
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#0A84FF',
+    color: '#1E90FF',
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
@@ -2750,7 +2750,7 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(10, 132, 255, 0.10)',
+    backgroundColor: 'rgba(30, 144, 255, 0.10)',
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
@@ -2787,12 +2787,12 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#0A84FF',
+    color: '#1E90FF',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerMicroUnavailable: {
-    color: '#6E6E73',
+    color: '#8E8E93',
     fontFamily: sansMedium,
     fontSize: 10
   },
@@ -2807,7 +2807,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(10, 132, 255, 0.28)',
+    borderColor: 'rgba(30, 144, 255, 0.28)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2817,13 +2817,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#0A84FF',
+    color: '#1E90FF',
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#0A84FF',
+    backgroundColor: '#1E90FF',
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2869,7 +2869,7 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#0A84FF'
+    borderBottomColor: '#1E90FF'
   },
   adaptiveTabText: {
     color: '#A1A1A6',
@@ -2933,7 +2933,7 @@ const styles = StyleSheet.create({
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#0A84FF',
+    backgroundColor: '#1E90FF',
     borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
@@ -3014,13 +3014,13 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(10, 132, 255,0.35)',
+    borderBottomColor: 'rgba(30, 144, 255,0.35)',
     borderBottomWidth: 1,
     justifyContent: 'center',
     minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#0A84FF',
+    color: '#1E90FF',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
@@ -3274,14 +3274,14 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(10, 132, 255,0.40)',
+    borderColor: 'rgba(30, 144, 255,0.40)',
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#0A84FF',
+    color: '#1E90FF',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.8,
@@ -3415,8 +3415,8 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 132, 255,0.08)',
-    borderColor: 'rgba(10, 132, 255,0.24)',
+    backgroundColor: 'rgba(30, 144, 255,0.08)',
+    borderColor: 'rgba(30, 144, 255,0.24)',
     borderRadius: 18,
     borderWidth: 1,
     height: 42,

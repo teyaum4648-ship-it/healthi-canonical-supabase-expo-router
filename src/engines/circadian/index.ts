@@ -4,12 +4,33 @@ export { generateCircadianBriefing } from './generateCircadianBriefing';
 export { getMissingDailySignals } from './getMissingDailySignals';
 export {
   circadianEnergyAt,
+  computeRestoration,
   computeRestorationFactor,
+  deriveDayOutlook,
   deriveEnergyExtrema,
   deriveEnergyZones,
+  deriveTypicalBand,
   getRecommendedActivityAt,
-  type RecommendedActivity
+  outlookLabel,
+  THIN_COVERAGE,
+  type DayOutlook,
+  type EnergyModifiers,
+  type OutlookBand,
+  type RecommendedActivity,
+  type Restoration,
+  type RestorationInput,
+  type TypicalBand
 } from './energyModel';
+export {
+  circularDifference,
+  circularMeanMinutes,
+  circularSdMinutes,
+  clockMinutes,
+  describeMisalignment,
+  estimateCircadianPhase,
+  midSleepMinutes,
+  type CircadianPhaseEstimate
+} from './circadianPhase';
 export type {
   CircadianBriefing,
   CircadianEnergyPoint,

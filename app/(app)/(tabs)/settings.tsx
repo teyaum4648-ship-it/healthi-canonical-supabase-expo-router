@@ -7,6 +7,7 @@ import { Button } from '../../../src/components/Button';
 import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
+import { LegalLinks } from '../../../src/features/legal/LegalLinks';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
@@ -445,7 +446,9 @@ export default function SettingsScreen() {
           </Card>
 
           </Disclosure>
-          <Disclosure title="Account and baseline" detail={model.account.label}>
+          <LegalLinks />
+
+        <Disclosure title="Account and baseline" detail={model.account.label}>
           <Card style={styles.accountCard}>
             <Text style={styles.cardEyebrow}>ACCOUNT</Text>
             <Text style={styles.accountTitle}>{model.account.label}</Text>

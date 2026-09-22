@@ -1,3 +1,6 @@
+import type { CircadianPhaseEstimate } from './circadianPhase';
+import type { DayOutlook, Restoration, TypicalBand } from './energyModel';
+
 import type { DataConfidence } from '../../types/common';
 
 export type { DataConfidence };
@@ -141,6 +144,22 @@ export type CircadianBriefing = {
     sleep_source: SleepDataSource;
     source_confidence: DataConfidence;
   };
+  /**
+   * Headline answer to "what does today look like", with the band label the UI shows.
+   * Null when there is no curve to read it from.
+   */
+  day_outlook: DayOutlook | null;
+  /**
+   * Where the body clock sits, how regular the schedule is, and how far last night was
+   * out of step with it. Null until at least one usable night exists.
+   */
+  circadian_phase: CircadianPhaseEstimate | null;
+  /** Which single input cost the most, when one clearly dominates. Names the limiter. */
+  limiter: Restoration['limiter'];
+  /** 0–1: how much of the restoration weight was actually known. Drives confidence, not score. */
+  input_coverage: number;
+  /** This person's own typical day, for the chart to read today against. */
+  typical_band: TypicalBand | null;
 };
 
 export type DailySignalNeed =

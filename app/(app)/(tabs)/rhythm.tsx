@@ -21,6 +21,12 @@ import {
 } from '../../../src/features/sleepRhythm/sleepWindowEngine';
 import { supabase } from '../../../src/lib/supabase';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
+import { protocolScope } from '../../../src/features/dailyProtocol';
+import {
+  localDaylightStore,
+  summariseDaylightDay,
+  type DaylightBout
+} from '../../../src/features/practice/daylightModel';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
@@ -53,7 +59,12 @@ export default function RhythmScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [sleepStartTime, setSleepStartTime] = useState('22:45');
   const [wakeTime, setWakeTime] = useState('06:45');
-  const [sleepQuality, setSleepQuality] = useState('4');
+  /*
+   * Starts unanswered rather than at 4. The old default silently asserted a good night on
+   * behalf of anyone who never touched the form, and that value carried the largest single
+   * weight in the forecast. An unset value now lowers confidence instead.
+   */
+  const [sleepQuality, setSleepQuality] = useState('');
   const [inputsTouched, setInputsTouched] = useState(false);
   const [logRequest, setLogRequest] = useState(0);
   useQuickEntry(() => setLogRequest((value) => value + 1), !isLoading);
@@ -120,6 +131,27 @@ export default function RhythmScreen() {
     [previewSession, sleepSessions, today]
   );
 
+  /*
+   * Morning light is already being logged on the Mood tab, so the circadian engine reads
+   * it rather than asking for it twice. It is the strongest zeitgeber there is, and it is
+   * the one input here that was sitting in the app unused.
+   */
+  const [daylight, setDaylight] = useState<DaylightBout[]>([]);
+  useEffect(() => {
+    let active = true;
+    void localDaylightStore.read(protocolScope(user?.id)).then((rows) => {
+      if (active) setDaylight(rows);
+    });
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const light = useMemo(() => {
+    const morningDates = [...new Set(
+      daylight.filter((bout) => bout.window === 'early' || bout.window === 'morning').map((bout) => bout.date)
+    )];
+    return { morningDates, todayMinutes: summariseDaylightDay(daylight, today).morningMinutes };
+  }, [daylight, today]);
+
   const briefing: CircadianBriefing = useMemo(
     () => generateCircadianBriefing({
       date: today,
@@ -127,9 +159,12 @@ export default function RhythmScreen() {
       recentSleepSessions: briefingSessions,
       sleepNeed,
       preferredBedtime: '22:30',
-      now
+      now,
+      refreshment: boundedQuality(sleepQuality),
+      morningLightDates: light.morningDates,
+      morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null
     }),
-    [briefingSessions, now, sleepNeed, today]
+    [briefingSessions, light, now, sleepNeed, sleepQuality, today]
   );
 
   async function handleManualSubmit() {

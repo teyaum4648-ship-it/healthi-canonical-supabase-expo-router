@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility · Healthi</title>
+<meta name="description" content="Healthi's accessibility commitment, the standard we build to, what works today, what does not yet, and how to tell us about a barrier.">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/healthi-icon-192.png">
+<link rel="stylesheet" href="/legal/legal.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the statement</a>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="brand">
+    <img src="/icons/healthi-icon-192.png" alt="">
+    <a href="/">Healthi</a>
+  </div>
+  <h1>Accessibility</h1>
+  <p class="meta">Version 1.0 · Last reviewed <span class="fill">{{EFFECTIVE_DATE}}</span></p>
+</header>
+
+<main id="main">
+
+<p class="lede">We want Healthi to work for everybody, including people who use a screen reader, navigate by keyboard, need larger text, or find motion uncomfortable. This page says what standard we hold ourselves to, what currently works, what does not yet, and how to tell us when we have got it wrong.</p>
+
+<h2>The standard we build to</h2>
+<p>We aim to conform to <strong><a href="https://www.w3.org/TR/WCAG22/" rel="noopener">WCAG 2.2 Level AA</a></strong> across the app and this website. We treat that as the working definition of accessible rather than a box to tick, and we test against it as part of normal development.</p>
+
+<h2>What works today</h2>
+<ul>
+  <li><strong>Screen readers.</strong> Interactive controls carry accessible names, roles and states, so VoiceOver and TalkBack announce what a control is, what it does and whether it is selected. Status messages &mdash; a failed login, a saved entry &mdash; are announced without stealing your place on the page.</li>
+  <li><strong>Colour contrast.</strong> Text and meaningful interface colours meet the AA contrast ratios against the backgrounds they sit on. We check this numerically rather than by eye.</li>
+  <li><strong>Colour is never the only signal.</strong> A food score shows its number and its reasoning, not just a coloured ring. Errors are described in words as well as marked in red.</li>
+  <li><strong>Text scaling.</strong> The app respects your system text size, and this website reflows down to a narrow phone with no horizontal scrolling and no loss of content.</li>
+  <li><strong>Reduced motion.</strong> If you have &ldquo;Reduce Motion&rdquo; switched on, animation is dropped and replaced with a non-moving equivalent &mdash; the breathing pacer, for example, changes brightness instead of size, so the guidance still works without the movement.</li>
+  <li><strong>Keyboard.</strong> These legal pages, and the web build of the app, can be operated by keyboard alone, with a visible focus indicator and a &ldquo;skip to content&rdquo; link.</li>
+  <li><strong>Touch targets.</strong> Controls are built to a minimum 44×44&nbsp;point target.</li>
+  <li><strong>Images.</strong> Every image that carries information has a text alternative. Purely decorative images are hidden from screen readers rather than described pointlessly.</li>
+  <li><strong>No time limits</strong> on reading or completing anything, and nothing that flashes.</li>
+</ul>
+
+<h2>Where we know we fall short</h2>
+<p>An honest list is more useful than a claim of perfection:</p>
+<ul>
+  <li><strong>Charts.</strong> Trend and sleep charts are visual. A summary in words accompanies each one, but a screen reader cannot yet explore the shape of a chart point by point. We intend to add a table view.</li>
+  <li><strong>The sleep chart scrubber</strong> is a drag interaction. The same information is available in the written summary, but the scrubber itself is not yet keyboard operable.</li>
+  <li><strong>Camera-based features</strong> &mdash; barcode scanning and meal photos &mdash; are visual by nature. Every food can instead be found by search or by typing a barcode, and we consider that path a requirement, not a fallback.</li>
+  <li><strong>The app is dark-only</strong> at present. A light theme and a high-contrast theme are both on our list.</li>
+  <li><strong>English only</strong> for now.</li>
+</ul>
+
+<h2>Tell us about a barrier</h2>
+<p>If something in Healthi stops you doing what you came to do, we want to know, and you do not need to describe it in technical terms.</p>
+<p>Email <a href="mailto:{{ACCESSIBILITY_EMAIL}}"><span class="fill">{{ACCESSIBILITY_EMAIL}}</span></a>. Tell us what you were trying to do, what happened, and what you use &mdash; for example &ldquo;VoiceOver on iPhone&rdquo;. We aim to reply within <strong>5 business days</strong> with either a fix or a date for one, and if it will take a while we will offer a way to get the same thing done in the meantime.</p>
+<p>If you need information from Healthi in a different format, ask and we will provide it.</p>
+
+<h2>How we test</h2>
+<ul>
+  <li>Contrast ratios are calculated from the theme values, not sampled from screenshots.</li>
+  <li>Screens are checked with VoiceOver on iOS and TalkBack on Android.</li>
+  <li>The web build is checked by keyboard alone, and with &ldquo;Reduce Motion&rdquo; enabled.</li>
+  <li>Accessible names and roles are covered by automated tests in our codebase, so a regression fails the build rather than waiting for a user to report it.</li>
+</ul>
+<p>This statement was last reviewed on <span class="fill">{{EFFECTIVE_DATE}}</span> and is reviewed whenever we ship a significant interface change.</p>
+
+</main>
+
+<footer class="pagefoot">
+  <ul>
+    <li><a href="/legal/">All policies</a></li>
+    <li><a href="/legal/privacy.html">Privacy</a></li>
+    <li><a href="/legal/terms.html">Terms</a></li>
+    <li><a href="/legal/cookies.html">Cookies &amp; storage</a></li>
+    <li><a href="/legal/refunds.html">Refunds</a></li>
+    <li><a href="/legal/attributions.html">Attributions</a></li>
+  </ul>
+  <p><span class="fill">{{LEGAL_ENTITY}}</span> · San Diego, California</p>
+</footer>
+
+</div>
+</body>
+</html>

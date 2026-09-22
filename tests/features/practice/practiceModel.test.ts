@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  BREATH_RHYTHMS,
+  BREATH_TECHNIQUES,
   cycleMs,
   cyclesInMinutes,
+  techniqueById
+} from '../../../src/features/practice/breathTechniques';
+import {
   practiceDayLine,
-  rhythmById,
   summarisePracticeDay
 } from '../../../src/features/practice/practiceModel';
 
@@ -19,30 +21,33 @@ function session(overrides: { date: string; seconds: number; rhythmId?: string; 
   };
 }
 
-describe('paced breathing, as a rhythm rather than a hard-coded circle', () => {
-  it('keeps a zero hold in the cycle length rather than dropping the step', () => {
-    const settle = rhythmById('settle');
-    expect(settle.holdMs).toBe(0);
-    expect(cycleMs(settle)).toBe(12_000);
+describe('paced breathing, as named techniques rather than one circle with a dial', () => {
+  it('sums a cycle from its phases', () => {
+    expect(cycleMs(techniqueById('settle'))).toBe(12_000);
   });
 
   it('preserves the pace the sleep screen already used', () => {
     // 4s in, a pause at the top, 5s out. Changing this silently would change a
     // behaviour people have already been following before bed.
-    const wind = rhythmById('wind_down');
-    expect([wind.inhaleMs, wind.holdMs, wind.exhaleMs]).toEqual([4000, 3500, 5000]);
+    expect(techniqueById('wind_down').phases.map((phase) => [phase.kind, phase.ms])).toEqual([
+      ['inhale', 4000],
+      ['hold', 3500],
+      ['exhale', 5000]
+    ]);
   });
 
-  it('gives every rhythm a stated reason', () => {
+  it('gives every technique a stated when and why', () => {
     // A ratio with nothing behind it is a number somebody picked.
-    for (const rhythm of BREATH_RHYTHMS) {
-      expect(rhythm.purpose.length).toBeGreaterThan(20);
+    for (const technique of BREATH_TECHNIQUES) {
+      expect(technique.when.length, technique.id).toBeGreaterThan(30);
+      expect(technique.why.length, technique.id).toBeGreaterThan(60);
+      expect(technique.summary.length, technique.id).toBeGreaterThan(10);
     }
   });
 
   it('never offers less than one cycle', () => {
-    expect(cyclesInMinutes(rhythmById('zone'), 0)).toBe(1);
-    expect(cyclesInMinutes(rhythmById('steady'), 2)).toBe(10);
+    expect(cyclesInMinutes(techniqueById('zone'), 0)).toBe(1);
+    expect(cyclesInMinutes(techniqueById('steady'), 2)).toBe(10);
   });
 
   it('counts only today, and says so plainly', () => {
@@ -54,13 +59,13 @@ describe('paced breathing, as a rhythm rather than a hard-coded circle', () => {
     expect(day.sessions).toHaveLength(2);
     expect(day.totalSeconds).toBe(240);
     // The last one done is the one worth offering again.
-    expect(day.lastRhythm?.id).toBe('wind_down');
+    expect(day.lastTechnique?.id).toBe('wind_down');
     expect(practiceDayLine(day)).toBe('4 minutes today, across 2 sessions.');
   });
 
   it('says nothing yet rather than zero', () => {
     const day = summarisePracticeDay([], '2026-09-15');
-    expect(day.lastRhythm).toBeNull();
+    expect(day.lastTechnique).toBeNull();
     expect(practiceDayLine(day)).toBe('Nothing yet today.');
   });
 });
