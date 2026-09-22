@@ -1,5 +1,6 @@
 import { composeFoundationScore } from '../foundations/composeFoundationScore';
 import type { FoundationContributor, FoundationScore } from '../foundations/foundationTypes';
+import { mobilityTerm, type MovementScreen } from './movementScreenModel';
 import type { MovementSummary } from './movementTypes';
 
 /**
@@ -87,6 +88,10 @@ export function explainMovementLimiter(
     return 'Loads have not moved. That may be the programme rather than you — the same weight for weeks is a signal to change something, not to push harder.';
   }
 
+  if (limiterId === 'mobility_range') {
+    return 'Several checks came back tight. Tightness is often a place doing work something else has stopped doing, so the screen suggests what to give work to rather than only what to stretch.';
+  }
+
   if (limiterId === 'recovery_balance') {
     return 'No rest day this week. Training without one tends to cost more than it adds.';
   }
@@ -104,6 +109,8 @@ export function calculateMovementScore(params: {
   progression?: ProgressionTally | null;
   /** Days in the last seven with no session logged. */
   restDays7d?: number | null;
+  /** The mobility screen, when one has been done. Absent simply drops the term. */
+  screen?: MovementScreen | null;
   context?: MovementCrossDomainContext;
 }): FoundationScore & { limiter_causes: string[] } {
   const { summary } = params;
@@ -111,6 +118,9 @@ export function calculateMovementScore(params: {
   const logged = summary.workout_count > 0 || summary.total_minutes > 0;
 
   const progression = progressionTerm(params.progression);
+  const screen = params.screen
+    ? mobilityTerm(params.screen)
+    : { value: null, detail: 'No mobility screen yet' };
 
   const disciplines = [
     summary.strength_session_count > 0,
@@ -161,6 +171,18 @@ export function calculateMovementScore(params: {
       detail: logged
         ? `${summary.mobility_recovery_session_count} mobility or recovery sessions`
         : 'Nothing logged in the last seven days'
+    },
+    {
+      /*
+       * How the body actually moves, as opposed to how often it was asked to. Sessions
+       * logged say nothing about whether a hip travels, which is why counting mobility
+       * sessions was never a measure of mobility.
+       */
+      id: 'mobility_range',
+      label: 'Range of motion',
+      weight: 0.15,
+      value: screen.value,
+      detail: screen.detail
     },
     {
       id: 'recovery_balance',

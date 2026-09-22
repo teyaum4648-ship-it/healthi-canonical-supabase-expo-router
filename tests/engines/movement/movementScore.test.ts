@@ -5,7 +5,14 @@ import {
   explainMovementLimiter,
   type ProgressionTally
 } from '../../../src/engines/movement/calculateMovementScore';
+import { MOBILITY_TESTS, type MovementScreen } from '../../../src/engines/movement/movementScreenModel';
 import type { MovementSummary } from '../../../src/engines/movement/movementTypes';
+
+const clearScreen: MovementScreen = {
+  date: '2026-08-19',
+  findings: Object.fromEntries(MOBILITY_TESTS.map((test) => [test.id, 'clear' as const])),
+  postureFlags: []
+};
 
 /**
  * The movement pillar.
@@ -53,7 +60,8 @@ describe('the movement pillar', () => {
       date: DATE,
       summary: summary({ workout_count: 5, total_minutes: 220, mobility_recovery_session_count: 2 }),
       progression: tally(),
-      restDays7d: 3
+      restDays7d: 3,
+      screen: clearScreen
     });
     expect(result.score).toBeGreaterThanOrEqual(80);
     expect(result.coverage).toBe(1);
