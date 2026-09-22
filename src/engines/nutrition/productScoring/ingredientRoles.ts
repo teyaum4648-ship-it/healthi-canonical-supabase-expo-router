@@ -22,6 +22,9 @@
  * file exists.
  */
 
+import { isVocabularyFood } from './foodVocabulary';
+import { correctSpelling, repairTowardFood } from './ingredientAliases';
+
 export type IngredientRole =
   | 'whole_food'
   | 'culinary_fat'
@@ -172,8 +175,8 @@ const RULES: Rule[] = [
    * deserve. Whole-grain forms are listed explicitly so they beat the refined rule.
    */
   { role: 'whole_food', pattern: /\b(whole (?:wheat|grain|oat|rye|corn|barley|spelt) ?(?:flour|berries)?|whole wheat|whole grain|whole durum wheat semolina|sprouted [a-z]+|rolled oats?|steel[- ]cut oats?|oats?|oatmeal|quinoa|amaranth|buckwheat|millet|barley|farro|brown rice|wild rice|rice\b|corn\b|ground corn|hominy|masa)\b/ },
-  { role: 'whole_food', pattern: /\b(blueberr(?:y|ies)|strawberr(?:y|ies)|raspberr(?:y|ies)|blackberr(?:y|ies)|cranberr(?:y|ies)|berries|apples?|bananas?|oranges?|lemons?|limes?|pears?|peaches?|mangoe?s?|pineapples?|grapes?|raisins?|dates?|figs?|prunes?|apricots?|cherries|fruit|tomatoes?|tomato paste|tomato powder)\b/ },
-  { role: 'whole_food', pattern: /\b(broccoli|spinach|kale|carrots?|celery|onions?|garlic|peppers?|cucumbers?|lettuce|cabbage|cauliflower|zucchini|squash|sweet potatoes?|potatoes?|mushrooms?|peas?|green beans?|asparagus|beets?|vegetables?|basil|herbs?|spices?|cinnamon|parsley|oregano|thyme|rosemary|ginger|turmeric)\b/ },
+  { role: 'whole_food', pattern: /\b(blueberr(?:y|ies)|strawberr(?:y|ies)|raspberr(?:y|ies)|blackberr(?:y|ies)|cranberr(?:y|ies)|berries|apples?|bananas?|oranges?|lemons?|limes?|pears?|peach(?:es)?|nectarines?|plums?|mangoe?s?|pineapples?|grapes?|raisins?|dates?|figs?|prunes?|apricots?|cherr(?:y|ies)|berr(?:y|ies)|fruit|tomato(?:es)?|tomato paste|tomato powder)\b/ },
+  { role: 'whole_food', pattern: /\b(broccoli|spinach|kale|carrots?|celery|onions?|garlic|peppers?|cucumbers?|lettuce|cabbage|cauliflower|zucchini|squash|sweet potato(?:es)?|potato(?:es)?|mushrooms?|peas?|green beans?|asparagus|beets?|vegetables?|basil|herbs?|spices?|cinnamon|parsley|oregano|thyme|rosemary|ginger|turmeric)\b/ },
   { role: 'whole_food', pattern: /\b(chickpeas?|garbanzo beans?|black beans?|kidney beans?|pinto beans?|navy beans?|white beans?|lentils?|edamame|soybeans?|beans?|tofu|tempeh)\b/ },
   { role: 'whole_food', pattern: /\b(almonds?|cashews?|walnuts?|pecans?|pistachios?|hazelnuts?|macadamias?|peanuts?|nuts?|pumpkin seeds?|sunflower seeds?|chia seeds?|flax ?seeds?|hemp seeds?|sesame seeds?|seeds?|almond butter|peanut butter|tahini)\b/ },
   { role: 'whole_food', pattern: /\b(chicken|turkey|beef|pork|lamb|bison|tuna|salmon|cod|sardines?|anchov(?:y|ies)|shrimp|fish|eggs?|egg whites?|egg yolks?)\b/ },
@@ -188,14 +191,46 @@ const RULES: Rule[] = [
   { role: 'neutral', pattern: /\b(water|carbonated water|filtered water|sea salt|kosher salt|salt|sodium chloride|yeast|baking soda|baking powder|leavening|sodium bicarbonate|sodium carbonate|vinegar|apple cider vinegar|citric acid|lactic acid|malic acid|phosphoric acid|caffeine|carbon dioxide|cultures?|cheese cultures|live cultures|enzymes?|rennet|lime\b|calcium hydroxide|air|nitrogen)\b/ }
 ];
 
-/** The role of one ingredient name, and what it is worth, read left to right. */
+/** The first rule whose pattern matches, which is where all the judgment lives. */
+function ruleReading(text: string): { role: IngredientRole; foodValue: number } | null {
+  for (const rule of RULES) {
+    if (rule.pattern.test(text)) {
+      return { role: rule.role, foodValue: rule.value ?? ROLE_FOOD_VALUE[rule.role] };
+    }
+  }
+  return null;
+}
+
+/**
+ * The role of one ingredient name, and what it is worth, read left to right.
+ *
+ * The rules decide first and alone: everything after them runs only for a name no rule
+ * placed, so no fallback can overturn a judgment the table already made. The order of
+ * what follows is deliberate — the curated spelling map may land on any role, because
+ * reading "hydrogenatd oil" as a hydrogenated fat is correct; the fuzzy repair runs last
+ * and is checked against food names only, so a guess can credit but never penalise.
+ */
 export function ingredientReading(name: string): { role: IngredientRole; foodValue: number } {
   const text = name.toLowerCase().trim();
   if (text) {
-    for (const rule of RULES) {
-      if (rule.pattern.test(text)) {
-        return { role: rule.role, foodValue: rule.value ?? ROLE_FOOD_VALUE[rule.role] };
+    const matched = ruleReading(text);
+    if (matched) return matched;
+
+    if (isVocabularyFood(text)) {
+      return { role: 'whole_food', foodValue: ROLE_FOOD_VALUE.whole_food };
+    }
+
+    const corrected = correctSpelling(text);
+    if (corrected !== text) {
+      const repaired = ruleReading(corrected);
+      if (repaired) return repaired;
+      if (isVocabularyFood(corrected)) {
+        return { role: 'whole_food', foodValue: ROLE_FOOD_VALUE.whole_food };
       }
+    }
+
+    if (isVocabularyFood(repairTowardFood(corrected))) {
+      return { role: 'whole_food', foodValue: ROLE_FOOD_VALUE.whole_food };
     }
   }
   return { role: 'unknown', foodValue: ROLE_FOOD_VALUE.unknown };
