@@ -39,6 +39,14 @@ type GenerateCircadianBriefingParams = {
   morningLightMinutes?: number | null;
   /** Estimated caffeine still on board right now, mg. */
   caffeineOnBoardMg?: number | null;
+  /**
+   * Where the clock sits according to the chronotype questions, before any night is known.
+   *
+   * Only ever a starting point: each logged night can still move the estimate by up to an
+   * hour, so a week of real sleep overrules it. Null once someone has declined the day it
+   * proposed, since carrying on from answers they have rejected is not listening.
+   */
+  chronotypeMidSleepMinutes?: number | null;
 };
 
 /**
@@ -383,7 +391,8 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
 
   const phaseEstimate = estimateCircadianPhase({
     sessions: params.recentSleepSessions,
-    morningLightDates: params.morningLightDates
+    morningLightDates: params.morningLightDates,
+    priorMidSleepMinutes: params.chronotypeMidSleepMinutes
   });
 
   /*

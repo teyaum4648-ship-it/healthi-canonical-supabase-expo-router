@@ -78,6 +78,8 @@ import { buildSessionRecap, type SessionRecap as SessionRecapModel } from '../..
 import { SessionRecap } from '../../../src/features/movement/SessionRecap';
 import {
   calculateMovementSummary,
+  calculateMovementScore,
+  type ProgressionTally,
   generateAdaptiveMovementPlan,
   generateMovementReadinessSignal,
   type MovementExerciseCategory
@@ -157,6 +159,14 @@ import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { MovementPillarCard } from '../../../src/features/movement/MovementPillarCard';
+import { MobilityScreenFlow } from '../../../src/features/movement/MobilityScreenFlow';
+import {
+  readMovementScreens,
+  saveMovementScreen,
+  toMovementScreen,
+  type StoredMovementScreen
+} from '../../../src/features/movement/movementScreenStore';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
@@ -272,6 +282,9 @@ export default function MovementScreen() {
   const trainingLimited = Boolean(activeProtocol && !activeProtocol.safety.training_allowed);
   const usePreviewFixture = __DEV__ && (Array.isArray(moveFixture) ? moveFixture[0] : moveFixture) === 'full';
   const [activeSegment, setActiveSegment] = useState<Segment>('Today');
+  const [screenOpen, setScreenOpen] = useState(false);
+  const [movementScreens, setMovementScreens] = useState<StoredMovementScreen[]>([]);
+  const [sleepDebtHours, setSleepDebtHours] = useState<number | null>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [isQuickLogging, setIsQuickLogging] = useState(false);
   const [starterOpen, setStarterOpen] = useState(false);
@@ -431,6 +444,8 @@ export default function MovementScreen() {
             preferredBedtime: '22:30',
             now
           });
+          const debtMinutes = briefing.sleep_debt_7_day?.nightly_average_debt_minutes ?? null;
+          if (isMounted) setSleepDebtHours(typeof debtMinutes === 'number' ? debtMinutes / 60 : null);
           if (isMounted) setSleepSignal(sleepSessions.length > 0
             ? deriveSleepMoveSignal(briefing)
             : { signal: 'unknown', summary: 'Log your first sleep window to add recovery context.' });
@@ -460,9 +475,66 @@ export default function MovementScreen() {
 
   const engineSessions = useMemo(() => sessions.map(workoutSessionRowToEngineSession), [sessions]);
   const engineEntries = useMemo(() => entries.map(workoutExerciseEntryRowToEngineEntry), [entries]);
+  useEffect(() => {
+    let active = true;
+    void readMovementScreens(protocolScope(userId)).then((rows) => {
+      if (active) setMovementScreens(rows);
+    });
+    return () => { active = false; };
+  }, [userId]);
+
+  /*
+   * What the logged lifts are doing, as counts rather than as a list. The progression
+   * suggestions already carry this reading per exercise; the pillar only needs the shape
+   * of it, and a lift with too little history stays unknown rather than counting against.
+   */
+  const progressionTally = useMemo((): ProgressionTally | null => {
+    const actions = [...suggestions.values()].map((suggestion) => suggestion.action);
+    if (actions.length === 0) return null;
+    return {
+      progressing: actions.filter((action) => action === 'add_load' || action === 'add_rep').length,
+      holding: actions.filter((action) => action === 'repeat' || action === 'hold_technique').length,
+      regressing: actions.filter((action) => action === 'reduce').length,
+      unknown: actions.filter((action) => action === 'no_history').length
+    };
+  }, [suggestions]);
+
+  const restDays7d = useMemo(() => {
+    const window = new Set<string>();
+    for (const session of engineSessions) {
+      const day = session.session_date.slice(0, 10);
+      if (day <= today && day > historyStart(today)) window.add(day);
+    }
+    return Math.max(0, 7 - window.size);
+  }, [engineSessions, today]);
+
   const summary = useMemo(
     () => calculateMovementSummary({ date: today, sessions: engineSessions, exerciseEntries: engineEntries }),
     [engineEntries, engineSessions, today]
+  );
+
+  /*
+   * Patterns a safety rule has put out of bounds. The screen engine honours these and
+   * withholds exercise suggestions for any pattern listed, but movement_pattern_permissions
+   * has no reader in the app yet, so this is empty and is the seam that fills it.
+   */
+  const blockedPatterns = useMemo<string[]>(() => [], []);
+
+  const latestScreen = useMemo(
+    () => toMovementScreen(movementScreens[0], blockedPatterns),
+    [movementScreens, blockedPatterns]
+  );
+
+  const movementPillar = useMemo(
+    () => calculateMovementScore({
+      date: today,
+      summary,
+      progression: progressionTally,
+      restDays7d,
+      screen: latestScreen,
+      context: { sleep_debt_hours: sleepDebtHours }
+    }),
+    [latestScreen, progressionTally, restDays7d, sleepDebtHours, summary, today]
   );
   const signal = useMemo(
     () =>
@@ -1305,6 +1377,13 @@ export default function MovementScreen() {
     return (
       <View style={styles.page}>
         {/* No page heading: the navigation title reads "Move" and the segment above reads "Today". */}
+        <MovementPillarCard
+          causes={movementPillar.limiter_causes}
+          hasScreen={movementScreens.length > 0}
+          onOpenScreen={() => setScreenOpen(true)}
+          score={movementPillar}
+        />
+
         {trainingLimited ? (
           <View style={styles.protocolNote}>
             <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
@@ -1904,9 +1983,29 @@ export default function MovementScreen() {
         ) : null}
 
         {isLoading ? <View style={styles.loading}><ActivityIndicator color={movePalette.green} /><Text style={styles.meta}>Loading movement data…</Text></View> : null}
-        {!isLoading && activeSegment === 'Today' ? renderToday() : null}
-        {!isLoading && activeSegment === 'Train' ? renderTrain() : null}
-        {!isLoading && activeSegment === 'History' ? renderHistory() : null}
+        {!isLoading && screenOpen ? (
+          <View style={styles.page}>
+            <MobilityScreenFlow
+              blockedPatterns={blockedPatterns}
+              initial={latestScreen}
+              onClose={() => setScreenOpen(false)}
+              onSave={(result) => {
+                void saveMovementScreen(protocolScope(userId), {
+                  date: today,
+                  findings: result.findings,
+                  postureFlags: result.postureFlags
+                }).then((rows) => {
+                  setMovementScreens(rows);
+                  setScreenOpen(false);
+                  setStatus('Movement check saved. It now feeds your movement score.');
+                });
+              }}
+            />
+          </View>
+        ) : null}
+        {!isLoading && !screenOpen && activeSegment === 'Today' ? renderToday() : null}
+        {!isLoading && !screenOpen && activeSegment === 'Train' ? renderTrain() : null}
+        {!isLoading && !screenOpen && activeSegment === 'History' ? renderHistory() : null}
       </ScrollView>
     </SafeAreaView>
   );

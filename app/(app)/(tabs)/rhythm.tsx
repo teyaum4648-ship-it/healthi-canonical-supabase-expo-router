@@ -27,6 +27,14 @@ import {
   summariseDaylightDay,
   type DaylightBout
 } from '../../../src/features/practice/daylightModel';
+import { ChronotypeQuiz } from '../../../src/features/sleepRhythm/ChronotypeQuiz';
+import {
+  chronotypePrior,
+  readChronotype,
+  saveChronotype,
+  type ChronotypeRecord
+} from '../../../src/features/sleepRhythm/chronotypeStore';
+import { scoreChronotype, suggestDayArchitecture } from '../../../src/engines/circadian';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
@@ -145,6 +153,31 @@ export default function RhythmScreen() {
     return () => { active = false; };
   }, [user?.id]);
 
+  /*
+   * The clock someone described, used until their logged nights say otherwise. It also
+   * replaces the 22:30 bedtime that used to be hardcoded here for everybody.
+   */
+  const [chronotype, setChronotype] = useState<ChronotypeRecord | null>(null);
+  const [quizOpen, setQuizOpen] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void readChronotype(protocolScope(user?.id)).then((record) => {
+      if (active) setChronotype(record);
+    });
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const preferredBedtime = useMemo(() => {
+    if (!chronotype || chronotype.accepted === false) return null;
+    const bedtime = suggestDayArchitecture({
+      preferredMidSleepMinutes: chronotype.preferredMidSleepMinutes,
+      sleepNeedMinutes: sleepNeed.minutes
+    }).find((slot) => slot.id === 'sleep');
+    if (!bedtime) return null;
+    const minutes = chronotype.slotOverrides.sleep ?? bedtime.startMinutes;
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  }, [chronotype, sleepNeed]);
+
   const light = useMemo(() => {
     const morningDates = [...new Set(
       daylight.filter((bout) => bout.window === 'early' || bout.window === 'morning').map((bout) => bout.date)
@@ -158,14 +191,28 @@ export default function RhythmScreen() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       recentSleepSessions: briefingSessions,
       sleepNeed,
-      preferredBedtime: '22:30',
+      preferredBedtime,
       now,
       refreshment: boundedQuality(sleepQuality),
       morningLightDates: light.morningDates,
-      morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null
+      morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null,
+      chronotypeMidSleepMinutes: chronotypePrior(chronotype)
     }),
-    [briefingSessions, light, now, sleepNeed, sleepQuality, today]
+    [briefingSessions, chronotype, light, now, preferredBedtime, sleepNeed, sleepQuality, today]
   );
+
+  async function persistChronotype(answers: Record<string, string>, accepted: boolean, slotOverrides: Record<string, number>) {
+    const scored = scoreChronotype(answers);
+    const saved = await saveChronotype(protocolScope(user?.id), {
+      answers,
+      chronotype: scored.chronotype,
+      preferredMidSleepMinutes: scored.preferredMidSleepMinutes,
+      accepted,
+      slotOverrides
+    });
+    setChronotype(saved);
+    setQuizOpen(false);
+  }
 
   async function handleManualSubmit() {
     const normalizedStart = sleepStartTime.trim();
@@ -227,8 +274,22 @@ export default function RhythmScreen() {
     }
   }
 
+  if (quizOpen) {
+    return (
+      <ChronotypeQuiz
+        initialAnswers={chronotype?.answers}
+        sleepNeedMinutes={sleepNeed.minutes}
+        onAccept={({ answers, slotOverrides }) => { void persistChronotype(answers, true, slotOverrides); }}
+        onDecline={(answers) => { void persistChronotype(answers, false, {}); }}
+        onClose={() => setQuizOpen(false)}
+      />
+    );
+  }
+
   return (
     <SleepExperience
+      chronotypeLabel={chronotype && chronotype.accepted !== false ? scoreChronotype(chronotype.answers).label : null}
+      onOpenChronotype={() => setQuizOpen(true)}
       logRequest={logRequest}
       briefing={briefing}
       dataMode={dataMode}
