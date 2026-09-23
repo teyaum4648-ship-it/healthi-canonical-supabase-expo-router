@@ -103,6 +103,36 @@ describe('the movement pillar', () => {
     expect(result.score).toBeGreaterThan(70);
   });
 
+  it('refuses to call an empty week good, however well one term scores', () => {
+    /*
+     * The defect this pins was visible on the Move tab: "100 / 100 — Movement is in good
+     * shape this week", for a profile with nothing logged at all. Rest was the only term
+     * with data, because somebody who has never trained trivially has seven days off, and
+     * one term at full marks became the whole pillar. Coverage read 9%; the number read
+     * 100. Both halves are fixed — rest is withheld without training, and a pillar below
+     * the coverage floor yields no score rather than a flattering one.
+     */
+    const empty = summary({
+      workout_count: 0, total_minutes: 0, strength_session_count: 0, cardio_session_count: 0,
+      mobility_recovery_session_count: 0, consistency: 'calibrating', confidence: 'low'
+    });
+
+    const asItWas = calculateMovementScore({ date: DATE, summary: empty, progression: null, restDays7d: 7 });
+    expect(asItWas.score).toBeNull();
+    expect(asItWas.summary.toLowerCase()).not.toContain('good shape');
+
+    const asItIs = calculateMovementScore({ date: DATE, summary: empty, progression: null, restDays7d: null });
+    expect(asItIs.score).toBeNull();
+    expect(asItIs.coverage).toBe(0);
+  });
+
+  it('still scores a week where enough is known, so the floor is not a blanket refusal', () => {
+    // The floor must not swallow real weeks: four sessions and readable lifts is a score.
+    const result = calculateMovementScore({ date: DATE, summary: summary(), progression: tally(), restDays7d: 3 });
+    expect(result.coverage).toBeGreaterThanOrEqual(0.4);
+    expect(result.score).not.toBeNull();
+  });
+
   it('returns no score when nothing was logged', () => {
     const result = calculateMovementScore({
       date: DATE,

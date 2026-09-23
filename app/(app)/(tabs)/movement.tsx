@@ -500,12 +500,18 @@ export default function MovementScreen() {
   }, [suggestions]);
 
   const restDays7d = useMemo(() => {
-    const window = new Set<string>();
+    const trained = new Set<string>();
     for (const session of engineSessions) {
       const day = session.session_date.slice(0, 10);
-      if (day <= today && day > historyStart(today)) window.add(day);
+      if (day <= today && day > historyStart(today)) trained.add(day);
     }
-    return Math.max(0, 7 - window.size);
+    /*
+     * Seven days off is not a well-rested week if none of them followed training. Rest is
+     * a ratio to load, so with nothing logged there is nothing for it to be a ratio of --
+     * and reporting it as a perfect seven let this one term carry the whole pillar.
+     */
+    if (trained.size === 0) return null;
+    return Math.max(0, 7 - trained.size);
   }, [engineSessions, today]);
 
   const summary = useMemo(
@@ -1381,6 +1387,14 @@ export default function MovementScreen() {
           causes={movementPillar.limiter_causes}
           hasScreen={movementScreens.length > 0}
           onOpenScreen={() => setScreenOpen(true)}
+          palette={{
+            surface: movePalette.surface,
+            ink: movePalette.ink,
+            accent: movePalette.greenMid,
+            muted: movePalette.slate,
+            line: movePalette.lineStrong,
+            wash: movePalette.wash
+          }}
           score={movementPillar}
         />
 
@@ -1988,6 +2002,14 @@ export default function MovementScreen() {
             <MobilityScreenFlow
               blockedPatterns={blockedPatterns}
               initial={latestScreen}
+              palette={{
+                surface: movePalette.surface,
+                ink: movePalette.ink,
+                accent: movePalette.greenMid,
+                muted: movePalette.slate,
+                line: movePalette.lineStrong,
+                wash: movePalette.wash
+              }}
               onClose={() => setScreenOpen(false)}
               onSave={(result) => {
                 void saveMovementScreen(protocolScope(userId), {

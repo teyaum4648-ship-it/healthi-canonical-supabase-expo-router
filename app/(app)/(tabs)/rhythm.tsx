@@ -28,6 +28,7 @@ import {
   type DaylightBout
 } from '../../../src/features/practice/daylightModel';
 import { ChronotypeQuiz } from '../../../src/features/sleepRhythm/ChronotypeQuiz';
+import { paletteFor } from '../../../src/features/sleepRhythm/SleepExperience';
 import {
   chronotypePrior,
   readChronotype,
@@ -278,6 +279,7 @@ export default function RhythmScreen() {
     return (
       <ChronotypeQuiz
         initialAnswers={chronotype?.answers}
+        palette={paletteFor(now)}
         sleepNeedMinutes={sleepNeed.minutes}
         onAccept={({ answers, slotOverrides }) => { void persistChronotype(answers, true, slotOverrides); }}
         onDecline={(answers) => { void persistChronotype(answers, false, {}); }}

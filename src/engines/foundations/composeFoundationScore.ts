@@ -64,7 +64,19 @@ export function composeFoundationScore(params: {
   const knownWeight = known.reduce((sum, contributor) => sum + contributor.weight, 0);
   const coverage = totalWeight <= 0 ? 0 : knownWeight / totalWeight;
 
-  const score = knownWeight <= 0
+  /*
+   * A score is withheld, not merely flagged, below THIN_COVERAGE.
+   *
+   * This was a real defect and the app showed it: a profile with nothing logged read
+   * "100 / 100 — Movement is in good shape this week", because the only term with data
+   * was rest, and somebody who has never trained trivially has rest days. Coverage was
+   * 9%, confidence was correctly 'low', and none of that mattered — the number said 100.
+   *
+   * One or two terms cannot speak for a pillar. Where they are all there is, the honest
+   * output is no score and a summary that says why, which is the same rule the readiness
+   * baseline follows: absence must not be dressed up as a finding.
+   */
+  const score = knownWeight <= 0 || coverage < THIN_COVERAGE
     ? null
     : Math.round((known.reduce((sum, c) => sum + c.weight * (c.value as number), 0) / knownWeight) * 100);
 

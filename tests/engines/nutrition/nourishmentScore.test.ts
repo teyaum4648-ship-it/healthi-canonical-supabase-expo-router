@@ -111,7 +111,25 @@ describe('the nourishment pillar', () => {
   });
 
   it('drops unknown terms instead of counting them as failures', () => {
-    const noTargets = calculateNourishmentScore({
+    // Fibre alone is unreported. The five terms that are known carry the score, and the
+    // missing one neither drags it down nor is scored as a zero.
+    const withGap = score({ fiber_g: null });
+    const fibre = withGap.contributors.find((c) => c.id === 'fiber')!;
+
+    expect(fibre.value).toBeNull();
+    expect(withGap.coverage).toBeLessThan(1);
+    expect(withGap.score).toBeGreaterThan(80);
+    expect(withGap.limiters.map((limiter) => limiter.id)).not.toContain('fiber');
+  });
+
+  it('withholds a score when too little of the pillar is known to speak for it', () => {
+    /*
+     * This began as a real defect on screen. The movement pillar showed "100 / 100 — in
+     * good shape this week" for a profile with nothing logged, because one term had data
+     * and trivially scored full marks. Coverage was 9% and confidence was 'low', and
+     * neither mattered: people read the number.
+     */
+    const almostNothing = calculateNourishmentScore({
       date: DATE,
       nutrientSummary: summary({ targets: null }),
       foodQuality: quality(null),
@@ -119,11 +137,11 @@ describe('the nourishment pillar', () => {
       targets: null
     });
 
-    expect(noTargets.coverage).toBeLessThan(1);
-    expect(noTargets.confidence).not.toBe('high');
-    // Only the micronutrient term survives, and it was excellent, so the score must not
-    // be dragged down by the five terms nothing could report.
-    expect(noTargets.score).toBeGreaterThan(70);
+    expect(almostNothing.coverage).toBeLessThan(0.4);
+    expect(almostNothing.score).toBeNull();
+    expect(almostNothing.confidence).toBe('low');
+    // The terms are still reported, so the screen can say what is missing.
+    expect(almostNothing.contributors.find((c) => c.id === 'micronutrients')!.value).not.toBeNull();
   });
 
   it('returns no score at all rather than inventing one', () => {

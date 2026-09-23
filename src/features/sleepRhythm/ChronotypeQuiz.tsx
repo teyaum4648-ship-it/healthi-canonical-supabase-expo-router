@@ -8,7 +8,7 @@ import {
   suggestDayArchitecture,
   type DaySlot
 } from '../../engines/circadian';
-import { colors, radii, spacing, type } from '../../styles/mobileTheme';
+import type { SleepPalette } from './SleepExperience';
 
 /**
  * Six questions, then a day built from the answers that the person gets to argue with.
@@ -34,12 +34,15 @@ function formatMinutes(minutes: number): string {
 export function ChronotypeQuiz({
   initialAnswers,
   sleepNeedMinutes,
+  palette,
   onAccept,
   onDecline,
   onClose
 }: {
   initialAnswers?: Record<string, string>;
   sleepNeedMinutes?: number;
+  /** The Sleep tab's time-of-day palette, so the questions belong to the tab they open from. */
+  palette: SleepPalette;
   onAccept: (result: { answers: Record<string, string>; slotOverrides: Record<string, number> }) => void;
   onDecline: (answers: Record<string, string>) => void;
   onClose: () => void;
@@ -66,59 +69,63 @@ export function ChronotypeQuiz({
 
   if (showDay) {
     return (
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        <Header title="A day built for your clock" onClose={onClose} />
+      <ScrollView
+        contentContainerStyle={styles.page}
+        keyboardShouldPersistTaps="handled"
+        style={[styles.root, { backgroundColor: palette.background }]}
+      >
+        <Header palette={palette} title="A day built for your clock" onClose={onClose} />
 
-        <View style={styles.resultCard}>
-          <Text style={styles.eyebrow}>{result.label}</Text>
-          <Text style={styles.resultSummary}>{result.summary}</Text>
-          <Text style={styles.resultMeta}>
+        <View style={[styles.resultCard, { backgroundColor: palette.surfaceAlt, borderColor: palette.accent }]}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>{result.label}</Text>
+          <Text style={[styles.resultSummary, { color: palette.text }]}>{result.summary}</Text>
+          <Text style={[styles.resultMeta, { color: palette.faint }]}>
             From {answered} of {CHRONOTYPE_QUESTIONS.length} answers · {result.confidence} confidence.
             Your logged nights will sharpen this within a week or two.
           </Text>
         </View>
 
         {slots.map((slot) => (
-          <View key={slot.id} style={styles.slot}>
+          <View key={slot.id} style={[styles.slot, { backgroundColor: palette.surface, borderColor: palette.hairline }]}>
             <View style={styles.slotHead}>
               <View style={styles.flex}>
-                <Text style={styles.slotLabel}>{slot.label}</Text>
-                <Text style={styles.slotWhy}>{slot.why}</Text>
+                <Text style={[styles.slotLabel, { color: palette.text }]}>{slot.label}</Text>
+                <Text style={[styles.slotWhy, { color: palette.muted }]}>{slot.why}</Text>
               </View>
-              <Text style={styles.slotTime}>{formatMinutes(slot.startMinutes)}</Text>
+              <Text style={[styles.slotTime, { color: palette.accent }]}>{formatMinutes(slot.startMinutes)}</Text>
             </View>
             <View style={styles.nudgeRow}>
               <Pressable
                 accessibilityLabel={`Move ${slot.label} fifteen minutes earlier`}
                 accessibilityRole="button"
                 onPress={() => nudge(slot, -STEP_MINUTES)}
-                style={({ pressed }) => [styles.nudge, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.nudge, { backgroundColor: palette.chip }, pressed && styles.pressed]}
               >
-                <Text style={styles.nudgeText}>Earlier</Text>
+                <Text style={[styles.nudgeText, { color: palette.text }]}>Earlier</Text>
               </Pressable>
               <Pressable
                 accessibilityLabel={`Move ${slot.label} fifteen minutes later`}
                 accessibilityRole="button"
                 onPress={() => nudge(slot, STEP_MINUTES)}
-                style={({ pressed }) => [styles.nudge, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.nudge, { backgroundColor: palette.chip }, pressed && styles.pressed]}
               >
-                <Text style={styles.nudgeText}>Later</Text>
+                <Text style={[styles.nudgeText, { color: palette.text }]}>Later</Text>
               </Pressable>
               {slotOverrides[slot.id] !== undefined ? (
                 <Pressable
                   accessibilityLabel={`Reset ${slot.label} to the suggested time`}
                   accessibilityRole="button"
                   onPress={() => setSlotOverrides(({ [slot.id]: _removed, ...rest }) => rest)}
-                  style={({ pressed }) => [styles.nudge, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.nudge, { backgroundColor: palette.chip }, pressed && styles.pressed]}
                 >
-                  <Text style={styles.nudgeText}>Reset</Text>
+                  <Text style={[styles.nudgeText, { color: palette.text }]}>Reset</Text>
                 </Pressable>
               ) : null}
             </View>
           </View>
         ))}
 
-        <Text style={styles.footnote}>
+        <Text style={[styles.footnote, { color: palette.faint }]}>
           Move anything that does not match your experience. You know your own afternoons better
           than six questions do.
         </Text>
@@ -127,23 +134,23 @@ export function ChronotypeQuiz({
           <Pressable
             accessibilityRole="button"
             onPress={() => onAccept({ answers, slotOverrides })}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.primaryButton, { backgroundColor: palette.primary }, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryButtonText}>This fits — use it</Text>
+            <Text style={[styles.primaryButtonText, { color: palette.primaryText }]}>This fits — use it</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => onDecline(answers)}
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.secondaryButton, { borderColor: palette.border }, pressed && styles.pressed]}
           >
-            <Text style={styles.secondaryButtonText}>Not me — go by my logged nights instead</Text>
+            <Text style={[styles.secondaryButtonText, { color: palette.text }]}>Not me — go by my logged nights instead</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => setShowDay(false)}
             style={({ pressed }) => [styles.tertiaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.tertiaryButtonText}>Change my answers</Text>
+            <Text style={[styles.tertiaryButtonText, { color: palette.muted }]}>Change my answers</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -151,17 +158,21 @@ export function ChronotypeQuiz({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-      <Header title="When does your body want the day?" onClose={onClose} />
-      <Text style={styles.intro}>
+    <ScrollView
+      contentContainerStyle={styles.page}
+      keyboardShouldPersistTaps="handled"
+      style={[styles.root, { backgroundColor: palette.background }]}
+    >
+      <Header palette={palette} title="When does your body want the day?" onClose={onClose} />
+      <Text style={[styles.intro, { color: palette.muted }]}>
         Six questions about the days nothing is scheduled. Your logged nights will take over from
         these, but they give us somewhere honest to start.
       </Text>
 
       {CHRONOTYPE_QUESTIONS.map((question) => (
-        <View key={question.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{question.prompt}</Text>
-          {question.note ? <Text style={styles.cardNote}>{question.note}</Text> : null}
+        <View key={question.id} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>{question.prompt}</Text>
+          {question.note ? <Text style={[styles.cardNote, { color: palette.faint }]}>{question.note}</Text> : null}
           <View style={styles.options}>
             {question.options.map((option) => {
               const selected = answers[question.id] === option.value;
@@ -177,9 +188,9 @@ export function ChronotypeQuiz({
                     }
                     return { ...current, [question.id]: option.value };
                   })}
-                  style={({ pressed }) => [styles.option, selected && styles.optionSelected, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.option, { backgroundColor: palette.chip, borderColor: 'transparent' }, selected && { borderColor: palette.accent }, pressed && styles.pressed]}
                 >
-                  <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{option.label}</Text>
+                  <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.text, fontWeight: '600' }]}>{option.label}</Text>
                 </Pressable>
               );
             })}
@@ -192,9 +203,9 @@ export function ChronotypeQuiz({
         accessibilityState={{ disabled: answered === 0 }}
         disabled={answered === 0}
         onPress={() => setShowDay(true)}
-        style={({ pressed }) => [styles.primaryButton, answered === 0 && styles.buttonDisabled, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.primaryButton, { backgroundColor: palette.primary }, answered === 0 && styles.buttonDisabled, pressed && styles.pressed]}
       >
-        <Text style={styles.primaryButtonText}>
+        <Text style={[styles.primaryButtonText, { color: palette.primaryText }]}>
           {answered === 0 ? 'Answer one to continue' : 'See the day this suggests'}
         </Text>
       </Pressable>
@@ -202,7 +213,7 @@ export function ChronotypeQuiz({
   );
 }
 
-function Header({ title, onClose }: { title: string; onClose: () => void }) {
+function Header({ title, onClose, palette }: { title: string; onClose: () => void; palette: SleepPalette }) {
   return (
     <View style={styles.header}>
       <Pressable
@@ -211,100 +222,47 @@ function Header({ title, onClose }: { title: string; onClose: () => void }) {
         onPress={onClose}
         style={({ pressed }) => [styles.close, pressed && styles.pressed]}
       >
-        <Ionicons color={colors.accentMid} name="chevron-back" size={22} />
+        <Ionicons color={palette.accent} name="chevron-back" size={22} />
       </Pressable>
-      <Text accessibilityRole="header" style={styles.title}>{title}</Text>
+      <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{title}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { gap: spacing.md, paddingBottom: spacing.xl * 2 },
-  header: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
+  root: { flex: 1 },
+  page: { gap: 14, paddingBottom: 96, paddingHorizontal: 20, paddingTop: 56 },
+  header: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   close: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
-  title: { ...type.title, color: colors.text, flex: 1 },
-  intro: { ...type.body, color: colors.textMuted, lineHeight: 22 },
+  title: { flex: 1, fontSize: 26, fontWeight: '600', lineHeight: 32 },
+  intro: { fontSize: 15, lineHeight: 22 },
   flex: { flex: 1, gap: 4, minWidth: 0 },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.lg
-  },
-  cardTitle: { ...type.heading, color: colors.text },
-  cardNote: { ...type.caption, color: colors.textFaint },
-  options: { gap: spacing.xs, marginTop: spacing.xs },
-  option: {
-    backgroundColor: colors.surfaceInset,
-    borderColor: 'transparent',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
-  },
-  optionSelected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  optionText: { ...type.body, color: colors.textMuted },
-  optionTextSelected: { color: colors.text, fontWeight: '600' },
-  resultCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.accentMid,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    gap: spacing.sm,
-    padding: spacing.lg
-  },
-  eyebrow: { ...type.eyebrow, color: colors.accentMid },
-  resultSummary: { ...type.body, color: colors.text, lineHeight: 23 },
-  resultMeta: { ...type.caption, color: colors.textFaint, lineHeight: 19 },
-  slot: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    gap: spacing.sm,
-    padding: spacing.md
-  },
-  slotHead: { flexDirection: 'row', gap: spacing.sm },
-  slotLabel: { ...type.label, color: colors.text },
-  slotWhy: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
-  slotTime: { ...type.number, color: colors.accentMid },
-  nudgeRow: { flexDirection: 'row', gap: spacing.xs },
-  nudge: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceInset,
-    borderRadius: radii.sm,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: spacing.md
-  },
-  nudgeText: { ...type.caption, color: colors.text },
-  footnote: { ...type.caption, color: colors.textFaint, lineHeight: 20 },
-  actions: { gap: spacing.sm },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    justifyContent: 'center',
-    minHeight: 52,
-    paddingHorizontal: spacing.md
-  },
-  primaryButtonText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
-  secondaryButton: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 52,
-    paddingHorizontal: spacing.md
-  },
-  secondaryButtonText: { ...type.body, color: colors.text, textAlign: 'center' },
+  card: { borderRadius: 18, borderWidth: 1, gap: 6, paddingHorizontal: 18, paddingVertical: 16 },
+  cardTitle: { fontSize: 19, fontWeight: '600', lineHeight: 25 },
+  cardNote: { fontSize: 13, lineHeight: 19 },
+  options: { gap: 6, marginTop: 6 },
+  option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
+  optionText: { fontSize: 15, lineHeight: 21 },
+  resultCard: { borderRadius: 18, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
+  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 1.1, textTransform: 'uppercase' },
+  resultSummary: { fontSize: 16, lineHeight: 23 },
+  resultMeta: { fontSize: 13, lineHeight: 19 },
+  slot: { borderRadius: 16, borderWidth: 1, gap: 10, padding: 14 },
+  slotHead: { flexDirection: 'row', gap: 10 },
+  slotLabel: { fontSize: 15, fontWeight: '600' },
+  slotWhy: { fontSize: 13, lineHeight: 19 },
+  slotTime: { fontSize: 17, fontVariant: ['tabular-nums'], fontWeight: '600' },
+  nudgeRow: { flexDirection: 'row', gap: 6 },
+  nudge: { alignItems: 'center', borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
+  nudgeText: { fontSize: 13 },
+  footnote: { fontSize: 13, lineHeight: 20 },
+  actions: { gap: 10 },
+  primaryButton: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
+  primaryButtonText: { fontSize: 16, fontWeight: '600' },
+  secondaryButton: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
+  secondaryButtonText: { fontSize: 15, textAlign: 'center' },
   tertiaryButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
-  tertiaryButtonText: { ...type.caption, color: colors.textMuted },
-  buttonDisabled: { backgroundColor: colors.surfaceMuted },
+  tertiaryButtonText: { fontSize: 13 },
+  buttonDisabled: { opacity: 0.4 },
   pressed: { opacity: 0.65 }
 });
