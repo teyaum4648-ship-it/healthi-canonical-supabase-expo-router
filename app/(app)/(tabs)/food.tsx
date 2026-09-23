@@ -1133,7 +1133,7 @@ export default function FoodScreen() {
                 loggedAt
               ).catch(() => null))
           );
-          setStatus('Meal saved. Today’s fueling totals have been updated.');
+          setStatus(`Meal saved to ${dayTitle(today, actualToday).toLowerCase()}. Fueling totals for that day have been updated.`);
         } catch {
           setStatus('Meal totals saved, but item details could not sync. They are not available in meal history.');
         }
@@ -1155,7 +1155,7 @@ export default function FoodScreen() {
         setMeals((current) => [localMeal, ...current.filter((item) => item.id !== localMeal.id)]);
         setMealLogItems((current) => [...localItems, ...current]);
         setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
-        setStatus('Meal saved locally. Today’s fueling totals have been updated.');
+        setStatus(`Meal saved to ${dayTitle(today, actualToday).toLowerCase()} locally. Fueling totals for that day have been updated.`);
       }
 
       setMealBuilder(createEmptyMealBuilder());
@@ -1372,11 +1372,14 @@ export default function FoodScreen() {
     }
 
     setIsSavingScannedMeal(true);
-    const now = new Date().toISOString();
+    // The diary day on screen decides where an entry lands. Taking the wall clock instead
+    // files it under today, so a product scanned while reviewing Saturday disappears from it.
+    const loggedAt = loggedAtForDay(today, new Date().toISOString());
+    const dayLabel = dayTitle(today, actualToday).toLowerCase();
     const meal = scannedProductToMealLog({
       snapshot: scannerProduct,
       servingQuantity,
-      loggedAt: now,
+      loggedAt,
       mealType: scannerMealType,
       mealNameOverride: scannerMealName
     });
@@ -1393,13 +1396,13 @@ export default function FoodScreen() {
         const nextMeal = mealRowToMealLog(saved);
         setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
         setResponseForm((current) => ({ ...current, meal_log_id: saved.id }));
-        setStatus('Product added. Today’s fueling signal has been updated.');
+        setStatus(`Product added to ${dayLabel}. Fueling totals for that day have been updated.`);
       } else {
         const localMeal = { ...meal, id: `local-scanned-meal-${Date.now()}` };
         await appendLocalDemoMealLog(localMeal);
         setMeals((current) => [localMeal, ...current.filter((item) => item.id !== localMeal.id)]);
         setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
-        setStatus('Product added locally. Food response is still calibrating.');
+        setStatus(`Product added to ${dayLabel} locally. Food response is still calibrating.`);
       }
 
       setScannerProduct(null);
@@ -1418,8 +1421,11 @@ export default function FoodScreen() {
 
   async function handleSaveMeal() {
     setIsSaving(true);
-    const now = new Date().toISOString();
-    const meal = manualMealFormToMealLog(mealForm, now);
+    // The form's own logged_at is stamped when this screen mounts, so on its own it would
+    // file the entry under whatever day that was, not the day being looked at now.
+    const loggedAt = loggedAtForDay(today, new Date().toISOString());
+    const dayLabel = dayTitle(today, actualToday).toLowerCase();
+    const meal = manualMealFormToMealLog({ ...mealForm, logged_at: loggedAt }, loggedAt);
 
     try {
       if (canUseRemote && userId) {
@@ -1427,13 +1433,13 @@ export default function FoodScreen() {
         const nextMeal = mealRowToMealLog(saved);
         setMeals((current) => [nextMeal, ...current.filter((item) => item.id !== nextMeal.id)]);
         setResponseForm((current) => ({ ...current, meal_log_id: nextMeal.id ?? null }));
-        setStatus('Meal logged. Today’s fueling signal has been updated.');
+        setStatus(`Meal logged to ${dayLabel}. Fueling totals for that day have been updated.`);
       } else {
         const localMeal = { ...meal, id: `local-meal-${Date.now()}` };
         await appendLocalDemoMealLog(localMeal);
         setMeals((current) => [localMeal, ...current]);
         setResponseForm((current) => ({ ...current, meal_log_id: localMeal.id ?? null }));
-        setStatus('Meal logged locally. Food response is still calibrating.');
+        setStatus(`Meal logged to ${dayLabel} locally. Food response is still calibrating.`);
       }
 
       setMealForm(createEmptyManualMealForm());
