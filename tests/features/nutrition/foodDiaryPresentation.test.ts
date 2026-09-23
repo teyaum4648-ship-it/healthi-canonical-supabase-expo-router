@@ -33,7 +33,7 @@ describe('food diary presentation', () => {
     expect(portionValue(' 1.25 ')).toBe(1.25);
     for (const value of ['', ' ', '0', '0.', '-1', 'Infinity', 'NaN', '21', 'two']) expect(portionValue(value)).toBeNull();
   });
-  it('logs a chosen diary day without shifting its UTC clock or recording a meal today instead', () => {
+  it('logs a chosen diary day without recording a meal today instead', () => {
     expect(loggedAtForDay('2026-09-07', '2026-09-09T17:24:12.000Z')).toBe('2026-09-07T17:24:12.000Z');
   });
 });

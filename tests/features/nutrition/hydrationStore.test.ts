@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { localDayBounds } from '../../../src/utils/localDay';
 import { createDemoWaterStore, createWaterEntry, demoWaterKey, formatWater, readWater, saveWater, undoWater, waterAmountMl, waterForDay, type HydrationClient, type WaterEntry } from '../../../src/features/nutrition/hydrationStore';
 
 function storageFixture(initial: string | null = null) {
@@ -68,8 +69,8 @@ describe('owner-protected account water persistence', () => {
     expect(await readWater(mock.client, 'account-a', '2026-09-10')).toEqual([water]);
     expect(mock.from).toHaveBeenCalledWith('hydration_logs');
     expect(mock.query.eq).toHaveBeenCalledWith('user_id', 'account-a');
-    expect(mock.query.gte).toHaveBeenCalledWith('logged_at', '2026-09-10T00:00:00.000Z');
-    expect(mock.query.lt).toHaveBeenCalledWith('logged_at', '2026-09-11T00:00:00.000Z');
+    expect(mock.query.gte).toHaveBeenCalledWith('logged_at', localDayBounds('2026-09-10').start);
+    expect(mock.query.lt).toHaveBeenCalledWith('logged_at', localDayBounds('2026-09-10').end);
   });
   it('upserts the same owner-scoped ID for a safe retry', async () => {
     const water = entry(250, 'account-a'); const mock = clientFixture(water);

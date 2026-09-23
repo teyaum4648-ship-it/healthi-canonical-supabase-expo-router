@@ -53,4 +53,3 @@ jobs:
         if: env.CLOUDFLARE_CONFIGURED != 'true'
         run: |
           echo "::notice title=Demo not deployed::Build and tests passed, but CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set in repository secrets, so the deploy was skipped. See docs/source-and-deployment.md."
-

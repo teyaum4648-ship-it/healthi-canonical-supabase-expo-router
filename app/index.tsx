@@ -5,17 +5,23 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Button } from '../src/components/Button';
 import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
-import { isSupabaseConfigured } from '../src/lib/supabase';
+import { DemoEntry } from '../src/features/auth/DemoEntry';
+import { entryDestination } from '../src/features/auth/entryRouting';
 import { colors, fonts, spacing } from '../src/styles/mobileTheme';
+import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
-  const { profile, session, isLoading, signUp, startDemo } = useAuth();
+  const { profile, session, isLoading, mode, startDemo } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 820;
   const [startError, setStartError] = useState('');
 
+  const destination = entryDestination({ isLoading, mode, hasSession: Boolean(session), onboardingStatus: profile?.onboarding_status });
+  if (destination === 'loading') return <Screen><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening Healthi…</Text></Screen>;
+  if (destination === 'demo') return <DemoEntry />;
+  if (destination !== 'welcome') return <Redirect href={destination} />;
   /**
    * Entering the app from the landing screen.
    *
@@ -31,7 +37,7 @@ export default function IndexRoute() {
   async function handleStart() {
     setStartError('');
     try {
-      if (!isSupabaseConfigured) {
+      if (mode === 'demo') {
         await startDemo();
         router.replace('/(app)/(tabs)');
         return;
@@ -85,7 +91,7 @@ export default function IndexRoute() {
           <Button
             disabled={isLoading}
             label="Get started on your wellness test"
-            onPress={handleStart}
+            onPress={() => void handleStart()}
             style={styles.cta}
           />
 

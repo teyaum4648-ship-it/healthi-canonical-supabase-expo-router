@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
+import { rolloverDiaryDay } from '../../../src/utils/localDay';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 import { NutritionGoalSetup } from '../../../src/features/nutrition/NutritionGoalSetup';
 import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
@@ -36,7 +38,7 @@ import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features
 import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
 import { MealEditSheet } from '../../../src/features/nutrition/MealEditSheet';
 import { MealLibrarySheet, MealMacroGrid } from '../../../src/features/nutrition/MealLibrarySheet';
-import { FoodQualityReviewPanel } from '../../../src/features/nutrition/FoodQualityReview';
+import { FoodQualityReviewPanel } from '../../../src/features/nutrition/FoodQualityReviewPanel';
 import { buildFoodQualityReview } from '../../../src/features/nutrition/foodQualityReview';
 import { buildEditedMeal, createMealCollectionEntry, mealEntryToBuilder, type MealCollectionEntry } from '../../../src/features/nutrition/mealLibrary';
 import { persistMealItemEdit, type MealCollectionClient } from '../../../src/features/nutrition/mealCollectionStore';
@@ -171,6 +173,7 @@ import {
 } from '../../../src/features/nutrition/scannedMealLogMapper';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { PhotoEstimateSheet } from '../../../src/features/nutrition/photoEstimate/PhotoEstimateSheet';
+import { PhotoEntrySheet } from '../../../src/features/nutrition/photoEstimate/PhotoEntrySheet';
 import { capturePhotoForEstimate, type PhotoCaptureSource } from '../../../src/features/nutrition/photoEstimate/photoCapture';
 import { photoEstimateItemToSnapshot } from '../../../src/features/nutrition/photoEstimate/photoEstimate';
 import {
@@ -552,8 +555,14 @@ export default function FoodScreen() {
   const { session, mode } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [activeSegment, setActiveSegment] = useState<Segment>('Diary');
-  const actualToday = new Date().toISOString().slice(0, 10);
+  const actualToday = useLocalToday();
   const [selectedDay, setSelectedDay] = useState(actualToday);
+  const previousToday = useRef(actualToday);
+  useEffect(() => {
+    const previous = previousToday.current;
+    setSelectedDay(day => rolloverDiaryDay(day, previous, actualToday, !dietTabs.includes(activeSegment as DietTab)));
+    previousToday.current = actualToday;
+  }, [actualToday, activeSegment]);
   const [foodEntryOpen, setFoodEntryOpen] = useState(false);
   const [mealChooserOpen, setMealChooserOpen] = useState(false);
   const [mealStartMessage, setMealStartMessage] = useState('');
@@ -593,6 +602,7 @@ export default function FoodScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoNotice, setPhotoNotice] = useState('');
+  const [photoEntryOpen, setPhotoEntryOpen] = useState(false);
   const [avoidingAllergens, setAvoidingAllergens] = useState<AllergenGroup[]>([]);
   useEffect(() => {
     const key = scannerOpen ? 'scanner' : activeSegment;
@@ -925,7 +935,7 @@ export default function FoodScreen() {
    * nothing at all — backing out of the camera is not an error worth reporting.
    */
   async function handlePhotoEstimate(source: PhotoCaptureSource) {
-    if (photoBusy) return;
+    if (photoBusy || !canUseRemote) return;
     setPhotoNotice('');
     setPhotoBusy(true);
     try {
@@ -948,6 +958,10 @@ export default function FoodScreen() {
         return;
       }
       setPhotoEstimate(result.estimate);
+      setPhotoEntryOpen(false);
+    } catch {
+      setPhotoUri(null);
+      setPhotoNotice('Could not prepare your estimate. Try again, or search for the foods instead.');
     } finally {
       setPhotoBusy(false);
     }
@@ -969,10 +983,18 @@ export default function FoodScreen() {
       }
       const count = photoEstimate.items.length;
       closePhotoEstimate();
+      setActiveSegment('Build Meal');
       setBuilderMessage(`${count} estimated ${count === 1 ? 'food is' : 'foods are'} in this meal. Check the totals before saving.`);
     } finally {
       setPhotoBusy(false);
     }
+  }
+
+  function openPhotoEntry() {
+    setFoodEntryOpen(false);
+    setMealChooserOpen(false);
+    setPhotoNotice('');
+    setPhotoEntryOpen(true);
   }
 
   async function handleSearchProducts() {
@@ -1938,6 +1960,7 @@ export default function FoodScreen() {
     return (
       <View style={styles.stack}>
         <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
+        <View style={styles.diarySection}><ActionRow title="Photo meal" detail={canUseRemote ? 'Take or choose a photo · review before saving' : 'Photo estimates · not enabled in this demo'} icon="camera-outline" onPress={openPhotoEntry} last /></View>
         <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} onTargets={setTargets} />
         <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
@@ -2248,7 +2271,7 @@ export default function FoodScreen() {
           <Pressable
             accessibilityRole="button"
             disabled={photoBusy}
-            onPress={() => void handlePhotoEstimate('camera')}
+            onPress={openPhotoEntry}
             style={({ pressed }) => [styles.scannerShortcut, (pressed || photoBusy) && styles.pressed]}
           >
             <Ionicons color={colors.accent} name="camera-outline" size={20} />
@@ -2560,6 +2583,7 @@ export default function FoodScreen() {
         onToggleSaved={handleToggleSavedProduct}
         onAdd={async (product, source, servings) => { await addSnapshotToMealBuilder(product, source, servings); setFoodEntryOpen(false); setActiveSegment('Build Meal'); }}
         onScan={() => openScanner('builder')}
+        onPhoto={openPhotoEntry}
         onManual={() => { setFoodEntryOpen(false); setManualFoodOpen(true); }}
         onClose={() => setFoodEntryOpen(false)}
         onOpenLibrary={() => openMealLibrary()}
@@ -2576,6 +2600,7 @@ export default function FoodScreen() {
       </EntrySheet> : null}
       {mealEditDraft ? <MealEditSheet draft={mealEditDraft} onChange={setMealEditDraft} onClose={() => setMealEditDraft(null)} onSave={handleSaveMealEdit} busy={savingMealEdit} error={mealEditError} /> : null}
       {mealLibraryOpen ? <MealLibrarySheet key={`${mode}:${userId}`} userId={userId} demo={mode === 'demo'} client={supabase as unknown as MealCollectionClient} meals={meals} items={mealLogItems} foods={productLibrary} initialEntry={libraryInitialEntry} onClose={() => setMealLibraryOpen(false)} onUseMeal={usePreviousMeal} onUseFood={food => { setMealLibraryOpen(false); setSearchQuery(food.name); setSearchResults([food]); setSearchMessage('Choose this food to review your portion.'); setFoodEntryOpen(true); }} /> : null}
+      {photoEntryOpen ? <PhotoEntrySheet available={canUseRemote} busy={photoBusy} notice={photoNotice} onCapture={source => void handlePhotoEstimate(source)} onClose={() => setPhotoEntryOpen(false)} onSearch={() => { setPhotoEntryOpen(false); setFoodEntryOpen(true); }} /> : null}
       {photoEstimate ? <PhotoEstimateSheet
         busy={photoBusy}
         error={photoNotice}

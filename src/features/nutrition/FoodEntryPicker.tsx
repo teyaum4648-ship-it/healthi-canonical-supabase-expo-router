@@ -9,7 +9,7 @@ import type { HealthiProductSnapshot } from './productLookup/productLookupTypes'
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
-import { foodLoggingNutrition } from './foodLoggingNutrition';
+import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount, partitionFoodSearchResults, withFoodPortion } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
 import { ScoreRing } from './ScoreRing';
 import { calculateProductQuality } from './productLookup/productQuality';
@@ -17,7 +17,8 @@ import { AllergenNotice } from './AllergenNotice';
 import type { AllergenGroup } from './allergens';
 
 type PickerTab = 'Search' | 'Recent' | 'Saved';
-export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onManual, onClose, mealLabel, onOpenLibrary, avoidingAllergens }: {
+export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searching, message, products, onToggleSaved, onAdd, onScan, onPhoto, onManual, onClose, mealLabel, onOpenLibrary, avoidingAllergens }: {
+  onPhoto?: () => void;
   onOpenLibrary?: () => void;
   mealLabel?: string;
   /** Groups from the person's allergen profile. Empty means the notice stays hidden. */
@@ -33,6 +34,8 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   const [servings, setServings] = useState('1');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showIncomplete, setShowIncomplete] = useState(false);
+  const catalog = partitionFoodSearchResults(results);
   const personal = findPersonalFoods(products, query, tab === 'Saved');
   /**
    * Scores for the search results, computed once per result set.
@@ -52,15 +55,10 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   );
   const logging = selected ? foodLoggingNutrition(selected.product) : null;
   const multiplier = logging?.amountPerPortion ?? 1;
+  const amountStep = multiplier === 100 ? 1 : 0.25;
+  const amount = Number(servings) || 0;
   const portion = portionValue(String(Number(servings) / multiplier));
-  // One serving prefills, because that is what the item is. A per-100 g food has no serving to
-  // assume, so the amount stays empty rather than pre-accepting 100 g on the shopper's behalf.
-  const choose = (product: HealthiProductSnapshot, source: 'search' | 'saved_food') => {
-    const next = foodLoggingNutrition(product);
-    setSelected({ product, source });
-    setServings(next.isServing ? String(next.amountPerPortion) : '');
-    setError('');
-  };
+  const choose = (product: HealthiProductSnapshot, source: 'search' | 'saved_food') => { setSelected({ product, source }); setServings(initialFoodLoggingAmount(product)); setError(''); };
   async function add() {
     if (!selected || portion === null || busy) return;
     setBusy(true);
@@ -89,15 +87,20 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
             before someone starts dialling in how much of it they ate. */}
         <AllergenNotice avoiding={avoidingAllergens ?? []} product={selected.product} />
         <Text style={styles.detail}>{[selected.product.quantity, logging?.label].filter(Boolean).join(' · ')}</Text>
+        {(selected.product.food_portions?.length ?? 0) > 1 ? <View style={styles.portionChoices}>
+          <Text style={styles.label}>Portion size</Text>
+          {selected.product.food_portions!.map(p => <Pressable key={`${p.label}-${p.quantity}`} accessibilityRole="button" accessibilityState={{ selected: selected.product.serving_size === p.label }} onPress={() => { setSelected({ ...selected, product: withFoodPortion(selected.product, p) }); setServings('1'); }} style={[styles.portionChoice, selected.product.serving_size === p.label && styles.portionChoiceSelected]}><Text style={styles.detail}>{p.label}</Text></Pressable>)}
+        </View> : null}
         <Text style={styles.label}>{multiplier === 100 ? 'Amount eaten' : 'Number of servings'}</Text>
+        {multiplier === 1 ? <View style={styles.portionRow}>{[0.5, 1, 2].map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} servings`} accessibilityState={{ selected: portion === value }} onPress={() => setServings(String(value))} style={styles.step}><Text style={styles.link}>{value === 0.5 ? '½' : value}×</Text></Pressable>)}</View> : null}
         <View style={styles.portionRow}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={(portion ?? 1) <= 0.25} onPress={() => setServings(String(Math.max(0.25, (portion ?? 1) - 0.25) * multiplier))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
-          <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} keyboardType="decimal-pad" selectTextOnFocus placeholder={logging?.isServing ? '1' : '100'} placeholderTextColor={colors.textFaint} value={servings} onChangeText={setServings} style={styles.portion} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Decrease portion" disabled={amount <= amountStep} onPress={() => setServings(String(Math.max(amountStep, amount - amountStep)))} style={styles.step}><Ionicons name="remove" size={22} color={colors.text} /></Pressable>
+          <TextInput accessibilityLabel={`Amount in ${logging?.amountUnit}`} placeholder={multiplier === 100 ? 'Enter amount' : undefined} placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" selectTextOnFocus value={servings} onChangeText={setServings} style={styles.portion} />
           <Text style={styles.label}>{logging?.amountUnit}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Increase portion" disabled={(portion ?? 1) >= 20} onPress={() => setServings(String(Math.min(20, (portion ?? 1) + 0.25) * multiplier))} style={styles.step}><Ionicons name="add" size={22} color={colors.text} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Increase portion" disabled={amount >= 20 * multiplier} onPress={() => setServings(String(Math.min(20 * multiplier, amount + amountStep)))} style={styles.step}><Ionicons name="add" size={22} color={colors.text} /></Pressable>
         </View>
         {portion === null ? <Text accessibilityRole="alert" style={styles.detail}>Enter more than 0 and no more than {20 * multiplier} {logging?.amountUnit}.</Text> : null}
-        {multiplier === 100 ? <Text style={styles.detail}>Using reported nutrition per {logging?.label}; no label serving is assumed.</Text> : null}
+        {multiplier === 100 ? <Text style={styles.detail}>The database has no label serving size. Enter the {logging?.amountUnit === 'g' ? 'weight' : 'volume'} you ate from the package or your measurement. {logging?.label} is only the nutrition reference, not one portion.</Text> : null}
         <View style={styles.nutrients}>{[
           ['Calories', logging?.nutrients.calories, 'kcal'], ['Protein', logging?.nutrients.protein_g, 'g'], ['Carbs', logging?.nutrients.carbs_g, 'g'], ['Fat', logging?.nutrients.fat_g, 'g']
         ].map(([label, amount, unit]) => <View key={String(label)} style={styles.nutrient}><Text style={styles.detail}>{label}</Text><Text style={styles.label}>{typeof amount === 'number' && portion !== null ? `${Math.round(amount * portion * 10) / 10} ${unit}` : 'Not reported'}</Text></View>)}</View>
@@ -109,14 +112,19 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           {tab === 'Search' ? <Pressable accessibilityRole="button" accessibilityLabel="Search food database" disabled={searching || query.trim().length < 2} onPress={() => void onSearch()} style={[styles.search, (searching || query.trim().length < 2) && styles.dim]}>{searching ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.primaryText}>Search</Text>}</Pressable> : null}
         </View>
         <SegmentedControl options={['Search', 'Recent', 'Saved'] as const} value={tab} onChange={setTab} />
+        {onPhoto ? <ActionRow title="Photo meal" detail="Take or choose a photo" icon="camera-outline" onPress={onPhoto} last /> : null}
         {onOpenLibrary ? <ActionRow title="Your foods & meals" detail="Search all history and reuse a starred meal" icon="bookmark-outline" onPress={onOpenLibrary} last /> : null}
         {tab === 'Search' ? <>
-          {results.length ? <Text style={styles.label}>{results.length} food matches</Text> : null}
-          {results.map((product) => {
-            const nutrition = foodLoggingNutrition(product);
+          {results.length ? <Text style={styles.label}>{catalog.ready.length} foods ready to log</Text> : null}
+          {catalog.ready.map((product) => {
             const key = `${product.provider}-${product.barcode}-${product.name}`;
-            return <View key={key} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.quantity, nutrition.label, nutrition.nutrients.calories !== null ? `${Math.round(nutrition.nutrients.calories)} kcal ${nutrition.portionLabel}` : 'Calories not reported'].filter(Boolean).join(' · ')} onPress={() => choose(product, 'search')} /></View><ScoreRing score={searchScores.get(key) ?? null} label={`${product.name}: quality ${searchScores.get(key) ?? 'not scored'}`} /></View>;
+            return <View key={key} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={foodSearchPortionDetail(product)} onPress={() => choose(product, 'search')} /></View><ScoreRing score={searchScores.get(key) ?? null} label={`${product.name}: quality ${searchScores.get(key) ?? 'not scored'}`} /></View>;
           })}
+          {catalog.incomplete.length ? <>
+            {!catalog.ready.length ? <Text style={styles.detail}>These matches still need label details. Scan the package or enter its nutrition to log it accurately.</Text> : null}
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: showIncomplete }} onPress={() => setShowIncomplete(!showIncomplete)} style={styles.back}><Text style={styles.link}>{showIncomplete ? 'Hide' : 'Show'} {catalog.incomplete.length} matches needing label details</Text><Ionicons name={showIncomplete ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accentMid} /></Pressable>
+            {showIncomplete ? catalog.incomplete.map(product => <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} /><View style={styles.libraryCopy}><Text style={styles.label}>{product.name}</Text><Text style={styles.detail}>{foodSearchPortionDetail(product)}</Text><ActionRow title="Enter this food’s label" onPress={onManual} /></View></View>) : null}
+          </> : null}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
         </> : <>
@@ -130,6 +138,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   );
 }
 const styles = StyleSheet.create({
+  portionChoices: { gap: 8 }, portionChoice: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.surfaceInset, minHeight: 44 }, portionChoiceSelected: { borderColor: colors.accentMid, backgroundColor: colors.surfaceInset },
   productRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text }, detail: { ...type.body, color: colors.textMuted }, label: { ...type.label, color: colors.text },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: colors.accentMid },

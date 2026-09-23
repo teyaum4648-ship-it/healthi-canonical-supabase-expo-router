@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
+import { localDay } from '../../../src/utils/localDay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +17,7 @@ import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { contributionLabel, readinessLedgerSummary } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCard';
 import {
   aggregateDashboardMacros,
   boundedProgress,
@@ -208,7 +211,7 @@ type DashboardBaselineClient = {
   };
 };
 
-function ReadinessRing({ score }: { score: number | null }) {
+function ReadinessRing({ score, emptyLabel = 'Calibrating' }: { score: number | null; emptyLabel?: string }) {
   const reducedMotion = useReducedMotion();
   const size = 128;
   const c = size / 2;
@@ -248,7 +251,7 @@ function ReadinessRing({ score }: { score: number | null }) {
   const headY = c + arcRadius * Math.sin(headAngle);
 
   return (
-    <View style={styles.ringShell}>
+    <View accessible accessibilityRole="image" accessibilityLabel={score === null ? `Readiness: ${emptyLabel}` : `Estimated readiness: ${score} out of 100`} style={styles.ringShell}>
       <Svg height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
         <G transform={`rotate(-90 ${c} ${c})`}>
           {Array.from({ length: tickCount }, (_, tick) => {
@@ -292,7 +295,7 @@ function ReadinessRing({ score }: { score: number | null }) {
       </Svg>
       <View style={styles.ringCenter}>
         <Text style={[styles.score, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
-        <Text style={styles.scoreLabel}>{score === null ? 'Calibrating' : '/ 100'}</Text>
+        <Text style={styles.scoreLabel}>{score === null ? emptyLabel : '/ 100'}</Text>
       </View>
     </View>
   );
@@ -396,7 +399,8 @@ function SleepSparkline({ values }: { values: number[] }) {
 export default function DashboardScreen() {
   const { user, mode } = useAuth();
   const isFocused = useIsFocused();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = useLocalToday();
+  const [readinessCheckinRequest, setReadinessCheckinRequest] = useState(0);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
   const [nutritionSource, setNutritionSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
@@ -459,7 +463,7 @@ export default function DashboardScreen() {
       getLocalDemoNutritionState()
         .then((state) => {
           if (!isMounted) return;
-          const todayMeals = state.mealLogs.filter((meal) => meal.logged_at.slice(0, 10) === today);
+          const todayMeals = state.mealLogs.filter((meal) => localDay(meal.logged_at) === today);
           setNutritionMeals(todayMeals);
           setNutritionTargets(null);
           setNutritionSource(todayMeals.length > 0 ? 'demo' : 'calibrating');
@@ -754,7 +758,7 @@ export default function DashboardScreen() {
     { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: homePalette.cyan, onPress: () => router.navigate(quickEntryHref('food')) },
     { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: homePalette.blueSoft, onPress: () => router.navigate(quickEntryHref('workout')) },
     { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: homePalette.violet, onPress: () => router.navigate(quickEntryHref('sleep')) },
-    { label: 'Check-in', detail: 'Record how today felt', icon: 'pulse-outline', color: homePalette.amber, onPress: () => router.push('/closeout') }
+    { label: 'Check-in', detail: mode === 'demo' ? 'Update how you feel right now' : 'Record how today felt', icon: 'pulse-outline', color: homePalette.amber, onPress: () => mode === 'demo' ? setReadinessCheckinRequest(n => n + 1) : router.push('/closeout') }
   ];
 
   return (
@@ -781,7 +785,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <View style={styles.heroCard}>
+        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={nutritionMeals.map(m => m.logged_at)} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" />} /> : <View style={styles.heroCard}>
           <View style={styles.heroGlow}>
             <View style={styles.heroTopRow}>
               <View style={styles.heroCopy}>
@@ -794,11 +798,11 @@ export default function DashboardScreen() {
             <Text style={styles.homeSummary}>{dashboardHero.summary}</Text>
             <Text style={styles.homeMeta}>{sourceLabel} · {dashboardHero.confidence} confidence</Text>
           </View>
-        </View>
+        </View>}
 
         <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.homeNextAction, pressed && styles.pressed]}>
           <View style={styles.primaryActionCopy}>
-            <Text style={styles.homeEyebrow}>Next best action</Text>
+            <Text style={styles.homeEyebrow}>{mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}</Text>
             <Text style={styles.primaryActionTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
             <Text style={styles.homeDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
           </View>

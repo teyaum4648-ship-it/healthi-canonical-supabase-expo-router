@@ -1,3 +1,4 @@
+import { localDay } from '../../utils/localDay';
 import {
   addMicronutrients,
   micronutrientCoverage,
@@ -16,7 +17,7 @@ type NutrientKey = 'calories' | 'protein_g' | 'carbs_g' | 'fat_g' | 'fiber_g' | 
 const nutrientKeys: NutrientKey[] = ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g', 'sodium_mg'];
 
 function dateKey(value: string): string {
-  return value.slice(0, 10);
+  return localDay(value);
 }
 
 function round(value: number): number {

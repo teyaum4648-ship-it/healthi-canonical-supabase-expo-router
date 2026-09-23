@@ -9,7 +9,3 @@
 | Random properties animate           | Don't do `transition: all`, list exact properties         |
 | React re-renders every frame        | Write to `ref.current.style`, not state                   |
 | Element shifts 1px as motion starts | `will-change: transform` (only once you see it)           |
-
-
-
-

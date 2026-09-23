@@ -1,4 +1,5 @@
 import type { MealLog } from '../../engines/nutrition';
+import { localDay, timestampForLocalDay } from '../../utils/localDay';
 import type { UserFoodProductRow } from './productLibraryPersistence';
 
 export function findPersonalFoods(products: UserFoodProductRow[], query: string, savedOnly = false) {
@@ -9,7 +10,7 @@ export function findPersonalFoods(products: UserFoodProductRow[], query: string,
 }
 
 export function mealsForDay(meals: MealLog[], date: string) {
-  return meals.filter((meal) => meal.logged_at.slice(0, 10) === date)
+  return meals.filter((meal) => localDay(meal.logged_at) === date)
     .sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 }
 
@@ -19,6 +20,5 @@ export function portionValue(text: string): number | null {
 }
 
 export function loggedAtForDay(date: string, now: string): string {
-  // Preserve the existing UTC diary convention; changing it needs a data migration.
-  return `${date}${now.slice(10)}`;
+  return timestampForLocalDay(date, now);
 }

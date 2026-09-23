@@ -278,7 +278,7 @@ export function mealBuilderItemToPersistenceInput(
     name: item.snapshot.name,
     brand: item.snapshot.brand,
     servings: item.servings,
-    serving_size: logging.basis.startsWith('per_100') ? logging.label : item.snapshot.serving_size,
+    serving_size: logging.label,
     serving_quantity_g: logging.quantityG,
     calories: scale(logging.nutrients.calories, item.servings),
     protein_g: scale(logging.nutrients.protein_g, item.servings),

@@ -127,8 +127,8 @@ describe('household servings without a gram figure in the text', () => {
       saturated_fat_g: null,
       nutriments_per_100g: { calories: 378, protein_g: 27 }
     });
-    expect(logging).toMatchObject({ basis: 'derived_serving', label: '1 bar (45 g)', amountUnit: 'servings', amountPerPortion: 1, isServing: true });
+    expect(logging).toMatchObject({ basis: 'serving', label: '1 bar (45 g)', amountUnit: 'servings', amountPerPortion: 1, isServing: true });
     expect(logging.nutrients.calories).toBeCloseTo(170.1, 1);
-    expect(logging.nutrients.protein_g).toBeCloseTo(12.2, 1);
+    expect(logging.nutrients.protein_g).toBeCloseTo(12.15, 2);
   });
 });

@@ -23,7 +23,7 @@ import {
   type ProgressionSuggestion
 } from '../../../src/features/movement/exerciseProgression';
 import { WorkoutSessionLogger, type LoggerView } from '../../../src/features/movement/WorkoutSessionLogger';
-import { WorkoutStarter } from '../../../src/features/movement/WorkoutStarter';
+import { WorkoutStarter } from '../../../src/features/movement/WorkoutStarterView';
 import {
   addMovement as addStarterMovement,
   applySource,
@@ -75,7 +75,7 @@ import {
 } from '../../../src/features/movement/restPreferenceStore';
 import { summarizeQuickWorkout } from '../../../src/features/movement/workoutSummary';
 import { buildSessionRecap, type SessionRecap as SessionRecapModel } from '../../../src/features/movement/sessionRecap';
-import { SessionRecap } from '../../../src/features/movement/SessionRecap';
+import { SessionRecap } from '../../../src/features/movement/SessionRecapView';
 import {
   calculateMovementSummary,
   calculateMovementScore,
@@ -294,7 +294,7 @@ export default function MovementScreen() {
   /** Why the last start attempt was refused, shown beside the start button. */
   const [starterNotice, setStarterNotice] = useState('');
   const [historyDay, setHistoryDay] = useState(today);
-  const [historyView, setHistoryView] = useState<'Progress' | 'All recent' | 'By day'>('Progress');
+  const [historyView, setHistoryView] = useState<'Progress' | 'All recent' | 'By day'>('All recent');
   const scrollRef = useRef<ScrollView>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const [quickDraft, setQuickDraft] = useState<QuickWorkoutDraft | null>(null);
@@ -1426,7 +1426,6 @@ export default function MovementScreen() {
         ) : null}
 
         <View style={styles.verdictBlock}>
-          <EditorialLabel>WHY THIS FITS TODAY</EditorialLabel>
           <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
           <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
           <View style={styles.capacityLabels}>
@@ -1435,13 +1434,11 @@ export default function MovementScreen() {
             ))}
           </View>
           <View style={styles.capacityRail}>
-            {[0, 1, 2, 3].map((index) => (
-              <View key={index} style={[styles.capacitySegment, index === capacityIndex && styles.capacitySegmentActive]} />
-            ))}
+            {[0, 1, 2, 3].map(index => <View key={index} style={[styles.capacitySegment, index === capacityIndex && styles.capacitySegmentActive]} />)}
           </View>
           <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10 · readiness comes from Home</Text>
           <View style={styles.reasonList}>
-            {adaptivePlan.reason_codes.slice(0, 3).map((reason) => (
+            {adaptivePlan.reason_codes.slice(0, 3).map(reason => (
               <View key={reason} style={styles.reasonRow}>
                 <View style={styles.reasonDot} />
                 <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
@@ -1449,7 +1446,6 @@ export default function MovementScreen() {
             ))}
           </View>
         </View>
-
         <Divider />
 
         <View style={styles.feelingPanel}>
@@ -1771,11 +1767,11 @@ export default function MovementScreen() {
   }
 
   function renderHistory() {
-    const visibleSessions = historyView === 'All recent' ? sessions : sessions.filter((session) => session.session_date.slice(0, 10) === historyDay);
+    const visibleSessions = historyView === 'By day' ? sessions.filter((session) => session.session_date?.slice(0, 10) === historyDay) : sessions;
     return (
       <View style={styles.page}>
-        {/* Same as Today: the segment above already reads "History". */}
-        <SegmentedControl options={['Progress', 'All recent', 'By day'] as const} value={historyView} onChange={setHistoryView} />
+        {/* The segment above already identifies History. */}
+        <SegmentedControl options={['All recent', 'By day', 'Progress'] as const} value={historyView} onChange={setHistoryView} />
         {historyView === 'Progress' ? (
           <MovementProgress
             entries={entries}

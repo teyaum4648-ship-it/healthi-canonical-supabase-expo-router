@@ -188,6 +188,9 @@ export function coverageSummary(coverage: TrainingCoverage): string {
     return `No working sets logged in the last ${coverage.window_days} days.`;
   }
   const top = coverage.patterns[0];
+  if (!top) {
+    return `${coverage.total_working_sets} working set${coverage.total_working_sets === 1 ? '' : 's'} logged in the last ${coverage.window_days} days. Movement patterns are not available for these exercises yet.`;
+  }
   const missing = coverage.uncovered.filter((item) => item.pattern !== 'carry' && item.pattern !== 'rotation');
   const lead = `${coverage.total_working_sets} working set${coverage.total_working_sets === 1 ? '' : 's'} across ${coverage.patterns.length} pattern${coverage.patterns.length === 1 ? '' : 's'}, most in ${top.label.toLowerCase()}.`;
   if (missing.length === 0) return lead;
