@@ -221,6 +221,18 @@ export type DaySlot = {
 const wrap = (minutes: number) => ((minutes % 1440) + 1440) % 1440;
 
 /**
+ * Suggested times are rounded to the quarter hour.
+ *
+ * A weighted mean of six answers lands wherever it lands, and the unrounded result read
+ * "Sleep 11:56pm · Last coffee 3:56pm · Wake 7:56am" — arithmetic showing its working
+ * rather than advice somebody would follow. The quarter hour is also the step the nudge
+ * buttons move in, so a schedule stays on clean times however much it is adjusted.
+ */
+const SLOT_GRANULARITY_MINUTES = 15;
+const toSlotTime = (minutes: number) =>
+  wrap(Math.round(minutes / SLOT_GRANULARITY_MINUTES) * SLOT_GRANULARITY_MINUTES);
+
+/**
  * A day built around the clock the quiz found.
  *
  * Offered, not imposed: the caller shows this for acceptance, and a person who knows their
@@ -235,56 +247,56 @@ export function suggestDayArchitecture(params: {
 }): DaySlot[] {
   const need = params.sleepNeedMinutes ?? 8 * 60;
   const mid = params.preferredMidSleepMinutes;
-  const wake = wrap(mid + need / 2);
-  const sleep = wrap(mid - need / 2);
+  const wake = toSlotTime(mid + need / 2);
+  const sleep = toSlotTime(mid - need / 2);
 
   return [
     {
       id: 'wake',
       label: 'Wake',
       startMinutes: wake,
-      endMinutes: wrap(wake + 30),
+      endMinutes: toSlotTime(wake + 30),
       why: 'The midpoint of the sleep your answers point to, with your sleep need either side of it.'
     },
     {
       id: 'morning_light',
       label: 'Get outside',
       startMinutes: wake,
-      endMinutes: wrap(wake + 90),
+      endMinutes: toSlotTime(wake + 90),
       why: 'Light early in your day is the strongest thing you have for holding the clock where you want it.'
     },
     {
       id: 'deep_work',
       label: 'Hardest thinking',
-      startMinutes: wrap(wake + 120),
-      endMinutes: wrap(wake + 300),
+      startMinutes: toSlotTime(wake + 120),
+      endMinutes: toSlotTime(wake + 300),
       why: 'Grogginess has cleared by now and the early-afternoon lull has not arrived.'
     },
     {
       id: 'afternoon_dip',
       label: 'Lighter work',
-      startMinutes: wrap(wake + 420),
-      endMinutes: wrap(wake + 540),
+      startMinutes: toSlotTime(wake + 420),
+      endMinutes: toSlotTime(wake + 540),
       why: 'Most people flatten out here. Easier to plan around it than to fight it.'
     },
     {
       id: 'training',
       label: 'Best window to train',
-      startMinutes: wrap(wake + 540),
-      endMinutes: wrap(wake + 720),
+      startMinutes: toSlotTime(wake + 540),
+      endMinutes: toSlotTime(wake + 720),
       why: 'Strength and power tend to sit highest in the late afternoon of your own day.'
     },
     {
       id: 'caffeine_cutoff',
       label: 'Last coffee',
-      startMinutes: wrap(sleep - 480),
-      endMinutes: wrap(sleep - 480),
+      startMinutes: toSlotTime(sleep - 480),
+      endMinutes: toSlotTime(sleep - 480),
       why: 'Caffeine is still working on you many hours after it stops feeling like it is.'
     },
     {
       id: 'wind_down',
       label: 'Wind down',
-      startMinutes: wrap(sleep - 60),
+      startMinutes: toSlotTime(sleep - 60),
       endMinutes: sleep,
       why: 'Sleep arrives more easily after a slope than after a cliff.'
     },

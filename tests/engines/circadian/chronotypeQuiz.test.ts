@@ -117,6 +117,18 @@ describe('the day it suggests', () => {
     expect(wakeOf(early)).toBeLessThan(wakeOf(late));
   });
 
+  it('suggests times a person would actually say out loud', () => {
+    // Unrounded, a weighted mean of six answers produced "Sleep 11:56pm, last coffee
+    // 3:56pm, wake 7:56am" — arithmetic showing its working rather than advice. The
+    // quarter hour is also the nudge step, so adjusting keeps the times clean.
+    for (const mid of [187, 203, 211, 246, 299]) {
+      for (const slot of suggestDayArchitecture({ preferredMidSleepMinutes: mid })) {
+        expect(slot.startMinutes % 15).toBe(0);
+        expect(slot.endMinutes % 15).toBe(0);
+      }
+    }
+  });
+
   it('gives every slot a reason a person can disagree with', () => {
     // The point of offering rather than imposing is that someone can reject the reasoning,
     // not just the time.
