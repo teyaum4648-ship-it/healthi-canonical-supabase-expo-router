@@ -1,4 +1,4 @@
-import { estimateNutritionGoals, parseGoalSetup, type GoalAnswers, type GoalSetup } from './nutritionGoalEngine';
+import { estimateNutritionGoals, parseGoalSetup, type GoalAnswers, type GoalPatternInput, type GoalSetup } from './nutritionGoalEngine';
 export const demoGoalKey = 'healthi:demo:nutrition:goalSetup';
 type Storage = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void> };
 export type GoalClient = {
@@ -23,8 +23,8 @@ export async function readGoalSetup(userId: string | null, demo: boolean, client
   if (!parsed) throw new Error('Saved goals need to be reviewed.');
   return parsed;
 }
-export async function saveGoalSetup(answers: GoalAnswers, userId: string | null, demo: boolean, client: GoalClient | null, storage: Storage) {
-  const setup = estimateNutritionGoals(answers);
+export async function saveGoalSetup(answers: GoalAnswers, userId: string | null, demo: boolean, client: GoalClient | null, storage: Storage, pattern?: GoalPatternInput | null) {
+  const setup = estimateNutritionGoals(answers, undefined, pattern);
   if (demo) { await storage.setItem(demoGoalKey, JSON.stringify(setup)); return setup; }
   if (!userId || userId === 'demo-user' || !client) throw new Error('Sign in to save your goals.');
   const { error } = await client.rpc('save_nutrition_goal_setup', { setup });

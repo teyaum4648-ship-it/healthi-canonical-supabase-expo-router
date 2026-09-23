@@ -5,13 +5,30 @@ import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import { colors, type } from '../../styles/mobileTheme';
 import type { NutritionTargets } from '../../engines/nutrition';
-import { estimateNutritionGoals, metricGoalInputs, type GoalAnswers, type GoalSetup } from './nutritionGoalEngine';
+import { estimateNutritionGoals, metricGoalInputs, patternSplitShift, type GoalAnswers, type GoalPatternInput, type GoalSetup } from './nutritionGoalEngine';
+import { goalPatternRow, goalsRowCopy } from './goalPatternCopy';
 import { readGoalSetup, saveGoalSetup, type GoalClient } from './nutritionGoalStore';
 
 function Choices<T extends string>({ label, value, options, onChange }: { label: string; value: T | ''; options: readonly (readonly [T, string])[]; onChange: (v: T) => void }) {
   return <View style={s.group}><Text style={s.label}>{label}</Text>{options.map(([id, text]) => <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: value === id }} onPress={() => onChange(id)} style={[s.choice, value === id && s.selected]}><Text style={s.body}>{text}</Text></Pressable>)}</View>;
 }
-export function NutritionGoalSetup({ userId, demo, client, onTargets }: { userId: string | null; demo: boolean; client: GoalClient | null; onTargets: (targets: NutritionTargets) => void }) {
+
+/**
+ * Goals and the Food Pattern Test, in one card.
+ *
+ * They sit together because the pattern is the only thing besides the answers that moves a
+ * target, so somebody looking at their numbers should be able to see what shaped them and
+ * change it from the same place.
+ */
+export function GoalsCard({ setup, pattern, onEdit, onOpenPattern }: { setup: GoalSetup | null; pattern: GoalPatternInput | null; onEdit: () => void; onOpenPattern: () => void }) {
+  const patternRow = goalPatternRow(pattern, setup);
+  const goalsRow = goalsRowCopy(setup, patternRow.stale);
+  return <>
+    <ActionRow title={goalsRow.title} detail={goalsRow.detail} icon="options-outline" onPress={onEdit} />
+    <ActionRow title={patternRow.title} detail={patternRow.detail} icon="restaurant-outline" onPress={onOpenPattern} last />
+  </>;
+}
+export function NutritionGoalSetup({ userId, demo, client, pattern, onTargets, onOpenPattern }: { userId: string | null; demo: boolean; client: GoalClient | null; pattern: GoalPatternInput | null; onTargets: (targets: NutritionTargets) => void; onOpenPattern: () => void }) {
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [setup, setSetup] = useState<GoalSetup | null>(null);
@@ -41,19 +58,19 @@ export function NutritionGoalSetup({ userId, demo, client, onTargets }: { userId
     if (step === 1) {
       try {
         const answers = { age: Number(age), ...metricGoalInputs(height, weight, unit), equation, activity, goal, needsGuidance: guidance } as GoalAnswers;
-        setPreview(estimateNutritionGoals(answers)); setStep(2);
+        setPreview(estimateNutritionGoals(answers, undefined, pattern)); setStep(2);
       } catch(e) { setError(e instanceof Error ? e.message : 'Check your answers.'); }
     }
   }
   async function save() {
     if (!preview || busy) return;
     setBusy(true); setError('');
-    try { const saved = await saveGoalSetup(preview.answers, userId, demo, client, AsyncStorage); if (mounted.current) { setSetup(saved); onTargets(saved.targets); setOpen(false); } }
+    try { const saved = await saveGoalSetup(preview.answers, userId, demo, client, AsyncStorage, pattern); if (mounted.current) { setSetup(saved); onTargets(saved.targets); setOpen(false); } }
     catch(e) { setError(e instanceof Error ? e.message : 'Could not save your goals.'); }
     finally { setBusy(false); }
   }
   return <>
-    <View style={s.card}>{loading ? <ActivityIndicator accessibilityLabel="Loading nutrition goals" /> : loadError ? <ActionRow title="Goals could not load" detail={loadError} onPress={() => setReload(v => v + 1)} /> : <ActionRow title={setup ? setup.status === 'estimated' ? 'Your personalized goals' : 'Your nutrition setup' : 'Set up my goals'} detail={setup ? setup.status === 'estimated' ? 'Starting estimate · Update your answers anytime' : 'Setup saved · Guidance before numeric targets' : 'A one-time quiz for calorie and macro estimates'} icon="options-outline" onPress={begin} last />}</View>
+    <View style={s.card}>{loading ? <ActivityIndicator accessibilityLabel="Loading nutrition goals" /> : loadError ? <ActionRow title="Goals could not load" detail={loadError} onPress={() => setReload(v => v + 1)} /> : <GoalsCard setup={setup} pattern={pattern} onEdit={begin} onOpenPattern={onOpenPattern} />}</View>
     {open ? <EntrySheet title={step === 2 ? 'Your starting goals' : 'Make nutrition yours'} onClose={() => !busy && setOpen(false)} busy={busy} footer={<View style={s.group}>{error ? <Text accessibilityRole="alert" style={s.body}>{error}</Text> : null}<Pressable accessibilityRole="button" disabled={busy} style={s.primary} onPress={() => step === 2 ? void save() : next()}><Text style={s.primaryText}>{busy ? 'Saving…' : step === 2 ? 'Save my setup' : 'Continue'}</Text></Pressable>{step > 0 ? <Pressable accessibilityRole="button" disabled={busy} onPress={() => setStep(v => v - 1)} style={s.choice}><Text style={s.body}>Back</Text></Pressable> : null}</View>}>
       <Text style={s.muted}>Step {step + 1} of 3 · {demo ? 'Saved on this device in demo mode' : 'Saved privately to your account'}</Text>
       {step === 0 ? <>
@@ -71,7 +88,9 @@ export function NutritionGoalSetup({ userId, demo, client, onTargets }: { userId
       </> : preview ? <>
         <Text style={s.heading}>{preview.status === 'estimated' ? `${preview.targets.calories_target?.toLocaleString()} kcal / day` : 'Get support with your targets'}</Text>
         {preview.status === 'estimated' ? <><Text style={s.body}>Protein {preview.targets.protein_g_target} g · Carbs {preview.targets.carbs_g_target} g · Fat {preview.targets.fat_g_target} g</Text><Text style={s.muted}>Illustrative estimate range: {preview.range?.[0]}–{preview.range?.[1]} kcal. This is not a measured confidence interval or an intake limit.</Text></> : null}
-        <Text style={s.body}>{preview.explanation}</Text><Text style={s.muted}>General wellness guidance. Confidence: low until you have real-world context. This does not replace an existing care plan.</Text>
+        <Text style={s.body}>{preview.explanation}</Text>
+        {preview.status === 'estimated' && preview.pattern && patternSplitShift(preview.pattern) === 'none' ? <Text style={s.muted}>Your Food Pattern Test is not moving this split right now—it is still calibrating, or it describes your meal rhythm rather than your macros.</Text> : null}
+        <Text style={s.muted}>General wellness guidance. Confidence: low until you have real-world context. This does not replace an existing care plan.</Text>
       </> : null}
     </EntrySheet> : null}
   </>;

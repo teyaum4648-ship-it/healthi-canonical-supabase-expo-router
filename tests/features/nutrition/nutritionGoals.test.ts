@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { estimateNutritionGoals, metricGoalInputs, parseGoalSetup, unsetNutritionTargets, type GoalAnswers } from '../../../src/features/nutrition/nutritionGoalEngine';
+import { estimateNutritionGoals, goalPatternInput, metricGoalInputs, parseGoalSetup, patternSplitShift, unsetNutritionTargets, type GoalAnswers, type GoalPatternInput } from '../../../src/features/nutrition/nutritionGoalEngine';
 import { readGoalSetup, saveGoalSetup, demoGoalKey, type GoalClient } from '../../../src/features/nutrition/nutritionGoalStore';
 import { resettableDemoKeys } from '../../../src/features/auth/demoLifecycle';
 const adult: GoalAnswers = { age: 30, heightCm: 175, weightKg: 75, equation: 'male', activity: 'light', goal: 'maintain', needsGuidance: 'no' };
@@ -65,5 +65,81 @@ describe('one-time goal persistence', () => {
   it('blocks unsigned account access', async () => {
     await expect(saveGoalSetup(adult, null, false, null, storage())).rejects.toThrow('Sign in');
     await expect(readGoalSetup('demo-user', false, null, storage())).rejects.toThrow('Sign in');
+  });
+});
+
+describe('the Food Pattern Test nudges the split it is evidenced for', () => {
+  const pattern = (label: GoalPatternInput['label'], confidence: GoalPatternInput['confidence'] = 'medium'): GoalPatternInput => ({ label, confidence });
+  const split = (p?: GoalPatternInput | null) => estimateNutritionGoals(adult, '2026-09-10T12:00:00Z', p);
+  const plain = split();
+
+  it('moves protein one step up or down and never the calories', () => {
+    const up = split(pattern('protein_forward'));
+    const down = split(pattern('carb_supported'));
+    expect(up.trace!.proteinFraction).toBeCloseTo(plain.trace!.proteinFraction + 0.05);
+    expect(down.trace!.proteinFraction).toBeCloseTo(plain.trace!.proteinFraction - 0.05);
+    expect(up.targets.protein_g_target!).toBeGreaterThan(plain.targets.protein_g_target!);
+    expect(up.targets.carbs_g_target!).toBeLessThan(plain.targets.carbs_g_target!);
+    for (const result of [up, down]) {
+      expect(result.targets.calories_target).toBe(plain.targets.calories_target);
+      expect(result.targets.fat_g_target).toBe(plain.targets.fat_g_target);
+      expect(result.range).toEqual(plain.range);
+    }
+  });
+  it('stays inside the split it is allowed to move', () => {
+    for (const activity of ['seated', 'light', 'active', 'very_active'] as const) {
+      for (const label of ['protein_forward', 'carb_supported'] as const) {
+        for (const confidence of ['medium', 'high'] as const) {
+          const result = estimateNutritionGoals({ ...adult, activity }, '2026-09-10T12:00:00Z', pattern(label, confidence));
+          expect(result.trace!.proteinFraction).toBeGreaterThanOrEqual(0.15);
+          expect(result.trace!.proteinFraction).toBeLessThanOrEqual(0.30);
+          const t = result.targets;
+          expect(Math.abs(t.protein_g_target! * 4 + t.carbs_g_target! * 4 + t.fat_g_target! * 9 - t.calories_target!)).toBeLessThan(10);
+        }
+      }
+    }
+  });
+  it.each([
+    pattern('protein_forward', 'low'),
+    pattern('carb_supported', 'low'),
+    pattern('calibrating', 'high'),
+    pattern('steady_balanced', 'high'),
+    pattern('lighter_frequent', 'high'),
+    pattern('evening_sensitive', 'high')
+  ])('leaves targets alone when the pattern is weak or is about timing: %j', p => {
+    const result = split(p);
+    expect(result.targets).toEqual(plain.targets);
+    expect(patternSplitShift(p)).toBe('none');
+    expect(result.reasons).toEqual(plain.reasons);
+    expect(result.explanation).toBe(plain.explanation);
+  });
+  it('says what moved, in reason codes and in words', () => {
+    const up = split(pattern('protein_forward'));
+    expect(up.reasons).toContain('pattern_protein_forward');
+    expect(up.explanation).toContain('calories are unchanged');
+    expect(up.explanation).not.toMatch(/diagnos|treat|prescrib|clinical|guaranteed/i);
+  });
+  it('reproduces the same numbers after a reload, and ignores an injected pattern', () => {
+    const saved = split(pattern('protein_forward'));
+    expect(parseGoalSetup(JSON.parse(JSON.stringify(saved)))).toEqual(saved);
+    expect(parseGoalSetup({ ...saved, pattern: { label: 'nonsense', confidence: 'high' } })?.targets).toEqual(plain.targets);
+    expect(parseGoalSetup({ ...saved, pattern: { label: 'protein_forward', confidence: 'certain' } })?.targets).toEqual(plain.targets);
+  });
+  it('keeps a pattern out of the guidance path entirely', () => {
+    const referred = estimateNutritionGoals({ ...adult, needsGuidance: 'yes' }, '2026-09-10T12:00:00Z', pattern('protein_forward'));
+    expect(referred.status).toBe('guidance');
+    expect(referred.pattern).toBeNull();
+    expect(referred.reasons).not.toContain('pattern_protein_forward');
+  });
+  it('reads a pattern off a saved profile without reaching for the rest of it', () => {
+    expect(goalPatternInput(null)).toBeNull();
+    expect(goalPatternInput({ pattern_label: 'carb_supported', confidence: 'high', scores: {} } as never)).toEqual({ label: 'carb_supported', confidence: 'high' });
+  });
+  it('carries the pattern through saving and loading', async () => {
+    const data = new Map<string, string>();
+    const s = { getItem: vi.fn(async (k: string) => data.get(k) ?? null), setItem: vi.fn(async (k: string, v: string) => { data.set(k, v); }) };
+    const saved = await saveGoalSetup(adult, 'demo-user', true, null, s, pattern('carb_supported'));
+    expect(saved.pattern).toEqual({ label: 'carb_supported', confidence: 'medium' });
+    expect(await readGoalSetup('demo-user', true, null, s)).toEqual(saved);
   });
 });

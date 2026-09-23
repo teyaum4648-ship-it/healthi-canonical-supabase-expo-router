@@ -3,6 +3,7 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { rolloverDiaryDay } from '../../../src/utils/localDay';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 import { NutritionGoalSetup } from '../../../src/features/nutrition/NutritionGoalSetup';
+import { goalPatternInput } from '../../../src/features/nutrition/nutritionGoalEngine';
 import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
 import type { GoalClient } from '../../../src/features/nutrition/nutritionGoalStore';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
@@ -1969,7 +1970,7 @@ export default function FoodScreen() {
       <View style={styles.stack}>
         <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
         <View style={styles.diarySection}><ActionRow title="Photo meal" detail={canUseRemote ? 'Take or choose a photo · review before saving' : 'Photo estimates · not enabled in this demo'} icon="camera-outline" onPress={openPhotoEntry} last /></View>
-        <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} onTargets={setTargets} />
+        <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} pattern={goalPatternInput(activeProfile)} onTargets={setTargets} onOpenPattern={() => { closeScanner(); setActiveSegment('Food Pattern Test'); }} />
         <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}

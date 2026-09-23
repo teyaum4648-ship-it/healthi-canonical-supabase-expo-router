@@ -1,4 +1,4 @@
-import type { FoodPatternProfile, FoodPatternResultCopy } from './foodPatternTypes';
+import type { FoodPatternLabel, FoodPatternProfile, FoodPatternResultCopy } from './foodPatternTypes';
 
 const COPY_BY_LABEL: Record<FoodPatternProfile['pattern_label'], Omit<FoodPatternResultCopy, 'confidence_note'>> = {
   steady_balanced: {
@@ -32,6 +32,11 @@ const COPY_BY_LABEL: Record<FoodPatternProfile['pattern_label'], Omit<FoodPatter
       'Healthi does not have a clear enough food pattern yet. A few meal logs and response check-ins will make this more useful.'
   }
 };
+
+/** The short name for a pattern, so other surfaces can name it the same way this one does. */
+export function foodPatternTitle(label: FoodPatternLabel): string {
+  return COPY_BY_LABEL[label].title;
+}
 
 export function getFoodPatternResultCopy(profile: FoodPatternProfile): FoodPatternResultCopy {
   const copy = COPY_BY_LABEL[profile.pattern_label];
