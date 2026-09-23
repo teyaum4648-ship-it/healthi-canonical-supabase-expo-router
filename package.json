@@ -16,7 +16,8 @@
     "calibrate": "vitest run tests/engines/nutrition/productCalibration.test.ts && cat reports/product-calibration.txt",
     "lexicon:coverage": "vitest run tests/engines/nutrition/ingredientCoverage.test.ts && cat reports/lexicon-coverage.txt",
     "vocab:build": "node scripts/build-food-vocabulary.mjs",
-    "verify:ui": "node scripts/verify-ui.mjs"
+    "verify:ui": "node scripts/verify-ui.mjs",
+    "search:quality": "vitest run tests/features/nutrition/searchQuality.test.ts && cat reports/search-quality.txt"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

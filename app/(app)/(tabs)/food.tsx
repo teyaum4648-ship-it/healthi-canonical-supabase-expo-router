@@ -1009,7 +1009,15 @@ export default function FoodScreen() {
       const result = await searchFoods(searchQuery, { signal: controller.signal });
       if (generation !== searchGeneration.current) return;
       if (result.status !== 'error') setSearchResults(result.products);
-      setSearchMessage(result.status === 'found' ? result.notice ?? 'Choose a food to confirm your portion.' : result.message);
+      /*
+       * When the search ran on something other than what was typed, say so. Quietly
+       * swapping somebody's word is worse than not guessing: they cannot tell whether
+       * the app misread them or the food is genuinely not listed.
+       */
+      const searchedFor = result.status === 'found' && result.searchedFor
+        ? `Showing results for “${result.searchedFor}”. `
+        : '';
+      setSearchMessage(result.status === 'found' ? `${searchedFor}${result.notice ?? 'Choose a food to confirm your portion.'}` : result.message);
     } catch {
       if (generation === searchGeneration.current) setSearchMessage('Search is unavailable right now. Try again, or use Recent, Saved, or manual entry.');
     } finally { if (generation === searchGeneration.current) setIsSearchingProducts(false); }

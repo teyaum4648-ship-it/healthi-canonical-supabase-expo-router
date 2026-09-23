@@ -2,6 +2,7 @@ import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './norm
 import { searchOpenFoodFactsProducts, type ProductSearchResult } from './openFoodFactsClient';
 import { resolveSearchFoods } from './searchFoodResolution';
 import { readUsdaMicronutrients } from './micronutrientReaders';
+import { correctSearchQuery, guessSearchQuery } from './searchQueryCorrection';
 import type { HealthiProductSnapshot } from './productLookupTypes';
 import { metricServing, metricServingFromText } from '../labelServing';
 type RecordValue = Record<string, unknown>;
@@ -67,11 +68,22 @@ export function normalizeSearchPayload(payload: unknown, query: string): Healthi
   for (const candidate of payload.usdaFoods.slice(0,24)) { if (record(candidate)) { const p = normalizeUsdaSearchFood(candidate); if (p) rows.push(p); } }
   return resolveSearchFoods(rows, query);
 }
-type SearchResult = ProductSearchResult & { notice?: string };
+type SearchResult = ProductSearchResult & { notice?: string; searchedFor?: string };
 const cache = new Map<string, { at: number; result: SearchResult }>();
+/**
+ * Searches for what somebody probably meant, and says so when that differs from what
+ * they typed.
+ *
+ * Certain corrections — an apostrophe a chain name needs dropped, a spelling from the
+ * curated maps — are applied before the first request. A guess is only made after that
+ * request has come back with nothing, because a query that has not failed yet does not
+ * need guessing at, and guessing early mangles correct words.
+ */
 export async function searchFoods(query: string, options: { signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string } = {}): Promise<SearchResult> {
-  const q = query.trim().replace(/\s+/g,' ');
-  if (q.length < 2 || q.length > 120) return { status: 'empty', products: [], message: 'Enter a food or brand between 2 and 120 characters.' };
+  const typed = query.trim().replace(/\s+/g,' ');
+  if (typed.length < 2 || typed.length > 120) return { status: 'empty', products: [], message: 'Enter a food or brand between 2 and 120 characters.' };
+  const correction = correctSearchQuery(typed);
+  const q = correction.query || typed;
   const endpoint = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
   if (!endpoint) return searchOpenFoodFactsProducts(q, { signal: options.signal });
   const key = `${endpoint}:${q.toLowerCase()}`;
@@ -91,8 +103,21 @@ export async function searchFoods(query: string, options: { signal?: AbortSignal
     if (options.signal?.aborted) throw new Error('canceled');
     const products = normalizeSearchPayload(payload, q);
     const notice = record(payload) && payload.stale ? 'Showing earlier catalog results. Check the package label.' : record(payload) && payload.partial ? 'One database is unavailable; showing the matches we could load.' : record(payload) && payload.servingDetailsIncomplete ? 'Some label serving sizes could not load. Results marked per 100 g or 100 mL need an amount from the package.' : undefined;
-    const result: SearchResult = products.length ? { status: 'found', products, notice } : { status: 'empty', products: [], message: notice ?? 'No readable matches. Try the brand or scan the barcode; not every product is listed.' };
-    if (!options.fetcher && products.length && !notice) { if (cache.size >= 30) cache.delete(cache.keys().next().value!); cache.set(key, { at: Date.now(), result }); }
+    if (products.length === 0) {
+      /*
+       * Nothing came back, so the query has demonstrably failed and a guess is now worth
+       * making. One attempt, never a loop, and the caller is told what was searched so it
+       * can offer the literal words back.
+       */
+      const guess = guessSearchQuery(typed);
+      if (guess && guess.query !== q) {
+        const retried = await searchFoods(guess.query, { ...options, endpoint });
+        if (retried.status === 'found') return { ...retried, searchedFor: guess.query };
+      }
+      return { status: 'empty', products: [], message: notice ?? 'No readable matches. Try the brand or scan the barcode; not every product is listed.' };
+    }
+    const result: SearchResult = { status: 'found', products, notice, ...(correction.corrected ? { searchedFor: q } : {}) };
+    if (!options.fetcher && !notice) { if (cache.size >= 30) cache.delete(cache.keys().next().value!); cache.set(key, { at: Date.now(), result }); }
     return result;
   } catch(error) {
     if (!options.signal?.aborted && cached && Date.now() - cached.at < 86400_000) return { ...cached.result, notice: 'Showing earlier results. Check the package label.' };
