@@ -11,7 +11,7 @@ import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
 import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount, partitionFoodSearchResults, withFoodPortion } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
-import { ScoreRing } from './ScoreRing';
+import { ScoreRing } from './NutritionScoreRing';
 import { calculateProductQuality } from './productLookup/productQuality';
 import { AllergenNotice } from './AllergenNotice';
 import type { AllergenGroup } from './allergens';

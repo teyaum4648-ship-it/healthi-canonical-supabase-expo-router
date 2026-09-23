@@ -7,7 +7,7 @@ import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { protocolScope } from '../../../src/features/dailyProtocol';
 import { CyclicBreathRounds } from '../../../src/features/practice/CyclicBreathRounds';
 import { DaylightLog } from '../../../src/features/practice/DaylightLog';
-import { MoodHabits } from '../../../src/features/practice/MoodHabits';
+import { MoodHabits } from '../../../src/features/practice/MoodHabitsPanel';
 import { PacedBreath } from '../../../src/features/practice/PacedBreath';
 import { PulseCheck } from '../../../src/features/practice/PulseCheck';
 import { TechniquePicker } from '../../../src/features/practice/TechniquePicker';
