@@ -42,11 +42,18 @@ describe('the pieces those paths rely on', () => {
   it('keeps a late-evening save on the day it was filed under', () => {
     expect(localDay(loggedAtForDay(day, now))).toBe(day);
   });
-  it('lets a caller override the timestamp the form was created with', () => {
-    const form = { ...createEmptyManualMealForm('2026-09-23T09:00:00.000Z'), name: 'Soup' };
-    const loggedAt = loggedAtForDay(day, now);
-    expect(localDay(manualMealFormToMealLog({ ...form, logged_at: loggedAt }, loggedAt).logged_at)).toBe(day);
-    expect(localDay(manualMealFormToMealLog(form).logged_at)).toBe('2026-09-23');
+  /**
+   * The manual form stamps itself when the screen mounts. An app left open across midnight
+   * therefore carries yesterday's stamp into today, which is how a morning's logs end up on
+   * the previous day and read as missing from both.
+   */
+  it('does not carry the timestamp the form was created with across midnight', () => {
+    const mounted = '2026-09-22T22:00:00.000Z';
+    const saved = '2026-09-23T00:30:00.000Z';
+    const form = { ...createEmptyManualMealForm(mounted), name: 'Soup' };
+    expect(localDay(manualMealFormToMealLog(form, saved).logged_at)).toBe('2026-09-22');
+    const anchored = loggedAtForDay('2026-09-23', saved);
+    expect(localDay(manualMealFormToMealLog({ ...form, logged_at: anchored }, anchored).logged_at)).toBe('2026-09-23');
   });
   it('files a scanned product under the day it is given', () => {
     const snapshot: HealthiProductSnapshot = {
