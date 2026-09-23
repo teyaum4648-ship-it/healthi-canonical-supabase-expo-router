@@ -149,7 +149,7 @@ import { calculateProductQuality } from '../../../src/features/nutrition/product
 import { buildProductQualityScorePresentation } from '../../../src/features/nutrition/productLookup/productQualityPresentation';
 import { explainProductScore } from '../../../src/engines/nutrition/productScoring/explain';
 import { ProductVerdict } from '../../../src/features/nutrition/ProductVerdict';
-import { ScoreRing } from '../../../src/features/nutrition/ScoreRing';
+import { ScoreRing } from '../../../src/features/nutrition/NutritionScoreRing';
 import { mergeProductSnapshots } from '../../../src/features/nutrition/productLookup/mergeProductEvidence';
 import {
   derivePrimaryScannerState,

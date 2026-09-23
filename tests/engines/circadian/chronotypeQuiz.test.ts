@@ -43,8 +43,7 @@ const lateAnswers = answers({
 });
 
 function night(date: string, startHour: number, durationHours = 8): SleepSession {
-  const start = new Date(`${date}T00:00:00.000Z`);
-  start.setUTCHours(startHour);
+  const start = new Date(`${date}T${String(startHour).padStart(2, '0')}:00:00`);
   const end = new Date(start.getTime() + durationHours * 3600_000);
   return {
     date,

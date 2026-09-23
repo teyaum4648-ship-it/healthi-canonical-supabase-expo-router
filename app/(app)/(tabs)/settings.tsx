@@ -7,7 +7,7 @@ import { Button } from '../../../src/components/Button';
 import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
-import { LegalLinks } from '../../../src/features/legal/LegalLinks';
+import { LegalLinks } from '../../../src/features/legal/LegalLinksPanel';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
