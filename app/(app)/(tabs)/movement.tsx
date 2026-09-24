@@ -100,6 +100,11 @@ import {
   calculateNourishmentScore,
   calculateNutrientSummary
 } from '../../../src/engines/nutrition';
+import {
+  blockedMovementPatterns,
+  getMovementPatternPermissions,
+  type MovementPatternPermissionClient
+} from '../../../src/features/movement/patternPermissionPersistence';
 import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
 import { readGoalSetup } from '../../../src/features/nutrition/nutritionGoalStore';
 import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
@@ -558,7 +563,19 @@ export default function MovementScreen() {
    * withholds exercise suggestions for any pattern listed, but movement_pattern_permissions
    * has no reader in the app yet, so this is empty and is the seam that fills it.
    */
-  const blockedPatterns = useMemo<string[]>(() => [], []);
+  /*
+   * Read rather than assumed empty. A read that fails leaves the list alone instead of
+   * clearing it: failing to reach the table is not evidence that a pattern is safe.
+   */
+  const [blockedPatterns, setBlockedPatterns] = useState<string[]>([]);
+  useEffect(() => {
+    if (!canUseRemote || !userId) return;
+    let active = true;
+    getMovementPatternPermissions(supabase as unknown as MovementPatternPermissionClient, userId)
+      .then((rows) => { if (active) setBlockedPatterns(blockedMovementPatterns(rows)); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [canUseRemote, userId]);
 
   const latestScreen = useMemo(
     () => toMovementScreen(movementScreens[0], blockedPatterns),
