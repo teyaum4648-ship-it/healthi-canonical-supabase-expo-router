@@ -26,6 +26,8 @@ import {
   type TrendsDomainCard,
   type TrendsRangeDays
 } from '../../../src/engines/trends';
+import { DiaryRepairPanel } from '../../../src/features/nutrition/DiaryRepairPanel';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { loadProfileScreenModel } from '../../../src/features/profile/profileComposer';
 import type { ProfileScreenModel } from '../../../src/features/profile/profileTypes';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
@@ -92,6 +94,7 @@ function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint'
 
 export default function SettingsScreen() {
   const { signOut, user, profile, mode, startDemo } = useAuth();
+  const actualToday = useLocalToday();
   const [confirmDemoReset, setConfirmDemoReset] = useState(false);
   const [isResettingDemo, setIsResettingDemo] = useState(false);
   const [demoResetError, setDemoResetError] = useState('');
@@ -480,6 +483,11 @@ export default function SettingsScreen() {
           {model.load_error ? <Text style={styles.errorNote}>Some profile details are still calibrating while data becomes available.</Text> : null}
         </>
       )}
+      {mode === 'demo' ? (
+        <Disclosure title="Diary check" detail="Find entries filed on the wrong day">
+          <DiaryRepairPanel today={actualToday} />
+        </Disclosure>
+      ) : null}
       {mode === 'demo' ? (
         <Disclosure title="Demo settings" detail="Reset this device’s demo history">
           <Text style={styles.cardEyebrow}>YOUR DEMO</Text>

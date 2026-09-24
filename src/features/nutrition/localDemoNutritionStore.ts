@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FoodPatternProfile, MealLog } from '../../engines/nutrition';
 import type { PostMealResponseLogRow } from './foodPersonalizationPersistence';
 import type { MealLogItemRow } from './mealItemPersistence';
+import { findMisfiledMealLogs, repairMisfiledMealLogs, type MisfiledMealLog } from './misfiledMealLogs';
 import type { UserFoodProductRow } from './productLibraryPersistence';
 
 export const demoNutritionMealLogsKey = 'healthi:demo:nutrition:mealLogs';
@@ -264,6 +265,21 @@ export async function applyLocalDemoMealResponse(
   const next = current.mealLogs.map((meal) => (meal.id === mealLogId ? { ...meal, user_response: userResponse } : meal));
   await saveLocalDemoMealLogs(next);
   return next;
+}
+
+/** What the diary currently holds that the manual form filed under the wrong day. */
+export async function findLocalDemoMisfiledMealLogs(): Promise<MisfiledMealLog[]> {
+  return findMisfiledMealLogs((await getLocalDemoNutritionState()).mealLogs);
+}
+
+/** Move the named entries onto the day they were entered on, and say how many moved. */
+export async function repairLocalDemoMealLogs(ids: readonly string[]): Promise<{ moved: number; remaining: MisfiledMealLog[] }> {
+  const current = await getLocalDemoNutritionState();
+  const repaired = repairMisfiledMealLogs(current.mealLogs, ids);
+  const moved = repaired.filter((meal, index) => meal !== current.mealLogs[index]).length;
+  /* Writing an unchanged diary back would be a pointless risk, so it is skipped. */
+  if (moved > 0) await saveLocalDemoMealLogs(repaired);
+  return { moved, remaining: findMisfiledMealLogs(repaired) };
 }
 
 export async function appendLocalDemoMealLog(mealLog: MealLog): Promise<MealLog[]> {
