@@ -187,17 +187,54 @@ export const WHOLE_FOOD_VOCABULARY: readonly string[] = [
 const escapeForRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * One alternation, longest term first so "sweet potato" wins over "potato" and
- * "coconut water" over "coconut". Built once, because this runs per ingredient.
+ * The curated terms as one alternation, longest first so "sweet potato" wins over "potato"
+ * and "coconut water" over "coconut". Built once, because this runs per ingredient.
+ *
+ * Curated terms may match anywhere in a name. They were chosen one at a time, and a label
+ * names foods inside longer phrases — "organic diced tomatoes in their own juice".
  */
-const VOCABULARY_PATTERN = new RegExp(
-  `\\b(?:${[...WHOLE_FOOD_VOCABULARY]
+const CURATED_PATTERN = new RegExp(
+  `\\b(?:${[...CURATED_FOOD_VOCABULARY]
     .sort((left, right) => right.length - left.length)
     .map(escapeForRegex)
     .join('|')})\\b`
 );
 
+/**
+ * Generated terms may only match an ingredient that is that food.
+ *
+ * They come from splitting USDA descriptions, which yields specific foods and also, however
+ * carefully it is filtered, the odd word that is a food only in context. Matching those
+ * anywhere in a name is how "mixed" once made "mixed tocopherols" a whole food and
+ * "vegetable" did the same for "hydrolyzed vegetable protein". A generated term is evidence
+ * about an ingredient that is the food it names — "abalone", "dried abalone" — and none
+ * about one that merely contains the word.
+ */
+const GENERATED_TERMS = new Set(GENERATED_FOOD_VOCABULARY);
+
+/** How a label dresses a single food without changing which food it is. */
+const LEADING_PREPARATION = /^(?:(?:organic|dried|dehydrated|freeze-dried|fresh|raw|frozen|whole|roasted|toasted|ground|chopped|diced|sliced|cooked|wild|sprouted)\s+)+/;
+
+/** The name reduced to the food it names, for the whole-name match. */
+export function coreIngredientName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[*.,;:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(LEADING_PREPARATION, '');
+}
+
+function isGeneratedFood(name: string): boolean {
+  const core = coreIngredientName(name);
+  if (!core) return false;
+  if (GENERATED_TERMS.has(core)) return true;
+  // USDA lists some foods singular and some plural; a label may use either.
+  return core.endsWith('s') ? GENERATED_TERMS.has(core.slice(0, -1)) : GENERATED_TERMS.has(`${core}s`);
+}
+
 /** Whether this name is a food the vocabulary knows. */
 export function isVocabularyFood(name: string): boolean {
-  return VOCABULARY_PATTERN.test(name);
+  return CURATED_PATTERN.test(name) || isGeneratedFood(name);
 }

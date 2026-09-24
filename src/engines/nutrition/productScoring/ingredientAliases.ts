@@ -1,4 +1,4 @@
-import { WHOLE_FOOD_VOCABULARY } from './foodVocabulary';
+import { CURATED_FOOD_VOCABULARY } from './foodVocabulary';
 
 /**
  * Label spelling is not a solved problem. The jar that started this work listed
@@ -68,9 +68,15 @@ export function correctSpelling(name: string): string {
   return name.replace(/[a-z]+/g, (word) => MISSPELLINGS[word] ?? word);
 }
 
-/** Vocabulary words long enough that a one-character slip is unlikely to be ambiguous. */
+/**
+ * Curated words long enough that a one-character slip is unlikely to be ambiguous.
+ *
+ * Curated only. A repair is a guess, and whatever it lands on is credited as food, so it
+ * may only land on names somebody chose. Generated terms are filtered but not vetted one
+ * by one, and a guess pulled towards one of them would be a guess resting on a guess.
+ */
 const FUZZY_TARGETS: readonly string[] = [...new Set(
-  WHOLE_FOOD_VOCABULARY.flatMap((term) => term.split(/[^a-z]+/i)).filter((word) => word.length >= 5)
+  CURATED_FOOD_VOCABULARY.flatMap((term) => term.split(/[^a-z]+/i)).filter((word) => word.length >= 5)
 )];
 
 /** True when one insertion, deletion or substitution turns left into right. */

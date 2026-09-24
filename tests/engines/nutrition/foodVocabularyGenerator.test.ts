@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 // A build script, deliberately plain JS and outside the app's module graph.
-import { descriptionToTerms } from '../../../scripts/build-food-vocabulary.mjs';
+import { descriptionToTerms, isAdmissibleTerm, isBrandedDescription, readGeneratedTerms } from '../../../scripts/build-food-vocabulary.mjs';
+import { GENERATED_FOOD_VOCABULARY } from '../../../src/engines/nutrition/productScoring/generatedFoodVocabulary';
 
 /**
  * The generator's parsing, tested apart from its fetching.
@@ -46,5 +47,72 @@ describe('USDA description parsing', () => {
   it('drops descriptions with nothing usable in them', () => {
     expect(descriptionToTerms('', 'Vegetables and Vegetable Products')).toEqual([]);
     expect(descriptionToTerms('raw', 'Vegetables and Vegetable Products')).toEqual([]);
+  });
+});
+
+/**
+ * The run that shipped Burger King as a food.
+ *
+ * Every test above passes a category, and the first real run showed the endpoint does not
+ * deliver one the exclusion list recognises: brands, drinks, dishes and fats all came
+ * through. These pass no category at all, which is the shape that actually arrives, so the
+ * refusal has to come from the description and the term alone.
+ */
+describe('refusing products when no category arrives', () => {
+  it('refuses what the first run let through', () => {
+    for (const description of [
+      'BURGER KING, french fries',
+      'Beverages, ABBOTT NUTRITION, ENSURE, vanilla',
+      'KRAFT, VELVEETA Pasteurized Process Cheese Spread',
+      'Alcoholic beverage, beer, regular',
+      'Margarine, regular, hard',
+      'Syrups, maple',
+      'Lasagna, cheese, frozen',
+      'Candies, milk chocolate',
+      'Sugars, granulated',
+      'Salad dressing, ranch'
+    ]) {
+      expect(descriptionToTerms(description, undefined)).toEqual([]);
+    }
+  });
+  it('still reads foods', () => {
+    expect(descriptionToTerms('Eggplant, raw', undefined)).toEqual(['eggplant']);
+    expect(descriptionToTerms('Abalone, mixed species, raw', undefined)).toEqual(['abalone']);
+    expect(descriptionToTerms('Fish, salmon, Atlantic, farmed, raw', undefined)).toEqual(['salmon']);
+  });
+  it('recognises a brand the way USDA writes one', () => {
+    expect(isBrandedDescription('BURGER KING, french fries')).toBe(true);
+    expect(isBrandedDescription("McDONALD'S, Big Mac")).toBe(false); // mixed case: caught by the term rule instead
+    expect(isBrandedDescription('Beef, ground, 80% lean, USDA commodity')).toBe(false);
+    expect(isBrandedDescription('Eggplant, raw')).toBe(false);
+  });
+});
+
+describe('what may be taught to the table as a food', () => {
+  it.each([
+    ['a brand', ['burger king', 'kraft', 'silk plain', 'pam cooking spray', 'pillsbury grands']],
+    ['a restaurant in the possessive', ["mcdonald's", "wendy's", "campbell's chunky", "t.g.i. friday's", "udi's"]],
+    ['a dish or product', ['lasagna', 'pizza rolls', 'ice cream sandwich', 'chewing gum', 'toaster pastries', 'ketchup', 'candies', 'crackers']],
+    ['a drink', ['alcoholic beverage', 'toddler drink', 'cranberry juice cocktail', 'lemonade', 'apricot nectar']],
+    ['an additive or processed fat', ['sugar', 'syrup', 'artificial flavor', 'margarine', 'shortening industrial', 'vegetable oil', 'soybean lecithin', 'pectin', 'gums']],
+    ['a qualifier', ['mixed', 'plain', 'light', 'dry', 'fat', 'reduced sodium', 'gluten-free', 'restaurant', 'school lunch', 'human', 'boneless']],
+    ['a USDA alternation or a cut parenthetical', ['hazelnuts or filberts', 'stew/soup', 'chickpeas (garbanzo']]
+  ])('refuses %s', (_kind, terms) => {
+    for (const term of terms) expect(isAdmissibleTerm(term), term).toBe(false);
+  });
+
+  it('keeps foods whose names contain a refused word', () => {
+    for (const term of ['custard-apple', 'watercress', 'honeydew', 'breadfruit', 'cornsalad', "jew's ear", 'new zealand spinach', 'tart cherry', 'mixed nuts', 'applesauce', 'mustard greens', 'hearts of palm']) {
+      expect(isAdmissibleTerm(term), term).toBe(true);
+    }
+  });
+
+  it('holds the checked-in file to the current rule', () => {
+    const refused = GENERATED_FOOD_VOCABULARY.filter((term) => !isAdmissibleTerm(term));
+    expect(refused).toEqual([]);
+  });
+
+  it('reads a generated file back, apostrophes included', () => {
+    expect(readGeneratedTerms("export const X = [\n  'abalone',\n  'jew\\'s ear',\n  'yam'\n];")).toEqual(['abalone', "jew's ear", 'yam']);
   });
 });
