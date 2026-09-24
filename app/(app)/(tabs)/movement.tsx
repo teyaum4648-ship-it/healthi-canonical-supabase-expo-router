@@ -100,6 +100,8 @@ import {
   calculateNourishmentScore,
   calculateNutrientSummary
 } from '../../../src/engines/nutrition';
+import { recordFoundationScore } from '../../../src/features/foundations/recordFoundationScore';
+import type { FoundationScoreClient } from '../../../src/features/foundations/foundationScorePersistence';
 import {
   blockedMovementPatterns,
   getMovementPatternPermissions,
@@ -593,6 +595,17 @@ export default function MovementScreen() {
     }),
     [latestScreen, nourishmentScore, progressionTally, restDays7d, sleepDebtHours, summary, today]
   );
+  /* Keep today's reading so the pillar has a past, not just a present. */
+  useEffect(() => {
+    void recordFoundationScore({
+      domain: 'movement_capacity',
+      score: movementPillar,
+      userId: userId ?? null,
+      demo: mode === 'demo',
+      client: canUseRemote ? (supabase as unknown as FoundationScoreClient) : null
+    });
+  }, [canUseRemote, mode, movementPillar, userId]);
+
   const signal = useMemo(
     () =>
       generateMovementReadinessSignal({

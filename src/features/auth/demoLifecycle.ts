@@ -32,7 +32,8 @@ export const resettableDemoKeys = [
   'healthi.sleep-window.sessions.v1',
   'healthi:demo:hydration:entries',
   'healthi:demo:hydration:target',
-  'healthi:demo:readiness-now:v1'
+  'healthi:demo:readiness-now:v1',
+  'healthi:demo:foundations:scores'
 ] as const;
 
 export async function resetDemoStorage(storage: Storage): Promise<void> {

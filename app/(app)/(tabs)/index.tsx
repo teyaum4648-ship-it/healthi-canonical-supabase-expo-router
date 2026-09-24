@@ -17,6 +17,8 @@ import type { MealLog, NutritionTargets } from '../../../src/engines/nutrition';
 import { contributionLabel, readinessLedgerSummary } from '../../../src/engines/readiness';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { composeDashboardNutritionSummary } from '../../../src/features/dashboard/dashboardComposer';
+import { recordFoundationScore } from '../../../src/features/foundations/recordFoundationScore';
+import type { FoundationScoreClient } from '../../../src/features/foundations/foundationScorePersistence';
 import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCard';
 import {
   aggregateDashboardMacros,
@@ -628,6 +630,19 @@ export default function DashboardScreen() {
     targets: nutritionTargets,
     demoMode: nutritionSource === 'demo'
   });
+  /* Keep today's reading so the pillar has a past, not just a present. */
+  const nourishmentPillar = nutritionSummary.nourishment_pillar;
+  useEffect(() => {
+    if (!nourishmentPillar) return;
+    void recordFoundationScore({
+      domain: 'nourishment',
+      score: nourishmentPillar,
+      userId: user?.id ?? null,
+      demo: mode === 'demo',
+      client: mode === 'demo' ? null : (supabase as unknown as FoundationScoreClient)
+    });
+  }, [mode, nourishmentPillar, user?.id]);
+
   const movementSummary = calculateMovementSummary({
     date: today,
     sessions: movementSessions.map(workoutSessionRowToEngineSession),

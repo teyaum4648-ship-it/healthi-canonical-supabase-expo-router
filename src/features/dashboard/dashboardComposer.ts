@@ -1,4 +1,5 @@
 import type { CircadianBriefing, DataConfidence, SleepSession, TimeWindow } from '../../engines/circadian';
+import type { FoundationScore } from '../../engines/foundations/foundationTypes';
 import {
   calculateFoodQuality,
   calculateFoodResponse,
@@ -24,6 +25,8 @@ export type DashboardNutritionSummary = {
   readiness_adjustment: number;
   /** The nourishment pillar, 0-100, or null when there is nothing to read. */
   nourishment_score: number | null;
+  /** The nourishment pillar itself, so the day can be recorded rather than only shown. */
+  nourishment_pillar: FoundationScore | null;
 };
 
 function clampScore(value: number): number {
@@ -152,7 +155,8 @@ export function composeDashboardNutritionSummary(params: {
         ...readinessSignal.reason_codes
       ]),
       readiness_adjustment: 0,
-      nourishment_score: null
+      nourishment_score: null,
+      nourishment_pillar: null
     };
   }
 
@@ -178,6 +182,7 @@ export function composeDashboardNutritionSummary(params: {
       ...readinessSignal.reason_codes
     ]),
     readiness_adjustment: hasMeals ? readinessSignal.score_adjustment : 0,
-    nourishment_score: nourishment.score
+    nourishment_score: nourishment.score,
+    nourishment_pillar: nourishment
   };
 }
