@@ -1,3 +1,4 @@
+import type { DataConfidence } from './types';
 import type {
   FoodPatternMealResponseInput,
   FoodPatternMealResponseScore,
@@ -89,6 +90,31 @@ export function scoreFoodPatternMealResponse(input: FoodPatternMealResponseInput
   };
 }
 
+/**
+ * Confidence after a response, which only the winning style's own evidence can raise.
+ *
+ * Counting every response towards whichever style happens to lead let evidence about one
+ * style vouch for another: eight check-ins about breakfasts could promote an
+ * evening-sensitive label to high confidence without a single late dinner being logged.
+ * At high confidence a label is allowed to move somebody's macro targets, so that was
+ * borrowed authority with real consequences.
+ *
+ * So a response about a style other than the leader leaves confidence where it was, and a
+ * label that has just changed starts again rather than inheriting what the previous label
+ * had earned — one response is not grounds for being sure about a new answer.
+ */
+function nextConfidence(params: {
+  previous: DataConfidence;
+  fromResponse: DataConfidence;
+  labelChanged: boolean;
+  responseIsAboutLeader: boolean;
+}): DataConfidence {
+  if (params.labelChanged) return params.fromResponse === 'high' ? 'medium' : params.fromResponse;
+  if (!params.responseIsAboutLeader) return params.previous;
+  if (params.fromResponse === 'high' || params.previous === 'high') return 'high';
+  return params.fromResponse === 'medium' || params.previous === 'medium' ? 'medium' : 'low';
+}
+
 export function updateFoodPatternProfileFromResponse(params: {
   profile: FoodPatternProfile;
   response: FoodPatternMealResponseInput;
@@ -109,7 +135,12 @@ export function updateFoodPatternProfileFromResponse(params: {
   }
 
   const patternLabel = topLabel(nextScores);
-  const confidence = responseScore.confidence === 'high' ? 'high' : params.profile.confidence === 'high' ? 'high' : responseScore.confidence;
+  const confidence = nextConfidence({
+    previous: params.profile.confidence,
+    fromResponse: responseScore.confidence,
+    labelChanged: patternLabel !== params.profile.pattern_label,
+    responseIsAboutLeader: params.response.meal_style === patternLabel
+  });
 
   return {
     ...params.profile,

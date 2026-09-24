@@ -82,8 +82,17 @@ describe('food pattern response loop', () => {
     expect(updated.source).toBe('adaptive_update');
     expect(updated.updated_at).toBe('2026-07-02T12:00:00.000Z');
     expect(updated.scores.protein_forward).toBe(profile.scores.protein_forward + 2);
-    expect(updated.confidence).toBe('high');
     expect(updated.reason_codes).toContain('protein_forward_signal');
+
+    /*
+     * These answers read as steady-balanced, and the responses here are about
+     * protein-forward meals. They move that style's score, which is the point — but they
+     * are not evidence about the label that is actually leading, so they do not make the
+     * app more sure of it. This assertion used to expect 'high', which is the borrowed
+     * confidence the evidence rule exists to stop.
+     */
+    expect(updated.pattern_label).toBe(profile.pattern_label);
+    expect(updated.confidence).toBe(profile.confidence);
   });
 
   it('does not set high confidence from a single response', () => {
