@@ -22,7 +22,7 @@ import type { MovementSummary } from './movementTypes';
  */
 
 /** Sessions in a week that count as a full week of movement. */
-const SESSION_TARGET = 4;
+export const SESSION_TARGET = 4;
 /** Minutes in a week that count as full. General activity guidance, not a prescription. */
 const MINUTE_TARGET = 150;
 /** Fewer rest days than this in a week and the body is not being given room. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateTrendsSummary } from '../../../src/engines/trends';
+import { daysLoggedLabel, generateTrendsSummary } from '../../../src/engines/trends';
 
 const today = '2026-07-14';
 
@@ -101,5 +101,23 @@ describe('generateTrendsSummary', () => {
     expect(JSON.parse(JSON.stringify(result))).toEqual(result);
     expect(result.overview.reason_codes.length).toBeGreaterThan(0);
     expect(result.next_focus.reason_codes.length).toBeGreaterThan(0);
+  });
+
+  it('counts the days each trend is built from, leaving unlogged days out', () => {
+    const result = generateTrendsSummary({
+      today,
+      rhythmHistory: dates(5).map((date) => ({ date, sleep_duration_hours: 7 })),
+      nutritionHistory: [...dates(2).map((date) => ({ date, meal_count: 2 })), { date: '2026-07-11', meal_count: 0 }],
+      movementHistory: [{ date: '2026-07-01', workout_count: 1, total_minutes: 30 }]
+    });
+    const days = Object.fromEntries(result.domain_cards.map((card) => [card.domain, card.days_logged]));
+
+    expect(days).toEqual({ recovery_rhythm: 5, nourishment: 2, movement_capacity: 0, mind_life_load: 0, readiness: 0 });
+    expect(result.days_logged).toBe(5);
+  });
+
+  it('describes the evidence in days rather than a confidence grade', () => {
+    expect(daysLoggedLabel(5, 7)).toBe('5 of 7 days logged');
+    expect(daysLoggedLabel(0, 14)).toBe('Nothing logged in the last 14 days');
   });
 });

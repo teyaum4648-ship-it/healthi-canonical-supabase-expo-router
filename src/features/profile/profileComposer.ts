@@ -8,7 +8,8 @@ import { getWorkoutSessionsForRange, type MovementSupabaseClient } from '../move
 import { getLocalDemoNutritionState } from '../nutrition/localDemoNutritionStore';
 import { getActiveFoodPatternProfile, type FoodPersonalizationSupabaseClient } from '../nutrition/foodPersonalizationPersistence';
 import { getRecentMealLogs, type NutritionSupabaseClient } from '../nutrition/persistence';
-import { createDefaultSleepNeedEstimate, createDemoSleepSessions } from '../sleepRhythm/rhythmInputs';
+import { createDefaultSleepNeedEstimate } from '../sleepRhythm/rhythmInputs';
+import { getLocalSleepWindowSessions } from '../sleepRhythm/localSleepWindowStore';
 import { getActiveSleepNeedEstimate, getRecentSleepSessions, type SleepRhythmSupabaseClient } from '../sleepRhythm/persistence';
 import { readOnboardingV2Setup } from '../onboarding/onboardingV2Model';
 import { buildPersonalBlueprint } from './personalBlueprint';
@@ -162,17 +163,18 @@ async function getLatestBaselineProfile(client: BaselineProfileSupabaseClient, u
 async function loadDemoModel(input: ProfileComposerInput): Promise<ProfileScreenModel> {
   const today = new Date().toISOString().slice(0, 10);
   const start = rangeStart(today);
-  const [savedOnboarding, nutrition, movement, schedule] = await Promise.all([
+  /* The nights logged on this device, not a generated sample week; see trendsComposer. */
+  const [savedOnboarding, nutrition, movement, schedule, sleepSessions] = await Promise.all([
     AsyncStorage.getItem(demoOnboardingResultKey),
     getLocalDemoNutritionState(),
     getLocalDemoMovementState(),
-    getDemoScheduleBlocksForRange(`${start}T00:00:00.000Z`, `${today}T23:59:59.999Z`)
+    getDemoScheduleBlocksForRange(`${start}T00:00:00.000Z`, `${today}T23:59:59.999Z`),
+    getLocalSleepWindowSessions()
   ]);
   const parsed = savedOnboarding ? JSON.parse(savedOnboarding) as unknown : null;
   const record = isRecord(parsed) ? parsed : null;
   const baseline = baselineFromUnknown(record?.baselineProfile);
   const latestMovement = [...movement.workoutSessions].sort((left, right) => right.logged_at.localeCompare(left.logged_at))[0];
-  const sleepSessions = createDemoSleepSessions(today);
   return composeProfileScreenModel({
     profile: input.profile ? { display_name: input.profile.display_name, goal: input.profile.primary_goal ?? baseline?.primary_goal, baseline_mode: baseline?.baseline_mode } : null,
     onboarding: {

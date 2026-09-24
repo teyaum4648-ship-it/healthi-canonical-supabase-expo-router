@@ -20,8 +20,16 @@ import { composeDashboardNutritionSummary } from '../../../src/features/dashboar
 import { recordFoundationScore } from '../../../src/features/foundations/recordFoundationScore';
 import type { FoundationScoreClient } from '../../../src/features/foundations/foundationScorePersistence';
 import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCard';
+import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPrompts';
+import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
+import { dietWeekCard, moodWeekCard, moveWeekCard, sleepWeekCard, type WeekCard } from '../../../src/features/dashboard/weekCards';
+import { localDaylightStore, type DaylightBout } from '../../../src/features/practice/daylightModel';
+import type { PracticeSession } from '../../../src/features/practice/practiceModel';
+import { localPracticeStore } from '../../../src/features/practice/practiceStore';
+import { readGoalSetup } from '../../../src/features/nutrition/nutritionGoalStore';
+import { targetRowToTarget as goalTargetsFromRow } from '../../../src/features/nutrition/nutritionTargetModel';
+import { loggingPrompts, type LoggingPromptId, type LoggingPromptRow } from '../../../src/features/dashboard/loggingPrompts';
 import {
-  aggregateDashboardMacros,
   boundedProgress,
   greetingForHour,
   recentSleepTrend
@@ -52,6 +60,7 @@ import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSession
 import {
   getActiveNutritionTarget,
   getMealLogsForDate,
+  getRecentMealLogs,
   type MealLogRow,
   type NutritionSupabaseClient,
   type NutritionTargetRow
@@ -73,6 +82,7 @@ import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhyth
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
 import { fonts, type } from '../../../src/styles/mobileTheme';
+import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { useReducedMotion } from '../../../src/components/mobile/useReducedMotion';
@@ -107,13 +117,6 @@ const homeFont = Platform.select({
   web: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif'
 }) ?? fonts.body;
 
-const domainAccent = {
-  recovery_rhythm: homePalette.violet,
-  nourishment: homePalette.cyan,
-  movement_capacity: homePalette.blueSoft,
-  mind_life_load: homePalette.amber
-} as const;
-
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
@@ -128,11 +131,6 @@ function titleCase(value: string): string {
 function displayDate(value: string): string {
   return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
     .format(new Date(`${value}T12:00:00`));
-}
-
-function sleepDurationLabel(session: SleepSession | null): string {
-  if (typeof session?.duration_minutes !== 'number') return 'Calibrating';
-  return `${Math.floor(session.duration_minutes / 60)}h ${session.duration_minutes % 60}m`;
 }
 
 function readinessIcon(domain: string): keyof typeof Ionicons.glyphMap {
@@ -403,8 +401,14 @@ export default function DashboardScreen() {
   const isFocused = useIsFocused();
   const today = useLocalToday();
   const [readinessCheckinRequest, setReadinessCheckinRequest] = useState(0);
+  const [demoPromptRows, setDemoPromptRows] = useState<LoggingPromptRow[] | null>(null);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
+  /* The week's meals and the person's own goals, for the Diet card. The readiness inputs above stay today-only. */
+  const [weekMeals, setWeekMeals] = useState<MealLog[]>([]);
+  const [goalTargets, setGoalTargets] = useState<NutritionTargets | null>(null);
+  const [practiceSessions, setPracticeSessions] = useState<PracticeSession[]>([]);
+  const [daylightBouts, setDaylightBouts] = useState<DaylightBout[]>([]);
   const [nutritionSource, setNutritionSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
   const [movementSessions, setMovementSessions] = useState<WorkoutSessionRow[]>([]);
   const [movementEntries, setMovementEntries] = useState<WorkoutExerciseEntryRow[]>([]);
@@ -467,15 +471,20 @@ export default function DashboardScreen() {
           if (!isMounted) return;
           const todayMeals = state.mealLogs.filter((meal) => localDay(meal.logged_at) === today);
           setNutritionMeals(todayMeals);
+          setWeekMeals(state.mealLogs);
           setNutritionTargets(null);
           setNutritionSource(todayMeals.length > 0 ? 'demo' : 'calibrating');
         })
         .catch(() => {
           if (!isMounted) return;
           setNutritionMeals([]);
+          setWeekMeals([]);
           setNutritionTargets(null);
           setNutritionSource('calibrating');
         });
+      readGoalSetup(null, true, null, AsyncStorage)
+        .then((setup) => { if (isMounted) setGoalTargets(setup?.status === 'estimated' ? setup.targets : null); })
+        .catch(() => { if (isMounted) setGoalTargets(null); });
 
       return () => {
         isMounted = false;
@@ -492,14 +501,20 @@ export default function DashboardScreen() {
         if (!isMounted) return;
         setNutritionMeals(mealRows.map(mealRowToMealLog));
         setNutritionTargets(targetRowToTarget(targetRow));
+        setGoalTargets(goalTargetsFromRow(targetRow));
         setNutritionSource('remote');
       })
       .catch(() => {
         if (!isMounted) return;
         setNutritionMeals([]);
         setNutritionTargets(null);
+        setGoalTargets(null);
         setNutritionSource('calibrating');
       });
+    /* A week of meals is a few dozen rows; 150 leaves room for a heavy logger. */
+    getRecentMealLogs(client, userId, 150)
+      .then((rows) => { if (isMounted) setWeekMeals(rows.map(mealRowToMealLog)); })
+      .catch(() => { if (isMounted) setWeekMeals([]); });
 
     return () => {
       isMounted = false;
@@ -749,6 +764,25 @@ export default function DashboardScreen() {
     [baselineSetup, circadianBriefing, morningBriefing, movementSignal, nutritionSummary, preliminaryDayPlan, today]
   );
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      Promise.all([localPracticeStore.read(protocolScopeValue), localDaylightStore.read(protocolScopeValue)])
+        .then(([practice, daylight]) => {
+          if (!isMounted) return;
+          setPracticeSessions(practice);
+          setDaylightBouts(daylight);
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setPracticeSessions([]);
+          setDaylightBouts([]);
+        });
+      return () => {
+        isMounted = false;
+      };
+    }, [protocolScopeValue])
+  );
   useEffect(() => {
     // Home is the generator/writer of the active daily protocol; reconcile keeps
     // any action states the user set (done/skipped/deferred) across regenerations.
@@ -757,7 +791,11 @@ export default function DashboardScreen() {
   const protocol = protocolModel.protocol;
   const protocolActions = protocol.actions.slice(0, 3);
   const primaryAction = protocol.actions.find((action) => action.status === 'pending') ?? protocol.actions[0];
-  const macroTotals = aggregateDashboardMacros(nutritionMeals);
+  const mealTimes = useMemo(() => nutritionMeals.map((meal) => meal.logged_at), [nutritionMeals]);
+  /* The card reports its rows on every change; keep the previous array when nothing moved. */
+  const receivePromptRows = useCallback((rows: LoggingPromptRow[]) => {
+    setDemoPromptRows((previous) => JSON.stringify(previous) === JSON.stringify(rows) ? previous : rows);
+  }, []);
   const sleepTrend = recentSleepTrend(sleepSessions);
   const nextScheduleBlock = scheduleBlocks.find((block) => new Date(block.end_at).getTime() >= Date.now()) ?? null;
   const foundationSourceCount = [rhythmSource, nutritionSource, movementSource, scheduleSource]
@@ -769,12 +807,46 @@ export default function DashboardScreen() {
       ? 'Demo signals'
       : 'Signals calibrating';
   const greeting = greetingForHour(new Date().getHours());
+  const openCheckin = () => mode === 'demo' ? setReadinessCheckinRequest(n => n + 1) : router.push('/closeout');
   const quickLogActions: QuickLogAction[] = [
-    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: homePalette.cyan, onPress: () => router.navigate(quickEntryHref('food')) },
-    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: homePalette.blueSoft, onPress: () => router.navigate(quickEntryHref('workout')) },
-    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: homePalette.violet, onPress: () => router.navigate(quickEntryHref('sleep')) },
-    { label: 'Check-in', detail: mode === 'demo' ? 'Update how you feel right now' : 'Record how today felt', icon: 'pulse-outline', color: homePalette.amber, onPress: () => mode === 'demo' ? setReadinessCheckinRequest(n => n + 1) : router.push('/closeout') }
+    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: pillarColors.nourishment, onPress: () => router.navigate(quickEntryHref('food')) },
+    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: pillarColors.movement_capacity, onPress: () => router.navigate(quickEntryHref('workout')) },
+    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: pillarColors.recovery_rhythm, onPress: () => router.navigate(quickEntryHref('sleep')) },
+    { label: 'Check-in', detail: mode === 'demo' ? 'Update how you feel right now' : 'Record how today felt', icon: 'pulse-outline', color: pillarColors.mind_life_load, onPress: openCheckin }
   ];
+  /* A night is dated by the morning it ends on, so last night is the session dated today. */
+  const sleepMissing = !sleepSessions.some((session) => session.date.slice(0, 10) === today);
+  const sessionsThisWeek = movementCard.workout_count;
+  const mealsToday = nutritionSummary.meal_count;
+  const accountPromptRows = useMemo(() => loggingPrompts({
+    sleepMissing,
+    checkin: undefined,
+    mealsToday,
+    waterToday: null,
+    sessionsThisWeek,
+    clock: formatClockTime
+  }), [mealsToday, sessionsThisWeek, sleepMissing]);
+  const promptRows = mode === 'demo' && demoPromptRows ? demoPromptRows : accountPromptRows;
+  const weekCards = useMemo(() => [
+    sleepWeekCard({
+      today,
+      sessions: sleepSessions,
+      needMinutes: sleepNeed.minutes,
+      debtMinutes: circadianBriefing.sleep_debt_7_day.total_sleep_debt_minutes,
+      targetBedtime: circadianBriefing.target_bedtime
+    }),
+    dietWeekCard({ today, meals: weekMeals, targets: goalTargets }),
+    moveWeekCard({ today, sessions: movementSessions }),
+    moodWeekCard({ today, practice: practiceSessions, daylight: daylightBouts })
+  ], [circadianBriefing, daylightBouts, goalTargets, movementSessions, practiceSessions, sleepNeed.minutes, sleepSessions, today, weekMeals]);
+  function weekCardAction(card: WeekCard) {
+    if (card.back.quickEntry) router.navigate(quickEntryHref(card.back.quickEntry));
+    else router.navigate(card.back.route);
+  }
+  function promptAction(id: LoggingPromptId) {
+    if (id === 'checkin') openCheckin();
+    else router.navigate(quickEntryHref(id === 'movement' ? 'workout' : id));
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -800,7 +872,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={nutritionMeals.map(m => m.logged_at)} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" />} /> : <View style={styles.heroCard}>
+        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} onPromptRows={receivePromptRows} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" />} /> : <View style={styles.heroCard}>
           <View style={styles.heroGlow}>
             <View style={styles.heroTopRow}>
               <View style={styles.heroCopy}>
@@ -844,6 +916,7 @@ export default function DashboardScreen() {
         </Panel>
 
         <Disclosure title="Why this estimate?" detail={readinessLedgerSummary(morningBriefing.readiness.baseline_score, morningBriefing.readiness.score, morningBriefing.readiness.raw_score)}>
+          <LoggingPrompts rows={promptRows} onAction={promptAction} />
           <Text style={styles.homeDetail}>These are the inputs behind your daily guidance, and the points each one moved. Missing information lowers confidence, not your score — {foundationSourceCount} of 4 foundations have signals today.</Text>
           {morningBriefing.driver_cards.map((driver, index) => (
             <ActionRow key={driver.domain} title={driver.label} detail={driver.detail} value={contributionLabel(driver)} icon={readinessIcon(driver.domain)} onPress={() => router.navigate(foundationRoute(driver.domain))} last={index === morningBriefing.driver_cards.length - 1} />
@@ -851,18 +924,34 @@ export default function DashboardScreen() {
           <ActionRow title="See the full daily protocol" detail="Reasons, confidence and your next steps" icon="list-outline" onPress={() => router.navigate('/protocol')} last />
         </Disclosure>
 
-        <Panel>
-          <PanelHeader title="At a glance" />
-          <ActionRow title="Food" detail={nutritionSummary.meal_count ? `${nutritionSummary.meal_count} meals logged${macroTotals.has_nutrition ? ` · ${macroTotals.calories} kcal reported` : ''}` : 'No meals logged today'} icon="nutrition-outline" onPress={() => router.navigate('/food')} />
-          <ActionRow title="Movement" detail={`${movementCard.workout_count} sessions in the last 7 days`} icon="barbell-outline" onPress={() => router.navigate('/movement')} />
-          <ActionRow title="Sleep" detail={latestSleepSession ? `${sleepDurationLabel(latestSleepSession)} · latest recorded night` : 'Add your first sleep window'} icon="moon-outline" onPress={() => router.navigate('/rhythm')} last />
-        </Panel>
+        <View style={styles.weekSection}>
+          <View style={styles.weekHeader}>
+            <Text accessibilityRole="header" style={styles.weekTitle}>This week</Text>
+            <Pressable accessibilityRole="link" accessibilityLabel="Open Trends" hitSlop={8} onPress={() => router.navigate('/progress')} style={({ pressed }) => [styles.weekLink, pressed && styles.pressed]}>
+              <Text style={styles.weekLinkText}>Trends</Text>
+              <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={15} />
+            </Pressable>
+          </View>
+          <Text style={styles.weekHint}>Tap a card to see what to work on.</Text>
+          {[weekCards.slice(0, 2), weekCards.slice(2, 4)].map((pair) => (
+            <View key={pair[0]!.id} style={styles.weekRow}>
+              {pair.map((card) => <WeekFlipCard key={card.id} card={card} onAction={weekCardAction} />)}
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  weekSection: { gap: 10, marginTop: 4 },
+  weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
+  weekTitle: { fontFamily: homeFont, fontSize: 19, fontWeight: '600', letterSpacing: -0.3, color: homePalette.text },
+  weekHint: { fontFamily: homeFont, fontSize: 13, lineHeight: 18, color: homePalette.textMuted, paddingHorizontal: 4, marginTop: -6 },
+  weekLink: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 44, paddingLeft: 12 },
+  weekLinkText: { fontFamily: homeFont, fontSize: 15, fontWeight: '500', color: homePalette.blueSoft },
+  weekRow: { flexDirection: 'row', gap: 10 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   profileButton: {
     alignItems: 'center',

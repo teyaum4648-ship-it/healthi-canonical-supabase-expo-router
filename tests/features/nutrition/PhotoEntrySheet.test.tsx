@@ -59,6 +59,9 @@ describe('Photo meal entry', () => {
     const diary = screen.slice(screen.indexOf('function renderDiary()'), screen.indexOf('function renderGuidance()'));
     expect(diary).toContain('title="Photo meal"');
     expect(diary).toContain('onPress={openPhotoEntry}');
+    // The diary row only appears where photo estimates work; the picker still explains them.
+    expect(diary).toContain('{canUseRemote ? <ActionRow title="Photo meal"');
+    expect(diary.indexOf('<DietIntakeSummary')).toBeLessThan(diary.indexOf('title="Photo meal"'));
     expect(screen).toContain('onPhoto={openPhotoEntry}');
     const confirm = screen.slice(screen.indexOf('async function confirmPhotoEstimate()'), screen.indexOf('function openPhotoEntry()'));
     expect(confirm).toContain("setActiveSegment('Build Meal')");

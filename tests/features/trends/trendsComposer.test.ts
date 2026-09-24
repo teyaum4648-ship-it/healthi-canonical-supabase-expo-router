@@ -19,16 +19,26 @@ describe('trends composer', () => {
   it('groups food records into daily nourishment history', () => {
     const history = nutritionHistoryFromMealLogs([
       {
-        logged_at: '2026-07-14T12:00:00.000Z', protein_g: 28, fiber_g: 8, sugar_g: 5,
+        logged_at: new Date('2026-07-14T12:00:00').toISOString(), protein_g: 28, fiber_g: 8, sugar_g: 5,
         quality_flags: ['balanced_meal'], user_response: { energy: 'steady' }, source_confidence: 'medium', reason_codes: ['manual_food_log']
       },
       {
-        logged_at: '2026-07-14T18:00:00.000Z', protein_g: 24, fiber_g: 6, sugar_g: 7,
+        logged_at: new Date('2026-07-14T18:00:00').toISOString(), protein_g: 24, fiber_g: 6, sugar_g: 7,
         quality_flags: ['whole_food_emphasis'], user_response: null, source_confidence: 'medium', reason_codes: ['manual_food_log']
       }
     ]);
 
     expect(history).toEqual([expect.objectContaining({ date: '2026-07-14', meal_count: 2, protein_grams: 52, fiber_grams: 14 })]);
+  });
+
+  it('puts a meal on the local day it was eaten, not the UTC date of its timestamp', () => {
+    const late = new Date('2026-07-14T23:30:00');
+    const history = nutritionHistoryFromMealLogs([{
+      logged_at: late.toISOString(), protein_g: 20, fiber_g: 4, sugar_g: 2,
+      quality_flags: [], user_response: null, source_confidence: 'medium', reason_codes: []
+    }]);
+
+    expect(history.map((entry) => entry.date)).toEqual(['2026-07-14']);
   });
 
   it('maps workout records into daily movement history', () => {

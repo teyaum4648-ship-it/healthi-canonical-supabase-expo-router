@@ -11,8 +11,10 @@ import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
 import { SleepTimePicker } from '../sleepRhythm/SleepTimePicker';
+import { LoggingPrompts } from './LoggingPrompts';
+import { loggingPrompts, type LoggingPromptId, type LoggingPromptRow } from './loggingPrompts';
 import {
-  domainNames, evaluateReadinessNow, localWakeTimestamp, shouldRemindAboutLunch,
+  domainNames, evaluateReadinessNow, localWakeTimestamp, READINESS_NOW_POLICY, shouldRemindAboutLunch,
   type IntakeAnswer, type ReadinessCheckin, type ReadinessReminderPreferences
 } from './readinessNow';
 import { createReadinessNowDemoStore, type ReadinessNowDemoData } from './readinessNowStore';
@@ -90,9 +92,13 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
 }
 
 /** Device-local demo only. The account Home continues using its existing daily briefing. */
-export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, checkinRequest = 0 }: {
+export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, checkinRequest = 0, sleepMissing, sessionsThisWeek, onPromptRows }: {
   base: DailyReadinessResult; mealTimes: string[]; safetyActive: boolean;
   renderRing: (score: number | null) => ReactNode; checkinRequest?: number;
+  /** Whether last night is missing, and the week's session count, for the logging rows. */
+  sleepMissing: boolean; sessionsThisWeek: number | null;
+  /** Lets Home show the same rows in its own "Why this estimate?" without reading the stores twice. */
+  onPromptRows?: (rows: LoggingPromptRow[]) => void;
 }) {
   const focused = useIsFocused();
   const [now, setNow] = useState(() => new Date().toISOString());
@@ -122,6 +128,22 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
     return () => { active = false; };
   }, [day, retry]));
   const result = useMemo(() => evaluateReadinessNow({ now, base, mealTimes, waterTimes: water.map(w => w.logged_at), checkins: data?.checkins ?? [], safetyActive }), [now, base, mealTimes, water, data, safetyActive]);
+  const waterToday = useMemo(() => water.filter(w => localDay(w.logged_at) === day).length, [water, day]);
+  const promptRows = useMemo(() => data ? loggingPrompts({
+    sleepMissing,
+    checkin: result.checkin ? { at: result.checkin.at, stale: (result.ageMinutes ?? 0) > READINESS_NOW_POLICY.freshnessMinutes } : null,
+    mealsToday: mealTimes.filter(t => localDay(t) === day).length,
+    waterToday,
+    sessionsThisWeek,
+    clock: timeLabel
+  }) : null, [data, sleepMissing, result.checkin, result.ageMinutes, mealTimes, day, waterToday, sessionsThisWeek]);
+  useEffect(() => { if (promptRows) onPromptRows?.(promptRows); }, [promptRows, onPromptRows]);
+  function promptAction(id: LoggingPromptId) {
+    setSheet(id === 'checkin' ? 'checkin' : null);
+    if (id === 'sleep') router.navigate(quickEntryHref('sleep'));
+    if (id === 'food') router.navigate(quickEntryHref('food'));
+    if (id === 'movement') router.navigate(quickEntryHref('workout'));
+  }
   async function saveReminders(prefs: ReadinessReminderPreferences) { setData(await store.saveReminders(prefs)); }
   async function quietReminder(kind: 'later' | 'today') {
     if (!data) return;
@@ -146,6 +168,7 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); }} /> : null}
     {sheet === 'reminders' ? <ReminderSheet initial={data.reminders} onSave={saveReminders} onClose={() => setSheet(null)} /> : null}
     {sheet === 'why' ? <EntrySheet title="Your current picture" onClose={() => setSheet(null)}>
+      {promptRows ? <LoggingPrompts rows={promptRows} onAction={promptAction} /> : null}
       <Text style={styles.muted}>{result.summary}</Text>
       <Text style={styles.heading}>What’s supporting you</Text>
       {result.supporting.length ? result.supporting.map(row => <Text key={row.domain} style={styles.body}>{domainNames[row.domain]} · {row.text}</Text>) : <Text style={styles.muted}>Supportive signals will appear as you add real context.</Text>}
@@ -153,8 +176,6 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
       {result.attention.length ? result.attention.map(row => <Text key={row.domain} style={styles.body}>{domainNames[row.domain]} · {row.text}</Text>) : <Text style={styles.muted}>No additional watch signal from the available context. This is not a safety clearance.</Text>}
       <Text style={styles.heading}>Still unknown</Text>
       {result.unknown.length ? result.unknown.map(text => <Text key={text} style={styles.muted}>{text}</Text>) : <Text style={styles.muted}>The check-in is current. Logged information still cannot measure your physiology.</Text>}
-      <ActionRow title="Add water or a meal" detail="Open your food diary" icon="water-outline" onPress={() => { setSheet(null); router.navigate('/food'); }} />
-      <ActionRow title="Update your sleep window" detail="Manual sleep tracking" icon="moon-outline" onPress={() => { setSheet(null); router.navigate('/rhythm'); }} last />
       <Text style={styles.heading}>How the estimate is built</Text>
       <Text style={styles.muted}>Experimental demo policy v{result.policyVersion}. Baseline: {base.contributions?.baseline ?? 'unavailable'} points. Missing information adds no deduction. Check-ins replace a foundation’s contribution, not stack onto it. The existing daily protocol is unchanged.</Text>
       {result.ledger.map(row => <View key={row.domain} style={styles.auditRow}><Text style={styles.body}>{domainNames[row.domain]}: {row.before > 0 ? '+' : ''}{row.before}{row.before !== row.contribution ? ` → ${row.contribution}` : ''} points</Text><Text style={styles.muted}>{row.missing ? 'Base evidence incomplete.' : base.driver_cards.find(d => d.domain === row.domain)?.detail}{row.explanation ? ` ${row.explanation}` : ''}</Text></View>)}

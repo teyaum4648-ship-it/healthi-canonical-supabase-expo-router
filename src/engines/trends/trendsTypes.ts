@@ -79,6 +79,8 @@ export type TrendsDomainCard = {
   status: TrendsStatus;
   direction: TrendsDirection;
   confidence: DataConfidence;
+  /** Distinct days in the range with something recorded for this domain. */
+  days_logged: number;
   reason_codes: string[];
 };
 
@@ -104,6 +106,8 @@ export type TrendsSummary = {
     reason_codes: string[];
   };
   domain_cards: TrendsDomainCard[];
+  /** Distinct days in the range with anything recorded at all. */
+  days_logged: number;
   insights: TrendsInsight[];
   next_focus: {
     domain: Exclude<TrendsDomain, 'readiness'> | 'balanced';

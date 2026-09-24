@@ -22,7 +22,7 @@ import {
   writeAllergenProfile
 } from '../../../src/features/nutrition/allergenProfileStore';
 import {
-  confidenceLabel as trendsConfidenceLabel,
+  daysLoggedLabel,
   type TrendsDomainCard,
   type TrendsRangeDays
 } from '../../../src/engines/trends';
@@ -47,7 +47,7 @@ function trendStatusLabel(card: TrendsDomainCard): string {
 }
 
 function trendSourceLabel(model: TrendsScreenModel): string {
-  if (model.summary.source_label === 'demo') return 'Demo data';
+  if (model.summary.source_label === 'demo') return 'Logged on this device';
   if (model.summary.source_label === 'logged') return 'Based on logged data';
   return 'Based on available data';
 }
@@ -105,7 +105,7 @@ export default function SettingsScreen() {
   const [avoidingAllergens, setAvoidingAllergens] = useState<AllergenGroup[]>([]);
   const [trendsModel, setTrendsModel] = useState<TrendsScreenModel | null>(null);
   const [isTrendsLoading, setIsTrendsLoading] = useState(true);
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = actualToday;
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const protocolDone = activeProtocol?.actions.filter((action) => action.status === 'done').length ?? 0;
@@ -246,7 +246,7 @@ export default function SettingsScreen() {
                 </View>
                 <Text style={styles.trendOverviewTitle}>{trendsModel.summary.overview.headline}</Text>
                 <Text style={styles.detail}>{trendsModel.summary.overview.detail}</Text>
-                <Text style={styles.meta}>{trendsConfidenceLabel(trendsModel.summary.confidence)}</Text>
+                <Text style={styles.meta}>{daysLoggedLabel(trendsModel.summary.days_logged, trendsModel.range_days)}</Text>
               </Card>
 
               <View style={styles.trendDomainGrid}>
@@ -258,7 +258,7 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={styles.trendDomainValue}>{card.value_label}</Text>
                     <Text style={styles.detail}>{card.detail}</Text>
-                    <Text style={styles.meta}>{trendsConfidenceLabel(card.confidence)}</Text>
+                    <Text style={styles.meta}>{daysLoggedLabel(card.days_logged, trendsModel.range_days)}</Text>
                   </Card>
                 ))}
               </View>
@@ -270,7 +270,7 @@ export default function SettingsScreen() {
                     <View key={insight.id} style={styles.trendInsightRow}>
                       <Text style={styles.trendInsightTitle}>{insight.title}</Text>
                       <Text style={styles.detail}>{insight.detail}</Text>
-                      <Text style={styles.meta}>{trendsConfidenceLabel(insight.confidence)}</Text>
+                      {insight.domain !== 'balanced' ? <Text style={styles.meta}>{daysLoggedLabel(trendsModel.summary.domain_cards.find((card) => card.domain === insight.domain)?.days_logged ?? 0, trendsModel.range_days)}</Text> : null}
                     </View>
                   ))}
                 </Card>

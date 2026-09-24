@@ -21,7 +21,8 @@ import {
 import { getLocalDemoNutritionState } from '../nutrition/localDemoNutritionStore';
 import { getRecentMealLogs, type MealLogRow, type NutritionSupabaseClient } from '../nutrition/persistence';
 import type { MealLog } from '../../engines/nutrition';
-import { createDemoSleepSessions } from '../sleepRhythm/rhythmInputs';
+import { getLocalSleepWindowSessions } from '../sleepRhythm/localSleepWindowStore';
+import { localDay } from '../../utils/localDay';
 import {
   getRecentSleepSessions,
   type SleepRhythmSupabaseClient,
@@ -55,8 +56,9 @@ function groupByDate<T>(rows: T[], getDate: (row: T) => string): Map<string, T[]
 
 type NutritionTrendMeal = Pick<MealLog, 'logged_at' | 'protein_g' | 'fiber_g' | 'sugar_g' | 'quality_flags' | 'user_response' | 'source_confidence' | 'reason_codes'>;
 
+/* A meal belongs to the day it was eaten where the person is, not to the UTC date of its timestamp. */
 export function nutritionHistoryFromMealLogs(meals: NutritionTrendMeal[]): TrendNutritionEntry[] {
-  return [...groupByDate(meals, (meal) => meal.logged_at)].map(([date, rows]) => {
+  return [...groupByDate(meals, (meal) => localDay(meal.logged_at))].map(([date, rows]) => {
     const flags = rows.flatMap((row) => row.quality_flags);
     const hasWatch = flags.some((flag) => ['added_sugar', 'high_sodium', 'ultra_processed_indicator'].includes(flag));
     const hasSupport = flags.some((flag) => ['balanced_meal', 'whole_food_emphasis', 'timing_supportive'].includes(flag));
@@ -118,10 +120,16 @@ async function loadDemoModel(input: LoadTrendsScreenModelInput): Promise<TrendsS
   const start = rangeStart(input.today, input.range_days);
   const endAt = `${dateKey(input.today)}T23:59:59.999Z`;
   const startAt = `${start}T00:00:00.000Z`;
-  const [nutrition, movement, schedule] = await Promise.all([
+  /*
+   * The nights logged on this device, the same ones Home and the Sleep tab read. This
+   * used to be a generated week of sample sleep, which gave every demo the same
+   * "7h 37m average sleep" at high confidence whatever the person had actually logged.
+   */
+  const [nutrition, movement, schedule, sleep] = await Promise.all([
     getLocalDemoNutritionState(),
     getLocalDemoMovementState(),
-    getDemoScheduleBlocksForRange(startAt, endAt)
+    getDemoScheduleBlocksForRange(startAt, endAt),
+    getLocalSleepWindowSessions()
   ]);
   return composeTrendsScreenModel({
     today: input.today,
@@ -130,7 +138,7 @@ async function loadDemoModel(input: LoadTrendsScreenModelInput): Promise<TrendsS
     nutritionHistory: nutritionHistoryFromMealLogs(nutrition.mealLogs),
     movementHistory: movementHistoryFromWorkoutSessions(movement.workoutSessions),
     scheduleHistory: scheduleHistoryFromBlocks(schedule),
-    rhythmHistory: rhythmHistoryFromSleepSessions(createDemoSleepSessions(input.today))
+    rhythmHistory: rhythmHistoryFromSleepSessions(sleep)
   });
 }
 

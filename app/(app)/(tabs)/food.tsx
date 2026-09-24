@@ -1954,17 +1954,29 @@ export default function FoodScreen() {
     );
   }
 
+  /*
+   * Today comes first: what has been eaten, then the meals themselves. Goals sit under
+   * them once they are set, because they are looked at when changing them rather than
+   * every time the tab opens; before they are set they sit straight under the totals,
+   * where "no target set" points at them. Photo meals only appear where they work — a
+   * disabled row at the top of the tab was the first thing everyone saw.
+   */
   function renderDiary() {
+    const goalsSet = targets.basis.length > 0;
+    const goalSetup = <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} pattern={goalPatternInput(activeProfile)} onTargets={setTargets} onOpenPattern={() => { closeScanner(); setActiveSegment('Food Pattern Test'); }} />;
     return (
       <View style={styles.stack}>
         <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
-        <View style={styles.diarySection}><ActionRow title="Photo meal" detail={canUseRemote ? 'Take or choose a photo · review before saving' : 'Photo estimates · not enabled in this demo'} icon="camera-outline" onPress={openPhotoEntry} last /></View>
-        <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} pattern={goalPatternInput(activeProfile)} onTargets={setTargets} onOpenPattern={() => { closeScanner(); setActiveSegment('Food Pattern Test'); }} />
         <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
+        {goalsSet ? null : goalSetup}
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
-        <View style={styles.diarySection}><ActionRow title="Your foods & meals" detail="Search history, starred meals, and saved favorites" icon="bookmark-outline" onPress={() => openMealLibrary()} last /></View>
         <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={meal => { setMealDetailMessage(''); setSelectedMeal(meal); }} />
+        <View style={styles.diarySection}>
+          <ActionRow title="Your foods & meals" detail="Search history, starred meals, and saved favorites" icon="bookmark-outline" onPress={() => openMealLibrary()} last={!canUseRemote} />
+          {canUseRemote ? <ActionRow title="Photo meal" detail="Take or choose a photo · review before saving" icon="camera-outline" onPress={openPhotoEntry} last /> : null}
+        </View>
+        {goalsSet ? goalSetup : null}
         <ActionRow title="How good was what you ate" detail="Grades for everything you logged, and what earned them" icon="ribbon-outline" onPress={() => setActiveSegment('Quality')} last />
       </View>
     );

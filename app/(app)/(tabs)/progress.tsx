@@ -2,12 +2,16 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+
 import {
-  confidenceLabel,
+  daysLoggedLabel,
   type TrendsDomainCard,
   type TrendsRangeDays
 } from '../../../src/engines/trends';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
@@ -24,7 +28,7 @@ function statusLabel(card: TrendsDomainCard): string {
 }
 
 function sourceLabel(model: TrendsScreenModel): string {
-  if (model.summary.source_label === 'demo') return 'Demo data';
+  if (model.summary.source_label === 'demo') return 'Logged on this device';
   if (model.summary.source_label === 'logged') return 'Based on logged data';
   return 'Based on available data';
 }
@@ -34,7 +38,7 @@ export default function ProgressScreen() {
   const [rangeDays, setRangeDays] = useState<TrendsRangeDays>(7);
   const [model, setModel] = useState<TrendsScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useLocalToday();
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const protocolDone = activeProtocol?.actions.filter((action) => action.status === 'done').length ?? 0;
@@ -42,7 +46,7 @@ export default function ProgressScreen() {
   const load = useCallback(async () => {
     setIsLoading(true);
     const next = await loadTrendsScreenModel({
-      today: new Date().toISOString().slice(0, 10),
+      today,
       range_days: rangeDays,
       user_id: user?.id,
       is_demo_mode: user?.id === 'demo-user' || !isSupabaseConfigured,
@@ -50,7 +54,7 @@ export default function ProgressScreen() {
     });
     setModel(next);
     setIsLoading(false);
-  }, [rangeDays, user?.id]);
+  }, [rangeDays, today, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,7 +66,12 @@ export default function ProgressScreen() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <SectionHeader eyebrow="Progress" title="Trends" body="Patterns from your logged data." />
+      {/* Reached from Home's "This week", with no tab of its own, so it carries its own way back. */}
+      <Pressable accessibilityRole="button" accessibilityLabel="Back to Home" hitSlop={8} onPress={() => router.canGoBack() ? router.back() : router.navigate('/')} style={styles.back}>
+        <Ionicons color={colors.accent} name="chevron-back" size={20} />
+        <Text style={styles.backText}>Home</Text>
+      </Pressable>
+      <SectionHeader eyebrow="Progress" title="Trends" body="Patterns from what you’ve logged. A day with nothing logged is left out, not counted as zero." />
 
       <View accessibilityRole="tablist" style={styles.rangeSelector}>
         {rangeOptions.map((option) => {
@@ -95,7 +104,7 @@ export default function ProgressScreen() {
             </View>
             <Text style={styles.overviewTitle}>{summary.overview.headline}</Text>
             <Text style={styles.overviewDetail}>{summary.overview.detail}</Text>
-            <Text style={styles.confidenceText}>{confidenceLabel(summary.confidence)}</Text>
+            <Text style={styles.confidenceText}>{daysLoggedLabel(summary.days_logged, rangeDays)}</Text>
           </Card>
 
           {activeProtocol && activeProtocol.actions.length > 0 ? (
@@ -119,7 +128,7 @@ export default function ProgressScreen() {
               </View>
               <Text style={styles.domainValue}>{card.value_label}</Text>
               <Text style={styles.domainDetail}>{card.detail}</Text>
-              <Text style={styles.domainConfidence}>{confidenceLabel(card.confidence)}</Text>
+              <Text style={styles.domainConfidence}>{daysLoggedLabel(card.days_logged, rangeDays)}</Text>
             </Card>
           ))}
 
@@ -132,7 +141,7 @@ export default function ProgressScreen() {
             <Card key={insight.id} style={styles.insightCard}>
               <Text style={styles.insightTitle}>{insight.title}</Text>
               <Text style={styles.insightDetail}>{insight.detail}</Text>
-              <Text style={styles.domainConfidence}>{confidenceLabel(insight.confidence)}</Text>
+              {insight.domain !== 'balanced' ? <Text style={styles.domainConfidence}>{daysLoggedLabel(summary.domain_cards.find((card) => card.domain === insight.domain)?.days_logged ?? 0, rangeDays)}</Text> : null}
             </Card>
           ))}
 
@@ -155,6 +164,8 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 116
   },
+  back: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 2, minHeight: 44, marginBottom: -spacing.sm },
+  backText: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 16 },
   rangeSelector: {
     alignSelf: 'flex-start',
     backgroundColor: colors.surfaceInset,
