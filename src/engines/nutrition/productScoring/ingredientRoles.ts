@@ -103,6 +103,14 @@ const RULES: Rule[] = [
   { role: 'industrial_fat', pattern: /\b(partially hydrogenated|fully hydrogenated|hydrogenated|interesterified|shortening|palm kernel oil|margarine)\b/ },
 
   /*
+   * Nut and seed butters are the nut, ground. The whole-food rule below has always listed
+   * almond and peanut butter, and could never reach them: "butter" is a culinary fat one
+   * rule down, and the first match wins. Cocoa butter is a pressed fat and stays with the
+   * fats, which is why it is not here.
+   */
+  { role: 'whole_food', pattern: /\b(?:almond|peanut|cashew|hazelnut|walnut|pecan|pistachio|macadamia|sunflower seed|pumpkin seed|sesame|nut|seed) butters?\b/ },
+
+  /*
    * Traditional culinary fats, judged by source rather than by saturation, and graded
    * within that. An avocado or an olive gives up its oil to pressure alone, which is
    * why those two sit at the top rather than merely out of the seed-oil bucket.
@@ -168,6 +176,33 @@ const RULES: Rule[] = [
   { role: 'preservative', pattern: /\b(potassium sorbate|sodium benzoate|calcium propionate|propionic acid|sorbic acid|sodium nitrite|sodium nitrate|bha|bht|tbhq|edta|benzoate|preservative)\b/ },
   { role: 'texturizer', pattern: /\b(carrageenan|cellulose gum|carboxymethylcellulose|xanthan gum|guar gum|gellan gum|locust bean gum|gum acacia|gum arabic|lecithin|mono-? and diglycerides|mono and diglycerides|polysorbate \d+|sodium citrate|sodium phosphates?|sodium stearoyl lactylate|calcium silicate|silicon dioxide|tricalcium phosphate|pectin|gelatin|emulsifier|stabili[sz]er|thickener|cellulose)\b/ },
   { role: 'fortificant', pattern: /\b(calcium carbonate|calcium sulfate|vitamin [a-z]\d*|ascorbic acid|niacinamide|riboflavin|thiamine|folic acid|ferrous sulfate|zinc oxide|potassium iodide|iron\b)\b/ },
+
+  /**
+   * A food named with a fraction after it is the fraction.
+   *
+   * The whole-food rules below match a food's name anywhere in an ingredient, which is
+   * right for "organic diced tomatoes" and wrong for "tomato fiber". Before this block,
+   * anything processed that no earlier rule named explicitly fell through to them and was
+   * credited as the food it came from: hydrolyzed vegetable protein, vegetable glycerin,
+   * pea starch, almond oil, fish oil, apple juice concentrate, and every spice, herb and
+   * mushroom extract — 31 of 35 such names probed. Each rule here is general on purpose,
+   * so the next fraction nobody thought to list is still read as one; every specific rule
+   * above keeps its priority because it runs first.
+   */
+  // Plants and roots used to colour food, which is what their concentrates are sold for.
+  { role: 'color', pattern: /\b(?:vegetable|carrot|black carrot|purple carrot|beet|beetroot|red beet|red cabbage|purple sweet potato|radish|spirulina) juice concentrates?\b/ },
+  // Fruit juice concentrated is sugar with a friendly name, whichever fruit it came from.
+  { role: 'added_sugar', pattern: /\b[a-z]+(?: [a-z]+)? juice concentrates?\b/ },
+  { role: 'added_sugar', pattern: /\b(?:barley )?malt (?:extract|syrup)\b/ },
+  // Antioxidant extracts, added to keep fats from going off.
+  { role: 'preservative', pattern: /\b(?:rosemary|green tea|acerola cherry) extracts?\b|\bmixed tocopherols\b/ },
+  { role: 'flavor_system', pattern: /\b(?:extracts?|extractives|oleoresins?)\b/ },
+  { role: 'isolate', pattern: /\bproteins?\b|\bfib(?:er|re)s?\b/ },
+  { role: 'refined_starch', pattern: /\bstarch(?:es)?\b/, value: 0.52 },
+  { role: 'sugar_alcohol', pattern: /\bglycer(?:in|ine|ol)\b/ },
+  { role: 'texturizer', pattern: /\bgums?\b/ },
+  // An oil nobody listed above is still an extraction, not the nut or fish it came from.
+  { role: 'seed_oil', pattern: /\boils?\b/ },
 
   /**
    * Whole foods. The list is long on purpose: an ingredient this does not recognise is
