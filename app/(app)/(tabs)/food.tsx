@@ -36,6 +36,7 @@ import { MealDiarySections } from '../../../src/features/nutrition/MealDiarySect
 import { chooseMealDraft, diaryMealChoices, mealTypeLabel } from '../../../src/features/nutrition/mealDiaryModel';
 import { foodLoggingNutrition } from '../../../src/features/nutrition/foodLoggingNutrition';
 import { loggedAtForDay, mealsForDay, portionValue } from '../../../src/features/nutrition/foodDiaryPresentation';
+import { targetRowToTarget } from '../../../src/features/nutrition/nutritionTargetModel';
 import type { MealBuilderItem } from '../../../src/features/nutrition/mealBuilder';
 import { MealEditSheet } from '../../../src/features/nutrition/MealEditSheet';
 import { MealLibrarySheet, MealMacroGrid } from '../../../src/features/nutrition/MealLibrarySheet';
@@ -295,20 +296,6 @@ function mealRowToMealLog(row: MealLogRow): MealLog {
   };
 }
 
-function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets {
-  if (!row || row.basis.every(b => b === 'default')) return defaultTargets;
-
-  return {
-    calories_target: row.calories_target,
-    protein_g_target: row.protein_g_target,
-    carbs_g_target: row.carbs_g_target,
-    fat_g_target: row.fat_g_target,
-    fiber_g_target: row.fiber_g_target,
-    sodium_mg_limit: row.sodium_mg_limit,
-    confidence: row.confidence,
-    basis: row.basis
-  };
-}
 
 function createLocalDemoProductRow(
   snapshot: HealthiProductSnapshot,

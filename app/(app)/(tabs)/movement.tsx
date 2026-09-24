@@ -93,8 +93,19 @@ import {
   type MoveNutritionSignal,
   type MoveSleepSignal
 } from '../../../src/features/movement/contextSignals';
-import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  calculateFoodQuality,
+  calculateFoodResponse,
+  calculateNourishmentScore,
+  calculateNutrientSummary
+} from '../../../src/engines/nutrition';
+import { getLocalDemoNutritionState } from '../../../src/features/nutrition/localDemoNutritionStore';
+import { readGoalSetup } from '../../../src/features/nutrition/nutritionGoalStore';
+import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
+import { targetRowToTarget } from '../../../src/features/nutrition/nutritionTargetModel';
+import {
+  getActiveNutritionTarget,
   getMealLogsForDate,
   type NutritionSupabaseClient
 } from '../../../src/features/nutrition/persistence';
@@ -309,6 +320,13 @@ export default function MovementScreen() {
     signal: 'unknown',
     summary: 'Fueling is still calibrating from logged meals.'
   });
+  /*
+   * Today's nourishment score, only to explain a movement limiter — never to move the
+   * movement score, which would double-count the same day's food. It stays null while the
+   * nourishment pillar itself withholds a number for thin coverage, and the explanation
+   * then falls back to reasons that do not need it.
+   */
+  const [nourishmentScore, setNourishmentScore] = useState<number | null>(null);
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [entries, setEntries] = useState<WorkoutExerciseEntryRow[]>([]);
   const [workoutSets, setWorkoutSets] = useState<WorkoutSetEntryRow[]>([]);
@@ -461,8 +479,24 @@ export default function MovementScreen() {
                 )
               : (await getLocalDemoNutritionState()).mealLogs;
           if (isMounted) setNutritionSignal(deriveNutritionMoveSignal(today, meals));
+
+          const targets = canUseRemote && userId
+            ? targetRowToTarget(await getActiveNutritionTarget(supabase as unknown as NutritionSupabaseClient, userId))
+            : (await readGoalSetup(userId ?? null, mode === 'demo', null, AsyncStorage).catch(() => null))?.targets ?? unsetNutritionTargets;
+          const nutrientSummary = calculateNutrientSummary({ date: today, meals, targets });
+          const nourishment = calculateNourishmentScore({
+            date: today,
+            nutrientSummary,
+            foodQuality: calculateFoodQuality({ date: today, meals, nutrientSummary }),
+            foodResponse: calculateFoodResponse({ date: today, meals }),
+            targets
+          });
+          if (isMounted) setNourishmentScore(nourishment.score);
         } catch {
-          if (isMounted) setNutritionSignal({ signal: 'unknown', summary: 'Fueling is still calibrating from logged meals.' });
+          if (isMounted) {
+            setNutritionSignal({ signal: 'unknown', summary: 'Fueling is still calibrating from logged meals.' });
+            setNourishmentScore(null);
+          }
         }
       }
 
@@ -538,9 +572,9 @@ export default function MovementScreen() {
       progression: progressionTally,
       restDays7d,
       screen: latestScreen,
-      context: { sleep_debt_hours: sleepDebtHours }
+      context: { sleep_debt_hours: sleepDebtHours, nourishment_score: nourishmentScore }
     }),
-    [latestScreen, progressionTally, restDays7d, sleepDebtHours, summary, today]
+    [latestScreen, nourishmentScore, progressionTally, restDays7d, sleepDebtHours, summary, today]
   );
   const signal = useMemo(
     () =>
