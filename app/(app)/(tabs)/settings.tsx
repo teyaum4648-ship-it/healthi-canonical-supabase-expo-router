@@ -9,6 +9,8 @@ import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
 import { LegalLinks } from '../../../src/features/legal/LegalLinksPanel';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { ActionRow } from '../../../src/components/mobile/ActionRow';
+import { router } from 'expo-router';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
@@ -21,17 +23,10 @@ import {
   toggleAllergenGroup,
   writeAllergenProfile
 } from '../../../src/features/nutrition/allergenProfileStore';
-import {
-  daysLoggedLabel,
-  type TrendsDomainCard,
-  type TrendsRangeDays
-} from '../../../src/engines/trends';
 import { DiaryRepairPanel } from '../../../src/features/nutrition/DiaryRepairPanel';
 import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { loadProfileScreenModel } from '../../../src/features/profile/profileComposer';
 import type { ProfileScreenModel } from '../../../src/features/profile/profileTypes';
-import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
-import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, spacing } from '../../../src/styles/mobileTheme';
 
@@ -40,17 +35,6 @@ function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
 }
 
 const macroColors = [colors.accent, colors.accentMid, colors.accentSoft];
-const trendRangeOptions: TrendsRangeDays[] = [7, 14, 30];
-
-function trendStatusLabel(card: TrendsDomainCard): string {
-  return card.status === 'calibrating' ? 'Calibrating' : card.status.charAt(0).toUpperCase() + card.status.slice(1);
-}
-
-function trendSourceLabel(model: TrendsScreenModel): string {
-  if (model.summary.source_label === 'demo') return 'Logged on this device';
-  if (model.summary.source_label === 'logged') return 'Based on logged data';
-  return 'Based on available data';
-}
 
 function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint']['nourishment']['macro_tendency'] }) {
   const size = 108;
@@ -100,11 +84,8 @@ export default function SettingsScreen() {
   const [demoResetError, setDemoResetError] = useState('');
   const [model, setModel] = useState<ProfileScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [trendRangeDays, setTrendRangeDays] = useState<TrendsRangeDays>(7);
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(DEFAULT_WEIGHT_UNIT);
   const [avoidingAllergens, setAvoidingAllergens] = useState<AllergenGroup[]>([]);
-  const [trendsModel, setTrendsModel] = useState<TrendsScreenModel | null>(null);
-  const [isTrendsLoading, setIsTrendsLoading] = useState(true);
   const today = actualToday;
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
@@ -133,25 +114,6 @@ export default function SettingsScreen() {
     useCallback(() => {
       void load();
     }, [load])
-  );
-
-  const loadTrends = useCallback(async () => {
-    setIsTrendsLoading(true);
-    const next = await loadTrendsScreenModel({
-      today,
-      range_days: trendRangeDays,
-      user_id: user?.id,
-      is_demo_mode: user?.id === 'demo-user' || !isSupabaseConfigured,
-      supabase_client: supabase
-    });
-    setTrendsModel(next);
-    setIsTrendsLoading(false);
-  }, [today, trendRangeDays, user?.id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      void loadTrends();
-    }, [loadTrends])
   );
 
   const unitScope = useMemo(() => weightUnitScope(user?.id), [user?.id]);
@@ -210,79 +172,10 @@ export default function SettingsScreen() {
         </Card>
       ) : (
         <>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Your trends</Text>
-            <Text style={styles.sectionCaption}>Your recent patterns</Text>
+          {/* Trends has its own screen; a second full copy here said everything twice. */}
+          <View style={styles.trendsLink}>
+            <ActionRow title="Trends" detail="Charts for sleep, food, movement and mood" icon="stats-chart-outline" onPress={() => router.navigate('/progress')} last />
           </View>
-
-          <View accessibilityRole="tablist" style={styles.trendRangeSelector}>
-            {trendRangeOptions.map((option) => {
-              const selected = option === trendRangeDays;
-              return (
-                <Pressable
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  key={option}
-                  onPress={() => setTrendRangeDays(option)}
-                  style={[styles.trendRangeOption, selected && styles.trendRangeOptionSelected]}
-                >
-                  <Text style={[styles.trendRangeText, selected && styles.trendRangeTextSelected]}>{option} days</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {isTrendsLoading || !trendsModel ? (
-            <Card style={styles.trendLoadingCard}>
-              <ActivityIndicator color={colors.accent} />
-              <Text style={styles.loadingText}>Gathering your available patterns.</Text>
-            </Card>
-          ) : (
-            <>
-              <Card style={styles.trendOverviewCard}>
-                <View style={styles.trendTopline}>
-                  <Text style={styles.cardEyebrow}>OVERVIEW</Text>
-                  <Text style={styles.trendSource}>{trendSourceLabel(trendsModel)}</Text>
-                </View>
-                <Text style={styles.trendOverviewTitle}>{trendsModel.summary.overview.headline}</Text>
-                <Text style={styles.detail}>{trendsModel.summary.overview.detail}</Text>
-                <Text style={styles.meta}>{daysLoggedLabel(trendsModel.summary.days_logged, trendsModel.range_days)}</Text>
-              </Card>
-
-              <View style={styles.trendDomainGrid}>
-                {trendsModel.summary.domain_cards.map((card) => (
-                  <Card key={card.domain} style={styles.trendDomainCard}>
-                    <View style={styles.trendTopline}>
-                      <Text style={styles.trendDomainTitle}>{card.title}</Text>
-                      <Text style={[styles.trendStatus, card.status === 'watch' && styles.trendStatusWatch]}>{trendStatusLabel(card)}</Text>
-                    </View>
-                    <Text style={styles.trendDomainValue}>{card.value_label}</Text>
-                    <Text style={styles.detail}>{card.detail}</Text>
-                    <Text style={styles.meta}>{daysLoggedLabel(card.days_logged, trendsModel.range_days)}</Text>
-                  </Card>
-                ))}
-              </View>
-
-              {trendsModel.summary.insights.length > 0 ? (
-                <Card style={styles.trendInsightCard}>
-                  <Text style={styles.cardEyebrow}>WHAT IS SHOWING UP</Text>
-                  {trendsModel.summary.insights.map((insight) => (
-                    <View key={insight.id} style={styles.trendInsightRow}>
-                      <Text style={styles.trendInsightTitle}>{insight.title}</Text>
-                      <Text style={styles.detail}>{insight.detail}</Text>
-                      {insight.domain !== 'balanced' ? <Text style={styles.meta}>{daysLoggedLabel(trendsModel.summary.domain_cards.find((card) => card.domain === insight.domain)?.days_logged ?? 0, trendsModel.range_days)}</Text> : null}
-                    </View>
-                  ))}
-                </Card>
-              ) : null}
-
-              <Card style={styles.trendFocusCard}>
-                <Text style={styles.cardEyebrow}>NEXT FOCUS</Text>
-                <Text style={styles.trendFocusTitle}>{trendsModel.summary.next_focus.title}</Text>
-                <Text style={styles.trendFocusDetail}>{trendsModel.summary.next_focus.detail}</Text>
-              </Card>
-            </>
-          )}
 
           <Disclosure title="Your profile and preferences" detail="Goals, nourishment, sleep and movement context">
           <View style={styles.sectionRow}>
@@ -512,6 +405,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  trendsLink: { backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 16 },
   content: { paddingBottom: 28 },
   loadingCard: { alignItems: 'center', justifyContent: 'center', minHeight: 150 },
   loadingText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14 },
@@ -526,28 +420,6 @@ const styles = StyleSheet.create({
   sectionRow: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm },
   sectionTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 22 },
   sectionCaption: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  trendRangeSelector: { alignSelf: 'flex-start', backgroundColor: colors.surfaceInset, borderColor: colors.border, borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 4, padding: 4 },
-  trendRangeOption: { borderRadius: 999, minWidth: 66, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
-  trendRangeOptionSelected: { backgroundColor: colors.accent },
-  trendRangeText: { color: colors.textMuted, fontFamily: fonts.bodyMedium, fontSize: 12, textAlign: 'center' },
-  trendRangeTextSelected: { color: colors.primaryText },
-  trendLoadingCard: { alignItems: 'center', gap: spacing.sm, justifyContent: 'center', minHeight: 120 },
-  trendOverviewCard: { backgroundColor: colors.surfaceMuted, borderColor: colors.borderStrong, gap: spacing.sm },
-  trendTopline: { alignItems: 'baseline', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
-  trendSource: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  trendOverviewTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 26, lineHeight: 32 },
-  trendDomainGrid: { gap: spacing.sm },
-  trendDomainCard: { gap: spacing.xs },
-  trendDomainTitle: { color: colors.text, flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14 },
-  trendStatus: { color: colors.accentMid, fontFamily: fonts.bodyMedium, fontSize: 12 },
-  trendStatusWatch: { color: colors.danger },
-  trendDomainValue: { color: colors.text, fontFamily: fonts.display, fontSize: 22, lineHeight: 28 },
-  trendInsightCard: { gap: spacing.sm },
-  trendInsightRow: { borderTopColor: colors.hairlineSoft, borderTopWidth: 1, gap: 3, paddingTop: spacing.sm },
-  trendInsightTitle: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 14 },
-  trendFocusCard: { backgroundColor: colors.accent, borderColor: colors.accent, gap: spacing.xs },
-  trendFocusTitle: { color: colors.primaryText, fontFamily: fonts.display, fontSize: 23, lineHeight: 29 },
-  trendFocusDetail: { color: colors.primaryText, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, opacity: 0.9 },
   profileCard: { gap: spacing.xs },
   profileTitle: { color: colors.textMuted, fontFamily: fonts.bodyMedium, fontSize: 13 },
   profileValue: { color: colors.text, fontFamily: fonts.display, fontSize: 23, lineHeight: 29 },

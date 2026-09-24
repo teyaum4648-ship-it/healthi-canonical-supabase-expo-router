@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { DailyProtocol, DailyProtocolAction, ProtocolActionKind, ProtocolActionStatus } from '../../src/engines/protocol';
 import { useAuth } from '../../src/features/auth/AuthProvider';
+import { useLocalToday } from '../../src/features/navigation/useLocalToday';
 import {
   confidenceLabel,
   dayModeLabel,
@@ -43,55 +44,76 @@ function actionIcon(kind: ProtocolActionKind): keyof typeof Ionicons.glyphMap {
   }
 }
 
-const STATUS_OPTIONS: Array<{ value: ProtocolActionStatus; label: string }> = [
-  { value: 'done', label: 'Done' },
-  { value: 'skipped', label: 'Skip' },
-  { value: 'deferred', label: 'Later' }
-];
-
+/**
+ * One protocol action as a checklist row.
+ *
+ * Each action used to carry three equal buttons — Done, Skip, Later — so five actions put
+ * fifteen buttons on the screen and made "skip" look as expected as "do". Done is now the
+ * row's check, the way a to-do list works; skipping or moving it to later is one tap
+ * further, behind the row's "more" button, and says so on the row once chosen.
+ */
 function ActionRow({
   action,
+  last,
   onSetStatus
 }: {
   action: DailyProtocolAction;
+  last: boolean;
   onSetStatus: (id: string, status: ProtocolActionStatus) => void;
 }) {
-  const complete = action.status === 'done';
+  const [options, setOptions] = useState(false);
+  const done = action.status === 'done';
+  const aside = action.status === 'skipped' ? 'Skipped for today' : action.status === 'deferred' ? 'Moved to later' : null;
+  const choose = (status: ProtocolActionStatus) => { setOptions(false); onSetStatus(action.id, status); };
   return (
-    <View style={[styles.actionCard, complete && styles.actionCardDone]}>
-      <View style={styles.actionHead}>
-        <View style={styles.actionIcon}>
-          <Ionicons color={colors.accent} name={actionIcon(action.kind)} size={17} />
-        </View>
+    <View style={[styles.row, !last && styles.rowDivider]}>
+      <View style={styles.rowMain}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: done }}
+          accessibilityLabel={action.title}
+          hitSlop={6}
+          onPress={() => onSetStatus(action.id, done ? 'pending' : 'done')}
+          style={({ pressed }) => [styles.check, done && styles.checkDone, pressed && styles.pressed]}
+        >
+          {done ? <Ionicons accessible={false} color={colors.textInverse} name="checkmark" size={16} /> : null}
+        </Pressable>
         <View style={styles.actionCopy}>
-          <Text style={styles.actionTitle}>{action.title}</Text>
+          <View style={styles.titleLine}>
+            <Ionicons accessible={false} color={colors.textMuted} name={actionIcon(action.kind)} size={15} />
+            <Text style={[styles.actionTitle, (done || aside) && styles.actionTitleQuiet]}>{action.title}</Text>
+          </View>
           <Text style={styles.actionDetail}>{action.detail}</Text>
-          {action.time_hint ? <Text style={styles.actionTime}>Around {action.time_hint}</Text> : null}
+          {aside || action.time_hint ? <Text style={styles.actionTime}>{aside ?? `Around ${action.time_hint}`}</Text> : null}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`More options for ${action.title}`}
+          accessibilityState={{ expanded: options }}
+          onPress={() => setOptions((open) => !open)}
+          style={({ pressed }) => [styles.more, pressed && styles.pressed]}
+        >
+          <Ionicons accessible={false} color={colors.textMuted} name="ellipsis-horizontal" size={18} />
+        </Pressable>
       </View>
-      <View style={styles.statusRow}>
-        {STATUS_OPTIONS.map((option) => {
-          const active = action.status === option.value;
-          return (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              key={option.value}
-              onPress={() => onSetStatus(action.id, active ? 'pending' : option.value)}
-              style={({ pressed }) => [styles.statusChip, active && styles.statusChipActive, pressed && styles.pressed]}
-            >
-              <Text style={[styles.statusChipText, active && styles.statusChipTextActive]}>{option.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {options ? (
+        <View style={styles.optionRow}>
+          {action.status === 'skipped' || action.status === 'deferred'
+            ? <Pressable accessibilityRole="button" onPress={() => choose('pending')} style={({ pressed }) => [styles.option, pressed && styles.pressed]}><Text style={styles.optionText}>Put back</Text></Pressable>
+            : <>
+              <Pressable accessibilityRole="button" onPress={() => choose('deferred')} style={({ pressed }) => [styles.option, pressed && styles.pressed]}><Text style={styles.optionText}>Later</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => choose('skipped')} style={({ pressed }) => [styles.option, pressed && styles.pressed]}><Text style={styles.optionText}>Skip today</Text></Pressable>
+            </>}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export default function ProtocolScreen() {
   const { user } = useAuth();
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  /* The local day Home wrote the protocol under; a UTC date lost it every evening in the Americas. */
+  const today = useLocalToday();
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
   const [protocol, setProtocol] = useState<DailyProtocol | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,29 +163,30 @@ export default function ProtocolScreen() {
         <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
           <Ionicons color={colors.text} name="chevron-back" size={22} />
         </Pressable>
-        <Text style={styles.topTitle}>Today's protocol</Text>
         <View style={styles.backButton} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {isLoading ? (
-          <Text style={styles.muted}>Loading today's protocol…</Text>
+          <Text style={styles.muted}>Loading today’s protocol…</Text>
         ) : !protocol ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>Your protocol is set up on Home</Text>
-            <Text style={styles.muted}>Open the Home tab to generate today's protocol, then come back here to follow it.</Text>
+            <Text style={styles.muted}>Open Home to build today’s protocol, then come back here to follow it.</Text>
           </View>
         ) : (
           <>
             <View style={styles.hero}>
+              <Text accessibilityRole="header" style={styles.largeTitle}>Daily Protocol</Text>
               <View style={styles.tagRow}>
                 <View style={styles.tag}><Text style={styles.tagText}>{dayModeLabel(protocol.day_mode)}</Text></View>
                 <View style={styles.tag}><Text style={styles.tagText}>{focusLabel(protocol.primary_focus)}</Text></View>
               </View>
               <Text style={styles.heroTitle}>{protocol.headline}</Text>
               <Text style={styles.heroSummary}>{protocol.summary}</Text>
+              <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${totalCount ? Math.round((doneCount / totalCount) * 100) : 0}%` }]} /></View>
               <Text style={styles.metaLine}>
-                {confidenceLabel(protocol.confidence)} · {doneCount}/{totalCount} done
+                {doneCount} of {totalCount} done · {confidenceLabel(protocol.confidence).toLowerCase()}
               </Text>
             </View>
 
@@ -176,9 +199,9 @@ export default function ProtocolScreen() {
               </View>
             ) : null}
 
-            <View style={styles.actionsWrap}>
-              {protocol.actions.map((action) => (
-                <ActionRow action={action} key={action.id} onSetStatus={handleSetStatus} />
+            <View style={styles.list}>
+              {protocol.actions.map((action, index) => (
+                <ActionRow action={action} key={action.id} last={index === protocol.actions.length - 1} onSetStatus={handleSetStatus} />
               ))}
             </View>
 
@@ -229,8 +252,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5
   },
-  tagText: { ...type.eyebrow, color: colors.accent },
-  heroTitle: { ...type.title, color: colors.text, marginTop: 4 },
+  tagText: { ...type.caption, fontWeight: '600', color: colors.accent },
+  heroTitle: { ...type.heading, color: colors.text, marginTop: 4 },
   heroSummary: { ...type.body, color: colors.textMuted },
   metaLine: { ...type.caption, color: colors.textFaint, marginTop: 2 },
   safetyNote: {
@@ -242,42 +265,25 @@ const styles = StyleSheet.create({
     padding: spacing.md
   },
   safetyText: { ...type.caption, color: colors.textMuted, flex: 1 },
-  actionsWrap: { gap: 10 },
-  actionCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.hairline,
-    borderRadius: radii.md,
-    borderWidth: hairlineWidth,
-    gap: 12,
-    padding: spacing.md
-  },
-  actionCardDone: { borderColor: colors.accentPale },
-  actionHead: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
-  actionIcon: {
-    alignItems: 'center',
-    backgroundColor: colors.accentWash,
-    borderRadius: 999,
-    height: 34,
-    justifyContent: 'center',
-    width: 34
-  },
+  list: { backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 16 },
+  row: { paddingVertical: 12, gap: 10 },
+  rowDivider: { borderBottomWidth: hairlineWidth, borderBottomColor: colors.borderStrong },
+  rowMain: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  check: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: colors.textMuted, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkDone: { backgroundColor: colors.primary, borderColor: colors.primary },
   actionCopy: { flex: 1, gap: 3 },
-  actionTitle: { ...type.label, color: colors.text },
-  actionDetail: { ...type.caption, color: colors.textMuted },
-  actionTime: { ...type.caption, color: colors.textFaint, fontVariant: ['tabular-nums'] },
-  statusRow: { flexDirection: 'row', gap: 8 },
-  statusChip: {
-    alignItems: 'center',
-    borderColor: colors.hairline,
-    borderRadius: radii.full,
-    borderWidth: hairlineWidth,
-    flex: 1,
-    minHeight: 38,
-    justifyContent: 'center'
-  },
-  statusChipActive: { backgroundColor: colors.accentWash, borderColor: colors.accent },
-  statusChipText: { ...type.caption, color: colors.textMuted },
-  statusChipTextActive: { color: colors.accent },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  actionTitle: { ...type.body, fontWeight: '600', color: colors.text, flexShrink: 1 },
+  actionTitleQuiet: { color: colors.textMuted },
+  actionDetail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
+  actionTime: { ...type.caption, color: colors.textMuted, fontVariant: ['tabular-nums'] },
+  more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: -9, marginRight: -10 },
+  optionRow: { flexDirection: 'row', gap: 8, paddingLeft: 38 },
+  option: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: colors.surfaceInset, alignItems: 'center', justifyContent: 'center' },
+  optionText: { ...type.label, color: colors.text },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: colors.track, overflow: 'hidden', marginTop: 6 },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: colors.primary },
+  largeTitle: { ...type.title, color: colors.text },
   closeoutButton: {
     alignItems: 'center',
     backgroundColor: colors.primary,

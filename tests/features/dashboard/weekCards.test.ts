@@ -5,7 +5,10 @@ import type { NutritionTargets } from '../../../src/engines/nutrition';
 import {
   dietOnTarget,
   dietWeekCard,
+  isRecapDay,
   lastSevenDays,
+  recapWeekKey,
+  weeklyRecap,
   moodWeekCard,
   moveWeekCard,
   sleepWeekCard,
@@ -212,3 +215,34 @@ describe('week card language', () => {
     }
   });
 });
+
+describe('weeklyRecap', () => {
+  it('describes each pillar in a line and picks the first one with something to change', () => {
+    const cards = [
+      sleepWeekCard({ today, sessions: days.map((day) => night(day, 480)), needMinutes: 480, debtMinutes: 0, targetBedtime: null }),
+      dietWeekCard({ today, meals: [], targets }),
+      moveWeekCard({ today, sessions: [] }),
+      moodWeekCard({ today, practice: [], daylight: [] })
+    ];
+    const recap = weeklyRecap(cards);
+    expect(recap.lines.map((line) => line.title)).toEqual(['Sleep', 'Diet', 'Movement', 'Mood']);
+    expect(recap.lines[0]?.text).toBe('8h avg sleep · 7 of 7 nights · No sleep debt');
+    expect(recap.lines[1]?.text).toBe('Nothing logged this week');
+    expect(recap.focus?.id).toBe('diet');
+  });
+
+  it('has no focus when every card is on track, and never mentions a streak', () => {
+    const cards = [sleepWeekCard({ today, sessions: days.map((day) => night(day, 480)), needMinutes: 480, debtMinutes: 0, targetBedtime: null })];
+    const recap = weeklyRecap(cards);
+    expect(recap.focus).toBeNull();
+    expect(JSON.stringify(recap)).not.toMatch(/streak/i);
+  });
+
+  it('shows on Sunday and Monday, and one dismissal covers both', () => {
+    expect(isRecapDay(new Date('2026-09-27T12:00:00'))).toBe(true);
+    expect(isRecapDay(new Date('2026-09-28T12:00:00'))).toBe(true);
+    expect(isRecapDay(new Date('2026-09-24T12:00:00'))).toBe(false);
+    expect(recapWeekKey('2026-09-27')).toBe(recapWeekKey('2026-09-28'));
+  });
+});
+

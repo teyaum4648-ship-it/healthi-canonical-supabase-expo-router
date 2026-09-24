@@ -210,8 +210,9 @@ export const BREATH_TECHNIQUES: BreathTechnique[] = [
   },
   {
     id: 'cyclic_hyperventilation',
-    name: 'Cyclic breathing rounds',
-    summary: 'Thirty fast breaths, then hold — the Wim Hof pattern',
+    /* The id stays as it was, so sessions already saved on a device keep their name. */
+    name: 'Vitalizing breathing',
+    summary: 'Thirty full, quick breaths, then an easy hold',
     when: 'Mornings, for alertness. This is the one technique here that winds you UP rather than down, so it is the wrong tool for a panic and a good one for a flat start.',
     why: 'Thirty fast full breaths blow off carbon dioxide well below its normal level. Because it is carbon dioxide and not oxygen that drives the urge to breathe, the hold afterwards feels easy for far longer than usual. It also raises adrenaline. The tingling and lightheadedness are that chemistry, not a sign it is working better.',
     structure: 'rounds',

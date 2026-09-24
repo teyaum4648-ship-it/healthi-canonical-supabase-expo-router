@@ -1,8 +1,10 @@
 import {
   generateTrendsSummary,
   type GenerateTrendsSummaryInput,
+  type TrendMindEntry,
   type TrendMovementEntry,
   type TrendNutritionEntry,
+  type TrendReadinessEntry,
   type TrendRhythmEntry,
   type TrendScheduleEntry
 } from '../../engines/trends';
@@ -22,6 +24,12 @@ import { getLocalDemoNutritionState } from '../nutrition/localDemoNutritionStore
 import { getRecentMealLogs, type MealLogRow, type NutritionSupabaseClient } from '../nutrition/persistence';
 import type { MealLog } from '../../engines/nutrition';
 import { getLocalSleepWindowSessions } from '../sleepRhythm/localSleepWindowStore';
+import { protocolScope } from '../dailyProtocol/dailyProtocolPersistence';
+import { localDaylightStore, type DaylightBout } from '../practice/daylightModel';
+import { localHabitCompletionStore, type HabitCompletion } from '../practice/moodHabits';
+import type { PracticeSession } from '../practice/practiceModel';
+import { localPracticeStore } from '../practice/practiceStore';
+import { localReadinessHistoryStore, type ReadinessHistoryEntry } from './readinessHistoryStore';
 import { localDay } from '../../utils/localDay';
 import {
   getRecentSleepSessions,
@@ -54,7 +62,7 @@ function groupByDate<T>(rows: T[], getDate: (row: T) => string): Map<string, T[]
   }, new Map<string, T[]>());
 }
 
-type NutritionTrendMeal = Pick<MealLog, 'logged_at' | 'protein_g' | 'fiber_g' | 'sugar_g' | 'quality_flags' | 'user_response' | 'source_confidence' | 'reason_codes'>;
+type NutritionTrendMeal = Pick<MealLog, 'logged_at' | 'protein_g' | 'fiber_g' | 'sugar_g' | 'quality_flags' | 'user_response' | 'source_confidence' | 'reason_codes'> & Partial<Pick<MealLog, 'calories'>>;
 
 /* A meal belongs to the day it was eaten where the person is, not to the UTC date of its timestamp. */
 export function nutritionHistoryFromMealLogs(meals: NutritionTrendMeal[]): TrendNutritionEntry[] {
@@ -66,6 +74,7 @@ export function nutritionHistoryFromMealLogs(meals: NutritionTrendMeal[]): Trend
     return {
       date,
       meal_count: rows.length,
+      calories: rows.some((row) => typeof row.calories === 'number') ? rows.reduce((sum, row) => sum + numberOrZero(row.calories), 0) : null,
       protein_grams: rows.reduce((sum, row) => sum + numberOrZero(row.protein_g), 0),
       fiber_grams: rows.reduce((sum, row) => sum + numberOrZero(row.fiber_g), 0),
       added_sugar_grams: rows.reduce((sum, row) => sum + numberOrZero(row.sugar_g), 0),
@@ -108,6 +117,43 @@ export function rhythmHistoryFromSleepSessions(sessions: Array<Pick<SleepSession
   }));
 }
 
+const MORNING = new Set<DaylightBout['window']>(['early', 'morning']);
+
+/** A day of Mood-tab activity: what was done, never a rating of how someone felt. */
+export function mindHistoryFromMoodLogs(practice: PracticeSession[], daylight: DaylightBout[], habits: HabitCompletion[]): TrendMindEntry[] {
+  const dates = new Set([...practice, ...daylight, ...habits].map((row) => row.date));
+  return [...dates].sort().map((date) => {
+    const sessions = practice.filter((row) => row.date === date);
+    return {
+      date,
+      breathing_sessions: sessions.length,
+      breathing_minutes: Math.round(sessions.reduce((sum, row) => sum + row.seconds, 0) / 60),
+      morning_light_minutes: daylight.filter((row) => row.date === date && MORNING.has(row.window)).reduce((sum, row) => sum + row.minutes, 0),
+      habits_done: habits.filter((row) => row.date === date).length
+    };
+  });
+}
+
+export function readinessHistoryFromEntries(entries: ReadinessHistoryEntry[]): TrendReadinessEntry[] {
+  return entries.map((entry) => ({ date: entry.date, score: entry.score, label: entry.label, confidence: entry.confidence }));
+}
+
+/*
+ * Mood logs and the readiness history live on the device for demo and account alike, so
+ * both loaders read them the same way. A failed read leaves that pillar calibrating
+ * rather than failing the whole screen.
+ */
+async function loadDeviceHistories(userId: string | null | undefined) {
+  const scope = protocolScope(userId);
+  const [practice, daylight, habits, readiness] = await Promise.all([
+    localPracticeStore.read(scope).catch(() => []),
+    localDaylightStore.read(scope).catch(() => []),
+    localHabitCompletionStore.read(scope).catch(() => []),
+    localReadinessHistoryStore.read(scope).catch(() => [])
+  ]);
+  return { mindHistory: mindHistoryFromMoodLogs(practice, daylight, habits), readinessHistory: readinessHistoryFromEntries(readiness) };
+}
+
 export function composeTrendsScreenModel(input: GenerateTrendsSummaryInput, loadError = false): TrendsScreenModel {
   return {
     range_days: input.range_days ?? 7,
@@ -125,11 +171,12 @@ async function loadDemoModel(input: LoadTrendsScreenModelInput): Promise<TrendsS
    * used to be a generated week of sample sleep, which gave every demo the same
    * "7h 37m average sleep" at high confidence whatever the person had actually logged.
    */
-  const [nutrition, movement, schedule, sleep] = await Promise.all([
+  const [nutrition, movement, schedule, sleep, device] = await Promise.all([
     getLocalDemoNutritionState(),
     getLocalDemoMovementState(),
     getDemoScheduleBlocksForRange(startAt, endAt),
-    getLocalSleepWindowSessions()
+    getLocalSleepWindowSessions(),
+    loadDeviceHistories(input.user_id)
   ]);
   return composeTrendsScreenModel({
     today: input.today,
@@ -138,7 +185,8 @@ async function loadDemoModel(input: LoadTrendsScreenModelInput): Promise<TrendsS
     nutritionHistory: nutritionHistoryFromMealLogs(nutrition.mealLogs),
     movementHistory: movementHistoryFromWorkoutSessions(movement.workoutSessions),
     scheduleHistory: scheduleHistoryFromBlocks(schedule),
-    rhythmHistory: rhythmHistoryFromSleepSessions(sleep)
+    rhythmHistory: rhythmHistoryFromSleepSessions(sleep),
+    ...device
   });
 }
 
@@ -149,11 +197,12 @@ async function loadRemoteModel(input: LoadTrendsScreenModelInput): Promise<Trend
   const start = rangeStart(input.today, input.range_days);
   const startAt = `${start}T00:00:00.000Z`;
   const endAt = `${dateKey(input.today)}T23:59:59.999Z`;
-  const [meals, sessions, blocks, sleep] = await Promise.all([
+  const [meals, sessions, blocks, sleep, device] = await Promise.all([
     getRecentMealLogs(input.supabase_client as NutritionSupabaseClient, input.user_id, 100),
     getWorkoutSessionsForRange(input.supabase_client as MovementSupabaseClient, input.user_id, start, input.today, 100),
     getScheduleBlocksForRange(input.supabase_client as DayScheduleBlockSupabaseClient, input.user_id, startAt, endAt, 200),
-    getRecentSleepSessions(input.supabase_client as SleepRhythmSupabaseClient, input.user_id, 30)
+    getRecentSleepSessions(input.supabase_client as SleepRhythmSupabaseClient, input.user_id, 30),
+    loadDeviceHistories(input.user_id)
   ]);
   return composeTrendsScreenModel({
     today: input.today,
@@ -162,7 +211,8 @@ async function loadRemoteModel(input: LoadTrendsScreenModelInput): Promise<Trend
     nutritionHistory: nutritionHistoryFromMealLogs(meals),
     movementHistory: movementHistoryFromWorkoutSessions(sessions),
     scheduleHistory: scheduleHistoryFromBlocks(blocks),
-    rhythmHistory: rhythmHistoryFromSleepSessions(sleep)
+    rhythmHistory: rhythmHistoryFromSleepSessions(sleep),
+    ...device
   });
 }
 

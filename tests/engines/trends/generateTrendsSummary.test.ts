@@ -120,4 +120,43 @@ describe('generateTrendsSummary', () => {
     expect(daysLoggedLabel(5, 7)).toBe('5 of 7 days logged');
     expect(daysLoggedLabel(0, 14)).toBe('Nothing logged in the last 14 days');
   });
+
+  it('draws one point per day of the range, with gaps where nothing was logged', () => {
+    const result = generateTrendsSummary({
+      today,
+      range_days: 7,
+      rhythmHistory: [{ date: '2026-07-14', sleep_duration_hours: 7 }, { date: '2026-07-14', sleep_duration_hours: 1.5 }, { date: '2026-07-12', sleep_duration_hours: 8 }]
+    });
+    const sleep = result.domain_cards.find((card) => card.domain === 'recovery_rhythm')!;
+    expect(sleep.series.map((point) => point.date)).toEqual(['2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14']);
+    expect(sleep.series.map((point) => point.value)).toEqual([null, null, null, null, 8, null, 7]);
+    expect(sleep.series_unit).toBe('hours');
+  });
+
+  it('builds Mind + Life Load from what the Mood tab recorded', () => {
+    const result = generateTrendsSummary({
+      today,
+      mindHistory: dates(4).map((date) => ({ date, breathing_sessions: 1, breathing_minutes: 3, morning_light_minutes: 15 }))
+    });
+    const mind = result.domain_cards.find((card) => card.domain === 'mind_life_load')!;
+    expect(mind.status).toBe('supportive');
+    expect(mind.value_label).toBe('4 breathing resets · 4 mornings outside');
+    expect(mind.days_logged).toBe(4);
+    expect(mind.series.filter((point) => point.value === 3)).toHaveLength(4);
+  });
+
+  it('averages the recorded daily readiness instead of calibrating forever', () => {
+    const result = generateTrendsSummary({ today, readinessHistory: dates(3).map((date, index) => ({ date, score: 70 + index * 2 })) });
+    const readiness = result.domain_cards.find((card) => card.domain === 'readiness')!;
+    expect(readiness.status).not.toBe('calibrating');
+    expect(readiness.value_label).toBe('72 average');
+  });
+
+  it('charts calories for nourishment when meals report them', () => {
+    const result = generateTrendsSummary({ today, nutritionHistory: dates(3).map((date) => ({ date, meal_count: 3, calories: 2000 })) });
+    const food = result.domain_cards.find((card) => card.domain === 'nourishment')!;
+    expect(food.value_label).toBe('2000 kcal a day');
+    expect(food.series_unit).toBe('kcal');
+  });
 });
+

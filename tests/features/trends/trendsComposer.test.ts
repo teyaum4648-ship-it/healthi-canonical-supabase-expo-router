@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   composeTrendsScreenModel,
+  mindHistoryFromMoodLogs,
   movementHistoryFromWorkoutSessions,
   nutritionHistoryFromMealLogs,
   rhythmHistoryFromSleepSessions,
@@ -39,6 +40,18 @@ describe('trends composer', () => {
     }]);
 
     expect(history.map((entry) => entry.date)).toEqual(['2026-07-14']);
+  });
+
+  it('turns Mood logs into daily activity, counting only light before noon as morning', () => {
+    const history = mindHistoryFromMoodLogs(
+      [{ id: 'p1', date: '2026-07-14', rhythmId: 'settle', seconds: 120, finishedAt: '2026-07-14T09:00:00.000Z' }, { id: 'p2', date: '2026-07-14', rhythmId: 'settle', seconds: 60, finishedAt: '2026-07-14T21:00:00.000Z' }],
+      [{ id: 'd1', date: '2026-07-14', minutes: 20, window: 'early', estimated: false, loggedAt: '' }, { id: 'd2', date: '2026-07-13', minutes: 30, window: 'evening', estimated: false, loggedAt: '' }],
+      [{ id: 'h1', date: '2026-07-13', habitId: 'walk', completedAt: '' }]
+    );
+    expect(history).toEqual([
+      { date: '2026-07-13', breathing_sessions: 0, breathing_minutes: 0, morning_light_minutes: 0, habits_done: 1 },
+      { date: '2026-07-14', breathing_sessions: 2, breathing_minutes: 3, morning_light_minutes: 20, habits_done: 0 }
+    ]);
   });
 
   it('maps workout records into daily movement history', () => {

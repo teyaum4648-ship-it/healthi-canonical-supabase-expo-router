@@ -288,7 +288,10 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
         <View style={[styles.contextRow, { borderTopColor: props.palette.hairline }]}>
           <Ionicons color={props.palette.faint} name="information-circle-outline" size={17} />
           <Text style={[styles.contextText, { color: props.palette.muted }]}>
-            This estimates timing, not sleep stages. Confidence is {record.source_confidence}.
+            {/* One confidence on this screen, the rhythm's; this line says what the window is instead. */}
+            {record.status === 'confirmed' || record.status === 'corrected'
+              ? 'Timing you confirmed. It shows when you slept, not sleep stages.'
+              : 'Estimated timing, not sleep stages. Confirm it if it looks right.'}
           </Text>
         </View>
 

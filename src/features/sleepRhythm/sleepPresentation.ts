@@ -518,3 +518,17 @@ export const REFRESHMENT_CHOICES: Array<{ value: string; label: string; detail: 
   { value: '4', label: 'Clear', detail: 'Awake within a few minutes' },
   { value: '5', label: 'Sharp', detail: 'Woke before the alarm, ready' }
 ];
+
+/**
+ * Which of today's rhythm steps to show before "Show all".
+ *
+ * The Sleep tab listed all eight steps of the day, from morning light to wind-down, the
+ * same schedule the Plan screen already draws. What matters from here is what is next,
+ * so the list opens on the step happening now and the ones still ahead.
+ */
+export function rhythmStepsToShow<T>(items: T[], statusOf: (item: T) => string, limit = 3): { shown: T[]; hidden: number } {
+  const ahead = items.filter((item) => ['Now', 'Upcoming', 'Later'].includes(statusOf(item)));
+  const shown = ahead.slice(0, limit);
+  return { shown, hidden: items.length - shown.length };
+}
+

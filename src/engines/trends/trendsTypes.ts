@@ -32,6 +32,8 @@ export type TrendRhythmEntry = {
 export type TrendNutritionEntry = {
   date: string;
   meal_count?: number;
+  /** Calories from the meals that reported them; null when none did. */
+  calories?: number | null;
   protein_grams?: number | null;
   fiber_grams?: number | null;
   added_sugar_grams?: number | null;
@@ -60,6 +62,15 @@ export type TrendScheduleEntry = {
   reason_codes?: string[];
 };
 
+/** What the Mood tab recorded on a day: things a person did, not a mood score. */
+export type TrendMindEntry = {
+  date: string;
+  breathing_sessions?: number;
+  breathing_minutes?: number;
+  morning_light_minutes?: number;
+  habits_done?: number;
+};
+
 export type GenerateTrendsSummaryInput = {
   today: string;
   range_days?: TrendsRangeDays;
@@ -69,7 +80,11 @@ export type GenerateTrendsSummaryInput = {
   nutritionHistory?: TrendNutritionEntry[];
   movementHistory?: TrendMovementEntry[];
   scheduleHistory?: TrendScheduleEntry[];
+  mindHistory?: TrendMindEntry[];
 };
+
+/** One day of a card's chart. Null is a day with nothing logged — a gap, never a zero. */
+export type TrendsSeriesPoint = { date: string; value: number | null };
 
 export type TrendsDomainCard = {
   domain: TrendsDomain;
@@ -81,6 +96,12 @@ export type TrendsDomainCard = {
   confidence: DataConfidence;
   /** Distinct days in the range with something recorded for this domain. */
   days_logged: number;
+  /** One point per day of the range, oldest first, for the card's chart. */
+  series: TrendsSeriesPoint[];
+  /** What the chart measures, e.g. "hours asleep". */
+  series_label: string;
+  /** How a single point reads, for the chart's labels and tooltip. */
+  series_unit: 'hours' | 'kcal' | 'minutes' | 'score';
   reason_codes: string[];
 };
 

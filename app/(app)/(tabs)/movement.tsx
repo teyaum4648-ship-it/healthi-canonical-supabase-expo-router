@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { movementReasonLines } from '../../../src/features/movement/movementReasonCopy';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
@@ -1502,10 +1503,10 @@ export default function MovementScreen() {
           </View>
           <Text style={styles.rangeMeta}>Suggested effort {adaptivePlan.effort_range.min}–{adaptivePlan.effort_range.max} of 10 · readiness comes from Home</Text>
           <View style={styles.reasonList}>
-            {adaptivePlan.reason_codes.slice(0, 3).map(reason => (
-              <View key={reason} style={styles.reasonRow}>
+            {movementReasonLines(adaptivePlan.reason_codes).map(line => (
+              <View key={line} style={styles.reasonRow}>
                 <View style={styles.reasonDot} />
-                <Text style={styles.reasonLine}>{titleCase(reason)}</Text>
+                <Text style={styles.reasonLine}>{line}</Text>
               </View>
             ))}
           </View>
@@ -2047,7 +2048,7 @@ export default function MovementScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Move</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Move · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
+        <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Movement</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Movement · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
 
         {usePreviewFixture ? (
           <View style={styles.previewBanner}>

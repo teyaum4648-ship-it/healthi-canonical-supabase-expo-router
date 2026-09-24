@@ -22,16 +22,23 @@ import type { FoundationScoreClient } from '../../../src/features/foundations/fo
 import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCard';
 import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPrompts';
 import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
-import { dietWeekCard, moodWeekCard, moveWeekCard, sleepWeekCard, type WeekCard } from '../../../src/features/dashboard/weekCards';
+import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
+import { WeeklyRecapRow, WeeklyRecapSheet } from '../../../src/features/dashboard/WeeklyRecap';
 import { localDaylightStore, type DaylightBout } from '../../../src/features/practice/daylightModel';
 import type { PracticeSession } from '../../../src/features/practice/practiceModel';
 import { localPracticeStore } from '../../../src/features/practice/practiceStore';
 import { readGoalSetup } from '../../../src/features/nutrition/nutritionGoalStore';
+import { addGlassOfWater, GLASS_ML, removeWater } from '../../../src/features/nutrition/quickWater';
+import type { HydrationClient } from '../../../src/features/nutrition/hydrationStore';
+import { dietAccents } from '../../../src/features/nutrition/DietDashboard';
+import { recordReadiness } from '../../../src/features/trends/readinessHistoryStore';
 import { targetRowToTarget as goalTargetsFromRow } from '../../../src/features/nutrition/nutritionTargetModel';
-import { loggingPrompts, type LoggingPromptId, type LoggingPromptRow } from '../../../src/features/dashboard/loggingPrompts';
+import { loggingPrompts, type LoggingPromptId } from '../../../src/features/dashboard/loggingPrompts';
 import {
   boundedProgress,
   greetingForHour,
+  greetingName,
+  homeGreeting,
   recentSleepTrend
 } from '../../../src/features/dashboard/homeDashboardPresentation';
 import { readOnboardingV2Setup } from '../../../src/features/onboarding/onboardingV2Model';
@@ -91,6 +98,8 @@ import { quickEntryHref } from '../../../src/features/navigation/navigationModel
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
+const recapDismissedKey = 'healthi:recap:dismissed:v1';
+const waterColor = dietAccents.water;
 const homePalette = {
   background: '#000000',
   surface: '#121214',
@@ -211,11 +220,12 @@ type DashboardBaselineClient = {
   };
 };
 
-function ReadinessRing({ score, emptyLabel = 'Calibrating' }: { score: number | null; emptyLabel?: string }) {
+function ReadinessRing({ score, emptyLabel = 'Calibrating', size = 128 }: { score: number | null; emptyLabel?: string; size?: number }) {
   const reducedMotion = useReducedMotion();
-  const size = 128;
+  /* Everything below was drawn for 128; k scales it so a smaller ring keeps its proportions. */
+  const k = size / 128;
   const c = size / 2;
-  const arcRadius = 48;
+  const arcRadius = 48 * k;
   const circumference = 2 * Math.PI * arcRadius;
   const tickCount = 48;
   const targetScore = score ?? 0;
@@ -251,14 +261,14 @@ function ReadinessRing({ score, emptyLabel = 'Calibrating' }: { score: number | 
   const headY = c + arcRadius * Math.sin(headAngle);
 
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={score === null ? `Readiness: ${emptyLabel}` : `Estimated readiness: ${score} out of 100`} style={styles.ringShell}>
+    <View accessible accessibilityRole="image" accessibilityLabel={score === null ? `Readiness: ${emptyLabel}` : `Estimated readiness: ${score} out of 100`} style={[styles.ringShell, { width: size, height: size }]}>
       <Svg height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
         <G transform={`rotate(-90 ${c} ${c})`}>
           {Array.from({ length: tickCount }, (_, tick) => {
             const angle = (tick / tickCount) * Math.PI * 2;
             const isMajor = tick % 8 === 0;
-            const inner = isMajor ? 55 : 57;
-            const outer = 61;
+            const inner = (isMajor ? 55 : 57) * k;
+            const outer = 61 * k;
             const lit = tick < litTicks;
             return (
               <Line
@@ -273,7 +283,7 @@ function ReadinessRing({ score, emptyLabel = 'Calibrating' }: { score: number | 
               />
             );
           })}
-          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke={homePalette.track} strokeWidth={5} />
+          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke={homePalette.track} strokeWidth={5 * k} />
           <AnimatedCircle
             cx={c}
             cy={c}
@@ -283,18 +293,18 @@ function ReadinessRing({ score, emptyLabel = 'Calibrating' }: { score: number | 
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
             strokeLinecap="round"
-            strokeWidth={5}
+            strokeWidth={5 * k}
           />
           {score !== null ? (
             <>
-              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blue} opacity={headOpacity} r={8} fillOpacity={0.18} />
-              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blueBright} opacity={headOpacity} r={3.2} />
+              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blue} opacity={headOpacity} r={8 * k} fillOpacity={0.18} />
+              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blueBright} opacity={headOpacity} r={3.2 * k} />
             </>
           ) : null}
         </G>
       </Svg>
       <View style={styles.ringCenter}>
-        <Text style={[styles.score, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
+        <Text style={[styles.score, { fontSize: Math.round(44 * k), lineHeight: Math.round(50 * k) }, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
         <Text style={styles.scoreLabel}>{score === null ? emptyLabel : '/ 100'}</Text>
       </View>
     </View>
@@ -322,7 +332,7 @@ type QuickLogAction = {
   onPress: () => void;
 };
 
-function QuickLog({ actions }: { actions: QuickLogAction[] }) {
+function QuickLog({ actions, notice }: { actions: QuickLogAction[]; notice?: { text: string; onUndo?: () => void } | null }) {
   return (
     <View style={styles.quickLogSection}>
       <View style={styles.quickLogHeader}>
@@ -340,10 +350,17 @@ function QuickLog({ actions }: { actions: QuickLogAction[] }) {
             <View style={[styles.quickLogIcon, { backgroundColor: `${action.color}1C` }]}>
               <Ionicons color={action.color} name={action.icon} size={20} />
             </View>
-            <Text style={styles.quickLogLabel}>{action.label}</Text>
+            <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.quickLogLabel}>{action.label}</Text>
           </Pressable>
         ))}
       </View>
+      {notice ? (
+        <View accessibilityLiveRegion="polite" style={styles.quickNotice}>
+          <Ionicons accessible={false} color={homePalette.textMuted} name="checkmark-circle" size={16} />
+          <Text style={styles.quickNoticeText}>{notice.text}</Text>
+          {notice.onUndo ? <Pressable accessibilityRole="button" hitSlop={8} onPress={notice.onUndo} style={styles.quickUndo}><Text style={styles.quickUndoText}>Undo</Text></Pressable> : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -397,11 +414,15 @@ function SleepSparkline({ values }: { values: number[] }) {
 }
 
 export default function DashboardScreen() {
-  const { user, mode } = useAuth();
+  const { user, mode, profile } = useAuth();
   const isFocused = useIsFocused();
   const today = useLocalToday();
   const [readinessCheckinRequest, setReadinessCheckinRequest] = useState(0);
-  const [demoPromptRows, setDemoPromptRows] = useState<LoggingPromptRow[] | null>(null);
+  const [recapOpen, setRecapOpen] = useState(false);
+  const [waterNotice, setWaterNotice] = useState<{ id: string | null; text: string } | null>(null);
+  const [waterVersion, setWaterVersion] = useState(0);
+  const waterBusy = useRef(false);
+  const [recapDismissedWeek, setRecapDismissedWeek] = useState<string | null | undefined>(undefined);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
   /* The week's meals and the person's own goals, for the Diet card. The readiness inputs above stay today-only. */
@@ -740,7 +761,7 @@ export default function DashboardScreen() {
   );
   const dashboardHero = morningBriefingToDashboardHero(morningBriefing);
   const rhythmDriver = morningBriefing.driver_cards.find((driver) => driver.domain === 'recovery_rhythm');
-  const firstName = typeof user?.user_metadata?.first_name === 'string' ? user.user_metadata.first_name : 'there';
+  const firstName = greetingName(user?.user_metadata?.first_name, profile?.display_name, mode === 'demo');
 
   const protocolModel = useMemo(
     () =>
@@ -764,6 +785,18 @@ export default function DashboardScreen() {
     [baselineSetup, circadianBriefing, morningBriefing, movementSignal, nutritionSummary, preliminaryDayPlan, today]
   );
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  /* Keep today's estimate so Trends can average it; a calibrating day is left out, not recorded as 70. */
+  const readinessToday = morningBriefing.readiness;
+  useEffect(() => {
+    if (readinessToday.label === 'calibrating' || readinessToday.date.slice(0, 10) !== today) return;
+    void recordReadiness(protocolScopeValue, {
+      date: today,
+      score: readinessToday.score,
+      label: readinessToday.label,
+      confidence: readinessToday.confidence,
+      recordedAt: new Date().toISOString()
+    }).catch(() => undefined);
+  }, [protocolScopeValue, readinessToday.confidence, readinessToday.date, readinessToday.label, readinessToday.score, today]);
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
@@ -792,10 +825,6 @@ export default function DashboardScreen() {
   const protocolActions = protocol.actions.slice(0, 3);
   const primaryAction = protocol.actions.find((action) => action.status === 'pending') ?? protocol.actions[0];
   const mealTimes = useMemo(() => nutritionMeals.map((meal) => meal.logged_at), [nutritionMeals]);
-  /* The card reports its rows on every change; keep the previous array when nothing moved. */
-  const receivePromptRows = useCallback((rows: LoggingPromptRow[]) => {
-    setDemoPromptRows((previous) => JSON.stringify(previous) === JSON.stringify(rows) ? previous : rows);
-  }, []);
   const sleepTrend = recentSleepTrend(sleepSessions);
   const nextScheduleBlock = scheduleBlocks.find((block) => new Date(block.end_at).getTime() >= Date.now()) ?? null;
   const foundationSourceCount = [rhythmSource, nutritionSource, movementSource, scheduleSource]
@@ -808,8 +837,37 @@ export default function DashboardScreen() {
       : 'Signals calibrating';
   const greeting = greetingForHour(new Date().getHours());
   const openCheckin = () => mode === 'demo' ? setReadinessCheckinRequest(n => n + 1) : router.push('/closeout');
+  const waterTarget = { demo: mode === 'demo', userId: user?.id ?? null, client: mode === 'demo' ? null : (supabase as unknown as HydrationClient), storage: AsyncStorage };
+  useEffect(() => {
+    if (!waterNotice) return;
+    const timer = setTimeout(() => setWaterNotice(null), 6000);
+    return () => clearTimeout(timer);
+  }, [waterNotice]);
+  async function logGlass() {
+    if (waterBusy.current) return;
+    waterBusy.current = true;
+    try {
+      const entry = await addGlassOfWater({ ...waterTarget, day: today });
+      setWaterNotice({ id: entry.id, text: `Glass of water added · ${GLASS_ML} mL` });
+      setWaterVersion((value) => value + 1);
+    } catch {
+      setWaterNotice({ id: null, text: 'Water wasn’t saved. Try again, or add it in Diet.' });
+    } finally {
+      waterBusy.current = false;
+    }
+  }
+  async function undoGlass(id: string) {
+    setWaterNotice(null);
+    try {
+      await removeWater(waterTarget, id);
+      setWaterVersion((value) => value + 1);
+    } catch {
+      setWaterNotice({ id: null, text: 'Couldn’t remove it here. You can remove it in Diet.' });
+    }
+  }
   const quickLogActions: QuickLogAction[] = [
     { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: pillarColors.nourishment, onPress: () => router.navigate(quickEntryHref('food')) },
+    { label: 'Water', detail: `Add a ${GLASS_ML} mL glass`, icon: 'water-outline', color: waterColor, onPress: () => void logGlass() },
     { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: pillarColors.movement_capacity, onPress: () => router.navigate(quickEntryHref('workout')) },
     { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: pillarColors.recovery_rhythm, onPress: () => router.navigate(quickEntryHref('sleep')) },
     { label: 'Check-in', detail: mode === 'demo' ? 'Update how you feel right now' : 'Record how today felt', icon: 'pulse-outline', color: pillarColors.mind_life_load, onPress: openCheckin }
@@ -818,7 +876,7 @@ export default function DashboardScreen() {
   const sleepMissing = !sleepSessions.some((session) => session.date.slice(0, 10) === today);
   const sessionsThisWeek = movementCard.workout_count;
   const mealsToday = nutritionSummary.meal_count;
-  const accountPromptRows = useMemo(() => loggingPrompts({
+  const promptRows = useMemo(() => loggingPrompts({
     sleepMissing,
     checkin: undefined,
     mealsToday,
@@ -826,7 +884,6 @@ export default function DashboardScreen() {
     sessionsThisWeek,
     clock: formatClockTime
   }), [mealsToday, sessionsThisWeek, sleepMissing]);
-  const promptRows = mode === 'demo' && demoPromptRows ? demoPromptRows : accountPromptRows;
   const weekCards = useMemo(() => [
     sleepWeekCard({
       today,
@@ -839,6 +896,18 @@ export default function DashboardScreen() {
     moveWeekCard({ today, sessions: movementSessions }),
     moodWeekCard({ today, practice: practiceSessions, daylight: daylightBouts })
   ], [circadianBriefing, daylightBouts, goalTargets, movementSessions, practiceSessions, sleepNeed.minutes, sleepSessions, today, weekMeals]);
+  const recapKey = recapWeekKey(today);
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(recapDismissedKey).then((value) => { if (active) setRecapDismissedWeek(value); }).catch(() => { if (active) setRecapDismissedWeek(null); });
+    return () => { active = false; };
+  }, []);
+  /* Only on Sunday and Monday, and only until put away for the week; undefined means still reading. */
+  const showRecap = isRecapDay(new Date(`${today}T12:00:00`)) && recapDismissedWeek !== undefined && recapDismissedWeek !== recapKey;
+  function dismissRecap() {
+    setRecapDismissedWeek(recapKey);
+    void AsyncStorage.setItem(recapDismissedKey, recapKey).catch(() => undefined);
+  }
   function weekCardAction(card: WeekCard) {
     if (card.back.quickEntry) router.navigate(quickEntryHref(card.back.quickEntry));
     else router.navigate(card.back.route);
@@ -854,7 +923,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={styles.date}>{displayDate(today)}</Text>
-            <Text style={styles.greeting}>{greeting}, {firstName}</Text>
+            <Text style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
@@ -872,7 +941,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} onPromptRows={receivePromptRows} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" />} /> : <View style={styles.heroCard}>
+        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" size={104} />} /> : <View style={styles.heroCard}>
           <View style={styles.heroGlow}>
             <View style={styles.heroTopRow}>
               <View style={styles.heroCopy}>
@@ -902,7 +971,7 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
-        <QuickLog actions={quickLogActions} />
+        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
 
         <Panel>
           <PanelHeader title="Your day" />
@@ -915,6 +984,8 @@ export default function DashboardScreen() {
           />
         </Panel>
 
+        {/* In the demo the readiness card has its own "Why this estimate?"; one is enough. */}
+        {mode !== 'demo' ? (
         <Disclosure title="Why this estimate?" detail={readinessLedgerSummary(morningBriefing.readiness.baseline_score, morningBriefing.readiness.score, morningBriefing.readiness.raw_score)}>
           <LoggingPrompts rows={promptRows} onAction={promptAction} />
           <Text style={styles.homeDetail}>These are the inputs behind your daily guidance, and the points each one moved. Missing information lowers confidence, not your score — {foundationSourceCount} of 4 foundations have signals today.</Text>
@@ -923,6 +994,10 @@ export default function DashboardScreen() {
           ))}
           <ActionRow title="See the full daily protocol" detail="Reasons, confidence and your next steps" icon="list-outline" onPress={() => router.navigate('/protocol')} last />
         </Disclosure>
+        ) : null}
+
+        {showRecap ? <WeeklyRecapRow onOpen={() => setRecapOpen(true)} onDismiss={dismissRecap} /> : null}
+        {recapOpen ? <WeeklyRecapSheet recap={weeklyRecap(weekCards)} onClose={() => setRecapOpen(false)} onTrends={() => { setRecapOpen(false); router.navigate('/progress'); }} /> : null}
 
         <View style={styles.weekSection}>
           <View style={styles.weekHeader}>
@@ -1025,6 +1100,10 @@ const styles = StyleSheet.create({
     opacity: 0.82,
     transform: [{ scale: 0.992 }]
   },
+  quickNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingHorizontal: 4, minHeight: 32 },
+  quickNoticeText: { flex: 1, fontFamily: homeFont, fontSize: 14, lineHeight: 19, color: homePalette.textMuted },
+  quickUndo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 6 },
+  quickUndoText: { fontFamily: homeFont, fontSize: 15, fontWeight: '600', color: homePalette.blueSoft },
   quickLogSection: {
     backgroundColor: homePalette.surface,
     borderColor: homePalette.border,
@@ -1085,7 +1164,7 @@ const styles = StyleSheet.create({
   quickLogLabel: {
     color: homePalette.text,
     fontFamily: homeFont,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     lineHeight: 20,
     marginTop: 7

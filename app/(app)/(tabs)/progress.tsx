@@ -1,27 +1,34 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   daysLoggedLabel,
+  type TrendsDomain,
   type TrendsDomainCard,
   type TrendsRangeDays
 } from '../../../src/engines/trends';
+import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
-import { protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
+import { TrendBarChart } from '../../../src/features/trends/TrendBarChart';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
-import { Card } from '../../../src/components/Card';
-import { Screen } from '../../../src/components/Screen';
-import { SectionHeader } from '../../../src/components/SectionHeader';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, radii, spacing } from '../../../src/styles/mobileTheme';
+import { colors, type } from '../../../src/styles/mobileTheme';
+import { pillarColors } from '../../../src/styles/pillarColors';
 
-const rangeOptions: TrendsRangeDays[] = [7, 14, 30];
+const rangeLabels = ['7 days', '14 days', '30 days'] as const;
+type RangeLabel = typeof rangeLabels[number];
+const rangeDaysFor: Record<RangeLabel, TrendsRangeDays> = { '7 days': 7, '14 days': 14, '30 days': 30 };
+
+const domainColor: Record<TrendsDomain, string> = { ...pillarColors, readiness: colors.accent };
+const domainRoute: Record<TrendsDomain, '/rhythm' | '/food' | '/movement' | '/mood' | '/'> = {
+  recovery_rhythm: '/rhythm', nourishment: '/food', movement_capacity: '/movement', mind_life_load: '/mood', readiness: '/'
+};
 
 function statusLabel(card: TrendsDomainCard): string {
   return card.status === 'calibrating' ? 'Calibrating' : card.status.charAt(0).toUpperCase() + card.status.slice(1);
@@ -29,19 +36,40 @@ function statusLabel(card: TrendsDomainCard): string {
 
 function sourceLabel(model: TrendsScreenModel): string {
   if (model.summary.source_label === 'demo') return 'Logged on this device';
-  if (model.summary.source_label === 'logged') return 'Based on logged data';
-  return 'Based on available data';
+  if (model.summary.source_label === 'logged') return 'From your account';
+  return 'From what’s available';
 }
 
+function DomainCard({ card, rangeDays }: { card: TrendsDomainCard; rangeDays: number }) {
+  const color = domainColor[card.domain];
+  return <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <View style={[styles.dot, { backgroundColor: color }]} />
+      <Text style={styles.cardTitle}>{card.title}</Text>
+      <Text style={styles.status}>{statusLabel(card)}</Text>
+    </View>
+    <Text style={styles.value}>{card.value_label}</Text>
+    <TrendBarChart series={card.series} color={color} unit={card.series_unit} label={card.series_label} />
+    <Text style={styles.detail}>{card.detail}</Text>
+    <Text style={styles.meta}>{daysLoggedLabel(card.days_logged, rangeDays)}</Text>
+  </View>;
+}
+
+/**
+ * Trends: a chart per pillar, over the last 7, 14 or 30 days.
+ *
+ * Reached from Home's "This week", so it carries its own way back. Each card says what it
+ * is built from in days, and draws a day with nothing logged as a gap. The day's protocol
+ * and a list of "insights" that repeated each card's own text used to sit here too; one
+ * is a to-do rather than a trend and the other said everything twice.
+ */
 export default function ProgressScreen() {
   const { user } = useAuth();
-  const [rangeDays, setRangeDays] = useState<TrendsRangeDays>(7);
+  const [range, setRange] = useState<RangeLabel>('7 days');
+  const rangeDays = rangeDaysFor[range];
   const [model, setModel] = useState<TrendsScreenModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const today = useLocalToday();
-  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
-  const activeProtocol = useActiveProtocol(protocolScopeValue, today);
-  const protocolDone = activeProtocol?.actions.filter((action) => action.status === 'done').length ?? 0;
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -63,281 +91,81 @@ export default function ProgressScreen() {
   );
 
   const summary = model?.summary;
+  const focus = summary?.next_focus;
+  const focusRoute = focus && focus.domain !== 'balanced' ? domainRoute[focus.domain] : null;
 
   return (
-    <Screen contentStyle={styles.content}>
-      {/* Reached from Home's "This week", with no tab of its own, so it carries its own way back. */}
-      <Pressable accessibilityRole="button" accessibilityLabel="Back to Home" hitSlop={8} onPress={() => router.canGoBack() ? router.back() : router.navigate('/')} style={styles.back}>
-        <Ionicons color={colors.accent} name="chevron-back" size={20} />
-        <Text style={styles.backText}>Home</Text>
-      </Pressable>
-      <SectionHeader eyebrow="Progress" title="Trends" body="Patterns from what you’ve logged. A day with nothing logged is left out, not counted as zero." />
+    <SafeAreaView edges={['top']} style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to Home" hitSlop={8} onPress={() => router.canGoBack() ? router.back() : router.navigate('/')} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+          <Ionicons color={colors.accent} name="chevron-back" size={22} />
+          <Text style={styles.backText}>Home</Text>
+        </Pressable>
+        <Text accessibilityRole="header" style={styles.title}>Trends</Text>
+        <Text style={styles.subtitle}>Patterns from what you’ve logged. A day with nothing logged is left out, not counted as zero.</Text>
 
-      <View accessibilityRole="tablist" style={styles.rangeSelector}>
-        {rangeOptions.map((option) => {
-          const selected = option === rangeDays;
-          return (
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              key={option}
-              onPress={() => setRangeDays(option)}
-              style={[styles.rangeOption, selected && styles.rangeOptionSelected]}
-            >
-              <Text style={[styles.rangeText, selected && styles.rangeTextSelected]}>{option} days</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        <SegmentedControl options={rangeLabels} value={range} onChange={setRange} />
 
-      {isLoading || !summary ? (
-        <Card style={styles.loadingCard}>
-          <ActivityIndicator color={colors.accent} />
-          <Text style={styles.loadingText}>Gathering your available signals.</Text>
-        </Card>
-      ) : (
-        <>
-          <Card style={styles.overviewCard}>
-            <View style={styles.overviewTopline}>
-              <Text style={styles.cardEyebrow}>OVERVIEW</Text>
-              <Text style={styles.sourceText}>{sourceLabel(model)}</Text>
+        {isLoading || !summary || !model ? (
+          <View style={[styles.card, styles.loading]}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.detail}>Gathering what you’ve logged.</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.overviewTitle}>{summary.overview.headline}</Text>
+              <Text style={styles.detail}>{summary.overview.detail}</Text>
+              <Text style={styles.meta}>{daysLoggedLabel(summary.days_logged, rangeDays)} · {sourceLabel(model)}</Text>
             </View>
-            <Text style={styles.overviewTitle}>{summary.overview.headline}</Text>
-            <Text style={styles.overviewDetail}>{summary.overview.detail}</Text>
-            <Text style={styles.confidenceText}>{daysLoggedLabel(summary.days_logged, rangeDays)}</Text>
-          </Card>
 
-          {activeProtocol && activeProtocol.actions.length > 0 ? (
-            <Card style={styles.overviewCard}>
-              <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
-              <Text style={styles.overviewTitle}>{protocolDone}/{activeProtocol.actions.length} actions done</Text>
-              <Text style={styles.confidenceText}>Follow-through builds your trends over time.</Text>
-            </Card>
-          ) : null}
+            {focus ? (
+              <Pressable
+                accessibilityRole={focusRoute ? 'button' : undefined}
+                disabled={!focusRoute}
+                onPress={() => focusRoute && router.navigate(focusRoute)}
+                style={({ pressed }) => [styles.card, styles.focus, pressed && styles.pressed]}
+              >
+                <View style={styles.focusCopy}>
+                  <Text style={styles.focusLabel}>Next focus</Text>
+                  <Text style={styles.focusTitle}>{focus.title}</Text>
+                  <Text style={styles.detail}>{focus.detail}</Text>
+                </View>
+                {focusRoute ? <Ionicons accessible={false} color={colors.textMuted} name="chevron-forward" size={18} /> : null}
+              </Pressable>
+            ) : null}
 
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Your signals</Text>
-            <Text style={styles.sectionCaption}>{rangeDays}-day view</Text>
-          </View>
+            {summary.domain_cards.map((card) => <DomainCard key={card.domain} card={card} rangeDays={rangeDays} />)}
 
-          {summary.domain_cards.map((card) => (
-            <Card key={card.domain} style={styles.domainCard}>
-              <View style={styles.domainHeader}>
-                <Text style={styles.domainTitle}>{card.title}</Text>
-                <Text style={[styles.status, card.status === 'watch' && styles.statusWatch]}>{statusLabel(card)}</Text>
-              </View>
-              <Text style={styles.domainValue}>{card.value_label}</Text>
-              <Text style={styles.domainDetail}>{card.detail}</Text>
-              <Text style={styles.domainConfidence}>{daysLoggedLabel(card.days_logged, rangeDays)}</Text>
-            </Card>
-          ))}
-
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>What is showing up</Text>
-            <Text style={styles.sectionCaption}>Early patterns</Text>
-          </View>
-
-          {summary.insights.map((insight) => (
-            <Card key={insight.id} style={styles.insightCard}>
-              <Text style={styles.insightTitle}>{insight.title}</Text>
-              <Text style={styles.insightDetail}>{insight.detail}</Text>
-              {insight.domain !== 'balanced' ? <Text style={styles.domainConfidence}>{daysLoggedLabel(summary.domain_cards.find((card) => card.domain === insight.domain)?.days_logged ?? 0, rangeDays)}</Text> : null}
-            </Card>
-          ))}
-
-          <Card style={styles.focusCard}>
-            <Text style={styles.cardEyebrow}>NEXT FOCUS</Text>
-            <Text style={styles.focusTitle}>{summary.next_focus.title}</Text>
-            <Text style={styles.focusDetail}>{summary.next_focus.detail}</Text>
-          </Card>
-
-          {model.load_error ? (
-            <Text style={styles.note}>Some trends are still calibrating while data becomes available.</Text>
-          ) : null}
-        </>
-      )}
-    </Screen>
+            {model.load_error ? <Text style={styles.note}>Some trends couldn’t load. They’ll fill in as data becomes available.</Text> : null}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingBottom: 116
-  },
-  back: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 2, minHeight: 44, marginBottom: -spacing.sm },
-  backText: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 16 },
-  rangeSelector: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.surfaceInset,
-    borderColor: colors.border,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.xs,
-    padding: 4
-  },
-  rangeOption: {
-    borderRadius: radii.full,
-    minWidth: 66,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm
-  },
-  rangeOptionSelected: {
-    backgroundColor: colors.accent
-  },
-  rangeText: {
-    color: colors.textMuted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    textAlign: 'center'
-  },
-  rangeTextSelected: {
-    color: colors.primaryText
-  },
-  loadingCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 150
-  },
-  loadingText: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 14
-  },
-  overviewCard: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.borderStrong,
-    gap: spacing.sm
-  },
-  overviewTopline: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  cardEyebrow: {
-    color: colors.accent,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    letterSpacing: 1.4
-  },
-  sourceText: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 12
-  },
-  overviewTitle: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 28,
-    lineHeight: 34
-  },
-  overviewDetail: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  confidenceText: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    marginTop: spacing.xs
-  },
-  sectionHeaderRow: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 22
-  },
-  sectionCaption: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 12
-  },
-  domainCard: {
-    gap: spacing.xs
-  },
-  domainHeader: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.sm
-  },
-  domainTitle: {
-    color: colors.text,
-    flex: 1,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 15
-  },
-  status: {
-    color: colors.accentMid,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12
-  },
-  statusWatch: {
-    color: colors.danger
-  },
-  domainValue: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 23,
-    lineHeight: 29
-  },
-  domainDetail: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 21
-  },
-  domainConfidence: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    marginTop: spacing.xs
-  },
-  insightCard: {
-    gap: spacing.xs
-  },
-  insightTitle: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 20,
-    lineHeight: 26
-  },
-  insightDetail: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 21
-  },
-  focusCard: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-    gap: spacing.sm
-  },
-  focusTitle: {
-    color: colors.primaryText,
-    fontFamily: fonts.display,
-    fontSize: 26,
-    lineHeight: 32
-  },
-  focusDetail: {
-    color: colors.primaryText,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 21,
-    opacity: 0.9
-  },
-  note: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: 'center'
-  }
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { gap: 14, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
+  back: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44, marginLeft: -6 },
+  backText: { ...type.body, color: colors.accent },
+  pressed: { opacity: 0.6 },
+  title: { ...type.title, color: colors.text },
+  subtitle: { ...type.body, color: colors.textMuted, marginTop: -8 },
+  card: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, gap: 10 },
+  loading: { alignItems: 'center', minHeight: 140, justifyContent: 'center' },
+  overviewTitle: { ...type.heading, color: colors.text },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  cardTitle: { ...type.label, color: colors.text, flex: 1 },
+  status: { ...type.caption, color: colors.textMuted },
+  value: { ...type.heading, color: colors.text },
+  detail: { ...type.body, fontSize: 15, lineHeight: 21, color: colors.textMuted },
+  meta: { ...type.caption, color: colors.textMuted },
+  focus: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  focusCopy: { flex: 1, gap: 4 },
+  focusLabel: { ...type.caption, fontWeight: '600', color: colors.accent },
+  focusTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  note: { ...type.caption, color: colors.textMuted, textAlign: 'center' }
 });

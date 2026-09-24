@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { layoutOverlaps } from '../../../src/features/dayPlan/timelineLayout';
 import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import {
@@ -311,6 +312,13 @@ function DayTimeline({
     const end = new Date(block.end_at).getTime();
     return end > rangeStart && start < rangeEnd;
   });
+  /* Overlapping suggestions, and overlapping blocks, sit side by side instead of on top of each other. */
+  const bandPlacements = layoutOverlaps(bands);
+  const blockPlacements = layoutOverlaps(visibleBlocks.map((block) => ({ startMs: new Date(block.start_at).getTime(), endMs: new Date(block.end_at).getTime() })));
+  const columnStyle = ({ column, columns }: { column: number; columns: number }) => ({
+    left: `${(column / columns) * 100}%` as const,
+    width: `${100 / columns}%` as const
+  });
 
   return (
     <View>
@@ -329,9 +337,7 @@ function DayTimeline({
                 { top: index * TIMELINE_HOUR_HEIGHT },
                 pressed && styles.hourSlotPressed
               ]}
-            >
-              <Ionicons color={colors.accent} name="add" size={14} />
-            </Pressable>
+            />
           );
         })}
         {hours.map((ms, index) => (
@@ -340,20 +346,22 @@ function DayTimeline({
             <View style={styles.hourLine} />
           </View>
         ))}
-        {bands.map((band, index) => {
-          const top = yFor(band.startMs);
-          const bandHeight = Math.max(10, yFor(band.endMs) - top);
-          return (
-            <View
-              key={`band-${index}`}
-              pointerEvents="none"
-              style={[styles.band, { top, height: bandHeight, backgroundColor: SECTION_TINT[band.section] }]}
-            >
-              <Text style={[styles.bandLabel, { color: SECTION_ACCENT[band.section] }]}>{band.label}</Text>
-            </View>
-          );
-        })}
-        {visibleBlocks.map((block) => {
+        <View pointerEvents="none" style={styles.bandTrack}>
+          {bands.map((band, index) => {
+            const top = yFor(band.startMs);
+            const bandHeight = Math.max(10, yFor(band.endMs) - top);
+            return (
+              <View
+                key={`band-${index}`}
+                style={[styles.band, columnStyle(bandPlacements[index]!), { top, height: bandHeight, backgroundColor: SECTION_TINT[band.section] }]}
+              >
+                <Text numberOfLines={1} style={[styles.bandLabel, { color: SECTION_ACCENT[band.section] }]}>{band.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+        <View pointerEvents="box-none" style={styles.blockTrack}>
+        {visibleBlocks.map((block, blockIndex) => {
           const top = yFor(new Date(block.start_at).getTime());
           const blockHeight = Math.max(24, yFor(new Date(block.end_at).getTime()) - top);
           const section = BLOCK_TYPE_SECTION[block.block_type] ?? 'neutral';
@@ -363,7 +371,7 @@ function DayTimeline({
               key={block.id}
               accessibilityRole="button"
               onPress={() => onDeleteBlock(block.id, title)}
-              style={[styles.timelineBlock, { top, height: blockHeight, borderLeftColor: SECTION_ACCENT[section] }]}
+              style={[styles.timelineBlock, columnStyle(blockPlacements[blockIndex]!), { top, height: blockHeight, borderLeftColor: SECTION_ACCENT[section] }]}
             >
               <Text numberOfLines={1} style={styles.timelineBlockTitle}>{title}</Text>
               {blockHeight > 34 ? (
@@ -372,6 +380,7 @@ function DayTimeline({
             </Pressable>
           );
         })}
+        </View>
       </View>
       <View style={styles.calLegend}>
         {(['deep_work', 'exercise', 'light_movement', 'wind_down'] as CalendarSection[]).map((section) => (
@@ -1222,14 +1231,28 @@ const styles = StyleSheet.create({
     flex: 1,
     height: hairlineWidth
   },
-  band: {
-    borderRadius: 8,
-    justifyContent: 'flex-start',
+  bandTrack: {
+    bottom: 0,
     left: 52,
+    position: 'absolute',
+    right: 4,
+    top: 0
+  },
+  blockTrack: {
+    bottom: 0,
+    left: 96,
+    position: 'absolute',
+    right: 8,
+    top: 0
+  },
+  band: {
+    borderColor: colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    position: 'absolute',
-    right: 4
+    position: 'absolute'
   },
   bandLabel: {
     ...type.caption,
@@ -1243,11 +1266,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: hairlineWidth,
     justifyContent: 'center',
-    left: 96,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    position: 'absolute',
-    right: 8
+    position: 'absolute'
   },
   timelineBlockTitle: {
     ...type.label,
@@ -1261,13 +1282,14 @@ const styles = StyleSheet.create({
   calLegend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
-    marginTop: 16
+    marginTop: 16,
+    rowGap: 8
   },
   calLegendItem: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 6
+    gap: 6,
+    width: '50%'
   },
   calSwatch: {
     borderRadius: 3,

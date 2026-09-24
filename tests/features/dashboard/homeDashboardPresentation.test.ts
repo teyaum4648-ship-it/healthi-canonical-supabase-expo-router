@@ -7,6 +7,8 @@ import {
   boundedProgress,
   driverStatusProgress,
   greetingForHour,
+  greetingName,
+  homeGreeting,
   recentSleepTrend
 } from '../../../src/features/dashboard/homeDashboardPresentation';
 
@@ -86,5 +88,21 @@ describe('home dashboard presentation', () => {
       sleep('2026-09-05', 440),
       sleep('2026-09-06', null)
     ])).toEqual([440, 470]);
+  });
+});
+
+describe('greeting', () => {
+  it('uses the first name given at sign-up', () => {
+    expect(greetingName('  Maya ', 'Maya Lopez', false)).toBe('Maya');
+    expect(homeGreeting('Good morning', 'Maya')).toBe('Good morning, Maya');
+  });
+
+  it('falls back to an account display name, but not the demo placeholder', () => {
+    expect(greetingName(undefined, 'Sam Rivera', false)).toBe('Sam');
+    expect(greetingName(undefined, 'Demo User', true)).toBeNull();
+  });
+
+  it('greets without a name rather than "there"', () => {
+    expect(homeGreeting('Good evening', greetingName(null, null, false))).toBe('Good evening');
   });
 });

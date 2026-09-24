@@ -12,7 +12,7 @@ import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationSto
 import { quickEntryHref } from '../navigation/navigationModel';
 import { SleepTimePicker } from '../sleepRhythm/SleepTimePicker';
 import { LoggingPrompts } from './LoggingPrompts';
-import { loggingPrompts, type LoggingPromptId, type LoggingPromptRow } from './loggingPrompts';
+import { loggingPrompts, type LoggingPromptId } from './loggingPrompts';
 import {
   domainNames, evaluateReadinessNow, localWakeTimestamp, READINESS_NOW_POLICY, shouldRemindAboutLunch,
   type IntakeAnswer, type ReadinessCheckin, type ReadinessReminderPreferences
@@ -31,8 +31,8 @@ function clockLabel(value: string) {
   const [h, m] = value.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
-function Button({ title, onPress, disabled = false, secondary = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
-  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, secondary && styles.secondary, (pressed || disabled) && { opacity: .6 }]}><Text style={styles.buttonText}>{title}</Text></Pressable>;
+function Button({ title, onPress, disabled = false, secondary = false, grow = false, wide = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; grow?: boolean; wide?: boolean }) {
+  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, secondary && styles.secondary, grow && styles.grow, wide && styles.wide, (pressed || disabled) && { opacity: .6 }]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.buttonText}>{title}</Text></Pressable>;
 }
 function Choices<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; title: string }[]; onChange: (value: T) => void }) {
   return <View style={styles.group}><Text style={styles.heading}>{label}</Text><View style={styles.choices}>{options.map(o => <Pressable key={o.value} accessibilityRole="radio" accessibilityLabel={`${label}: ${o.title}`} accessibilityState={{ checked: o.value === value }} onPress={() => onChange(o.value)} style={[styles.choice, o.value === value && styles.selected]}><Text style={styles.body}>{o.title}</Text></Pressable>)}</View></View>;
@@ -92,13 +92,13 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
 }
 
 /** Device-local demo only. The account Home continues using its existing daily briefing. */
-export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, checkinRequest = 0, sleepMissing, sessionsThisWeek, onPromptRows }: {
+export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0 }: {
   base: DailyReadinessResult; mealTimes: string[]; safetyActive: boolean;
   renderRing: (score: number | null) => ReactNode; checkinRequest?: number;
   /** Whether last night is missing, and the week's session count, for the logging rows. */
   sleepMissing: boolean; sessionsThisWeek: number | null;
-  /** Lets Home show the same rows in its own "Why this estimate?" without reading the stores twice. */
-  onPromptRows?: (rows: LoggingPromptRow[]) => void;
+  /** Bumped by Home when it logs something this card reads, such as a glass of water. */
+  refreshKey?: number;
 }) {
   const focused = useIsFocused();
   const [now, setNow] = useState(() => new Date().toISOString());
@@ -126,7 +126,7 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
     setData(null); setLoadError(false);
     void Promise.all([store.read(), waterStore.read()]).then(([next, entries]) => { if (active) { setData(next); setWater(entries); } }).catch(() => { if (active) setLoadError(true); });
     return () => { active = false; };
-  }, [day, retry]));
+  }, [day, retry, refreshKey]));
   const result = useMemo(() => evaluateReadinessNow({ now, base, mealTimes, waterTimes: water.map(w => w.logged_at), checkins: data?.checkins ?? [], safetyActive }), [now, base, mealTimes, water, data, safetyActive]);
   const waterToday = useMemo(() => water.filter(w => localDay(w.logged_at) === day).length, [water, day]);
   const promptRows = useMemo(() => data ? loggingPrompts({
@@ -137,7 +137,6 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
     sessionsThisWeek,
     clock: timeLabel
   }) : null, [data, sleepMissing, result.checkin, result.ageMinutes, mealTimes, day, waterToday, sessionsThisWeek]);
-  useEffect(() => { if (promptRows) onPromptRows?.(promptRows); }, [promptRows, onPromptRows]);
   function promptAction(id: LoggingPromptId) {
     setSheet(id === 'checkin' ? 'checkin' : null);
     if (id === 'sleep') router.navigate(quickEntryHref('sleep'));
@@ -155,14 +154,25 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
   if (!data) return <View style={styles.card}><Text style={styles.heading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.muted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><Button secondary title="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={colors.accentMid} />}</View>;
   const remind = focused && shouldRemindAboutLunch(now, data.reminders, mealTimes, data.checkins);
   return <>
+    {/*
+      One screen's worth, not a whole one: the estimate and its ring side by side, one line
+      of context, and two buttons. The reminder preference moved into "Why this estimate?",
+      where it sits with the rest of how the estimate works.
+    */}
     <View style={styles.card}>
-      <View style={styles.row}><Text style={[styles.eyebrow, { flex: 1 }]}>Readiness now</Text><Text style={styles.muted}>{timeLabel(now)}</Text></View>
-      <View style={styles.row}><View style={{ flex: 1, minWidth: 0 }}><Text style={styles.title}>{result.title}</Text><Text style={styles.muted}>{result.publicScore !== null ? `${result.confidence === 'low' ? 'Limited' : 'Moderate'} confidence · estimate` : 'No current number yet'}</Text></View>{renderRing(result.publicScore)}</View>
+      <View style={styles.row}>
+        <View style={styles.headCopy}>
+          <Text style={styles.eyebrow}>Readiness now · {timeLabel(now)}</Text>
+          <Text style={styles.title}>{result.title}</Text>
+        </View>
+        {renderRing(result.publicScore)}
+      </View>
       <Text style={styles.muted}>{result.attention[0]?.text ?? result.summary}</Text>
-      <Text style={styles.meta}>{result.checkin ? `Checked in at ${timeLabel(result.checkin.at)}${result.state === 'update_needed' ? ' · update needed' : ''}` : 'No check-in today'} · Device-local demo</Text>
-      <Button title={result.checkin ? 'Update check-in' : 'Quick check-in'} onPress={() => setSheet('checkin')} />
-      <ActionRow title="Why this estimate?" detail={`${result.supporting.length} supporting · ${result.attention.length} to consider · ${result.unknown.length} unknown`} icon="information-circle-outline" onPress={() => setSheet('why')} last />
-      <Pressable accessibilityRole="button" onPress={() => setSheet('reminders')} style={styles.link}><Text style={styles.linkText}>Reminders {data.reminders.enabled ? 'on' : 'off'}</Text></Pressable>
+      <Text style={styles.meta}>{result.publicScore !== null ? `${result.confidence === 'low' ? 'Limited' : 'Moderate'} confidence` : 'No current number yet'} · {result.checkin ? `Checked in ${timeLabel(result.checkin.at)}${result.state === 'update_needed' ? ', update needed' : ''}` : 'No check-in yet'} · Demo</Text>
+      <View style={styles.buttonRow}>
+        <Button grow title={result.checkin ? 'Update check-in' : 'Check in'} onPress={() => setSheet('checkin')} />
+        <Button grow wide secondary title="Why this estimate?" onPress={() => setSheet('why')} />
+      </View>
     </View>
     {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); }} /> : null}
@@ -179,6 +189,7 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
       <Text style={styles.heading}>How the estimate is built</Text>
       <Text style={styles.muted}>Experimental demo policy v{result.policyVersion}. Baseline: {base.contributions?.baseline ?? 'unavailable'} points. Missing information adds no deduction. Check-ins replace a foundation’s contribution, not stack onto it. The existing daily protocol is unchanged.</Text>
       {result.ledger.map(row => <View key={row.domain} style={styles.auditRow}><Text style={styles.body}>{domainNames[row.domain]}: {row.before > 0 ? '+' : ''}{row.before}{row.before !== row.contribution ? ` → ${row.contribution}` : ''} points</Text><Text style={styles.muted}>{row.missing ? 'Base evidence incomplete.' : base.driver_cards.find(d => d.domain === row.domain)?.detail}{row.explanation ? ` ${row.explanation}` : ''}</Text></View>)}
+      <ActionRow title="Lunch reminder" detail={data.reminders.enabled ? `On · ${clockLabel(data.reminders.lunchTime)}` : 'Off'} icon="notifications-outline" onPress={() => setSheet('reminders')} last />
       <Text style={styles.muted}>A check-in stays current for two hours. With a confirmed wake time, “no water” is considered after four hours awake and “no food” after six. These are cautious demo rules—not biological cutoffs. They never compound with each clock tick. Morning has room for routines; an old morning check-in cannot masquerade as a fresh evening assessment.</Text>
     </EntrySheet> : null}
   </>;
@@ -187,9 +198,13 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, padding: 20, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { ...type.heading, color: colors.text, fontSize: 25, lineHeight: 31, marginBottom: 8 },
+  title: { ...type.heading, color: colors.text, fontSize: 24, lineHeight: 30 },
+  headCopy: { flex: 1, minWidth: 0, gap: 4 },
+  buttonRow: { flexDirection: 'row', gap: 10 },
+  grow: { flex: 1, paddingHorizontal: 10 },
+  wide: { flex: 1.45 },
   heading: { ...type.body, fontWeight: '600', color: colors.text, marginTop: 4 },
-  eyebrow: { ...type.body, color: colors.accentMid, fontWeight: '600' },
+  eyebrow: { ...type.caption, fontSize: 14, color: colors.accentMid, fontWeight: '600' },
   body: { ...type.body, color: colors.text },
   muted: { ...type.body, color: colors.textMuted, lineHeight: 23 },
   meta: { ...type.caption, color: colors.textMuted, lineHeight: 20 },
@@ -201,7 +216,5 @@ const styles = StyleSheet.create({
   choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
   notice: { ...type.body, color: '#FFD479' },
-  link: { minHeight: 44, justifyContent: 'center', alignItems: 'center' },
-  linkText: { ...type.body, color: colors.accentMid },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

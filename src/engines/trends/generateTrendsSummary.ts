@@ -2,6 +2,7 @@ import type { DataConfidence } from '../../types/common';
 import { trendDomainTitles } from './trendsCopy';
 import type {
   GenerateTrendsSummaryInput,
+  TrendMindEntry,
   TrendMovementEntry,
   TrendNutritionEntry,
   TrendReadinessEntry,
@@ -12,6 +13,7 @@ import type {
   TrendsDomainCard,
   TrendsInsight,
   TrendsStatus,
+  TrendsSeriesPoint,
   TrendsSummary
 } from './trendsTypes';
 
@@ -30,6 +32,23 @@ function inRange<T extends { date: string }>(entries: T[] | undefined, today: st
       return !Number.isNaN(value) && value >= start && value <= end;
     })
     .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+/** Every date in the range, oldest first. */
+function rangeDates(today: string, rangeDays: number): string[] {
+  const end = new Date(`${dateKey(today)}T12:00:00.000Z`).getTime();
+  return Array.from({ length: rangeDays }, (_, index) => new Date(end - (rangeDays - 1 - index) * DAY_MS).toISOString().slice(0, 10));
+}
+
+/** A day's value summed across that day's entries, or null when no entry has one. */
+function seriesFor<T extends { date: string }>(dates: string[], entries: T[], value: (entry: T) => number | null | undefined): TrendsSeriesPoint[] {
+  return dates.map((date) => {
+    const known = entries
+      .filter((entry) => dateKey(entry.date) === date)
+      .map(value)
+      .filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
+    return { date, value: known.length ? known.reduce((sum, item) => sum + item, 0) : null };
+  });
 }
 
 function daysWith<T extends { date: string }>(entries: T[], hasData: (entry: T) => boolean): number {
@@ -68,8 +87,11 @@ function formatHours(value: number | null): string {
   return `${hours}h ${String(minutes).padStart(2, '0')}m`;
 }
 
-function calibratingCard(domain: TrendsDomain, reasonCode: string, daysLogged: number): TrendsDomainCard {
+type ChartShape = Pick<TrendsDomainCard, 'series' | 'series_label' | 'series_unit'>;
+
+function calibratingCard(domain: TrendsDomain, reasonCode: string, daysLogged: number, chart: ChartShape): TrendsDomainCard {
   return {
+    ...chart,
     domain,
     title: trendDomainTitles[domain],
     value_label: 'Calibrating',
@@ -82,9 +104,18 @@ function calibratingCard(domain: TrendsDomain, reasonCode: string, daysLogged: n
   };
 }
 
-function recoveryCard(entries: TrendRhythmEntry[]): TrendsDomainCard {
+function recoveryCard(entries: TrendRhythmEntry[], dates: string[]): TrendsDomainCard {
   const daysLogged = daysWith(entries, (entry) => typeof entry.sleep_duration_hours === 'number' || typeof entry.sleep_debt_hours === 'number');
-  if (entries.length < 3) return calibratingCard('recovery_rhythm', 'rhythm_history_sparse', daysLogged);
+  /* The longest night on a day stands; two logs of one night must not add up to sixteen hours. */
+  const chart: ChartShape = {
+    series: dates.map((date) => {
+      const hours = entries.filter((entry) => dateKey(entry.date) === date).map((entry) => entry.sleep_duration_hours).filter((value): value is number => typeof value === 'number');
+      return { date, value: hours.length ? Math.max(...hours) : null };
+    }),
+    series_label: 'Hours asleep',
+    series_unit: 'hours'
+  };
+  if (entries.length < 3) return calibratingCard('recovery_rhythm', 'rhythm_history_sparse', daysLogged, chart);
   const averageSleep = average(entries.map((entry) => entry.sleep_duration_hours));
   const averageDebt = average(entries.map((entry) => entry.sleep_debt_hours));
   const debtDirection = direction(entries.map((entry) => entry.sleep_debt_hours));
@@ -95,6 +126,7 @@ function recoveryCard(entries: TrendRhythmEntry[]): TrendsDomainCard {
       ? 'supportive'
       : 'steady';
   return {
+    ...chart,
     domain: 'recovery_rhythm',
     title: trendDomainTitles.recovery_rhythm,
     value_label: averageSleep === null ? 'Sleep logged' : `${formatHours(averageSleep)} average sleep`,
@@ -115,9 +147,11 @@ function recoveryCard(entries: TrendRhythmEntry[]): TrendsDomainCard {
   };
 }
 
-function nourishmentCard(entries: TrendNutritionEntry[]): TrendsDomainCard {
+function nourishmentCard(entries: TrendNutritionEntry[], dates: string[]): TrendsDomainCard {
   const daysLogged = daysWith(entries, (entry) => (entry.meal_count ?? 0) > 0);
-  if (entries.length < 3) return calibratingCard('nourishment', 'nutrition_history_sparse', daysLogged);
+  const chart: ChartShape = { series: seriesFor(dates, entries, (entry) => entry.calories), series_label: 'Calories logged', series_unit: 'kcal' };
+  if (entries.length < 3) return calibratingCard('nourishment', 'nutrition_history_sparse', daysLogged, chart);
+  const averageCalories = average(chart.series.map((point) => point.value));
   const loggedDays = entries.filter((entry) => (entry.meal_count ?? 0) > 0).length;
   const avgProtein = average(entries.map((entry) => entry.protein_grams));
   const avgFiber = average(entries.map((entry) => entry.fiber_grams));
@@ -129,9 +163,10 @@ function nourishmentCard(entries: TrendNutritionEntry[]): TrendsDomainCard {
       ? 'supportive'
       : 'steady';
   return {
+    ...chart,
     domain: 'nourishment',
     title: trendDomainTitles.nourishment,
-    value_label: `${loggedDays} logged days`,
+    value_label: averageCalories === null ? `${loggedDays} logged days` : `${Math.round(averageCalories / 10) * 10} kcal a day`,
     detail: status === 'watch'
       ? 'A few logged meals show a pattern worth watching. Keep logging to add context.'
       : `Your logged meals are building a clearer fueling pattern${avgProtein ? `, with ${Math.round(avgProtein)}g protein on average` : ''}.`,
@@ -143,15 +178,21 @@ function nourishmentCard(entries: TrendNutritionEntry[]): TrendsDomainCard {
   };
 }
 
-function movementCard(entries: TrendMovementEntry[]): TrendsDomainCard {
+function movementCard(entries: TrendMovementEntry[], dates: string[]): TrendsDomainCard {
   const daysLogged = daysWith(entries, (entry) => (entry.workout_count ?? 0) > 0);
-  if (entries.length < 3) return calibratingCard('movement_capacity', 'movement_history_sparse', daysLogged);
+  const chart: ChartShape = {
+    series: seriesFor(dates, entries.filter((entry) => (entry.workout_count ?? 0) > 0), (entry) => entry.total_minutes ?? 0),
+    series_label: 'Minutes moving',
+    series_unit: 'minutes'
+  };
+  if (entries.length < 3) return calibratingCard('movement_capacity', 'movement_history_sparse', daysLogged, chart);
   const workouts = entries.reduce((sum, entry) => sum + (entry.workout_count ?? 0), 0);
   const minutes = entries.reduce((sum, entry) => sum + (entry.total_minutes ?? 0), 0);
   const lowReadiness = entries.some((entry) => entry.readiness_label === 'low' || entry.readiness_label === 'conserve');
   const highLoad = entries.some((entry) => entry.training_load_label === 'high');
   const status: TrendsStatus = lowReadiness && highLoad ? 'watch' : workouts > 0 ? 'supportive' : 'steady';
   return {
+    ...chart,
     domain: 'movement_capacity',
     title: trendDomainTitles.movement_capacity,
     value_label: workouts > 0 ? `${workouts} sessions · ${minutes} min` : 'No sessions logged',
@@ -168,39 +209,75 @@ function movementCard(entries: TrendMovementEntry[]): TrendsDomainCard {
   };
 }
 
-function scheduleCard(entries: TrendScheduleEntry[]): TrendsDomainCard {
-  const daysLogged = daysWith(entries, (entry) => (entry.block_count ?? 0) > 0);
-  if (entries.length < 3) return calibratingCard('mind_life_load', 'schedule_history_sparse', daysLogged);
-  const averageBlocks = average(entries.map((entry) => entry.block_count)) ?? 0;
-  const averageOpen = average(entries.map((entry) => entry.open_window_count));
-  const protectedCount = entries.reduce((sum, entry) => sum + (entry.protected_block_count ?? 0), 0);
+/**
+ * Mind + Life Load, from what a person did on the Mood tab and what their calendar held.
+ *
+ * This card used to read only schedule blocks, so a week of breathing resets and morning
+ * light left it "Calibrating". The Mood tab's logs are the pillar's own evidence; the
+ * calendar is context on how full the days were.
+ */
+function mindCard(schedule: TrendScheduleEntry[], mind: TrendMindEntry[], dates: string[]): TrendsDomainCard {
+  const moodDays = new Set(mind
+    .filter((entry) => (entry.breathing_sessions ?? 0) > 0 || (entry.morning_light_minutes ?? 0) > 0 || (entry.habits_done ?? 0) > 0)
+    .map((entry) => dateKey(entry.date)));
+  const scheduleDays = new Set(schedule.filter((entry) => (entry.block_count ?? 0) > 0).map((entry) => dateKey(entry.date)));
+  const daysLogged = new Set([...moodDays, ...scheduleDays]).size;
+  const chart: ChartShape = {
+    series: seriesFor(dates, mind.filter((entry) => (entry.breathing_sessions ?? 0) > 0), (entry) => entry.breathing_minutes ?? 0),
+    series_label: 'Minutes breathing',
+    series_unit: 'minutes'
+  };
+  if (daysLogged < 3) return calibratingCard('mind_life_load', 'mind_history_sparse', daysLogged, chart);
+
+  const resets = mind.reduce((sum, entry) => sum + (entry.breathing_sessions ?? 0), 0);
+  const morningDays = new Set(mind.filter((entry) => (entry.morning_light_minutes ?? 0) > 0).map((entry) => dateKey(entry.date))).size;
+  const averageBlocks = average(schedule.map((entry) => entry.block_count)) ?? 0;
+  const averageOpen = average(schedule.map((entry) => entry.open_window_count));
   const crowded = averageOpen !== null && averageBlocks >= 5 && averageOpen < 1;
-  const status: TrendsStatus = crowded ? 'watch' : averageOpen !== null && averageOpen >= 1 ? 'supportive' : 'steady';
+  const steadyPractice = moodDays.size >= 3 && (resets >= 3 || morningDays >= 3);
+  const status: TrendsStatus = crowded ? 'watch' : steadyPractice ? 'supportive' : 'steady';
+  const parts = [
+    resets ? `${resets} breathing ${resets === 1 ? 'reset' : 'resets'}` : null,
+    morningDays ? `${morningDays} ${morningDays === 1 ? 'morning' : 'mornings'} outside` : null
+  ].filter(Boolean);
   return {
+    ...chart,
     domain: 'mind_life_load',
     title: trendDomainTitles.mind_life_load,
-    value_label: `${Math.round(averageBlocks)} blocks per day`,
-    detail: status === 'watch'
+    value_label: parts.length ? parts.join(' · ') : `${Math.round(averageBlocks)} blocks per day`,
+    detail: crowded
       ? 'Your schedule looks full with few open windows. Protecting one flexible block may help.'
-      : protectedCount > 0
-        ? 'Your schedule includes protected time and useful room to organize the day.'
-        : 'Based on the schedule blocks you have logged.',
+      : steadyPractice
+        ? 'Regular resets and daylight are showing up across the week.'
+        : moodDays.size
+          ? 'A few resets logged. A minute on more days would steady this.'
+          : 'Based on the schedule blocks you have logged.',
     status,
     direction: 'steady',
-    confidence: confidenceFor(entries.length),
+    confidence: confidenceFor(daysLogged),
     days_logged: daysLogged,
-    reason_codes: ['schedule_history_available', ...(crowded ? ['schedule_density_watch'] : [])]
+    reason_codes: [
+      'mind_history_available',
+      ...(moodDays.size ? ['mood_practice_logged'] : []),
+      ...(crowded ? ['schedule_density_watch'] : [])
+    ]
   };
 }
 
-function readinessCard(entries: TrendReadinessEntry[]): TrendsDomainCard {
+function readinessCard(entries: TrendReadinessEntry[], dates: string[]): TrendsDomainCard {
   const daysLogged = daysWith(entries, (entry) => typeof entry.score === 'number');
-  if (entries.length < 3) return calibratingCard('readiness', 'readiness_history_sparse', daysLogged);
+  const chart: ChartShape = {
+    series: dates.map((date) => ({ date, value: entries.find((entry) => dateKey(entry.date) === date && typeof entry.score === 'number')?.score ?? null })),
+    series_label: 'Daily estimate',
+    series_unit: 'score'
+  };
+  if (entries.length < 3) return calibratingCard('readiness', 'readiness_history_sparse', daysLogged, chart);
   const scores = entries.map((entry) => entry.score);
   const score = average(scores);
   const scoreDirection = direction(scores);
   const status: TrendsStatus = score !== null && score >= 70 ? 'supportive' : score !== null && score < 45 ? 'watch' : 'steady';
   return {
+    ...chart,
     domain: 'readiness',
     title: trendDomainTitles.readiness,
     value_label: score === null ? 'Readiness logged' : `${Math.round(score)} average`,
@@ -252,10 +329,12 @@ export function generateTrendsSummary(input: GenerateTrendsSummaryInput): Trends
   const nutrition = inRange(input.nutritionHistory, input.today, rangeDays);
   const movement = inRange(input.movementHistory, input.today, rangeDays);
   const schedule = inRange(input.scheduleHistory, input.today, rangeDays);
+  const mind = inRange(input.mindHistory, input.today, rangeDays);
   const readiness = inRange(input.readinessHistory, input.today, rangeDays);
-  const domainCards = [recoveryCard(rhythm), nourishmentCard(nutrition), movementCard(movement), scheduleCard(schedule), readinessCard(readiness)];
+  const dates = rangeDates(input.today, rangeDays);
+  const domainCards = [recoveryCard(rhythm, dates), nourishmentCard(nutrition, dates), movementCard(movement, dates), mindCard(schedule, mind, dates), readinessCard(readiness, dates)];
   const missing = domainCards.filter((card) => card.status === 'calibrating').map((card) => card.domain);
-  const knownDays = [rhythm.length, nutrition.length, movement.length, schedule.length, readiness.length].filter((count) => count >= 3);
+  const knownDays = [rhythm.length, nutrition.length, movement.length, schedule.length + mind.length, readiness.length].filter((count) => count >= 3);
   const sourceLabel = input.source_label ?? (knownDays.length ? 'logged' : 'calibrating');
   return {
     generated_at: `${dateKey(input.today)}T12:00:00.000Z`,
@@ -264,7 +343,7 @@ export function generateTrendsSummary(input: GenerateTrendsSummaryInput): Trends
     source_label: sourceLabel,
     overview: overview(domainCards),
     domain_cards: domainCards,
-    days_logged: new Set([...rhythm, ...nutrition, ...movement, ...schedule, ...readiness].map((entry) => dateKey(entry.date))).size,
+    days_logged: new Set([...rhythm, ...nutrition, ...movement, ...schedule, ...mind, ...readiness].map((entry) => dateKey(entry.date))).size,
     insights: insights(domainCards),
     next_focus: nextFocus(domainCards),
     missing_data: missing

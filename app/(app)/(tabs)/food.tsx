@@ -2527,7 +2527,7 @@ export default function FoodScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.adaptiveTopBar}>
-              <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Food</Text>
+              <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Diet</Text>
               <Text style={styles.diaryDetail}>{modeLabel}</Text>
             </View>
             {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (

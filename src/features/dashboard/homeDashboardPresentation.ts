@@ -15,6 +15,25 @@ export function greetingForHour(hour: number): 'Good morning' | 'Good afternoon'
   return 'Good evening';
 }
 
+/**
+ * The name to greet someone by, or null to greet them without one.
+ *
+ * "Good morning, there" was what an unknown name produced. The first name given at
+ * sign-up comes first; an account's display name is the fallback. The demo's placeholder
+ * profile is called "Demo User", which is nobody's name, so the demo only uses a first
+ * name it was actually given.
+ */
+export function greetingName(metadataFirstName: unknown, displayName: string | null | undefined, demo: boolean): string | null {
+  if (typeof metadataFirstName === 'string' && metadataFirstName.trim()) return metadataFirstName.trim();
+  if (demo) return null;
+  const first = displayName?.trim().split(/\s+/)[0];
+  return first ? first : null;
+}
+
+export function homeGreeting(greeting: string, name: string | null): string {
+  return name ? `${greeting}, ${name}` : greeting;
+}
+
 export function aggregateDashboardMacros(meals: MealLog[]): DashboardMacroTotals {
   const values = meals.reduce(
     (totals, meal) => ({

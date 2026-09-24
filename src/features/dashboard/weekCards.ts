@@ -41,6 +41,8 @@ export type WeekCard = {
     route: WeekCardRoute;
     /** When set, the action opens that tab's logger rather than the tab itself. */
     quickEntry?: 'sleep' | 'food' | 'workout';
+    /** True when the back says to keep going rather than to change something. */
+    onTrack?: boolean;
   };
 };
 
@@ -100,7 +102,7 @@ export function sleepWeekCard(input: {
         ? { headline: 'Ease the sleep debt', detail: `About ${formatSleepMinutes(debt)} under your ${need} need this week. ${bedtime && bedtime !== '—' ? `Try bed around ${bedtime}.` : 'An earlier night helps most.'}`, actionLabel: 'Plan tonight', route: '/rhythm' }
         : wakeSpread >= 60
           ? { headline: 'Steady your wake time', detail: `Your wake time moved by ${formatSleepMinutes(wakeSpread)} this week. A steady morning helps more than a lie-in.`, actionLabel: 'Open Sleep', route: '/rhythm' }
-          : { headline: 'Keep this rhythm', detail: `Averaging ${formatSleepMinutes(average ?? 0)} against a ${need} need, with a steady wake time.`, actionLabel: 'Open Sleep', route: '/rhythm' };
+          : { onTrack: true, headline: 'Keep this rhythm', detail: `Averaging ${formatSleepMinutes(average ?? 0)} against a ${need} need, with a steady wake time.`, actionLabel: 'Open Sleep', route: '/rhythm' };
 
   return { id: 'sleep', pillar: 'recovery_rhythm', title: 'Sleep', front, back };
 }
@@ -195,7 +197,7 @@ export function dietWeekCard(input: { today: string; meals: Pick<MealLog, 'logge
         ? { headline: 'Today counts tonight', detail: 'A day is checked against your goals once it’s over. Keep logging today.', actionLabel: 'Log food', route: '/food', quickEntry: 'food' }
         : { headline: 'Add amounts', detail: 'Meals are logged without the amounts needed to check them against your goals.', actionLabel: 'Log food', route: '/food', quickEntry: 'food' }
     : !worst || worst.missed === 0
-      ? { headline: 'Every logged day landed', detail: `Calories and macros were on target on all ${plural(measuredDays.length, 'logged day')}.`, actionLabel: 'Open Diet', route: '/food' }
+      ? { onTrack: true, headline: 'Every logged day landed', detail: `Calories and macros were on target on all ${plural(measuredDays.length, 'logged day')}.`, actionLabel: 'Open Diet', route: '/food' }
       : {
           headline: worst.metric.name,
           detail: `${worst.under ? 'Under' : 'Over'} on ${worst.missed} of ${plural(measuredDays.length, 'logged day')} · averaging ${round(worst.average, worst.metric.unit).toLocaleString()} of ${round(worst.target, worst.metric.unit).toLocaleString()} ${worst.metric.unit}.`,
@@ -230,15 +232,15 @@ export function moveWeekCard(input: { today: string; sessions: { session_date: s
   const back: WeekCard['back'] = count === 0
     ? { headline: 'Start the week', detail: 'Any session counts, including a walk. The first one starts this chart.', actionLabel: 'Log one', route: '/movement', quickEntry: 'workout' }
     : !has('strength', 'mixed')
-      ? { headline: 'Add strength', detail: `${plural(count, 'session')} this week, none of them strength. A short one would round the week out.`, actionLabel: 'Open Move', route: '/movement' }
+      ? { headline: 'Add strength', detail: `${plural(count, 'session')} this week, none of them strength. A short one would round the week out.`, actionLabel: 'Open Movement', route: '/movement' }
       : !has('mobility', 'recovery')
-        ? { headline: 'Add mobility', detail: 'No mobility or recovery this week. Ten easy minutes balances the harder days.', actionLabel: 'Open Move', route: '/movement' }
+        ? { headline: 'Add mobility', detail: 'No mobility or recovery this week. Ten easy minutes balances the harder days.', actionLabel: 'Open Movement', route: '/movement' }
         : count < SESSION_TARGET
           ? { headline: `${SESSION_TARGET - count} more ${SESSION_TARGET - count === 1 ? 'session' : 'sessions'}`, detail: `${count} of ${SESSION_TARGET} so far, with strength and mobility both in.`, actionLabel: 'Log one', route: '/movement', quickEntry: 'workout' }
-          : { headline: 'A balanced week', detail: 'Strength, mobility and enough sessions. An easy day is part of the plan too.', actionLabel: 'Open Move', route: '/movement' };
+          : { onTrack: true, headline: 'A balanced week', detail: 'Strength, mobility and enough sessions. An easy day is part of the plan too.', actionLabel: 'Open Movement', route: '/movement' };
 
   return {
-    id: 'move', pillar: 'movement_capacity', title: 'Move',
+    id: 'move', pillar: 'movement_capacity', title: 'Movement',
     front: {
       value: `${count} of ${SESSION_TARGET}`,
       label: 'sessions this week',
@@ -270,7 +272,7 @@ export function moodWeekCard(input: { today: string; practice: PracticeSession[]
       ? { headline: 'Morning light', detail: `Outside before noon on ${morningDays} of 7 days. Ten morning minutes do the most for sleep timing.`, actionLabel: 'Open Mood', route: '/mood' }
       : resets < 3
         ? { headline: 'A daily reset', detail: `${plural(resets, 'breathing reset')} this week. A minute a day keeps the habit easy to reach for.`, actionLabel: 'Open Mood', route: '/mood' }
-        : { headline: 'Keep both going', detail: `Morning light on ${morningDays} of 7 days and ${plural(resets, 'reset')}. That’s a steady week.`, actionLabel: 'Open Mood', route: '/mood' };
+        : { onTrack: true, headline: 'Keep both going', detail: `Morning light on ${morningDays} of 7 days and ${plural(resets, 'reset')}. That’s a steady week.`, actionLabel: 'Open Mood', route: '/mood' };
 
   return {
     id: 'mood', pillar: 'mind_life_load', title: 'Mood',
@@ -283,3 +285,40 @@ export function moodWeekCard(input: { today: string; practice: PracticeSession[]
     back
   };
 }
+
+export type WeeklyRecap = {
+  lines: { id: WeekCardId; pillar: PillarId; title: string; text: string }[];
+  /** The one thing to carry into next week, or null when every card is on track. */
+  focus: { id: WeekCardId; headline: string; detail: string } | null;
+};
+
+/**
+ * The week in four lines and one suggestion, built from the same cards Home shows so the
+ * numbers cannot disagree. No streaks and no score: a week is described, not graded, and
+ * the suggestion is the first pillar in the usual order that has something to change.
+ */
+export function weeklyRecap(cards: WeekCard[]): WeeklyRecap {
+  const lines = cards.map((card) => ({
+    id: card.id,
+    pillar: card.pillar,
+    title: card.title,
+    text: card.front.value === '—' ? card.front.caption : `${card.front.value} ${card.front.label} · ${card.front.caption}`
+  }));
+  const next = cards.find((card) => !card.back.onTrack);
+  return { lines, focus: next ? { id: next.id, headline: next.back.headline, detail: next.back.detail } : null };
+}
+
+/** Sunday and Monday: the end of one week and the start of the next. */
+export function isRecapDay(date: Date): boolean {
+  return date.getDay() === 0 || date.getDay() === 1;
+}
+
+/**
+ * One key for a recap's Sunday and the Monday after it, so "Not now" on Sunday is not
+ * asked again the next morning. It is the Monday that closes the recap window.
+ */
+export function recapWeekKey(today: string): string {
+  const day = new Date(`${today}T12:00:00Z`).getUTCDay();
+  return shiftDay(today, day === 0 ? 1 : 1 - day);
+}
+

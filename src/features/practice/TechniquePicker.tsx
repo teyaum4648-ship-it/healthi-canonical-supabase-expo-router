@@ -22,6 +22,17 @@ import {
  * minute" against "18 breaths a minute" tells you that faster than any adjective.
  */
 
+/**
+ * The techniques shown before "More techniques": the first three, plus the one in use
+ * if it is further down. Ten expanded rows made this the longest thing on the tab.
+ */
+export function techniquesToShow<T extends { id: string }>(all: T[], selectedId: string, showAll: boolean, limit = 3): T[] {
+  if (showAll) return all;
+  const first = all.slice(0, limit);
+  const selected = all.find((technique) => technique.id === selectedId);
+  return selected && !first.includes(selected) ? [...first, selected] : first;
+}
+
 export function TechniquePicker({
   selectedId,
   onSelect
@@ -30,17 +41,20 @@ export function TechniquePicker({
   onSelect: (technique: BreathTechnique) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const shown = techniquesToShow(BREATH_TECHNIQUES, selectedId, showAll);
+  const more = BREATH_TECHNIQUES.length - shown.length;
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>TECHNIQUE</Text>
+      <Text accessibilityRole="header" style={styles.eyebrow}>Technique</Text>
       <Text style={styles.body}>
         These are not interchangeable. Most bring you down, the last one deliberately takes
         you up, and picking the wrong one is most of why breathing exercises get abandoned.
       </Text>
 
       <View style={styles.list}>
-        {BREATH_TECHNIQUES.map((technique, index) => {
+        {shown.map((technique, index) => {
           const selected = technique.id === selectedId;
           const open = technique.id === openId;
 
@@ -89,10 +103,10 @@ export function TechniquePicker({
 
               {open ? (
                 <View style={styles.detail}>
-                  <Text style={styles.detailLabel}>WHEN</Text>
+                  <Text style={styles.detailLabel}>When</Text>
                   <Text style={styles.detailText}>{technique.when}</Text>
 
-                  <Text style={styles.detailLabel}>WHY</Text>
+                  <Text style={styles.detailLabel}>Why</Text>
                   <Text style={styles.detailText}>{technique.why}</Text>
 
                   {technique.caution ? (
@@ -119,13 +133,19 @@ export function TechniquePicker({
           );
         })}
       </View>
+      {more > 0 || showAll ? (
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showAll }} onPress={() => setShowAll((open) => !open)} style={({ pressed }) => [styles.moreRow, pressed && styles.pressed]}>
+          <Text style={styles.useText}>{showAll ? 'Fewer techniques' : `More techniques (${more})`}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 10 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.body, fontWeight: '600', color: colors.text },
+  moreRow: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
 
   list: { gap: 0 },
@@ -168,7 +188,7 @@ const styles = StyleSheet.create({
   pattern: { ...type.caption, color: colors.textFaint, fontVariant: ['tabular-nums'] },
 
   detail: { gap: 6, paddingBottom: 14, paddingLeft: 45, paddingRight: 4 },
-  detailLabel: { ...type.label, color: colors.textFaint, fontSize: 11, letterSpacing: 1, marginTop: 4 },
+  detailLabel: { ...type.caption, fontWeight: '600', color: colors.textMuted, marginTop: 4 },
   detailText: { ...type.caption, color: colors.text, lineHeight: 20 },
 
   caution: {
