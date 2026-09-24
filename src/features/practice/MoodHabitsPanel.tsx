@@ -55,7 +55,7 @@ export function MoodHabits({
     <View style={styles.wrap}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>ROUTINE</Text>
+          <Text style={styles.eyebrow}>Routine</Text>
           <Text style={styles.meta}>{habitDayLine(day)}</Text>
         </View>
         <Pressable
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 12 },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
   headerCopy: { flex: 1, gap: 3 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   meta: { ...type.body, color: colors.textMuted },
   label: { ...type.label, color: colors.text, marginTop: 4 },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 19 },

@@ -17,6 +17,20 @@ export const pillarColors = {
 
 export type PillarId = keyof typeof pillarColors;
 
+/**
+ * Text and icons on a pillar-coloured fill. The pillar colours are light, so white on
+ * them fails contrast; near-black passes comfortably on all four.
+ */
+export const onPillar = '#0B0B0C';
+
+/** Each tab's accent, used for its tab-bar icon and its main button. Home keeps system blue. */
+export const tabAccent = {
+  food: pillarColors.nourishment,
+  movement: pillarColors.movement_capacity,
+  rhythm: pillarColors.recovery_rhythm,
+  mood: pillarColors.mind_life_load
+} as const;
+
 /** The same colour at low strength, for an icon's backing tile. */
 export function pillarTint(pillar: PillarId, alpha = 0.16): string {
   const hex = pillarColors[pillar].slice(1);

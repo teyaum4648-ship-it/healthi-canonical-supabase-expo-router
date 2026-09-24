@@ -26,7 +26,9 @@ export function greetingForHour(hour: number): 'Good morning' | 'Good afternoon'
 export function greetingName(metadataFirstName: unknown, displayName: string | null | undefined, demo: boolean): string | null {
   if (typeof metadataFirstName === 'string' && metadataFirstName.trim()) return metadataFirstName.trim();
   if (demo) return null;
-  const first = displayName?.trim().split(/\s+/)[0];
+  /* An account made without a name has its email as the display name; never greet with that. */
+  if (!displayName || displayName.includes('@')) return null;
+  const first = displayName.trim().split(/\s+/)[0];
   return first ? first : null;
 }
 

@@ -24,11 +24,10 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...type.eyebrow,
-    color: colors.accent,
-    textTransform: 'uppercase'
+    color: colors.accent
   },
   title: {
-    ...type.title,
+    ...type.largeTitle,
     color: colors.text
   },
   body: {

@@ -222,15 +222,14 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
 const styles = StyleSheet.create({
   shell: { height: 244, marginTop: 15, overflow: 'hidden' },
   phases: { flexDirection: 'row', justifyContent: 'space-around', left: 10, position: 'absolute', right: 10, top: 14 },
-  phase: { color: 'rgba(20,31,25,0.42)', fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
+  phase: { color: 'rgba(20,31,25,0.42)', fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 0 },
   bandMark: {
     color: 'rgba(20,31,25,0.34)',
     fontFamily: fonts.bodyMedium,
     fontSize: 9,
     left: 8,
-    letterSpacing: 0.8,
-    position: 'absolute',
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    position: 'absolute'
   },
   axis: { bottom: 10, flexDirection: 'row', justifyContent: 'space-between', left: 22, position: 'absolute', right: 22 },
   axisText: { color: 'rgba(20,31,25,0.48)', fontFamily: fonts.body, fontSize: 10 },

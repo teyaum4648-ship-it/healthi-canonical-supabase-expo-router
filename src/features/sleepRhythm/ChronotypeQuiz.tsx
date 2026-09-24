@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   optionText: { fontSize: 15, lineHeight: 21 },
   resultCard: { borderRadius: 18, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
-  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 1.1, textTransform: 'uppercase' },
+  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
   resultSummary: { fontSize: 16, lineHeight: 23 },
   resultMeta: { fontSize: 13, lineHeight: 19 },
   slot: { borderRadius: 16, borderWidth: 1, gap: 10, padding: 14 },

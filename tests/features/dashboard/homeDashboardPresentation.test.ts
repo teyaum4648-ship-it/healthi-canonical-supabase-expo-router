@@ -102,6 +102,10 @@ describe('greeting', () => {
     expect(greetingName(undefined, 'Demo User', true)).toBeNull();
   });
 
+  it('never greets with an email address, which is the display name of an account made without a name', () => {
+    expect(greetingName(undefined, 'maya@example.com', false)).toBeNull();
+  });
+
   it('greets without a name rather than "there"', () => {
     expect(homeGreeting('Good evening', greetingName(null, null, false))).toBe('Good evening');
   });

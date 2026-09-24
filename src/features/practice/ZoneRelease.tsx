@@ -31,7 +31,7 @@ export function ZoneRelease({
   if (!region) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.eyebrow}>TENSION</Text>
+        <Text style={styles.eyebrow}>Tension</Text>
         <Text style={styles.title}>Where is it sitting?</Text>
         <Text style={styles.body}>
           Held tension collects in particular places rather than spreading evenly, and it
@@ -114,7 +114,7 @@ export function ZoneRelease({
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   title: { ...type.heading, color: colors.text },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
 

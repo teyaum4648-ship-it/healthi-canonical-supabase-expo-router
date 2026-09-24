@@ -933,7 +933,7 @@ const styles = StyleSheet.create({
     color: colors.textFaint
   },
   pageTitle: {
-    ...type.title,
+    ...type.largeTitle,
     color: colors.text,
     marginTop: 7
   },
@@ -1334,8 +1334,7 @@ const styles = StyleSheet.create({
     color: colors.primaryText,
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   pressed: {
     opacity: 0.82

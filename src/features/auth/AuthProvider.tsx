@@ -25,7 +25,7 @@ type AuthContextValue = {
   mode: 'demo' | 'account';
   startDemo: (fresh?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, consent?: SignupConsentRecord) => Promise<void>;
+  signUp: (email: string, password: string, consent?: SignupConsentRecord, firstName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -45,6 +45,13 @@ export type SignupConsentRecord = {
   healthData: boolean;
   ageConfirmed: boolean;
 };
+
+/** What sign-up stores on the new user: consent always when given, and a first name if one was typed. */
+export function signupMetadata(consent?: SignupConsentRecord, firstName?: string): Record<string, unknown> {
+  const name = firstName?.trim().replace(/\s+/g, ' ').slice(0, 40);
+  return { ...(consent ? { healthi_consent: consent } : {}), ...(name ? { first_name: name, display_name: name } : {}) };
+}
+
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -129,7 +136,7 @@ function DemoAuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signIn = useCallback(async () => { throw new Error('This preview uses a local demo. Choose Continue demo to enter.'); }, []);
-  const signUp = useCallback(async (_email: string, _password: string, _consent?: SignupConsentRecord) => { throw new Error('Account registration is not enabled in this demo build.'); }, []);
+  const signUp = useCallback(async (_email: string, _password: string, _consent?: SignupConsentRecord, _firstName?: string) => { throw new Error('Account registration is not enabled in this demo build.'); }, []);
 
   const signOut = useCallback(async () => {
     await AsyncStorage.removeItem(demoSessionActiveKey);
@@ -274,19 +281,25 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
     await synchronizeSession(data.session);
   }, [synchronizeSession]);
 
-  const signUp = useCallback(async (email: string, password: string, consent?: SignupConsentRecord) => {
-    const { data, error } = await supabase.auth.signUp({
+  const signUp = useCallback(async (email: string, password: string, consent?: SignupConsentRecord, firstName?: string) => {
+    /*
+     * The first name rides in the same metadata as consent. Home greets by first_name, and
+     * the profile trigger copies display_name into profiles, which otherwise falls back to
+     * the email address.
+     */
+    const data = signupMetadata(consent, firstName);
+    const { data: result, error } = await supabase.auth.signUp({
       email,
       password,
-      options: consent ? { data: { healthi_consent: consent } } : undefined
+      options: Object.keys(data).length ? { data } : undefined
     });
 
     if (error) {
       throw error;
     }
 
-    if (data.session) {
-      await synchronizeSession(data.session);
+    if (result.session) {
+      await synchronizeSession(result.session);
     }
   }, [synchronizeSession]);
 

@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   optionText: { fontSize: 15, lineHeight: 21 },
   listBlock: { gap: 4, marginTop: 6 },
-  listLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 1.1, textTransform: 'uppercase' },
+  listLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
   listItem: { fontSize: 15, lineHeight: 22 },
   withheld: { fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
   referral: { alignItems: 'flex-start', borderRadius: 12, flexDirection: 'row', gap: 10, padding: 14 },

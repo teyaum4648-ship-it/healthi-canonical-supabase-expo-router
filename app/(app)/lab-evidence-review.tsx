@@ -56,7 +56,7 @@ export default function LabEvidenceReviewScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: 12, padding: 24 },
-  eyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 1.2, textTransform: 'uppercase' },
+  eyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 0 },
   title: { color: colors.text, fontFamily: fonts.display, fontSize: 32, lineHeight: 38 },
   body: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   card: { backgroundColor: colors.surface, borderColor: colors.hairline, borderRadius: 20, borderWidth: 1, gap: 8, padding: 18 },

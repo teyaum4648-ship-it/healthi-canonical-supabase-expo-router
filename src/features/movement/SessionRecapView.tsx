@@ -70,7 +70,7 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, onClassify, savedLo
           <View style={styles.savedRow}>
             <Ionicons color={palette.up} name="checkmark-circle" size={18} />
             <Text style={styles.savedLabel}>
-              {savedLocally ? 'SAVED ON THIS DEVICE' : 'SESSION SAVED'}
+              {savedLocally ? 'Saved on this device' : 'Session saved'}
             </Text>
           </View>
           <Text style={styles.title}>{recap.title}</Text>
@@ -79,7 +79,7 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, onClassify, savedLo
 
         {recap.changes.length > 0 ? (
           <View style={styles.panel}>
-            <Eyebrow>AGAINST LAST TIME</Eyebrow>
+            <Eyebrow>Against last time</Eyebrow>
             {recap.changes.map((change) => (
               <View key={change.exercise_id} style={styles.changeRow}>
                 <Ionicons
@@ -122,7 +122,7 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, onClassify, savedLo
 
         {topPattern ? (
           <View style={styles.panel}>
-            <Eyebrow>WHAT THIS WEEK COVERS NOW</Eyebrow>
+            <Eyebrow>What this week covers now</Eyebrow>
             {recap.patterns.slice(0, 4).map((item) => (
               <View key={item.pattern} style={styles.coverageRow}>
                 <Text numberOfLines={1} style={styles.coverageLabel}>{item.label}</Text>
@@ -191,7 +191,7 @@ export function SessionRecap({ recap, onDone, onSaveRoutine, onClassify, savedLo
 
         {recap.next_time ? (
           <View style={styles.nextPanel}>
-            <Eyebrow>NEXT TIME</Eyebrow>
+            <Eyebrow>Next time</Eyebrow>
             <Text style={styles.nextHeadline}>{recap.next_time.headline}</Text>
             <Text style={styles.nextName}>{recap.next_time.exercise_name}</Text>
             {recap.next_time.rationale.slice(0, 2).map((line) => (

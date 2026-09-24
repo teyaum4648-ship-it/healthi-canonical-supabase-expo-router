@@ -77,7 +77,7 @@ export function PulseCheck({
   if (!context) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.eyebrow}>HEART RATE</Text>
+        <Text style={styles.eyebrow}>Heart rate</Text>
         <Text style={styles.title}>What were you just doing?</Text>
         <Text style={styles.body}>
           A pulse means nothing on its own. The answer here decides whether this reading
@@ -109,7 +109,7 @@ export function PulseCheck({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>HEART RATE</Text>
+      <Text style={styles.eyebrow}>Heart rate</Text>
 
       <Pressable
         accessibilityHint={
@@ -209,7 +209,7 @@ function pulseContextLabel(id: PulseContext): string {
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   title: { ...type.heading, color: colors.text },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
 

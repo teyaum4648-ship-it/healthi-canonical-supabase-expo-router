@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, type } from '../../styles/mobileTheme';
+import { onPillar, tabAccent } from '../../styles/pillarColors';
 import {
   ASSUMED_MINUTES,
   LIGHT_WINDOWS,
@@ -40,7 +41,7 @@ export function DaylightLog({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>DAYLIGHT</Text>
+      <Text style={styles.eyebrow}>Daylight</Text>
 
       {!open ? (
         <>
@@ -134,7 +135,7 @@ export function DaylightLog({
 
 const styles = StyleSheet.create({
   wrap: { gap: 10 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   label: { ...type.label, color: colors.text },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
 
@@ -154,13 +155,13 @@ const styles = StyleSheet.create({
   grow: { flexGrow: 1 },
   primary: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.mood,
     borderRadius: 14,
     justifyContent: 'center',
     minHeight: 52,
     paddingHorizontal: 18
   },
-  primaryText: { ...type.label, color: colors.primaryText, fontSize: 16 },
+  primaryText: { ...type.label, color: onPillar, fontSize: 16 },
   secondary: {
     alignItems: 'center',
     backgroundColor: colors.surfaceInset,

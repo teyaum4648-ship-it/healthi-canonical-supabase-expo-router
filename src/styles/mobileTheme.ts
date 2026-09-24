@@ -34,6 +34,14 @@ export const type = {
     lineHeight: 40,
     letterSpacing: -0.8
   },
+  /** Every screen's name, the same size everywhere, like a large navigation title on iOS. */
+  largeTitle: {
+    fontFamily: fonts.display,
+    fontSize: 32,
+    fontWeight: '700',
+    lineHeight: 38,
+    letterSpacing: -0.6
+  },
   heading: {
     fontFamily: fonts.display,
     fontSize: 22,
@@ -46,12 +54,13 @@ export const type = {
     fontSize: 16,
     lineHeight: 23
   },
+  /* A section label in sentence case, the way iOS labels a group — not tracked-out capitals. */
   eyebrow: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 16,
-    letterSpacing: 0.9
+    lineHeight: 18,
+    letterSpacing: 0
   },
   label: {
     fontFamily: fonts.bodyMedium,

@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44, marginLeft: -6 },
   backText: { ...type.body, color: colors.accent },
   pressed: { opacity: 0.6 },
-  title: { ...type.title, color: colors.text },
+  title: { ...type.largeTitle, color: colors.text },
   subtitle: { ...type.body, color: colors.textMuted, marginTop: -8 },
   card: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, gap: 10 },
   loading: { alignItems: 'center', minHeight: 140, justifyContent: 'center' },

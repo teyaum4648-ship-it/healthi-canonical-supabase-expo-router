@@ -111,7 +111,7 @@ export function MovementProgress({
   return (
     <View style={styles.stack}>
       <View style={styles.sectionHead}>
-        <Text style={styles.eyebrow}>TRAINING COVERAGE</Text>
+        <Text style={styles.eyebrow}>Training coverage</Text>
         <SegmentedControl onChange={setWindow} options={['7 days', '28 days'] as const} value={window} />
       </View>
       <Text style={styles.summary}>{coverageSummary(coverage)}</Text>
@@ -141,7 +141,7 @@ export function MovementProgress({
         </Text>
       ) : null}
 
-      <Text style={styles.eyebrow}>EXERCISES</Text>
+      <Text style={styles.eyebrow}>Exercises</Text>
       {progress.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>No exercise history yet</Text>

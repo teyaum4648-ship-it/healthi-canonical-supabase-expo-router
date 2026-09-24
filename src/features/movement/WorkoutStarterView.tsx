@@ -283,7 +283,7 @@ export function WorkoutStarter(props: {
           ) : null
         ) : (
           <View style={styles.shelf}>
-            <Text style={styles.shelfLabel}>OR START FROM</Text>
+            <Text style={styles.shelfLabel}>Or start from</Text>
             <SegmentedControl onChange={setTab} options={TABS} value={tab} />
             {rows.length > 0 ? rows.map((source) => (
               <SourceRow
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   leaveText: { ...type.caption, color: colors.accent },
 
   shelf: { gap: 10, marginTop: 10 },
-  shelfLabel: { ...type.label, color: colors.textFaint, letterSpacing: 1.1 },
+  shelfLabel: { ...type.label, color: colors.textMuted, letterSpacing: 0 },
   shelfEmpty: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4, paddingVertical: 8 },
   source: {
     alignItems: 'center',

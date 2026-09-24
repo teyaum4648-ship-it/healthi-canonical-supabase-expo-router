@@ -26,7 +26,7 @@ describe('History progress screen rendering', () => {
     const html = renderToStaticMarkup(<MovementProgress sessions={[rows.session]} entries={rows.exercises} sets={rows.sets} library={[]} unit="lb" today="2026-09-12" />);
     expect(html).toContain('Movement patterns are not available');
     expect(html).toContain('My Custom Lift');
-    expect(html).toContain('EXERCISES');
+    expect(html).toContain('Exercises');
     expect(html).not.toContain('Nothing logged in this window');
   });
 

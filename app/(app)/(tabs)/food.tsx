@@ -3,6 +3,7 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { rolloverDiaryDay } from '../../../src/utils/localDay';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 import { NutritionGoalSetup } from '../../../src/features/nutrition/NutritionGoalSetup';
+import { onPillar, tabAccent } from '../../../src/styles/pillarColors';
 import { goalPatternInput } from '../../../src/features/nutrition/nutritionGoalEngine';
 import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
 import type { GoalClient } from '../../../src/features/nutrition/nutritionGoalStore';
@@ -1628,7 +1629,7 @@ export default function FoodScreen() {
 
           <View style={styles.orRow}>
             <View style={styles.orLine} />
-            <Text style={styles.orText}>OR ENTER MANUALLY</Text>
+            <Text style={styles.orText}>Or enter manually</Text>
             <View style={styles.orLine} />
           </View>
           <Field
@@ -1670,7 +1671,7 @@ export default function FoodScreen() {
 
         {scannerProduct && productQuality ? (
           <Card style={styles.productCard}>
-            <Text style={styles.eyebrow}>ON THE LABEL</Text>
+            <Text style={styles.eyebrow}>On the label</Text>
             <View style={styles.productMetrics}>
               <Metric label="Calories" value={formatProductAmount(scannerProduct.calories_per_serving)} tone={colors.accent} />
               <Metric label="Protein" value={formatProductAmount(scannerProduct.protein_g, 'g')} />
@@ -2556,7 +2557,7 @@ export default function FoodScreen() {
             {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
           {!inFlow ? <View style={styles.adaptiveActionDock}>
-            <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color="#FFFFFF" size={22} /><Text style={styles.adaptivePrimaryButtonText}>Add meal</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color={onPillar} size={22} /><Text style={[styles.adaptivePrimaryButtonText, styles.diaryAddText]}>Add meal</Text></Pressable>
             {/*
               Scanning was three taps inside the add-meal sheet, which is a long way
               round for the thing people stand in a shop holding. It gets its own key
@@ -2670,7 +2671,8 @@ const styles = StyleSheet.create({
   diaryTextButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
   diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: colors.accentMid, fontWeight: '500' },
   diaryStatus: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted, paddingVertical: 8 },
-  diaryAdd: { flex: 1, backgroundColor: colors.accent, minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
+  diaryAddText: { color: onPillar, fontWeight: '600' },
+  diaryAdd: { flex: 1, backgroundColor: tabAccent.food, minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
   // Fixed width rather than a flex share, so the primary action keeps the bar and this
   // stays a key beside it at roughly a fifth of the width on a phone.
   dockScan: {
@@ -2704,12 +2706,8 @@ const styles = StyleSheet.create({
     paddingTop: 18
   },
   adaptivePageLabel: {
-    color: '#F5F5F7',
-    fontFamily: sansMedium,
-    fontSize: 30,
-    fontWeight: '600',
-    letterSpacing: -0.7,
-    lineHeight: 38
+    ...themeType.largeTitle,
+    color: '#F5F5F7'
   },
   trackerCard: {
     backgroundColor: '#121214',
@@ -2863,9 +2861,8 @@ const styles = StyleSheet.create({
     color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 0.8,
-    lineHeight: 13,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    lineHeight: 13
   },
   adaptiveTabBar: {
     marginTop: 7,
@@ -2932,9 +2929,8 @@ const styles = StyleSheet.create({
     color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 1.5,
-    lineHeight: 15,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    lineHeight: 15
   },
   adaptiveConfidenceValue: {
     color: '#F5F5F7',
@@ -2982,9 +2978,8 @@ const styles = StyleSheet.create({
     color: '#F5F5F7',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 1.75,
-    lineHeight: 15,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    lineHeight: 15
   },
   adaptivePriorityTagUrgent: {
     color: '#FFD479'
@@ -3040,10 +3035,9 @@ const styles = StyleSheet.create({
     color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 0.6,
+    letterSpacing: 0,
     lineHeight: 14,
-    marginLeft: 'auto',
-    textTransform: 'uppercase'
+    marginLeft: 'auto'
   },
   adaptiveSectionVoice: {
     color: '#A1A1A6',
@@ -3110,9 +3104,8 @@ const styles = StyleSheet.create({
     color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 0.5,
-    lineHeight: 13,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    lineHeight: 13
   },
   adaptiveLaneDetail: {
     color: '#A1A1A6',
@@ -3125,10 +3118,9 @@ const styles = StyleSheet.create({
     color: '#A1A1A6',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 0.9,
+    letterSpacing: 0,
     lineHeight: 14,
-    marginTop: 16,
-    textTransform: 'uppercase'
+    marginTop: 16
   },
   adaptiveCoverageNeed: {
     color: '#F5F5F7',
@@ -3295,9 +3287,8 @@ const styles = StyleSheet.create({
     color: '#1E90FF',
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 0.8,
-    lineHeight: 14,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    lineHeight: 14
   },
   adaptiveProfileLead: {
     color: '#F5F5F7',
@@ -3510,8 +3501,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...themeType.eyebrow,
-    color: C.gold,
-    textTransform: 'uppercase'
+    color: C.gold
   },
   title: {
     ...themeType.title,
@@ -3576,9 +3566,8 @@ const styles = StyleSheet.create({
     fontFamily: sansMedium,
     fontSize: themeType.eyebrow.fontSize,
     lineHeight: themeType.eyebrow.lineHeight,
-    letterSpacing: 1.3,
-    marginBottom: 6,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    marginBottom: 6
   },
   metricValue: {
     ...themeType.number,
@@ -3597,9 +3586,8 @@ const styles = StyleSheet.create({
     fontFamily: sansMedium,
     fontSize: themeType.eyebrow.fontSize,
     lineHeight: themeType.eyebrow.lineHeight,
-    letterSpacing: 1.2,
-    marginBottom: 8,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    marginBottom: 8
   },
   input: {
     backgroundColor: palette.paper,
@@ -3693,7 +3681,7 @@ const styles = StyleSheet.create({
     fontFamily: sansMedium,
     fontSize: themeType.caption.fontSize,
     lineHeight: themeType.caption.lineHeight,
-    letterSpacing: 1.2
+    letterSpacing: 0
   },
   questionText: {
     ...themeType.heading,
@@ -3834,7 +3822,7 @@ const styles = StyleSheet.create({
     color: C.muted,
     fontFamily: sansMedium,
     fontSize: 12,
-    letterSpacing: 1.2,
+    letterSpacing: 0,
     lineHeight: 13
   },
   scannerMessage: {

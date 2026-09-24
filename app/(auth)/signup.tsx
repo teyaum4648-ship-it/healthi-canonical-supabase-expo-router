@@ -20,6 +20,7 @@ import { colors, spacing } from '../../src/styles/mobileTheme';
 
 export default function SignupScreen() {
   const { signUp, mode } = useAuth();
+  const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,7 +61,7 @@ export default function SignupScreen() {
         privacy: consent.agreement,
         ageConfirmed: consent.agreement,
         healthData: consent.healthData
-      });
+      }, firstName);
       setFeedback({
         message: 'Check your email to confirm the account, then return here and log in.',
         tone: 'success'
@@ -77,12 +78,20 @@ export default function SignupScreen() {
   return (
     <Screen contentStyle={styles.screen}>
       <SectionHeader
-        eyebrow="Create account"
         title="Start with Healthi"
         body="Create your account, set your baseline, and begin with your own daily entries."
       />
 
       <Card>
+        <TextInput
+          autoCapitalize="words"
+          autoComplete="given-name"
+          label="First name"
+          maxLength={40}
+          onChangeText={setFirstName}
+          placeholder="What should we call you? (optional)"
+          value={firstName}
+        />
         <TextInput
           autoComplete="email"
           inputMode="email"

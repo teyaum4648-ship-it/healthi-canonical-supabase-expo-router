@@ -130,7 +130,7 @@ export function FoodQualityReviewPanel({ review, windowLabel, onOpenScanner, onO
       {/* The two items that make the point, before the full list repeats them. */}
       {review.worst && review.best && review.worst.id !== review.best.id ? (
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>THE RANGE</Text>
+          <Text style={styles.eyebrow}>The range</Text>
           <ItemRow item={review.worst} note="The lowest thing you logged" />
           <View style={styles.divider} />
           <ItemRow item={review.best} note="The highest" />
@@ -139,7 +139,7 @@ export function FoodQualityReviewPanel({ review, windowLabel, onOpenScanner, onO
 
       {review.burdens.length > 0 ? (
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>WHAT THE LOW GRADES WERE MADE OF</Text>
+          <Text style={styles.eyebrow}>What the low grades were made of</Text>
           <Text style={styles.burdenIntro}>
             Read from the front of each ingredient list, where what a product is actually
             made of lives.
@@ -159,7 +159,7 @@ export function FoodQualityReviewPanel({ review, windowLabel, onOpenScanner, onO
 
       {review.graded.length > 2 ? (
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>EVERYTHING GRADED</Text>
+          <Text style={styles.eyebrow}>Everything graded</Text>
           {review.graded.map((item, index) => (
             <View key={item.id}>
               {index > 0 ? <View style={styles.divider} /> : null}
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 18
   },
-  eyebrow: { ...type.label, color: colors.textFaint, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, letterSpacing: 0 },
 
   headline: { alignItems: 'center', flexDirection: 'row', gap: 14 },
   headlineCopy: { flex: 1, minWidth: 0 },

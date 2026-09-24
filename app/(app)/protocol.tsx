@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   optionText: { ...type.label, color: colors.text },
   progressTrack: { height: 4, borderRadius: 2, backgroundColor: colors.track, overflow: 'hidden', marginTop: 6 },
   progressFill: { height: 4, borderRadius: 2, backgroundColor: colors.primary },
-  largeTitle: { ...type.title, color: colors.text },
+  largeTitle: { ...type.largeTitle, color: colors.text },
   closeoutButton: {
     alignItems: 'center',
     backgroundColor: colors.primary,

@@ -141,7 +141,7 @@ export function CyclicBreathRounds({
   if (stage === 'gate') {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.eyebrow}>BEFORE YOU START</Text>
+        <Text style={styles.eyebrow}>Before you start</Text>
         <Text style={styles.title}>{technique.name}</Text>
         <View style={styles.danger}>
           <Text style={styles.dangerText}>{technique.caution}</Text>
@@ -253,7 +253,7 @@ export function CyclicBreathRounds({
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   title: { ...type.heading, color: colors.text },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 20 },
 

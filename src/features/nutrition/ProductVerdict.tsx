@@ -72,7 +72,7 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
 
       {legend.length > 0 ? (
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>WHAT IT'S MADE OF</Text>
+          <Text style={styles.eyebrow}>What it’s made of</Text>
           <View style={styles.bar}>
             {explanation.composition.map((slice) => (
               <View
@@ -100,7 +100,7 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
 
       {explanation.findings.length > 0 ? (
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>WHY THIS SCORE</Text>
+          <Text style={styles.eyebrow}>Why this score</Text>
           {explanation.findings.map((finding) => (
             <View key={finding.id} style={styles.finding}>
               <View
@@ -120,7 +120,7 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
 
       {explanation.unrecognised.length > 0 ? (
         <View style={styles.panel}>
-          <Text style={styles.eyebrow}>NOT YET RECOGNISED</Text>
+          <Text style={styles.eyebrow}>Not yet recognised</Text>
           <Text style={styles.footnote}>
             {explanation.unrecognised.length === 1 ? 'This ingredient is' : 'These ingredients are'} not in
             the table yet, so {explanation.unrecognised.length === 1 ? 'it counts' : 'they count'} as
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 18
   },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
 
   productName: { ...type.heading, color: colors.text },
   verdictRow: { alignItems: 'center', flexDirection: 'row', gap: 16 },

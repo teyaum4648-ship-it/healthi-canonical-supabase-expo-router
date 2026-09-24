@@ -983,8 +983,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   scoreSheetTitle: {
     color: colors.cosmicWhite,
@@ -1028,16 +1027,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 1.3,
-    marginTop: spacing.xs,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    marginTop: spacing.xs
   },
   scorePriority: {
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 1.6,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   scoreFocus: {
     color: colors.cosmicWhite,
@@ -1110,8 +1107,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   domainReason: {
     color: colors.mutedViolet,
@@ -1123,8 +1119,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   scoreSection: {
     gap: spacing.sm,
@@ -1173,8 +1168,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   rankLabel: {
     color: colors.cosmicWhite,
@@ -1213,8 +1207,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   focusHeaderTitle: {
     color: colors.cosmicWhite,
@@ -1245,8 +1238,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.8,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   focusTitle: {
     color: colors.cosmicWhite,
@@ -1306,8 +1298,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   changeText: {
     color: colors.cosmicWhite,

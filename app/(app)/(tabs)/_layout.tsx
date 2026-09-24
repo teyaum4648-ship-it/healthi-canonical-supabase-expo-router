@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mainTabs } from '../../../src/features/navigation/navigationModel';
 
 import { colors, fonts, hairlineWidth } from '../../../src/styles/mobileTheme';
+import { tabAccent } from '../../../src/styles/pillarColors';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
@@ -51,8 +52,11 @@ export default function AppTabsLayout() {
     >
       {mainTabs.map((tab) => {
         const homeContext = tab.route === 'index' && inHomeCalendar;
+        const accent = tab.route in tabAccent ? tabAccent[tab.route as keyof typeof tabAccent] : colors.accent;
         return <Tabs.Screen key={tab.route} name={tab.route} options={{
           title: tab.label,
+          // Each pillar's tab lights up in its own colour, the way the Health app colours its categories.
+          tabBarActiveTintColor: accent,
           // Keep the actual navigation state intact so Home remains tappable from Plan.
           tabBarIcon: (props) => tabIcon(tab.outline, tab.filled)({ ...props, focused: props.focused || homeContext, color: homeContext ? colors.accent : props.color }),
           ...(homeContext ? { tabBarLabelStyle: { fontFamily: systemFont, fontSize: 12, fontWeight: '600' as const, letterSpacing: 0.1, color: colors.accent } } : {})

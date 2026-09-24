@@ -10,6 +10,10 @@ import { SectionHeader } from '../../../src/components/SectionHeader';
 import { LegalLinks } from '../../../src/features/legal/LegalLinksPanel';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
+import { ConnectedHealthRow } from '../../../src/features/health/ConnectedHealthRow';
+import { healthSource } from '../../../src/features/health/healthSource';
+import { loadSleepHistory, saveSleepForSource } from '../../../src/features/sleepRhythm/sleepSessionSource';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { router } from 'expo-router';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
@@ -28,7 +32,7 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { loadProfileScreenModel } from '../../../src/features/profile/profileComposer';
 import type { ProfileScreenModel } from '../../../src/features/profile/profileTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, spacing } from '../../../src/styles/mobileTheme';
+import { colors, fonts, spacing, type } from '../../../src/styles/mobileTheme';
 
 function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
   return value === 'ready' ? 'Ready' : value === 'partial' ? 'Early pattern' : 'Calibrating';
@@ -160,7 +164,6 @@ export default function SettingsScreen() {
   return (
     <Screen contentStyle={styles.content}>
       <SectionHeader
-        eyebrow="Profile"
         title="You"
         body="Your progress, profile and preferences."
       />
@@ -175,6 +178,16 @@ export default function SettingsScreen() {
           {/* Trends has its own screen; a second full copy here said everything twice. */}
           <View style={styles.trendsLink}>
             <ActionRow title="Trends" detail="Charts for sleep, food, movement and mood" icon="stats-chart-outline" onPress={() => router.navigate('/progress')} last />
+          </View>
+
+          <Text style={styles.groupLabel}>Connected apps</Text>
+          <View style={styles.trendsLink}>
+            <ConnectedHealthRow
+              source={healthSource}
+              scope={protocolScopeValue}
+              readSleep={async () => (await loadSleepHistory({ mode, userId: user?.id, client: supabase as unknown as SleepRhythmSupabaseClient })).sessions}
+              saveSleep={(session) => saveSleepForSource({ mode, userId: user?.id, client: supabase as unknown as SleepRhythmSupabaseClient }, session)}
+            />
           </View>
 
           <Disclosure title="Your profile and preferences" detail="Goals, nourishment, sleep and movement context">
@@ -201,7 +214,7 @@ export default function SettingsScreen() {
           </View>
 
           <Card style={styles.blueprintCard}>
-            <Text style={styles.cardEyebrow}>NOURISHMENT PREFERENCES</Text>
+            <Text style={styles.cardEyebrow}>Nourishment preferences</Text>
             <Text style={styles.blueprintTitle}>{model.blueprint.nourishment.pattern_label}</Text>
             <Text style={styles.detail}>{model.blueprint.nourishment.detail}</Text>
             <View style={styles.nourishmentRow}>
@@ -224,7 +237,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card style={styles.blueprintCard}>
-            <Text style={styles.cardEyebrow}>SLEEP RHYTHM</Text>
+            <Text style={styles.cardEyebrow}>Sleep rhythm</Text>
             <Text style={styles.blueprintTitle}>Your sleep context</Text>
             <Text style={styles.miniHeading}>Biggest friction</Text>
             {model.blueprint.sleep.biggest_friction.map((item) => <Text key={item} style={styles.bulletCopy}>• {item}</Text>)}
@@ -241,7 +254,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card style={styles.blueprintCard}>
-            <Text style={styles.cardEyebrow}>MOVEMENT SUMMARY</Text>
+            <Text style={styles.cardEyebrow}>Movement summary</Text>
             <Text style={styles.blueprintTitle}>Your training context</Text>
             <View style={styles.movementMetrics}>
               <View style={styles.metricItem}>
@@ -265,7 +278,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card style={styles.calibrationCard}>
-            <Text style={styles.cardEyebrow}>CALIBRATION</Text>
+            <Text style={styles.cardEyebrow}>Calibration</Text>
             <Text style={styles.calibrationTitle}>{baseline.calibration.completion_label}</Text>
             <Text style={styles.detail}>{baseline.calibration.detail}</Text>
             <View style={styles.domainList}>
@@ -282,7 +295,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card>
-            <Text style={styles.cardEyebrow}>TRAINING UNITS</Text>
+            <Text style={styles.cardEyebrow}>Training units</Text>
             <Text style={styles.preferenceTitle}>Weight unit</Text>
             <Text style={styles.detail}>New sets are logged in this unit. Sets you have already saved keep the unit they were recorded in.</Text>
             <View style={styles.unitControl}>
@@ -291,7 +304,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card>
-            <Text style={styles.cardEyebrow}>ALLERGENS</Text>
+            <Text style={styles.cardEyebrow}>Allergens</Text>
             <Text style={styles.preferenceTitle}>Groups to watch for</Text>
             <Text style={styles.detail}>
               Healthi flags these when a food's label declares them. It cannot tell you a food
@@ -319,7 +332,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card>
-            <Text style={styles.cardEyebrow}>PREFERENCES</Text>
+            <Text style={styles.cardEyebrow}>Preferences</Text>
             {baseline.preferences.map((preference) => (
               <View key={preference.id} style={styles.preferenceRow}>
                 <Text style={styles.preferenceTitle}>{preference.title}</Text>
@@ -329,7 +342,7 @@ export default function SettingsScreen() {
           </Card>
 
           <Card style={styles.nextStepsCard}>
-            <Text style={styles.cardEyebrow}>NEXT STEPS</Text>
+            <Text style={styles.cardEyebrow}>Next steps</Text>
             {baseline.next_steps.map((step) => (
               <View key={step.id} style={styles.stepRow}>
                 <View style={styles.stepDot} />
@@ -346,14 +359,14 @@ export default function SettingsScreen() {
 
         <Disclosure title="Account and baseline" detail={model.account.label}>
           <Card style={styles.accountCard}>
-            <Text style={styles.cardEyebrow}>ACCOUNT</Text>
+            <Text style={styles.cardEyebrow}>Account</Text>
             <Text style={styles.accountTitle}>{model.account.label}</Text>
             <Text style={styles.detail}>{model.account.detail}</Text>
             <Text style={styles.meta}>{model.account.source_label === 'demo' ? 'Local demo mode' : model.account.source_label === 'logged' ? 'Saved profile data' : 'Setup status'}</Text>
           </Card>
 
           <Card style={styles.baselineCard}>
-            <Text style={styles.cardEyebrow}>YOUR BASELINE</Text>
+            <Text style={styles.cardEyebrow}>Your baseline</Text>
             <Text style={styles.baselineTitle}>{baseline.headline}</Text>
             <Text style={styles.baselineDetail}>{baseline.detail}</Text>
             <Text style={styles.meta}>Confidence: {baseline.confidence}</Text>
@@ -361,7 +374,7 @@ export default function SettingsScreen() {
 
           {activeProtocol ? (
             <Card>
-              <Text style={styles.cardEyebrow}>TODAY'S PROTOCOL</Text>
+              <Text style={styles.cardEyebrow}>Today’s protocol</Text>
               <Text style={styles.baselineTitle}>{activeProtocol.headline}</Text>
               <Text style={styles.meta}>
                 {dayModeLabel(activeProtocol.day_mode)} · {protocolDone}/{activeProtocol.actions.length} done · Confidence: {activeProtocol.confidence}
@@ -383,7 +396,7 @@ export default function SettingsScreen() {
       ) : null}
       {mode === 'demo' ? (
         <Disclosure title="Demo settings" detail="Reset this device’s demo history">
-          <Text style={styles.cardEyebrow}>YOUR DEMO</Text>
+          <Text style={styles.cardEyebrow}>Your demo</Text>
           <Text style={styles.baselineTitle}>A fresh start, whenever you need it</Text>
           <Text style={styles.detail}>Your demo entries stay on this device. Resetting starts onboarding again with empty sleep, food, movement, and plan history.</Text>
           {confirmDemoReset ? <>
@@ -406,12 +419,13 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   trendsLink: { backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 16 },
+  groupLabel: { ...type.eyebrow, color: colors.textMuted, marginBottom: -8, paddingHorizontal: 4 },
   content: { paddingBottom: 28 },
   loadingCard: { alignItems: 'center', justifyContent: 'center', minHeight: 150 },
   loadingText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14 },
   accountCard: { backgroundColor: colors.surfaceInset },
   baselineCard: { backgroundColor: colors.surfaceMuted, borderColor: colors.borderStrong },
-  cardEyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 1.4 },
+  cardEyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 13, letterSpacing: 0 },
   accountTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 27, lineHeight: 33 },
   baselineTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 28, lineHeight: 34 },
   baselineDetail: { color: colors.text, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },

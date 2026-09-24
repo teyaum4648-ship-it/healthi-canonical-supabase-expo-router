@@ -260,8 +260,8 @@ export default function MoodScreen() {
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>MOOD</Text>
-          <Text style={styles.title}>Something you can do now</Text>
+          <Text accessibilityRole="header" style={styles.title}>Mood</Text>
+          <Text style={styles.subtitle}>Something you can do now</Text>
           <Text style={styles.meta}>{practiceDayLine(day)}</Text>
         </View>
 
@@ -312,7 +312,7 @@ export default function MoodScreen() {
 
         {latestComparison ? (
           <View style={styles.panel}>
-            <Text style={styles.eyebrow}>LATEST READING</Text>
+            <Text style={styles.eyebrow}>Latest reading</Text>
             <Text style={styles.readingHeadline}>{latestComparison.headline}</Text>
             <Text style={styles.readingDetail}>{latestComparison.detail}</Text>
             <Text style={styles.readingMeta}>
@@ -328,7 +328,7 @@ export default function MoodScreen() {
 
         {daylightDay.bouts.length > 0 ? (
           <View style={styles.panel}>
-            <Text style={styles.eyebrow}>TODAY'S LIGHT</Text>
+            <Text style={styles.eyebrow}>Today’s light</Text>
             <Text style={styles.readingHeadline}>{anchorHeadline(daylightDay)}</Text>
             <Text style={styles.readingDetail}>{anchorDetail(daylightDay)}</Text>
             <Text style={styles.readingMeta}>{daylightLine(daylightDay)}</Text>
@@ -353,7 +353,7 @@ export default function MoodScreen() {
 
         {zoneDay.sessions.length > 0 ? (
           <View style={styles.panel}>
-            <Text style={styles.eyebrow}>RELEASED TODAY</Text>
+            <Text style={styles.eyebrow}>Released today</Text>
             <Text style={styles.readingMeta}>{zoneDayLine(zoneDay)}</Text>
             {zoneDay.regions.map((region, index) => (
               <View key={region}>
@@ -369,7 +369,7 @@ export default function MoodScreen() {
 
         {day.sessions.length > 0 ? (
           <View style={styles.panel}>
-            <Text style={styles.eyebrow}>BREATHING TODAY</Text>
+            <Text style={styles.eyebrow}>Breathing today</Text>
             {day.sessions.map((session, index) => {
               const item = techniqueById(session.rhythmId);
               const minutes = Math.floor(session.seconds / 60);
@@ -408,8 +408,9 @@ const styles = StyleSheet.create({
   scroll: { gap: 14, paddingBottom: 40, paddingHorizontal: 18, paddingTop: 8 },
 
   header: { gap: 4, paddingVertical: 6 },
-  eyebrow: { ...type.label, color: colors.textFaint, fontSize: 12, letterSpacing: 1.1 },
-  title: { ...type.title, color: colors.text },
+  eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
+  title: { ...type.largeTitle, color: colors.text },
+  subtitle: { ...type.body, fontWeight: '600', color: colors.text },
   meta: { ...type.body, color: colors.textMuted },
 
   panel: {

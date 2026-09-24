@@ -350,7 +350,7 @@ function QuickLog({ actions, notice }: { actions: QuickLogAction[]; notice?: { t
             <View style={[styles.quickLogIcon, { backgroundColor: `${action.color}1C` }]}>
               <Ionicons color={action.color} name={action.icon} size={20} />
             </View>
-            <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.quickLogLabel}>{action.label}</Text>
+            <Text style={styles.quickLogLabel}>{action.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -920,10 +920,10 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {/* The date shares a line with the buttons so the greeting gets the full width, like a large title. */}
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={styles.date}>{displayDate(today)}</Text>
-            <Text style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
@@ -940,6 +940,7 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
         </View>
+        <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
 
         {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" size={104} />} /> : <View style={styles.heroCard}>
           <View style={styles.heroGlow}>
@@ -1072,13 +1073,11 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   greeting: {
+    ...type.largeTitle,
     color: homePalette.text,
     fontFamily: homeFont,
-    fontSize: 25,
-    fontWeight: '600',
-    letterSpacing: -0.55,
-    lineHeight: 31,
-    marginTop: 4
+    marginTop: -8,
+    paddingHorizontal: 4
   },
   avatar: {
     alignItems: 'center',
@@ -1136,7 +1135,7 @@ const styles = StyleSheet.create({
   quickLogRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 4,
     marginTop: 11
   },
   quickLogButton: {
@@ -1147,7 +1146,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 56,
     minHeight: 78,
-    paddingHorizontal: 3,
+    paddingHorizontal: 1,
     paddingVertical: 9
   },
   quickLogButtonPressed: {

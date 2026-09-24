@@ -1,6 +1,7 @@
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { colors, type } from '../../styles/mobileTheme';
+import { onPillar, pillarTint, tabAccent } from '../../styles/pillarColors';
 
 /**
  * The circle itself, with no opinion about what is driving it.
@@ -22,12 +23,13 @@ export type BreathPalette = {
   primaryText: string;
 };
 
+/* The Mood tab's own colour: breathing is that pillar's main action. */
 export const DEFAULT_BREATH_PALETTE: BreathPalette = {
-  accent: colors.accent,
-  accentSoft: colors.accentWash,
+  accent: tabAccent.mood,
+  accentSoft: pillarTint('mind_life_load', 0.16),
   text: colors.text,
   faint: colors.textFaint,
-  primaryText: colors.primaryText
+  primaryText: onPillar
 };
 
 export function BreathCircle({

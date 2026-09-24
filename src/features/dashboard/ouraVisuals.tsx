@@ -202,7 +202,7 @@ export function AnimatedReadinessRing({
         <AnimatedCircle animatedProps={tipProps} fill="#FFFFFF" r={2} />
       </Svg>
       <View pointerEvents="none" style={{ alignItems: 'center', position: 'absolute' }}>
-        <Text style={[ouraType.eyebrow, { color: ouraColors.tealDim, letterSpacing: 3 }]}>READINESS</Text>
+        <Text style={[ouraType.eyebrow, { color: ouraColors.tealDim, letterSpacing: 3 }]}>Readiness</Text>
         <Text style={[ouraType.hero, { color: ouraColors.text, marginTop: 2 }]}>{displayScore}</Text>
         <Text style={[ouraType.display, { color: band.color, marginTop: -2 }]}>{band.label}</Text>
       </View>

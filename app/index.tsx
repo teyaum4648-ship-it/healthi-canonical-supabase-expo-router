@@ -186,8 +186,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.6,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   hero: {
     width: '100%',
@@ -212,8 +211,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 2.2,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   headline: {
     color: colors.text,
@@ -249,10 +247,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 0,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    textTransform: 'uppercase'
+    paddingVertical: 6
   },
   visual: {
     alignItems: 'center',
@@ -319,8 +316,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   ringVerdict: {
     color: colors.textMuted,
@@ -352,8 +348,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 9,
     fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase'
+    letterSpacing: 0
   },
   divider: {
     width: 1,

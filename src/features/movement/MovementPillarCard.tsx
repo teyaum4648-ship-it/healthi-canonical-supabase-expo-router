@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   headerCopy: { flex: 1, gap: 6, minWidth: 0 },
   flex: { flex: 1, gap: 2, minWidth: 0 },
-  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 1.1, textTransform: 'uppercase' },
+  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
   summary: { fontSize: 17, lineHeight: 24 },
   scoreBlock: { alignItems: 'flex-end' },
   score: { fontSize: 34, fontVariant: ['tabular-nums'], fontWeight: '600', lineHeight: 38 },

@@ -1,5 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { movementReasonLines } from '../../../src/features/movement/movementReasonCopy';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
+import { StepsToday } from '../../../src/features/health/StepsToday';
+import { onPillar, tabAccent } from '../../../src/styles/pillarColors';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
@@ -294,7 +297,8 @@ function Chip({ label, selected, onPress }: { label: string; selected?: boolean;
 export default function MovementScreen() {
   const { user, mode } = useAuth();
   const { moveFixture } = useLocalSearchParams<{ moveFixture?: string | string[] }>();
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  /* The local day, not the UTC one: an evening workout in the Americas was being dated tomorrow. */
+  const today = useLocalToday();
   const now = useMemo(() => new Date().toISOString(), []);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
@@ -1480,7 +1484,7 @@ export default function MovementScreen() {
         ) : null}
 
         <Pressable accessibilityRole="button" onPress={openQuickLauncher} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Ionicons name={quickDraft ? 'play' : 'add'} color="#FFFFFF" size={22} />
+          <Ionicons name={quickDraft ? 'play' : 'add'} color={onPillar} size={22} />
           <Text style={styles.primaryButtonText}>{quickDraft ? 'Resume workout' : 'Start workout'}</Text>
         </Pressable>
 
@@ -1525,7 +1529,7 @@ export default function MovementScreen() {
 
         <Disclosure detail="Objective, what supports today, and your recent mix" title="More about today">
         <View>
-          <EditorialLabel>TODAY'S OBJECTIVE</EditorialLabel>
+          <EditorialLabel>Today’s objective</EditorialLabel>
           <Text style={styles.objective}>{adaptivePlan.objective}</Text>
           <View style={styles.agenda}>
             {adaptivePlan.agenda.map((item) => (
@@ -1538,7 +1542,7 @@ export default function MovementScreen() {
         </View>
 
         <View>
-          <EditorialLabel>SUPPORTING TODAY</EditorialLabel>
+          <EditorialLabel>Supporting today</EditorialLabel>
           <View style={styles.supportList}>
             {adaptivePlan.support.map((item) => (
               <View key={item.key} style={styles.supportRow}>
@@ -1557,7 +1561,7 @@ export default function MovementScreen() {
         </View>
 
         <View>
-          <EditorialLabel>YOUR MOVEMENT MIX</EditorialLabel>
+          <EditorialLabel>Your movement mix</EditorialLabel>
           <View style={styles.mixList}>
             {movementMix.map((lane) => (
               <View key={lane.label}>
@@ -1573,7 +1577,8 @@ export default function MovementScreen() {
         <Divider />
 
         <View>
-          <EditorialLabel>THIS WEEK</EditorialLabel>
+          <StepsToday scope={protocolScopeValue} today={today} />
+          <EditorialLabel>This week</EditorialLabel>
           <View style={styles.weekRow}>
             {weeklyDays.map((day) => {
               const dotColor = day.category === 'strength'
@@ -1612,7 +1617,7 @@ export default function MovementScreen() {
           title={draft.title || 'Build a session'}
         />
         <View style={styles.panel}>
-          <EditorialLabel>SESSION DETAILS</EditorialLabel>
+          <EditorialLabel>Session details</EditorialLabel>
           <Field label="Title" onChangeText={(value) => updateDraft('title', value)} placeholder="Morning strength" value={draft.title} />
           <Text style={styles.fieldLabel}>Workout type</Text>
           <View style={styles.chipWrap}>
@@ -1628,7 +1633,7 @@ export default function MovementScreen() {
 
         <View style={styles.panel}>
           <View style={styles.rowBetween}>
-            <EditorialLabel>EXERCISES</EditorialLabel>
+            <EditorialLabel>Exercises</EditorialLabel>
             <Pressable onPress={() => addExercise()} style={({ pressed }) => [styles.iconTextButton, pressed && styles.pressed]}>
               <Ionicons color={movePalette.green} name="add" size={17} />
               <Text style={styles.iconText}>Add</Text>
@@ -1669,7 +1674,7 @@ export default function MovementScreen() {
         </View>
 
         <Pressable disabled={isSaving} onPress={handleSave} style={({ pressed }) => [styles.primaryButton, (pressed || isSaving) && styles.pressed]}>
-          {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons color="#FFFFFF" name="checkmark" size={20} />}
+          {isSaving ? <ActivityIndicator color={onPillar} /> : <Ionicons color={onPillar} name="checkmark" size={20} />}
           <Text style={styles.primaryButtonText}>{isSaving ? 'Saving…' : 'Save Workout'}</Text>
         </Pressable>
       </View>
@@ -1691,7 +1696,7 @@ export default function MovementScreen() {
 
         {routines.length > 0 ? (
           <>
-            <EditorialLabel>YOUR ROUTINES</EditorialLabel>
+            <EditorialLabel>Your routines</EditorialLabel>
             {routines.map((routine) => (
               <View key={routine.id} style={styles.templateCard}>
                 <View style={styles.templateCopy}>
@@ -1730,14 +1735,14 @@ export default function MovementScreen() {
           </>
         ) : null}
 
-        <EditorialLabel>STARTING POINTS</EditorialLabel>
+        <EditorialLabel>Starting points</EditorialLabel>
         {workoutTemplates.map((template) => (
           <View key={template.id} style={styles.templateCard}>
             <View style={styles.templateCopy}>
               <View style={styles.rowBetween}>
                 <Text style={styles.templateTitle}>{template.title}</Text>
                 {adaptivePlan.recommended_session_types.includes(template.workout_type) ? (
-                  <Text style={styles.fitTag}>TODAY</Text>
+                  <Text style={styles.fitTag}>Today</Text>
                 ) : null}
               </View>
               <Text style={styles.monoLine}>{template.exercises.length} exercises · {template.duration_minutes} min</Text>
@@ -1778,7 +1783,7 @@ export default function MovementScreen() {
     return (
       <View style={styles.page}>
         <View style={styles.rowBetween}>
-          <EditorialLabel>MOVEMENT LIBRARY</EditorialLabel>
+          <EditorialLabel>Movement library</EditorialLabel>
           <Pressable accessibilityRole="button" onPress={openCustomMovement} style={styles.textAction}>
             <Text style={styles.textActionLabel}>+ Custom</Text>
           </Pressable>
@@ -1848,7 +1853,7 @@ export default function MovementScreen() {
           />
         ) : null}
         {historyView === 'By day' ? <DayNavigator date={historyDay} today={today} earliest={historyStart(today)} onChange={setHistoryDay} /> : null}
-        {historyView !== 'Progress' ? <EditorialLabel>SESSIONS</EditorialLabel> : null}
+        {historyView !== 'Progress' ? <EditorialLabel>Sessions</EditorialLabel> : null}
         {historyView === 'Progress' ? null : visibleSessions.length === 0 ? (
           <View style={styles.emptyHistory}><Text style={styles.templateTitle}>No workouts for this view</Text><Text style={styles.body}>Your recent sessions will appear here after you log one.</Text></View>
         ) : visibleSessions.map((session) => {
@@ -1910,7 +1915,7 @@ export default function MovementScreen() {
         <Divider />
 
         <View>
-          <EditorialLabel>POSITIVE MIRROR</EditorialLabel>
+          <EditorialLabel>Positive mirror</EditorialLabel>
           <Text style={styles.mirrorLine}>{adaptivePlan.movement_mix_insight}</Text>
           <View style={styles.mirrorTag}><Text style={styles.monoLine}>{summary.workout_count} sessions · {summary.total_minutes} minutes · {summary.confidence} confidence</Text></View>
         </View>
@@ -1918,7 +1923,7 @@ export default function MovementScreen() {
         <Divider />
 
         <View>
-          <EditorialLabel>LOAD HISTORY</EditorialLabel>
+          <EditorialLabel>Load history</EditorialLabel>
           <View style={styles.loadRows}>
             {historyWeeks.map((week) => (
               <View key={week.label} style={styles.loadRow}>
@@ -1933,7 +1938,7 @@ export default function MovementScreen() {
         <Divider />
 
         <View>
-          <EditorialLabel>RECENT PATTERN</EditorialLabel>
+          <EditorialLabel>Recent pattern</EditorialLabel>
           <View style={styles.patternRows}>
             <View style={styles.patternRow}><Text style={styles.patternLabel}>Most frequent</Text><Text style={styles.patternValue}>{titleCase(recentPattern.mostFrequent)}</Text></View>
             <View style={styles.patternRow}><Text style={styles.patternLabel}>Average duration</Text><Text style={styles.patternValue}>{recentPattern.averageMinutes || '—'} min</Text></View>
@@ -2098,7 +2103,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: movePalette.background },
   scroll: { paddingBottom: 28 },
   navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
-  navigationTitle: { ...type.title, fontSize: 30, lineHeight: 38, color: colors.text },
+  navigationTitle: { ...type.largeTitle, color: colors.text },
   resumeNote: {
     alignItems: 'center',
     backgroundColor: movePalette.wash,
@@ -2130,9 +2135,8 @@ const styles = StyleSheet.create({
     ...type.eyebrow,
     color: 'rgba(255, 255, 255, 0.56)',
     fontSize: 12,
-    letterSpacing: 1.5,
-    lineHeight: 15,
-    textTransform: 'uppercase'
+    letterSpacing: 0,
+    lineHeight: 15
   },
   editorialDivider: { backgroundColor: movePalette.line, height: hairlineWidth, marginVertical: 2 },
   verdictBlock: { paddingTop: 4 },
@@ -2145,8 +2149,8 @@ const styles = StyleSheet.create({
   reasonLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.65)', flex: 1 },
   protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(30, 144, 255, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
   protocolNoteText: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', flex: 1 },
-  primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: movePalette.green, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
-  primaryButtonText: { ...type.label, color: '#FFFFFF', fontSize: 14 },
+  primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: tabAccent.movement, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
+  primaryButtonText: { ...type.label, color: onPillar, fontSize: 15 },
   changedRow: { gap: 8 },
   changedCopy: { ...type.body, color: 'rgba(255, 255, 255, 0.65)' },
   capacityLabels: { flexDirection: 'row', marginTop: 15 },
@@ -2197,7 +2201,7 @@ const styles = StyleSheet.create({
   ledgerExerciseCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 18, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 14, paddingTop: 16 },
   ledgerExerciseHeading: { alignItems: 'flex-start', flexDirection: 'row', paddingHorizontal: 16 },
   ledgerExerciseTitleWrap: { flex: 1 },
-  ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 1.15, textTransform: 'uppercase' },
+  ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 0 },
   ledgerExerciseTitle: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 19, lineHeight: 24, marginRight: 10, marginTop: 3, minHeight: 48, paddingVertical: 8 },
   ledgerPreviousDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontSize: 13, marginTop: 6 },
   ledgerCategoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingVertical: 13 },
@@ -2214,7 +2218,7 @@ const styles = StyleSheet.create({
   ledgerSetCountValue: { ...type.label, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, borderRightColor: movePalette.line, borderRightWidth: hairlineWidth, color: movePalette.ink, fontSize: 14, textAlign: 'center', width: 34 },
   ledgerSheet: { borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, minWidth: 662 },
   ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#1C1C1E', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
-  ledgerHeader: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.55)', fontSize: 12, letterSpacing: 1, textAlign: 'center' },
+  ledgerHeader: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.55)', fontSize: 13, letterSpacing: 0, textAlign: 'center' },
   ledgerSetRow: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', minHeight: 54, paddingHorizontal: 10 },
   ledgerSetRowComplete: { backgroundColor: 'rgba(30, 144, 255, 0.055)' },
   ledgerSetColumn: { width: 104 },
@@ -2285,7 +2289,7 @@ const styles = StyleSheet.create({
   libraryFilters: { gap: 8, paddingRight: 22 },
   libraryList: { gap: 24, marginTop: 2 },
   libraryGroup: { gap: 0 },
-  libraryGroupTitle: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 1.55, marginBottom: 8, textTransform: 'uppercase' },
+  libraryGroupTitle: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 0, marginBottom: 8 },
   libraryItem: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 62, paddingHorizontal: 2, paddingVertical: 12 },
   libraryItemFirst: { borderTopWidth: 0 },
   libraryItemCopy: { flex: 1 },
