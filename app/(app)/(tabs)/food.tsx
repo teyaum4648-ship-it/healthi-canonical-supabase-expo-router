@@ -104,7 +104,8 @@ import {
   cacheLocalDemoUserFoodProduct,
   getLocalDemoNutritionState,
   saveLocalDemoFoodPatternProfile,
-  saveLocalDemoMealLogs,
+  applyLocalDemoMealResponse,
+  replaceLocalDemoMealLog,
   replaceLocalDemoMealItems,
   updateLocalDemoUserFoodProduct
 } from '../../../src/features/nutrition/localDemoNutritionStore';
@@ -372,21 +373,18 @@ function profileRowToProfile(row: NonNullable<Awaited<ReturnType<typeof getActiv
   };
 }
 
+function mealResponsePatch(response: PostMealResponseLogInput): MealLog['user_response'] {
+  return {
+    digestion: response.digestion,
+    energy: response.energy,
+    appetite: response.appetite,
+    cravings: response.cravings,
+    notes: response.notes
+  };
+}
+
 function applyResponseToMealLogs(meals: MealLog[], response: PostMealResponseLogInput): MealLog[] {
-  return meals.map((meal) =>
-    meal.id === response.meal_log_id
-      ? {
-          ...meal,
-          user_response: {
-            digestion: response.digestion,
-            energy: response.energy,
-            appetite: response.appetite,
-            cravings: response.cravings,
-            notes: response.notes
-          }
-        }
-      : meal
-  );
+  return meals.map((meal) => (meal.id === response.meal_log_id ? { ...meal, user_response: mealResponsePatch(response) } : meal));
 }
 
 function createLocalDemoResponseRow(response: PostMealResponseLogInput, userId = 'demo-user'): PostMealResponseLogRow {
@@ -1490,9 +1488,7 @@ export default function FoodScreen() {
       if (canUseRemote && userId) {
         updated = mealRowToMealLog(await persistMealEdit(supabase as unknown as MealEditClient, userId, updated));
       } else {
-        const current = await getLocalDemoNutritionState();
-        if (!current.mealLogs.some((meal) => meal.id === updated.id)) throw new Error('This meal is no longer available. Refresh the diary.');
-        await saveLocalDemoMealLogs(current.mealLogs.map((meal) => meal.id === updated.id ? updated : meal));
+        await replaceLocalDemoMealLog(updated);
       }
       setMeals((current) => current.map((meal) => meal.id === updated.id ? updated : meal));
       setMealEditDraft(null);
@@ -1505,24 +1501,24 @@ export default function FoodScreen() {
   async function handleSaveResponse() {
     setIsSaving(true);
     const response = responseLogFormToInput(responseForm);
-    const nextMeals = applyResponseToMealLogs(meals, response);
 
     try {
       if (canUseRemote && userId) {
         const saved = await savePostMealResponseLog(supabase as unknown as FoodPersonalizationSupabaseClient, userId, response);
         setResponses((current) => [saved, ...current]);
+        setMeals((current) => applyResponseToMealLogs(current, response));
         setStatus('Response logged. Healthi has one more food response signal.');
       } else {
         const localResponse = createLocalDemoResponseRow(response);
-        await Promise.all([
-          saveLocalDemoMealLogs(nextMeals),
-          appendLocalDemoPostMealResponse(localResponse)
-        ]);
+        // The stored diary is the thing being changed, so it is what gets read, patched and
+        // written back. Screen state is then refreshed from that result rather than trusted.
+        const stored = await applyLocalDemoMealResponse(response.meal_log_id ?? null, mealResponsePatch(response));
+        await appendLocalDemoPostMealResponse(localResponse);
+        setMeals(stored);
         setResponses((current) => [localResponse, ...current]);
         setStatus('Response logged locally. Insights will sharpen as you add more.');
       }
 
-      setMeals(nextMeals);
       setResponseForm(createEmptyResponseLogForm());
       setActiveSegment('Diary');
     } catch {

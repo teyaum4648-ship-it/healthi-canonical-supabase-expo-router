@@ -231,6 +231,41 @@ export async function saveLocalDemoMealLogs(mealLogs: MealLog[]): Promise<void> 
   await AsyncStorage.setItem(demoNutritionMealLogsKey, serializeDemoMealLogs(mealLogs));
 }
 
+/**
+ * Attach a post-meal response to one stored meal.
+ *
+ * The response screen used to build the whole collection from React state and write that
+ * over storage. When the demo load had failed, that state was an empty array and saving a
+ * response erased every meal the person had ever logged — a failed read turning into a
+ * destructive write. Reading the stored collection first means a write can only ever change
+ * the one meal it names.
+ */
+/**
+ * Replace one stored meal with an edited version.
+ *
+ * Read-then-write for the same reason as the response path: a screen's copy of the diary is
+ * never the authority on what is stored, so a write starts from storage and changes one row.
+ */
+export async function replaceLocalDemoMealLog(meal: MealLog): Promise<MealLog[]> {
+  const current = await getLocalDemoNutritionState();
+  if (!current.mealLogs.some((row) => row.id === meal.id)) throw new Error('This meal is no longer available. Refresh the diary.');
+  const next = current.mealLogs.map((row) => (row.id === meal.id ? meal : row));
+  await saveLocalDemoMealLogs(next);
+  return next;
+}
+
+export async function applyLocalDemoMealResponse(
+  mealLogId: string | null,
+  userResponse: MealLog['user_response']
+): Promise<MealLog[]> {
+  const current = await getLocalDemoNutritionState();
+  /* A response can be logged without naming a meal. There is then nothing to attach it to. */
+  if (!mealLogId) return current.mealLogs;
+  const next = current.mealLogs.map((meal) => (meal.id === mealLogId ? { ...meal, user_response: userResponse } : meal));
+  await saveLocalDemoMealLogs(next);
+  return next;
+}
+
 export async function appendLocalDemoMealLog(mealLog: MealLog): Promise<MealLog[]> {
   const current = await getLocalDemoNutritionState();
   const nextMealLog = toLocalDemoMealLog(mealLog);
