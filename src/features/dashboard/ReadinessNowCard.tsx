@@ -12,7 +12,7 @@ import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
 import { SleepTimePicker } from '../sleepRhythm/SleepTimePicker';
-import { LoggingPrompts } from './LoggingPrompts';
+import { LoggingPrompts } from './LoggingPromptsPanel';
 import { loggingPrompts, type LoggingPromptId } from './loggingPrompts';
 import {
   domainNames, evaluateReadinessNow, localWakeTimestamp, READINESS_NOW_POLICY, shouldRemindAboutLunch,

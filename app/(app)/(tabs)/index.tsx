@@ -20,7 +20,7 @@ import { composeDashboardNutritionSummary } from '../../../src/features/dashboar
 import { recordFoundationScore } from '../../../src/features/foundations/recordFoundationScore';
 import type { FoundationScoreClient } from '../../../src/features/foundations/foundationScorePersistence';
 import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCard';
-import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPrompts';
+import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPromptsPanel';
 import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
 import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
 import { WeeklyRecapRow, WeeklyRecapSheet } from '../../../src/features/dashboard/WeeklyRecap';
