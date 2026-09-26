@@ -32,7 +32,7 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { loadProfileScreenModel } from '../../../src/features/profile/profileComposer';
 import type { ProfileScreenModel } from '../../../src/features/profile/profileTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, fonts, spacing, type, cardSurface } from '../../../src/styles/mobileTheme';
 
 function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
   return value === 'ready' ? 'Ready' : value === 'partial' ? 'Early pattern' : 'Calibrating';
@@ -418,7 +418,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  trendsLink: { ...glassSurface, borderRadius: 20, paddingHorizontal: 16 },
+  trendsLink: { ...cardSurface, borderRadius: 16, paddingHorizontal: 16 },
   groupLabel: { ...type.eyebrow, color: colors.textMuted, marginBottom: -8, paddingHorizontal: 4 },
   content: { paddingBottom: 28 },
   loadingCard: { alignItems: 'center', justifyContent: 'center', minHeight: 150 },
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 14,
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceInset

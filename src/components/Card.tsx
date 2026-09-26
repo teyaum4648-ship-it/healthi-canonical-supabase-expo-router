@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
-import { glass, glassSurface, radii, spacing } from '../styles/mobileTheme';
+import { surfaces, cardSurface, radii, spacing } from '../styles/mobileTheme';
 
 export function Card({ style, ...props }: ViewProps) {
   return <View style={[styles.card, style]} {...props} />;
@@ -8,8 +8,8 @@ export function Card({ style, ...props }: ViewProps) {
 
 const styles = StyleSheet.create({
   card: {
-    ...glassSurface,
-    borderColor: glass.edge,
+    ...cardSurface,
+    borderColor: surfaces.edge,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     gap: spacing.sm,

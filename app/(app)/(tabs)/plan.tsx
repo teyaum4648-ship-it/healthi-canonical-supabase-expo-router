@@ -69,7 +69,7 @@ import {
   workoutSessionRowToEngineSession
 } from '../../../src/features/movement/movementPersistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, hairlineWidth, palette, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, fonts, hairlineWidth, palette, spacing, type, cardSurface } from '../../../src/styles/mobileTheme';
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -102,18 +102,18 @@ function formatHourLabel(ms: number): string {
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: 'rgba(168, 143, 255, 0.14)',
-  exercise: 'rgba(255, 194, 91, 0.14)',
-  light_movement: 'rgba(70, 198, 255, 0.14)',
-  wind_down: 'rgba(255, 107, 107, 0.12)',
-  meal: 'rgba(255, 255, 255, 0.10)',
-  sleep: 'rgba(168, 143, 255, 0.12)',
-  neutral: 'rgba(255, 255, 255, 0.07)'
+  deep_work: 'rgba(137, 68, 171, 0.112)',
+  exercise: 'rgba(160, 90, 0, 0.112)',
+  light_movement: 'rgba(0, 113, 164, 0.112)',
+  wind_down: 'rgba(179, 26, 18, 0.096)',
+  meal: 'rgba(0, 0, 0, 0.06)',
+  sleep: 'rgba(137, 68, 171, 0.096)',
+  neutral: 'rgba(0, 0, 0, 0.042)'
 };
 
 const SECTION_ACCENT: Record<CalendarSection, string> = {
   deep_work: palette.forest,
-  exercise: '#FFC25B',
+  exercise: '#A05A00',
   light_movement: palette.forestMid,
   wind_down: palette.clayDark,
   meal: palette.faint,
@@ -990,9 +990,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   card: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: colors.hairline,
-    borderRadius: 24,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 12,
     padding: 18
@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
     fontSize: 11
   },
   timelineBlock: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: colors.hairline,
     borderLeftWidth: 3,
     borderRadius: 10,
@@ -1303,7 +1303,7 @@ const styles = StyleSheet.create({
   toggle: {
     alignItems: 'center',
     borderColor: colors.hairline,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 10,

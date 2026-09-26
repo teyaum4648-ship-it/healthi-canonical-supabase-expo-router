@@ -4,12 +4,12 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mainTabs } from '../../../src/features/navigation/navigationModel';
 
-import { ambientGlow, colors, fonts, glassChrome } from '../../../src/styles/mobileTheme';
+import { colors, fonts, chromeSurface } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
-const hairlineWidthOrOne = Platform.OS === 'web' ? 1 : glassChrome.borderWidth;
+const hairlineWidthOrOne = Platform.OS === 'web' ? 1 : chromeSurface.borderWidth;
 
 const systemFont = Platform.select({
   ios: 'System',
@@ -49,10 +49,10 @@ export default function AppTabsLayout() {
            * has to make room for it; the margin around it is the page's own black.
            */
           tabBarStyle: {
-            ...glassChrome,
+            ...chromeSurface,
             position: 'relative',
             borderTopWidth: hairlineWidthOrOne,
-            borderTopColor: glassChrome.borderColor,
+            borderTopColor: chromeSurface.borderColor,
             borderRadius: 32,
             height: 64,
             marginHorizontal: 16,
@@ -71,7 +71,6 @@ export default function AppTabsLayout() {
         const accent = tab.route in tabAccent ? tabAccent[tab.route as keyof typeof tabAccent] : colors.accent;
         return <Tabs.Screen key={tab.route} name={tab.route} options={{
           title: tab.label,
-          sceneStyle: ambientGlow(accent),
           // Each pillar's tab lights up in its own colour, the way the Health app colours its categories.
           tabBarActiveTintColor: accent,
           // Keep the actual navigation state intact so Home remains tappable from Plan.
@@ -82,8 +81,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="plan"
         options={{
-          href: null,
-          sceneStyle: ambientGlow(colors.accent)
+          href: null
         }}
       />
       {/* Reached from the Home header rather than the bar; see mainTabs. */}
@@ -96,8 +94,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          href: null,
-          sceneStyle: ambientGlow(colors.accent)
+          href: null
         }}
       />
     </Tabs>

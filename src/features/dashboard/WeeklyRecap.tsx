@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, type, cardSurface } from '../../styles/mobileTheme';
 import { pillarColors } from '../../styles/pillarColors';
 import type { WeeklyRecap } from './weekCards';
 
@@ -48,7 +48,7 @@ export function WeeklyRecapSheet({ recap, onClose, onTrends }: { recap: WeeklyRe
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', ...glassSurface, borderRadius: 20, paddingLeft: 16, paddingRight: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', ...cardSurface, borderRadius: 16, paddingLeft: 16, paddingRight: 6 },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 12 },
   rowIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentWash },
   rowCopy: { flex: 1, gap: 2 },

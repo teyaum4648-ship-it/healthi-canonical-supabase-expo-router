@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../../src/components/Screen';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
-import { colors, fonts, glassSurface } from '../../src/styles/mobileTheme';
+import { colors, fonts, cardSurface } from '../../src/styles/mobileTheme';
 
 type ReviewQueue = {
   records: Array<{ id: string; record_type: string }>;
@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 0 },
   title: { color: colors.text, fontFamily: fonts.display, fontSize: 32, lineHeight: 38 },
   body: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
-  card: { ...glassSurface, borderColor: colors.hairline, borderRadius: 20, borderWidth: 1, gap: 8, padding: 18 },
+  card: { ...cardSurface, borderColor: colors.hairline, borderRadius: 16, borderWidth: 1, gap: 8, padding: 18 },
   note: { color: colors.textFaint, fontFamily: fonts.body, fontSize: 13, lineHeight: 19, marginTop: 8 }
 });

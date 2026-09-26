@@ -13,7 +13,7 @@ export function ProductThumbnail({ url, name, size = 52, onPress }: { url?: stri
   </Pressable>;
 }
 const styles = StyleSheet.create({
-  frame: { flexShrink: 0, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 4 },
+  frame: { flexShrink: 0, borderRadius: 14, overflow: 'hidden', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 4 },
   image: { width: '100%', height: '100%' },
   fallback: { ...type.caption, fontSize: 12, lineHeight: 15, color: '#59616B', textAlign: 'center' }
 });

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, cardSurface } from '../../styles/mobileTheme';
 import type { ProductLetterGrade } from '../../engines/nutrition/productScoring';
 import type { CompositionSlice, ProductExplanation } from '../../engines/nutrition/productScoring/explain';
 import { isCostRole } from '../../engines/nutrition/productScoring/explain';
@@ -27,19 +27,19 @@ import { isCostRole } from '../../engines/nutrition/productScoring/explain';
  */
 
 const GRADE_COLOR: Record<ProductLetterGrade, string> = {
-  A: '#30D158',
-  B: '#9BE36D',
-  C: '#FFD60A',
-  D: '#FF9F0A',
-  F: '#FF6961'
+  A: '#248A3D',
+  B: '#4E9A1E',
+  C: '#9A7400',
+  D: '#C25400',
+  F: '#D70015'
 };
 
 /** The bar reads left to right from what the product mostly is to what it least is. */
 function sliceColor(slice: CompositionSlice): string {
   if (slice.role === 'unknown') return colors.surfaceMuted;
   if (slice.role === 'neutral') return '#3A3A3C';
-  if (isCostRole(slice.role)) return slice.role === 'refined_starch' ? '#FFD60A' : '#FF9F0A';
-  return '#30D158';
+  if (isCostRole(slice.role)) return slice.role === 'refined_starch' ? '#9A7400' : '#C25400';
+  return '#248A3D';
 }
 
 export function ProductVerdict({ explanation, name, brand, score, grade, certaintyNote, sourceNote }: {
@@ -106,7 +106,7 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
               <View
                 style={[
                   styles.findingRail,
-                  { backgroundColor: finding.tone === 'strength' ? '#30D158' : accent }
+                  { backgroundColor: finding.tone === 'strength' ? '#248A3D' : accent }
                 ]}
               />
               <View style={styles.findingCopy}>
@@ -144,9 +144,9 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
 const styles = StyleSheet.create({
   page: { gap: 14 },
   panel: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 12,
     padding: 18
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   verdictRow: { alignItems: 'center', flexDirection: 'row', gap: 16 },
   gradeBadge: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: hairlineWidth,
     justifyContent: 'center',
     minWidth: 76,

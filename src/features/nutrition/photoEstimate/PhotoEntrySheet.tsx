@@ -37,6 +37,6 @@ export function PhotoEntrySheet({ available, busy, notice, onCapture, onClose, o
 const styles = StyleSheet.create({
   detail: { ...type.body, color: colors.textMuted },
   title: { ...type.body, color: colors.text, fontWeight: '600' },
-  action: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 18, backgroundColor: colors.surfaceInset },
+  action: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceInset },
   dim: { opacity: 0.5 }
 });

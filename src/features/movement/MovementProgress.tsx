@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, cardSurface } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   buildExerciseProgress,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
 
   coverageList: { gap: 10 },
   coverageRow: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   coverageMeta: { ...type.caption, color: colors.textFaint },
 
   empty: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,

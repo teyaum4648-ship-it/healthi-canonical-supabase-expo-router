@@ -6,9 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, G, Line, LinearGradient as SvgLinearGradient, Polyline, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Line, Polyline } from 'react-native-svg';
 
 import { generateCircadianBriefing, type SleepNeedEstimate, type SleepSession } from '../../../src/engines/circadian';
 import { generateDayPlan } from '../../../src/engines/dayPlan';
@@ -20,6 +20,15 @@ import { composeDashboardNutritionSummary } from '../../../src/features/dashboar
 import { recordFoundationScore } from '../../../src/features/foundations/recordFoundationScore';
 import type { FoundationScoreClient } from '../../../src/features/foundations/foundationScorePersistence';
 import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCard';
+import { readinessHeadline, readinessZone, sleepGlance } from '../../../src/features/dashboard/dashboardZones';
+import { BiomarkerBreakdown } from '../../../src/features/dashboard/premium/BiomarkerBreakdown';
+import { BiomarkerEntrySheet } from '../../../src/features/dashboard/premium/BiomarkerEntrySheet';
+import { BiomarkerTimeline } from '../../../src/features/dashboard/premium/BiomarkerTimeline';
+import { MetricGrid } from '../../../src/features/dashboard/premium/MetricGrid';
+import { ReadinessHub } from '../../../src/features/dashboard/premium/ReadinessHub';
+import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
+import { BIOMARKER_KINDS, summarizeBiomarker, type BiomarkerKind, type BiomarkerReading } from '../../../src/engines/biomarkers';
+import { summarizeLoad } from '../../../src/engines/load';
 import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPrompts';
 import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
 import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
@@ -88,37 +97,35 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
+import { fonts, surfaces, cardSurface, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
-import { useReducedMotion } from '../../../src/components/mobile/useReducedMotion';
 import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 const recapDismissedKey = 'healthi:recap:dismissed:v1';
 const waterColor = dietAccents.water;
 const homePalette = {
-  background: '#000000',
-  surface: '#15171B',
-  surfaceRaised: '#1E2126',
-  surfaceSoft: '#272A30',
-  border: 'rgba(255, 255, 255, 0.075)',
-  borderStrong: 'rgba(255, 255, 255, 0.12)',
-  blue: '#00F6AA',
-  blueBright: '#8FFFD6',
-  blueSoft: '#5CF2C0',
-  cyan: '#5CF2C0',
-  violet: '#A88FFF',
-  amber: '#FFC25B',
-  text: '#F5F7FA',
-  textMuted: '#A9B0BA',
-  textFaint: '#8C939D',
-  track: '#2A2E35',
-  white: '#F5F7FA',
-  onAccent: '#0A0D13'
+  background: '#F5F5F7',
+  surface: '#FFFFFF',
+  surfaceRaised: '#F5F5F7',
+  surfaceSoft: '#F2F2F5',
+  border: 'rgba(0, 0, 0, 0.045)',
+  borderStrong: 'rgba(0, 0, 0, 0.072)',
+  blue: '#0066CC',
+  blueBright: '#0071E3',
+  blueSoft: '#0066CC',
+  cyan: '#247A31',
+  violet: '#8944AB',
+  amber: '#A05A00',
+  text: '#1D1D1F',
+  textMuted: '#6E6E73',
+  textFaint: '#6E6E73',
+  track: '#E8E8ED',
+  white: '#1D1D1F',
+  onAccent: '#FFFFFF'
 } as const;
 
 const homeFont = Platform.select({
@@ -132,10 +139,6 @@ const isUuid = (value: string | undefined): value is string =>
 
 function movementRangeStart(date: string): string {
   return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-function titleCase(value: string): string {
-  return value.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }
 
 function displayDate(value: string): string {
@@ -220,128 +223,6 @@ type DashboardBaselineClient = {
     };
   };
 };
-
-function ReadinessRing({ score, emptyLabel = 'Calibrating', size = 128 }: { score: number | null; emptyLabel?: string; size?: number }) {
-  const reducedMotion = useReducedMotion();
-  /* Everything below was drawn for 128; k scales it so a smaller ring keeps its proportions. */
-  const k = size / 128;
-  const c = size / 2;
-  const arcRadius = 48 * k;
-  const circumference = 2 * Math.PI * arcRadius;
-  const tickCount = 48;
-  const targetScore = score ?? 0;
-  const litTicks = Math.round((targetScore / 100) * tickCount);
-
-  const progress = useRef(new Animated.Value(0)).current;
-  const [displayScore, setDisplayScore] = useState(0);
-
-  useEffect(() => {
-    const listener = progress.addListener(({ value }) => {
-      setDisplayScore(Math.round(value));
-    });
-    Animated.timing(progress, {
-      toValue: targetScore,
-      duration: reducedMotion ? 0 : 280,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false
-    }).start();
-    return () => progress.removeListener(listener);
-  }, [progress, targetScore, reducedMotion]);
-
-  const dashOffset = progress.interpolate({
-    inputRange: [0, 100],
-    outputRange: [circumference, 0]
-  });
-  const headOpacity = progress.interpolate({
-    inputRange: [0, Math.max(targetScore - 4, 1), Math.max(targetScore, 2)],
-    outputRange: [0, 0, 1]
-  });
-
-  const headAngle = (targetScore / 100) * Math.PI * 2;
-  const headX = c + arcRadius * Math.cos(headAngle);
-  const headY = c + arcRadius * Math.sin(headAngle);
-
-  /* The hero size carries its own label inside the ring; the small one has no room for it. */
-  const hero = size >= 160;
-  const stroke = (hero ? 7 : 5) * k;
-
-  return (
-    <View accessible accessibilityRole="image" accessibilityLabel={score === null ? `Readiness: ${emptyLabel}` : `Estimated readiness: ${score} out of 100`} style={[styles.ringShell, { width: size, height: size }]}>
-      <Svg height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
-        <Defs>
-          {/* The arc brightens as it fills, the way a filled ring should read. */}
-          <SvgLinearGradient id="readinessArc" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={hues.mintPressed} />
-            <Stop offset="1" stopColor={hues.mint} />
-          </SvgLinearGradient>
-          <RadialGradient id="readinessGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={hues.mint} stopOpacity={score === null ? 0 : 0.14} />
-            <Stop offset="0.55" stopColor={hues.mint} stopOpacity={score === null ? 0 : 0.05} />
-            <Stop offset="1" stopColor={hues.mint} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        {hero ? <Circle cx={c} cy={c} fill="url(#readinessGlow)" r={c} /> : null}
-        <G transform={`rotate(-90 ${c} ${c})`}>
-          {Array.from({ length: tickCount }, (_, tick) => {
-            const angle = (tick / tickCount) * Math.PI * 2;
-            const isMajor = tick % 8 === 0;
-            const inner = (isMajor ? 55 : 57) * k;
-            const outer = 61 * k;
-            const lit = tick < litTicks;
-            return (
-              <Line
-                key={tick}
-                stroke={lit ? 'rgba(0, 246, 170, 0.5)' : 'rgba(235, 240, 255, 0.1)'}
-                strokeLinecap="round"
-                strokeWidth={1.1}
-                x1={c + inner * Math.cos(angle)}
-                x2={c + outer * Math.cos(angle)}
-                y1={c + inner * Math.sin(angle)}
-                y2={c + outer * Math.sin(angle)}
-              />
-            );
-          })}
-          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke="rgba(235, 240, 255, 0.07)" strokeWidth={stroke} />
-          <AnimatedCircle
-            cx={c}
-            cy={c}
-            fill="none"
-            r={arcRadius}
-            stroke="url(#readinessArc)"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="round"
-            strokeWidth={stroke}
-          />
-          {score !== null ? (
-            <>
-              <AnimatedCircle cx={headX} cy={headY} fill={hues.mint} opacity={headOpacity} r={stroke * 1.4} fillOpacity={0.22} />
-              <AnimatedCircle cx={headX} cy={headY} fill="#FFFFFF" opacity={headOpacity} r={stroke * 0.32} />
-            </>
-          ) : null}
-        </G>
-      </Svg>
-      <View style={styles.ringCenter}>
-        {hero ? <Text style={styles.ringEyebrow}>Readiness</Text> : null}
-        <Text style={[styles.score, hero ? styles.scoreHero : { fontSize: Math.round(44 * k), lineHeight: Math.round(50 * k) }, { fontSize: Math.round((hero ? 40 : 44) * k * (score === null ? 0.55 : 1)), lineHeight: Math.round((hero ? 42 : 50) * k) }, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
-        <Text style={styles.scoreLabel}>{score === null ? emptyLabel : 'of 100'}</Text>
-      </View>
-    </View>
-  );
-}
-
-function Panel({ children, style }: { children: React.ReactNode; style?: object }) {
-  return <View style={[styles.panel, style]}>{children}</View>;
-}
-
-function PanelHeader({ title, action }: { title: string; action?: string }) {
-  return (
-    <View style={styles.panelHeader}>
-      <Text style={styles.panelTitle}>{title}</Text>
-      {action ? <Text style={styles.panelAction}>{action}</Text> : null}
-    </View>
-  );
-}
 
 type QuickLogAction = {
   label: string;
@@ -459,6 +340,8 @@ export default function DashboardScreen() {
   const [scheduleBlocks, setScheduleBlocks] = useState<DayScheduleBlockRow[]>([]);
   const [scheduleSource, setScheduleSource] = useState<'remote' | 'demo' | 'calibrating'>('calibrating');
   const [baselineSetup, setBaselineSetup] = useState<OnboardingV2BaselineSetup | null>(null);
+  const [biomarkerReadings, setBiomarkerReadings] = useState<BiomarkerReading[]>([]);
+  const [biomarkerSheet, setBiomarkerSheet] = useState<{ kind: BiomarkerKind; date: string } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -804,6 +687,28 @@ export default function DashboardScreen() {
     [baselineSetup, circadianBriefing, morningBriefing, movementSignal, nutritionSummary, preliminaryDayPlan, today]
   );
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      localBiomarkerStore.read(protocolScopeValue)
+        .then((rows) => { if (active) setBiomarkerReadings(rows); })
+        .catch(() => { if (active) setBiomarkerReadings([]); });
+      return () => { active = false; };
+    }, [protocolScopeValue])
+  );
+  const biomarkerSummaries = useMemo(
+    () => BIOMARKER_KINDS.map((kind) => summarizeBiomarker(biomarkerReadings, kind, today)),
+    [biomarkerReadings, today]
+  );
+  const restingHeartRate = biomarkerSummaries.find((summary) => summary.kind === 'resting_heart_rate')!;
+  const sleepAtGlance = useMemo(
+    () => sleepGlance({ sessions: sleepSessions, today, needMinutes: sleepNeed.minutes }),
+    [sleepNeed.minutes, sleepSessions, today]
+  );
+  const loadToday = useMemo(() => summarizeLoad(movementSessions, today), [movementSessions, today]);
+  async function saveBiomarker(kind: BiomarkerKind, value: number, date: string) {
+    setBiomarkerReadings(await saveManualReading(protocolScopeValue, { kind, value, date }));
+  }
   /* Keep today's estimate so Trends can average it; a calibrating day is left out, not recorded as 70. */
   const readinessToday = morningBriefing.readiness;
   useEffect(() => {
@@ -845,7 +750,6 @@ export default function DashboardScreen() {
   const primaryAction = protocol.actions.find((action) => action.status === 'pending') ?? protocol.actions[0];
   const mealTimes = useMemo(() => nutritionMeals.map((meal) => meal.logged_at), [nutritionMeals]);
   const sleepTrend = recentSleepTrend(sleepSessions);
-  const nextScheduleBlock = scheduleBlocks.find((block) => new Date(block.end_at).getTime() >= Date.now()) ?? null;
   const foundationSourceCount = [rhythmSource, nutritionSource, movementSource, scheduleSource]
     .filter((source) => source !== 'calibrating').length;
   const visibleReadinessScore = dashboardHero.source_label === 'calibrating' ? null : dashboardHero.score;
@@ -927,6 +831,9 @@ export default function DashboardScreen() {
     setRecapDismissedWeek(recapKey);
     void AsyncStorage.setItem(recapDismissedKey, recapKey).catch(() => undefined);
   }
+  const accountZone = readinessZone(visibleReadinessScore, shouldSurfaceSafety(protocol.safety.status));
+  const accountHeadline = readinessHeadline(accountZone, dashboardHero.summary);
+  const biomarkerBreakdown = <BiomarkerBreakdown summaries={biomarkerSummaries} onEdit={(kind) => setBiomarkerSheet({ kind, date: today })} />;
   function weekCardAction(card: WeekCard) {
     if (card.back.quickEntry) router.navigate(quickEntryHref(card.back.quickEntry));
     else router.navigate(card.back.route);
@@ -961,20 +868,39 @@ export default function DashboardScreen() {
         </View>
         <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
 
-        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" size={216} />} /> : <View style={styles.heroCard}>
-          <View style={styles.heroGlow}>
-            <View style={styles.heroTopRow}>
-              <View style={styles.heroCopy}>
-                <Text style={styles.liveText}>Today's direction</Text>
-                <Text style={styles.dayMode}>{dayModeLabel(protocol.day_mode)}</Text>
-                <Text style={styles.heroLabel}>{dashboardHero.label}</Text>
-              </View>
-              <ReadinessRing score={visibleReadinessScore} />
-            </View>
-            <Text style={styles.homeSummary}>{dashboardHero.summary}</Text>
-            <Text style={styles.homeMeta}>{sourceLabel} · {dashboardHero.confidence} confidence</Text>
+        {/*
+          Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
+          The demo's card owns its check-in and "Why this estimate?" sheets; an account
+          reads the morning briefing and checks in through the evening closeout.
+        */}
+        {mode === 'demo' ? (
+          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
+        ) : (
+          <ReadinessHub
+            score={visibleReadinessScore}
+            zone={accountZone}
+            word={accountHeadline.word}
+            insight={accountHeadline.insight}
+            meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
+            primaryLabel="Check in"
+            onPrimary={openCheckin}
+            details={biomarkerBreakdown}
+          />
+        )}
+        {shouldSurfaceSafety(protocol.safety.status) ? (
+          <View style={styles.safetyRow}>
+            <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={18} />
+            <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
           </View>
-        </View>}
+        ) : null}
+
+        {/* Component B: last night and today's load, side by side. */}
+        <MetricGrid sleep={sleepAtGlance} load={loadToday} onOpenSleep={() => router.navigate('/rhythm')} onOpenLoad={() => router.navigate('/movement')} />
+
+        {/* Component C: the week's resting heart rate, a line and a day-by-day log. */}
+        <BiomarkerTimeline summary={restingHeartRate} today={today} color={homePalette.blueBright} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
+
+        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
 
         <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.homeNextAction, pressed && styles.pressed]}>
           <View style={styles.primaryActionCopy}>
@@ -984,25 +910,6 @@ export default function DashboardScreen() {
           </View>
           <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={20} />
         </Pressable>
-        {shouldSurfaceSafety(protocol.safety.status) ? (
-          <View style={styles.safetyRow}>
-            <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={18} />
-            <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
-          </View>
-        ) : null}
-
-        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
-
-        <Panel>
-          <PanelHeader title="Your day" />
-          <ActionRow
-            title={nextScheduleBlock?.title ?? (nextScheduleBlock ? titleCase(nextScheduleBlock.block_type) : 'Your calendar is open')}
-            detail={nextScheduleBlock ? `${formatClockTime(nextScheduleBlock.start_at)} – ${formatClockTime(nextScheduleBlock.end_at)} · View your plan` : 'Tap a time in your plan to add a block.'}
-            icon="calendar-outline"
-            onPress={() => router.navigate('/plan')}
-            last
-          />
-        </Panel>
 
         {/* In the demo the readiness card has its own "Why this estimate?"; one is enough. */}
         {mode !== 'demo' ? (
@@ -1035,6 +942,15 @@ export default function DashboardScreen() {
           ))}
         </View>
       </ScrollView>
+      {biomarkerSheet ? (
+        <BiomarkerEntrySheet
+          initialKind={biomarkerSheet.kind}
+          date={biomarkerSheet.date}
+          readings={biomarkerReadings}
+          onSave={(kind, value) => saveBiomarker(kind, value, biomarkerSheet.date)}
+          onClose={() => setBiomarkerSheet(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -1049,20 +965,20 @@ const styles = StyleSheet.create({
   weekRow: { flexDirection: 'row', gap: 10 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   profileButton: {
-    ...glassSurface,
+    ...cardSurface,
     alignItems: 'center',
-    borderColor: glass.edge,
+    borderColor: surfaces.edge,
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     height: 44,
     justifyContent: 'center',
     width: 44
   },
-  calendarButton: { ...glassSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
+  calendarButton: { ...cardSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: surfaces.edge },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
   homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
-  homeNextAction: { ...tintedGlass(hues.mint), flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 24 },
+  homeNextAction: { ...cardSurface, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 16 },
   homeEyebrow: { fontFamily: homeFont, fontSize: 14, fontWeight: '500', color: homePalette.blueSoft, marginBottom: 6 },
   homeDetail: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 4 },
   safe: {
@@ -1103,7 +1019,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     backgroundColor: homePalette.blue,
-    borderColor: 'rgba(255,255,255,0.24)',
+    borderColor: 'rgba(0, 0, 0, 0.12)',
     borderRadius: 20,
     borderWidth: 1,
     height: 40,
@@ -1125,9 +1041,9 @@ const styles = StyleSheet.create({
   quickUndo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 6 },
   quickUndoText: { fontFamily: homeFont, fontSize: 15, fontWeight: '600', color: homePalette.blueSoft },
   quickLogSection: {
-    ...glassSurface,
-    borderColor: glass.edge,
-    borderRadius: 22,
+    ...cardSurface,
+    borderColor: surfaces.edge,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 13,
     paddingBottom: 13,
@@ -1190,9 +1106,9 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   heroCard: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: homePalette.borderStrong,
-    borderRadius: 26,
+    borderRadius: 16,
     borderWidth: 1,
     elevation: 2,
     overflow: 'hidden',
@@ -1219,7 +1135,7 @@ const styles = StyleSheet.create({
   livePill: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0, 246, 170, 0.12)',
+    backgroundColor: 'rgba(36, 122, 49, 0.096)',
     borderRadius: 999,
     flexDirection: 'row',
     gap: 7,
@@ -1336,9 +1252,9 @@ const styles = StyleSheet.create({
     width: 36
   },
   panel: {
-    ...glassSurface,
-    borderColor: glass.edge,
-    borderRadius: 22,
+    ...cardSurface,
+    borderColor: surfaces.edge,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     elevation: 1,
     padding: 17
@@ -1368,7 +1284,7 @@ const styles = StyleSheet.create({
   },
   foundationRow: {
     alignItems: 'center',
-    borderRadius: 13,
+    borderRadius: 14,
     flexDirection: 'row',
     gap: 11,
     marginHorizontal: -5,
@@ -1430,9 +1346,9 @@ const styles = StyleSheet.create({
     fontFamily: homeFont
   },
   primaryAction: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: homePalette.border,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     elevation: 1,
     overflow: 'hidden'
@@ -1445,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   primaryActionIcon: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 246, 170, 0.13)',
+    backgroundColor: 'rgba(36, 122, 49, 0.104)',
     borderRadius: 15,
     height: 42,
     justifyContent: 'center',
@@ -1565,9 +1481,9 @@ const styles = StyleSheet.create({
     gap: 12
   },
   miniCard: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: homePalette.border,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     flex: 1,
     minHeight: 170,
@@ -1687,7 +1603,7 @@ const styles = StyleSheet.create({
   actionPreviewRow: {
     alignItems: 'center',
     backgroundColor: homePalette.surfaceRaised,
-    borderRadius: 12,
+    borderRadius: 14,
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 10,
@@ -1695,7 +1611,7 @@ const styles = StyleSheet.create({
   },
   actionIndex: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 246, 170, 0.13)',
+    backgroundColor: 'rgba(36, 122, 49, 0.104)',
     borderRadius: 10,
     height: 24,
     justifyContent: 'center',

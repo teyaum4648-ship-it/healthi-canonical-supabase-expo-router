@@ -1,15 +1,16 @@
 import { hues } from './tokens';
 
 /**
- * One colour per pillar, used wherever a pillar is named: mint, iris, glacier and amber,
- * a quarter of the wheel apart so no two can be mistaken for each other.
+ * One colour per pillar, used wherever a pillar is named: green, purple, teal and amber,
+ * far enough apart on the wheel that no two can be mistaken for each other, and dark
+ * enough to read as text on the canvas and to carry white text as a fill.
  *
  * Colour is never the only signal: every place that uses one also names the pillar.
  */
 export const pillarColors = {
-  recovery_rhythm: hues.mint,
-  nourishment: hues.iris,
-  movement_capacity: hues.glacier,
+  recovery_rhythm: hues.green,
+  nourishment: hues.purple,
+  movement_capacity: hues.teal,
   mind_life_load: hues.amber
 } as const;
 
@@ -21,7 +22,7 @@ export type PillarId = keyof typeof pillarColors;
  */
 export const onPillar = hues.onAccent;
 
-/** Each tab's accent, used for its tab-bar icon and its main button. Home uses the brand mint. */
+/** Each tab's accent, used for its tab-bar icon and its main button. Home uses system blue. */
 export const tabAccent = {
   food: pillarColors.nourishment,
   movement: pillarColors.movement_capacity,

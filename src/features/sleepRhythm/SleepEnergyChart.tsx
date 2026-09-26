@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { getRecommendedActivityAt, outlookLabel, THIN_COVERAGE, type CircadianBriefing } from '../../engines/circadian';
-import { fonts, glassSurface } from '../../styles/mobileTheme';
+import { fonts, cardSurface } from '../../styles/mobileTheme';
 import { SleepChartSurface } from './SleepChartSurface';
 import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
 import { formatSleepTime } from './sleepPresentation';
@@ -49,8 +49,8 @@ function energyDomain(
   return { min, max };
 }
 
-/** The shell is a fixed night gradient, so chrome on it uses a fixed light ink, as the phase labels do. */
-const BAND_INK = '#EEF1F6';
+/** The shell is flat white whatever the time of day, so chrome on it uses a fixed ink, as the phase labels do. */
+const BAND_INK = '#1D1D1F';
 
 /** The words for the vertical scale. A percentage is not a unit anyone has a feel for. */
 const BAND_MARKS: Array<{ at: number; label: string }> = [
@@ -133,7 +133,7 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
   return (
     <View>
       <View style={styles.shell}>
-        <LinearGradient colors={['#141A2E', '#1C1A1F', '#10201B', '#1D1722', '#0A0C16']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#FFFFFF', '#FFFFFF']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
         <SleepChartSurface height={height} ratio={ratio} onSelect={setRatio} onWidth={setWidth} valueLabel={scrub ? `${scrub.time}, ${scrub.label}, ${scrub.energy}% estimated energy` : 'Current time. Drag horizontally or use the arrow keys to inspect.'}>
           {chart ? <Svg height={height} width={width}>
             <Defs><SvgGradient id="sleep-energy-area" x1="0" x2="0" y1="0" y2="1"><Stop offset="0" stopColor={palette.accent} stopOpacity={0.34} /><Stop offset="1" stopColor={palette.accent} stopOpacity={0.02} /></SvgGradient></Defs>
@@ -193,7 +193,7 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
               {mark.label}
             </Text>
           )) : null}
-          {scrub ? <View pointerEvents="none" style={[styles.tooltip, { left: Math.max(8, Math.min(width - 168, scrub.x - 80)), ...glassSurface, borderColor: palette.border }]}>
+          {scrub ? <View pointerEvents="none" style={[styles.tooltip, { left: Math.max(8, Math.min(width - 168, scrub.x - 80)), ...cardSurface, borderColor: palette.border }]}>
             <Text selectable={false} style={[styles.time, { color: palette.text }]}>{scrub.time}</Text>
             <Text selectable={false} style={[styles.activity, { color: palette.accent }]}>{scrub.label}</Text>
             <Text selectable={false} style={[styles.detail, { color: palette.muted }]}>{scrub.energy}% estimated energy</Text>
@@ -221,9 +221,9 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
 const styles = StyleSheet.create({
   shell: { height: 244, marginTop: 15, overflow: 'hidden' },
   phases: { flexDirection: 'row', justifyContent: 'space-around', left: 10, position: 'absolute', right: 10, top: 14 },
-  phase: { color: 'rgba(235,240,255,0.55)', fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 0 },
+  phase: { color: '#6E6E73', fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 0 },
   bandMark: {
-    color: 'rgba(235,240,255,0.45)',
+    color: '#6E6E73',
     fontFamily: fonts.bodyMedium,
     fontSize: 9,
     left: 8,
@@ -231,8 +231,8 @@ const styles = StyleSheet.create({
     position: 'absolute'
   },
   axis: { bottom: 10, flexDirection: 'row', justifyContent: 'space-between', left: 22, position: 'absolute', right: 22 },
-  axisText: { color: 'rgba(235,240,255,0.6)', fontFamily: fonts.body, fontSize: 10 },
-  tooltip: { borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38 },
+  axisText: { color: '#6E6E73', fontFamily: fonts.body, fontSize: 10 },
+  tooltip: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38 },
   time: { fontFamily: fonts.bodyMedium, fontSize: 14 },
   activity: { fontFamily: fonts.bodyMedium, fontSize: 13, marginTop: 2 },
   detail: { fontFamily: fonts.body, fontSize: 12, marginTop: 3 },

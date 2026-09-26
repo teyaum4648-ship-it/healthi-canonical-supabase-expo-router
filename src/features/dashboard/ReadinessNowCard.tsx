@@ -6,13 +6,15 @@ import { ActivityIndicator, AppState, Pressable, StyleSheet, Switch, Text, View 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import type { DailyReadinessDomain, DailyReadinessResult } from '../../engines/readiness';
-import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
+import { accentFill, colors, surfaces, cardSurface, type } from '../../styles/mobileTheme';
 import { pillarColors } from '../../styles/pillarColors';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
 import { SleepTimePicker } from '../sleepRhythm/SleepTimePicker';
+import { readinessHeadline, readinessZone } from './dashboardZones';
 import { LoggingPrompts } from './LoggingPrompts';
+import { ReadinessHub } from './premium/ReadinessHub';
 import { loggingPrompts, type LoggingPromptId } from './loggingPrompts';
 import {
   domainNames, evaluateReadinessNow, localWakeTimestamp, READINESS_NOW_POLICY, shouldRemindAboutLunch,
@@ -25,7 +27,7 @@ const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
   surface: colors.surface, surfaceAlt: colors.surfaceInset, border: colors.borderStrong, hairline: colors.hairline,
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
-  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#FFC25B', chip: colors.surfaceMuted
+  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#A05A00', chip: colors.surfaceMuted
 };
 const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function clockLabel(value: string) {
@@ -127,9 +129,10 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
 }
 
 /** Device-local demo only. The account Home continues using its existing daily briefing. */
-export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0 }: {
+export function ReadinessNowCard({ base, mealTimes, safetyActive, details, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0 }: {
   base: DailyReadinessResult; mealTimes: string[]; safetyActive: boolean;
-  renderRing: (score: number | null) => ReactNode; checkinRequest?: number;
+  /** The biomarker breakdown, revealed under the ring with what moved the estimate. */
+  details?: ReactNode; checkinRequest?: number;
   /** Whether last night is missing, and the week's session count, for the logging rows. */
   sleepMissing: boolean; sessionsThisWeek: number | null;
   /** Bumped by Home when it logs something this card reads, such as a glass of water. */
@@ -188,22 +191,25 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
   }
   if (!data) return <View style={styles.card}><Text style={styles.heading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.muted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><Button secondary title="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={colors.accentMid} />}</View>;
   const remind = focused && shouldRemindAboutLunch(now, data.reminders, mealTimes, data.checkins);
+  const zone = readinessZone(result.publicScore, safetyActive);
+  const headline = readinessHeadline(zone, result.attention[0]?.text ?? result.summary);
   return <>
     {/*
       The estimate stands on the page rather than in a box: the ring, what it means, what
       each foundation contributed, one line of context and the two things to do next.
     */}
-    <View style={styles.hero}>
-      {renderRing(result.publicScore)}
-      <Text style={styles.heroTitle}>{result.title}</Text>
-      <PillarContributions rows={result.ledger} />
-      <Text style={[styles.muted, styles.centered]}>{result.attention[0]?.text ?? result.summary}</Text>
-      <Text style={[styles.meta, styles.centered]}>{timeLabel(now)} · {result.publicScore !== null ? `${result.confidence === 'low' ? 'Limited' : 'Moderate'} confidence` : 'No current number yet'} · {result.checkin ? `Checked in ${timeLabel(result.checkin.at)}${result.state === 'update_needed' ? ', update needed' : ''}` : 'No check-in yet'} · Demo</Text>
-      <View style={styles.buttonRow}>
-        <Button grow title={result.checkin ? 'Update' : 'Check in'} label={result.checkin ? 'Update check-in' : 'Check in'} onPress={() => setSheet('checkin')} />
-        <Button grow wide secondary title="Why this estimate?" onPress={() => setSheet('why')} />
-      </View>
-    </View>
+    <ReadinessHub
+      score={result.publicScore}
+      zone={zone}
+      word={headline.word}
+      insight={headline.insight}
+      note={headline.insight === (result.attention[0]?.text ?? result.summary) ? undefined : result.attention[0]?.text}
+      meta={`${timeLabel(now)} · ${result.publicScore !== null ? `${result.confidence === 'low' ? 'Limited' : 'Moderate'} confidence` : 'No current number yet'} · ${result.checkin ? `Checked in ${timeLabel(result.checkin.at)}${result.state === 'update_needed' ? ', update needed' : ''}` : 'No check-in yet'} · Demo`}
+      primaryLabel={result.checkin ? 'Update check-in' : 'Check in'}
+      onPrimary={() => setSheet('checkin')}
+      onWhy={() => setSheet('why')}
+      details={<View style={styles.details}><Text style={styles.detailsHeading}>What moved the estimate</Text><PillarContributions rows={result.ledger} />{details}</View>}
+    />
     {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); }} /> : null}
     {sheet === 'reminders' ? <ReminderSheet initial={data.reminders} onSave={saveReminders} onClose={() => setSheet(null)} /> : null}
@@ -226,11 +232,10 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
 }
 
 const styles = StyleSheet.create({
-  card: { ...glassSurface, padding: 20, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge, gap: 12 },
-  hero: { alignItems: 'center', gap: 12, paddingTop: 4, paddingBottom: 4 },
-  heroTitle: { ...type.heading, color: colors.text, textAlign: 'center', marginTop: 2 },
-  centered: { textAlign: 'center', paddingHorizontal: 8 },
-  pillars: { flexDirection: 'row', alignSelf: 'stretch', marginVertical: 2 },
+  card: { ...cardSurface, padding: 20, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: surfaces.edge, gap: 12 },
+  details: { alignSelf: 'stretch', gap: 12 },
+  detailsHeading: { ...type.caption, color: colors.textMuted, fontWeight: '600', textAlign: 'center' },
+  pillars: { flexDirection: 'row', alignSelf: 'stretch', marginBottom: 4 },
   pillar: { flex: 1, alignItems: 'center', gap: 4 },
   pillarValue: { ...type.number, fontSize: 20, lineHeight: 24, color: colors.text },
   pillarValueMissing: { color: colors.textFaint },
@@ -251,11 +256,11 @@ const styles = StyleSheet.create({
   button: { minHeight: 50, borderRadius: 16, ...accentFill(colors.primary), justifyContent: 'center', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
   buttonText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
   secondaryText: { color: colors.text },
-  secondary: { ...glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
+  secondary: { ...cardSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: surfaces.edge },
   group: { gap: 10, marginVertical: 6 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
+  choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  notice: { ...type.body, color: '#FFC25B' },
+  notice: { ...type.body, color: '#A05A00' },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

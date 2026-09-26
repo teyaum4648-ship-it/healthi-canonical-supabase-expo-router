@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, type, cardSurface } from '../../styles/mobileTheme';
 import { useReducedMotion } from './useReducedMotion';
 
 export function EntrySheet({ title, children, onClose, footer, busy = false }: PropsWithChildren<{
@@ -31,8 +31,8 @@ export function EntrySheet({ title, children, onClose, footer, busy = false }: P
   );
 }
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
-  sheet: { ...glassSurface, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '92%', width: '100%', maxWidth: 620, alignSelf: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.28)' },
+  sheet: { ...cardSurface, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '92%', width: '100%', maxWidth: 620, alignSelf: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong },
   header: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   title: { ...type.heading, flex: 1, color: colors.text },
   close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.surfaceInset },

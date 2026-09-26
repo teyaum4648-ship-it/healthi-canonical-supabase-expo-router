@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, cardSurface } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import type { ProductLetterGrade } from '../../engines/nutrition/productScoring';
 import { reviewCoverageLine, type FoodQualityReview, type GradedItem } from './foodQualityReview';
@@ -24,11 +24,11 @@ import { reviewCoverageLine, type FoodQualityReview, type GradedItem } from './f
  */
 
 const GRADE_COLOR: Record<ProductLetterGrade, string> = {
-  A: '#30D158',
-  B: '#9BE36D',
-  C: '#FFD60A',
-  D: '#FF9F0A',
-  F: '#FF6B6B'
+  A: '#248A3D',
+  B: '#4E9A1E',
+  C: '#9A7400',
+  D: '#C25400',
+  F: '#B31A12'
 };
 
 function GradeBadge({ grade, size = 'small' }: { grade: ProductLetterGrade; size?: 'small' | 'large' }) {
@@ -187,9 +187,9 @@ const styles = StyleSheet.create({
   // clear it rather than finishing underneath it.
   page: { gap: 14, paddingBottom: 76 },
   panel: {
-    ...glassSurface,
+    ...cardSurface,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 12,
     padding: 18

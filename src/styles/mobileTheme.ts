@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { colors, glass } from './tokens';
+import { motion, surfaces, zones, type ZoneTone } from './tokens';
 
 const systemFont =
   Platform.select({
@@ -9,7 +9,7 @@ const systemFont =
     web: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif'
   }) ?? 'sans-serif';
 
-export { palette, colors, spacing, radii, hues, glass } from './tokens';
+export { palette, colors, spacing, radii, hues, motion, surfaces, zones, type ZoneTone } from './tokens';
 
 export const fonts = {
   display: systemFont,
@@ -97,77 +97,50 @@ export const type = {
   }
 } as const satisfies Record<string, TextStyle>;
 
-const glassGradient = `linear-gradient(180deg, ${glass.gradient[0]} 0%, ${glass.gradient[1]} 100%)`;
+/**
+ * The web's half of the motion rule: hover, focus and state changes ease on the same
+ * curve. Native has no CSS transitions, so there the pressable components animate instead.
+ */
+export const webTransition: ViewStyle = Platform.OS === 'web'
+  ? ({ transition: motion.css } as ViewStyle)
+  : {};
 
 /**
- * The surface every card sits on: a gradient lit from above over a base a shade darker
- * than colors.surface, so it averages out to the same tone, with a one-pixel highlight on
- * the top edge. A drop shadow would be invisible on true black, so there is none.
- *
- * Native draws the gradient itself; the web takes the same string as backgroundImage.
+ * A floating card: pure white on the canvas, a hairline edge and the lightest lift.
+ * `borderCurve: 'continuous'` gives iOS its squircle corners; elsewhere it is ignored.
  */
-export const glassSurface: ViewStyle = {
-  backgroundColor: '#0F1114',
-  boxShadow: glass.highlight,
-  ...(Platform.OS === 'web'
-    ? ({ backgroundImage: glassGradient } as ViewStyle)
-    : { experimental_backgroundImage: glassGradient })
+export const cardSurface: ViewStyle = {
+  backgroundColor: surfaces.card,
+  borderCurve: 'continuous',
+  boxShadow: surfaces.shadow
 };
 
-/** A floating control's frosted chrome: the tab bar and anything that sits over content. */
-export const glassChrome: ViewStyle = {
-  backgroundColor: glass.chrome,
-  borderColor: glass.edge,
+/** The tab bar's frosted chrome: translucent white over the canvas, blurred on the web. */
+export const chromeSurface: ViewStyle = {
+  backgroundColor: surfaces.chrome,
+  borderColor: surfaces.edge,
   borderWidth: StyleSheet.hairlineWidth,
-  boxShadow: `${glass.highlight}, 0 18px 40px rgba(0, 0, 0, 0.55)`,
+  borderCurve: 'continuous',
+  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
   ...(Platform.OS === 'web'
-    ? ({ backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' } as ViewStyle)
+    ? ({ backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as ViewStyle)
     : null)
 };
 
-/**
- * A filled button's sheen: the fill colour lit from above, a highlight along the top edge
- * and a glow in its own colour beneath, which is the one place a shadow shows on black.
- */
-export function accentFill(fill: string, top = 'rgba(255, 255, 255, 0.22)'): ViewStyle {
-  const sheen = `linear-gradient(180deg, ${top} 0%, rgba(255, 255, 255, 0) 60%)`;
-  return {
-    backgroundColor: fill,
-    boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 22px ${withAlpha(fill, 0.26)}`,
-    ...(Platform.OS === 'web'
-      ? ({ backgroundImage: sheen } as ViewStyle)
-      : { experimental_backgroundImage: sheen })
-  };
+/** A filled button: flat colour, continuous corners, nothing painted on top. */
+export function accentFill(fill: string): ViewStyle {
+  return { backgroundColor: fill, borderCurve: 'continuous' };
 }
 
-/** #RRGGBB at an alpha, for glows and washes. */
+/** #RRGGBB at an alpha, for washes. */
 export function withAlpha(hex: string, alpha: number): string {
   const value = hex.replace('#', '');
   const [r, g, b] = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16));
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/**
- * A tab's ambient light: its accent glowing faintly from above the screen and gone by the
- * first third, over true black. It sits behind everything and carries no information.
- */
-export function ambientGlow(hex: string): ViewStyle {
-  const web = `radial-gradient(130% 46% at 50% -8%, ${withAlpha(hex, 0.16)} 0%, ${withAlpha(hex, 0.06)} 45%, rgba(0, 0, 0, 0) 80%)`;
-  const native = `linear-gradient(180deg, ${withAlpha(hex, 0.12)} 0%, ${withAlpha(hex, 0.045)} 20%, rgba(0, 0, 0, 0) 40%)`;
-  return {
-    backgroundColor: colors.background,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: web } as ViewStyle) : { experimental_backgroundImage: native })
-  };
+/** A zone's wash and ink, for chips and highlighted rows. */
+export function zoneStyle(tone: ZoneTone): { container: ViewStyle; text: TextStyle } {
+  return { container: { backgroundColor: zones[tone].background }, text: { color: zones[tone].text } };
 }
 
-/** Glass washed with one accent from its top-left corner: the day's single most important card. */
-export function tintedGlass(hex: string): ViewStyle {
-  const wash = `linear-gradient(160deg, ${withAlpha(hex, 0.13)} 0%, rgba(235, 240, 255, 0.045) 48%, rgba(235, 240, 255, 0.025) 100%)`;
-  return {
-    backgroundColor: '#0F1114',
-    borderColor: glass.edge,
-    borderWidth: StyleSheet.hairlineWidth,
-    boxShadow: glass.highlight,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: wash } as ViewStyle) : { experimental_backgroundImage: wash })
-  };
-}

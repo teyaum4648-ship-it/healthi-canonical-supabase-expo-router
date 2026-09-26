@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, type, cardSurface } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import type { NutritionTargets } from '../../engines/nutrition';
 import { estimateNutritionGoals, metricGoalInputs, patternSplitShift, type GoalAnswers, type GoalPatternInput, type GoalSetup } from './nutritionGoalEngine';
@@ -96,4 +96,4 @@ export function NutritionGoalSetup({ userId, demo, client, pattern, onTargets, o
     </EntrySheet> : null}
   </>;
 }
-const s = StyleSheet.create({ card: { ...glassSurface, paddingHorizontal: 16, borderRadius: 20 }, group: { gap: 10 }, label: { ...type.label, color: colors.text }, body: { ...type.body, color: colors.text }, muted: { ...type.caption, color: colors.textMuted }, heading: { ...type.heading, color: colors.text }, choice: { minHeight: 48, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.borderStrong }, selected: { borderColor: tabAccent.food, backgroundColor: colors.surfaceInset }, input: { ...type.body, color: colors.text, backgroundColor: colors.surfaceInset, borderRadius: 12, minHeight: 52, padding: 14 }, primary: { minHeight: 52, padding: 14, borderRadius: 14, backgroundColor: tabAccent.food, alignItems: 'center' }, primaryText: { ...type.label, color: colors.primaryText } });
+const s = StyleSheet.create({ card: { ...cardSurface, paddingHorizontal: 16, borderRadius: 16 }, group: { gap: 10 }, label: { ...type.label, color: colors.text }, body: { ...type.body, color: colors.text }, muted: { ...type.caption, color: colors.textMuted }, heading: { ...type.heading, color: colors.text }, choice: { minHeight: 48, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.borderStrong }, selected: { borderColor: tabAccent.food, backgroundColor: colors.surfaceInset }, input: { ...type.body, color: colors.text, backgroundColor: colors.surfaceInset, borderRadius: 14, minHeight: 52, padding: 14 }, primary: { minHeight: 52, padding: 14, borderRadius: 14, backgroundColor: tabAccent.food, alignItems: 'center' }, primaryText: { ...type.label, color: colors.primaryText } });
