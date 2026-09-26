@@ -2747,7 +2747,7 @@ const styles = StyleSheet.create({
     gap: 7
   },
   trackerProgressLabel: {
-    color: '#424245',
+    color: '#1D1D1F',
     fontFamily: sansMedium,
     fontSize: 13
   },
@@ -2769,7 +2769,7 @@ const styles = StyleSheet.create({
     padding: 14
   },
   trackerMicroHeading: {
-    color: '#424245',
+    color: '#1D1D1F',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.3
@@ -2912,7 +2912,7 @@ const styles = StyleSheet.create({
     paddingTop: 26
   },
   adaptiveSection: {
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    borderTopColor: 'rgba(0, 0, 0, 0.04)',
     borderTopWidth: hairlineWidth,
     paddingBottom: 24,
     paddingHorizontal: 22,
@@ -2962,7 +2962,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptivePriority: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.042)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     borderBottomWidth: hairlineWidth,
     marginBottom: 18,
     paddingBottom: 18
@@ -3044,7 +3044,7 @@ const styles = StyleSheet.create({
     marginTop: 17
   },
   adaptiveLane: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.042)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     borderBottomWidth: hairlineWidth
   },
   adaptiveLaneButton: {
@@ -3082,7 +3082,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   adaptiveLaneTrackLimited: {
-    borderColor: 'rgba(0, 0, 0, 0.12)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1
   },
   adaptiveLaneFill: {
@@ -3124,7 +3124,7 @@ const styles = StyleSheet.create({
   },
   adaptiveInsetCard: {
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 16,
     borderWidth: 1,
     marginTop: 18,
@@ -3140,7 +3140,7 @@ const styles = StyleSheet.create({
   adaptiveRecent: {
     alignItems: 'center',
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3195,7 +3195,7 @@ const styles = StyleSheet.create({
     width: 12
   },
   adaptiveTimelineCopy: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.042)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     borderBottomWidth: hairlineWidth,
     flex: 1,
     minHeight: 64,
@@ -3209,7 +3209,7 @@ const styles = StyleSheet.create({
   },
   adaptiveTimelineNote: {
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 8,
@@ -3217,14 +3217,14 @@ const styles = StyleSheet.create({
   },
   adaptiveEmpty: {
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 16,
     borderWidth: 1,
     padding: 20
   },
   adaptiveSearch: {
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.072)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: 1,
     color: '#1D1D1F',
@@ -3235,14 +3235,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveConfidenceSummary: {
-    borderTopColor: 'rgba(0, 0, 0, 0.048)',
+    borderTopColor: 'rgba(0, 0, 0, 0.04)',
     borderTopWidth: hairlineWidth,
     marginTop: 16,
     paddingTop: 15
   },
   adaptiveNutrientRow: {
     alignItems: 'center',
-    borderBottomColor: 'rgba(0, 0, 0, 0.042)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     borderBottomWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 12,
@@ -3320,7 +3320,7 @@ const styles = StyleSheet.create({
   adaptiveSecondaryButton: {
     alignItems: 'center',
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.09)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: 1,
     justifyContent: 'center',
@@ -3344,7 +3344,7 @@ const styles = StyleSheet.create({
   },
   adaptiveActionDock: {
     backgroundColor: '#F5F5F7',
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    borderTopColor: 'rgba(0, 0, 0, 0.04)',
     borderTopWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 10,
@@ -3355,7 +3355,7 @@ const styles = StyleSheet.create({
   adaptiveDockButton: {
     alignItems: 'center',
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.09)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -3367,7 +3367,7 @@ const styles = StyleSheet.create({
   adaptiveDockAdd: {
     alignItems: 'center',
     ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.09)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3471,7 +3471,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   card: {
-    backgroundColor: C.card,
+    ...cardSurface,
     borderColor: C.hairline,
     borderRadius: 16,
     borderWidth: 1,
@@ -3783,7 +3783,7 @@ const styles = StyleSheet.create({
   cameraCancel: {
     alignItems: 'center',
     backgroundColor: 'rgba(26,33,29,0.78)',
-    borderColor: 'rgba(0, 0, 0, 0.12)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 16,
     borderWidth: 1,
     bottom: 18,

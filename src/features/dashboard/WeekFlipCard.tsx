@@ -86,7 +86,7 @@ export function WeekFlipCard({ card, onAction }: { card: WeekCard; onAction: (ca
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, minWidth: 0, minHeight: 236, ...cardSurface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.045)', padding: 14, gap: 10 },
+  card: { flex: 1, minWidth: 0, minHeight: 236, ...cardSurface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.04)', padding: 14, gap: 10 },
   face: { flex: 1, gap: 4 },
   pressed: { opacity: 0.7 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 20, marginBottom: 4 },

@@ -47,3 +47,19 @@ export const WCAG = {
   /** 1.4.11 — icons, control borders, chart strokes. */
   AA_NON_TEXT: 3
 } as const;
+
+/**
+ * A translucent `rgba(r, g, b, a)` laid over an opaque hex, as the opaque hex it shows.
+ * This is how a translucent card gets a contrast ratio: against what it sits on.
+ */
+export function compositeOver(foreground: string, background: string): string {
+  const match = foreground.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/);
+  if (!match) throw new Error(`Not an rgba colour: ${foreground}`);
+  const alpha = Number(match[4]);
+  const base = background.replace('#', '');
+  const channels = [1, 2, 3].map((index, position) => {
+    const under = parseInt(base.slice(position * 2, position * 2 + 2), 16);
+    return Math.round(Number(match[index]) * alpha + under * (1 - alpha));
+  });
+  return `#${channels.map((value) => value.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}

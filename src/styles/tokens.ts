@@ -45,12 +45,12 @@ export type ZoneTone = keyof typeof zones;
 
 export const palette = {
   ink: '#1D1D1F',
-  inkSoft: '#424245',
+  inkSoft: '#1D1D1F',
   ivory: '#F5F5F7',
   paper: '#FFFFFF',
   muted: '#6E6E73',
   faint: '#6E6E73',
-  hairline: 'rgba(0, 0, 0, 0.05)',
+  hairline: 'rgba(0, 0, 0, 0.04)',
   hairlineSoft: 'rgba(0, 0, 0, 0.04)',
   sand: '#E8E8ED',
   forest: hues.blue,
@@ -77,7 +77,7 @@ export const colors = {
   hairlineSoft: palette.hairlineSoft,
   border: palette.hairline,
   borderMuted: palette.hairlineSoft,
-  borderStrong: 'rgba(0, 0, 0, 0.08)',
+  borderStrong: 'rgba(0, 0, 0, 0.04)',
   track: palette.sand,
   accent: palette.forest,
   accentMid: palette.forestMid,
@@ -140,12 +140,18 @@ export const motion = {
 } as const;
 
 /**
- * Cards float on the canvas by contrast and a hairline, not a grey rule. The shadow is
- * barely there: enough to lift white off off-white, never enough to read as a drop shadow.
+ * Cards are a material, not paint: white at 88% over the canvas with the backdrop blurred
+ * and its colour lifted, so whatever scrolls behind a card or the tab bar softens rather
+ * than showing through. Edges are a 4% hairline that adapts to what is behind them, and
+ * the shadow is wide and faint enough to lift a card without drawing a line under it.
+ *
+ * Over the canvas the card composites to #FEFEFE, which is what text contrast is checked
+ * against (tests/styles/contrast.test.ts).
  */
 export const surfaces = {
-  card: '#FFFFFF',
-  edge: 'rgba(0, 0, 0, 0.05)',
-  shadow: '0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.04)',
-  chrome: 'rgba(255, 255, 255, 0.82)'
+  card: 'rgba(255, 255, 255, 0.88)',
+  blur: 'blur(20px) saturate(190%)',
+  edge: 'rgba(0, 0, 0, 0.04)',
+  shadow: '0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01)',
+  chrome: 'rgba(255, 255, 255, 0.88)'
 } as const;

@@ -30,7 +30,7 @@ const palette = {
   accentMid: '#0071A4',
   slate: '#6E6E73',
   faint: '#6E6E73',
-  line: 'rgba(0, 0, 0, 0.045)',
+  line: 'rgba(0, 0, 0, 0.04)',
   record: '#C25400',
   up: '#247A31'
 } as const;
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   coverageRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   // Wide enough for the longest pattern name, and pinned to one line so a narrow
   // phone breaks the bar instead of the word: "Locomotio / n" reads as a bug.
-  coverageLabel: { ...type.caption, color: '#424245', width: 86 },
+  coverageLabel: { ...type.caption, color: '#1D1D1F', width: 86 },
   coverageTrack: { backgroundColor: 'rgba(0, 0, 0, 0.048)', borderRadius: 3, flex: 1, height: 6, overflow: 'hidden' },
   coverageFill: { backgroundColor: palette.accent, height: '100%' },
   coverageValue: { ...type.caption, color: palette.accentMid, fontVariant: ['tabular-nums'], textAlign: 'right', width: 52 },
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   coverageNote: { ...type.caption, color: '#6E6E73' },
   classify: { borderTopColor: palette.line, borderTopWidth: hairlineWidth, gap: 14, paddingTop: 14 },
   classifyRow: { gap: 8 },
-  classifyAsk: { ...type.caption, color: '#424245' },
+  classifyAsk: { ...type.caption, color: '#1D1D1F' },
   classifyName: { color: palette.ink },
   classifyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
@@ -309,14 +309,14 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: 'rgba(0, 0, 0, 0.072)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: 14,
     borderWidth: hairlineWidth,
     flex: 1,
     justifyContent: 'center',
     minHeight: 52
   },
-  secondaryLabel: { ...type.label, color: '#424245', fontSize: 15 },
+  secondaryLabel: { ...type.label, color: '#1D1D1F', fontSize: 15 },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: palette.accent,

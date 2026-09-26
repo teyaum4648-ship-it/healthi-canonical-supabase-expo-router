@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     gap: spacing.lg,
     overflow: 'hidden',
-    borderColor: 'rgba(0, 0, 0, 0.072)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: radii.xl,
     backgroundColor: colors.plum,
     padding: spacing.lg
@@ -1065,7 +1065,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: radii.lg,
     backgroundColor: 'rgba(0, 0, 0, 0.042)',
     padding: spacing.md
@@ -1124,7 +1124,7 @@ const styles = StyleSheet.create({
   scoreSection: {
     gap: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    borderTopColor: 'rgba(0, 0, 0, 0.04)',
     paddingTop: spacing.md
   },
   scoreSectionTitle: {
@@ -1138,7 +1138,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: radii.lg,
     backgroundColor: 'rgba(0, 0, 0, 0.042)',
     padding: spacing.sm
@@ -1225,12 +1225,12 @@ const styles = StyleSheet.create({
   focusCard: {
     gap: spacing.xs,
     borderRadius: radii.lg,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     backgroundColor: 'rgba(0, 0, 0, 0.048)'
   },
   resultPanel: {
     borderRadius: radii.lg,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     backgroundColor: 'rgba(0, 0, 0, 0.042)'
   },
   focusLabel: {
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
   changeRow: {
     gap: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    borderTopColor: 'rgba(0, 0, 0, 0.04)',
     paddingTop: spacing.sm
   },
   changeLabel: {

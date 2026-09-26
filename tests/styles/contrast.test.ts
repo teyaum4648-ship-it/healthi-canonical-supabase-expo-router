@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { colors } from '../../src/styles/tokens';
-import { contrastRatio, relativeLuminance, WCAG } from '../../src/styles/contrast';
+import { colors, surfaces } from '../../src/styles/tokens';
+import { compositeOver, contrastRatio, relativeLuminance, WCAG } from '../../src/styles/contrast';
 
 /**
  * The app is light-only, so every piece of text sits on one of four off-white surfaces.
@@ -11,6 +11,8 @@ import { contrastRatio, relativeLuminance, WCAG } from '../../src/styles/contras
 const SURFACES: Array<[string, string]> = [
   ['background', colors.background],
   ['surface', colors.surface],
+  // Cards are translucent; this is the card material as it reads over the canvas.
+  ['card material', compositeOver(surfaces.card, colors.background)],
   ['surfaceInset', colors.surfaceInset],
   ['surfaceMuted', colors.surfaceMuted]
 ];
@@ -24,6 +26,14 @@ function worstCase(foreground: string): { ratio: number; surface: string } {
     { ratio: Infinity, surface: '' }
   );
 }
+
+describe('compositeOver', () => {
+  it('lays a translucent colour over an opaque one', () => {
+    expect(compositeOver('rgba(255, 255, 255, 0.88)', '#F5F5F7')).toBe('#FEFEFE');
+    expect(compositeOver('rgba(0, 0, 0, 0.5)', '#FFFFFF')).toBe('#808080');
+    expect(() => compositeOver('#FFFFFF', '#000000')).toThrow(/rgba/);
+  });
+});
 
 describe('contrastRatio', () => {
   it('matches the known anchors', () => {

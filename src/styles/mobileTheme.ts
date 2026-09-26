@@ -106,24 +106,29 @@ export const webTransition: ViewStyle = Platform.OS === 'web'
   : {};
 
 /**
- * A floating card: pure white on the canvas, a hairline edge and the lightest lift.
+ * A floating card: the translucent white material on the canvas, a 4% edge and the
+ * softest lift. The web blurs and saturates what is behind it; native has no backdrop
+ * filter without a blur view, and 88% white over the canvas reads the same there.
  * `borderCurve: 'continuous'` gives iOS its squircle corners; elsewhere it is ignored.
  */
 export const cardSurface: ViewStyle = {
   backgroundColor: surfaces.card,
   borderCurve: 'continuous',
-  boxShadow: surfaces.shadow
+  boxShadow: surfaces.shadow,
+  ...(Platform.OS === 'web'
+    ? ({ backdropFilter: surfaces.blur, WebkitBackdropFilter: surfaces.blur } as ViewStyle)
+    : null)
 };
 
-/** The tab bar's frosted chrome: translucent white over the canvas, blurred on the web. */
+/** The tab bar's chrome: the same material, floating, with a slightly deeper shadow. */
 export const chromeSurface: ViewStyle = {
   backgroundColor: surfaces.chrome,
   borderColor: surfaces.edge,
   borderWidth: StyleSheet.hairlineWidth,
   borderCurve: 'continuous',
-  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
+  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02)',
   ...(Platform.OS === 'web'
-    ? ({ backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as ViewStyle)
+    ? ({ backdropFilter: surfaces.blur, WebkitBackdropFilter: surfaces.blur } as ViewStyle)
     : null)
 };
 
