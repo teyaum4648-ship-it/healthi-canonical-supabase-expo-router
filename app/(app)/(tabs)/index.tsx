@@ -29,7 +29,7 @@ import { ReadinessHub } from '../../../src/features/dashboard/premium/ReadinessH
 import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
 import { BIOMARKER_KINDS, summarizeBiomarker, type BiomarkerKind, type BiomarkerReading } from '../../../src/engines/biomarkers';
 import { summarizeLoad } from '../../../src/engines/load';
-import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPrompts';
+import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPromptsPanel';
 import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
 import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
 import { WeeklyRecapRow, WeeklyRecapSheet } from '../../../src/features/dashboard/WeeklyRecap';

@@ -13,7 +13,7 @@ import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationSto
 import { quickEntryHref } from '../navigation/navigationModel';
 import { SleepTimePicker } from '../sleepRhythm/SleepTimePicker';
 import { readinessHeadline, readinessZone } from './dashboardZones';
-import { LoggingPrompts } from './LoggingPrompts';
+import { LoggingPrompts } from './LoggingPromptsPanel';
 import { ReadinessHub } from './premium/ReadinessHub';
 import { loggingPrompts, type LoggingPromptId } from './loggingPrompts';
 import {
