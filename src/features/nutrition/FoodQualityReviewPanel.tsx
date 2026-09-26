@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { tabAccent } from '../../styles/pillarColors';
 import type { ProductLetterGrade } from '../../engines/nutrition/productScoring';
 import { reviewCoverageLine, type FoodQualityReview, type GradedItem } from './foodQualityReview';
 
@@ -27,7 +28,7 @@ const GRADE_COLOR: Record<ProductLetterGrade, string> = {
   B: '#9BE36D',
   C: '#FFD60A',
   D: '#FF9F0A',
-  F: '#FF6961'
+  F: '#FF6B6B'
 };
 
 function GradeBadge({ grade, size = 'small' }: { grade: ProductLetterGrade; size?: 'small' | 'large' }) {
@@ -175,7 +176,7 @@ export function FoodQualityReviewPanel({ review, windowLabel, onOpenScanner, onO
         style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
       >
         <Text style={styles.secondaryText}>Food preferences and personal responses</Text>
-        <Ionicons color={colors.accent} name="chevron-forward" size={17} />
+        <Ionicons color={tabAccent.food} name="chevron-forward" size={17} />
       </Pressable>
     </View>
   );
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   // clear it rather than finishing underneath it.
   page: { gap: 14, paddingBottom: 76 },
   panel: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 18,
     borderWidth: hairlineWidth,
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
 
   burdenIntro: { ...type.caption, color: colors.textMuted },
   burdenRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
-  burdenDot: { backgroundColor: colors.accent, borderRadius: 3, height: 6, width: 6 },
+  burdenDot: { backgroundColor: tabAccent.food, borderRadius: 3, height: 6, width: 6 },
   burdenCopy: { flex: 1, gap: 2, minWidth: 0 },
   burdenLabel: { ...type.body, color: colors.text },
   burdenProducts: { ...type.caption, color: colors.textFaint },
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
   emptyCopy: { ...type.body, color: colors.textMuted },
   primary: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.food,
     borderRadius: 14,
     flexDirection: 'row',
     gap: 8,
@@ -262,6 +263,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 4
   },
-  secondaryText: { ...type.body, color: colors.accent },
+  secondaryText: { ...type.body, color: tabAccent.food },
   pressed: { opacity: 0.7 }
 });

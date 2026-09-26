@@ -4,6 +4,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CheckBox } from '../../components/CheckBox';
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
 import { colors, type } from '../../styles/mobileTheme';
+import { tabAccent } from '../../styles/pillarColors';
 import { BreathCircle } from './BreathCircle';
 import type { BreathTechnique } from './breathTechniques';
 
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
 
   primary: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.mood,
     borderRadius: 14,
     justifyContent: 'center',
     minHeight: 52,

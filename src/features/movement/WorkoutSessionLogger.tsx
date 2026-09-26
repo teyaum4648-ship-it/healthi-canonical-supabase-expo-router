@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   formatRestClock,
   isRestPaused,
@@ -188,7 +189,7 @@ function SetCard({
             onPress={() => onUpdateSet(exercise.id, set.id, { warmup: !set.warmup })}
             style={({ pressed }) => [styles.iconAction, pressed && styles.pressed]}
           >
-            <Ionicons color={set.warmup ? colors.accent : colors.textMuted} name="flame-outline" size={19} />
+            <Ionicons color={set.warmup ? tabAccent.movement : colors.textMuted} name="flame-outline" size={19} />
           </Pressable>
           <Pressable
             accessibilityLabel={`Duplicate set ${set.set_index}`}
@@ -238,7 +239,7 @@ function SetCard({
         style={({ pressed }) => [styles.completeButton, set.completed && styles.completeButtonDone, pressed && styles.pressed]}
       >
         <Ionicons
-          color={set.completed ? colors.accent : colors.primaryText}
+          color={set.completed ? tabAccent.movement : colors.primaryText}
           name={set.completed ? 'checkmark-circle' : 'checkmark'}
           size={20}
         />
@@ -288,7 +289,7 @@ function SuggestionCard({
         style={({ pressed }) => [styles.whyRow, pressed && styles.pressed]}
       >
         <Text style={styles.whyText}>Why this</Text>
-        <Ionicons color={colors.accent} name={showWhy ? 'chevron-up' : 'chevron-down'} size={16} />
+        <Ionicons color={tabAccent.movement} name={showWhy ? 'chevron-up' : 'chevron-down'} size={16} />
       </Pressable>
       {showWhy ? (
         <View style={styles.whyList}>
@@ -305,7 +306,7 @@ function SuggestionCard({
         onPress={onAccept}
         style={({ pressed }) => [styles.useButton, accepted && styles.disabled, pressed && styles.pressed]}
       >
-        <Ionicons color={colors.accent} name={accepted ? 'checkmark' : 'arrow-down'} size={17} />
+        <Ionicons color={tabAccent.movement} name={accepted ? 'checkmark' : 'arrow-down'} size={17} />
         <Text style={styles.useText}>{accepted ? 'Applied — edit freely' : 'Use these targets'}</Text>
       </Pressable>
     </View>
@@ -334,7 +335,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
           onPress={props.onExit}
           style={({ pressed }) => [styles.topAction, pressed && styles.pressed]}
         >
-          <Ionicons color={colors.accent} name="chevron-back" size={24} />
+          <Ionicons color={tabAccent.movement} name="chevron-back" size={24} />
         </Pressable>
         <View style={styles.topCopy}>
           <Text numberOfLines={1} style={styles.topTitle}>{draft.title || 'Workout'}</Text>
@@ -350,7 +351,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
             onPress={props.onUndo}
             style={({ pressed }) => [styles.undoAction, pressed && styles.pressed]}
           >
-            <Ionicons color={colors.accent} name="arrow-undo-outline" size={17} />
+            <Ionicons color={tabAccent.movement} name="arrow-undo-outline" size={17} />
             <Text style={styles.undoText}>Undo</Text>
           </Pressable>
         ) : <View style={styles.topAction} />}
@@ -364,7 +365,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
             onPress={props.onToggleRest}
             style={({ pressed }) => [styles.restPlay, pressed && styles.pressed]}
           >
-            <Ionicons color={colors.accent} name={isRestPaused(restTimer) ? 'play' : 'pause'} size={18} />
+            <Ionicons color={tabAccent.movement} name={isRestPaused(restTimer) ? 'play' : 'pause'} size={18} />
           </Pressable>
           <View style={styles.restCopy}>
             <Text style={styles.restClock}>{formatRestClock(restRemainingSeconds(restTimer, now))}</Text>
@@ -505,7 +506,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
               onPress={() => props.onAddSet(exercise.id)}
               style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
             >
-              <Ionicons color={colors.accent} name="add" size={20} />
+              <Ionicons color={tabAccent.movement} name="add" size={20} />
               <Text style={styles.secondaryActionText}>Add set</Text>
             </Pressable>
           </>
@@ -562,7 +563,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
               onPress={props.onAddExercise}
               style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
             >
-              <Ionicons color={colors.accent} name="add" size={20} />
+              <Ionicons color={tabAccent.movement} name="add" size={20} />
               <Text style={styles.secondaryActionText}>Add movement</Text>
             </Pressable>
             <Pressable
@@ -571,7 +572,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
               onPress={props.onSaveRoutine}
               style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
             >
-              <Ionicons color={colors.accent} name="bookmark-outline" size={19} />
+              <Ionicons color={tabAccent.movement} name="bookmark-outline" size={19} />
               <Text style={styles.secondaryActionText}>Save as routine</Text>
             </Pressable>
           </>
@@ -616,11 +617,11 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 10
   },
-  undoText: { ...type.label, color: colors.accent },
+  undoText: { ...type.label, color: tabAccent.movement },
 
   restBar: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.borderStrong,
     borderRadius: 18,
     borderWidth: hairlineWidth,
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
   },
   restPlay: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('movement_capacity', 0.11),
     borderRadius: 999,
     height: 40,
     justifyContent: 'center',
@@ -652,7 +653,7 @@ const styles = StyleSheet.create({
   },
   restAdjustText: { ...type.label, color: colors.text },
   restSkip: { alignItems: 'center', justifyContent: 'center', minHeight: 40, paddingHorizontal: 8 },
-  restSkipText: { ...type.label, color: colors.accent },
+  restSkipText: { ...type.label, color: tabAccent.movement },
 
   viewToggle: { paddingHorizontal: 16, paddingBottom: 4 },
   scroll: { gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28 },
@@ -672,14 +673,14 @@ const styles = StyleSheet.create({
   focusPrevious: { ...type.caption, color: colors.textMuted, textAlign: 'center' },
 
   setCard: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 20,
     borderWidth: hairlineWidth,
     gap: 12,
     padding: 16
   },
-  setCardDone: { borderColor: colors.accentPale },
+  setCardDone: { borderColor: pillarTint('movement_capacity', 0.22) },
   setHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   setIdentity: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   setNumber: { ...type.label, color: colors.text },
@@ -696,7 +697,7 @@ const styles = StyleSheet.create({
   setHeaderActions: { flexDirection: 'row', gap: 2 },
   iconAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
 
-  previousLine: { ...type.caption, color: colors.accentMid },
+  previousLine: { ...type.caption, color: tabAccent.movement },
   previousLineFaint: { ...type.caption, color: colors.textFaint },
 
   fieldsRow: { flexDirection: 'row', gap: 10 },
@@ -727,16 +728,16 @@ const styles = StyleSheet.create({
 
   completeButton: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.movement,
     borderRadius: 14,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
     minHeight: 50
   },
-  completeButtonDone: { backgroundColor: colors.accentWash },
+  completeButtonDone: { backgroundColor: pillarTint('movement_capacity', 0.11) },
   completeText: { ...type.label, color: colors.primaryText, fontSize: 16 },
-  completeTextDone: { color: colors.accent },
+  completeTextDone: { color: tabAccent.movement },
 
   secondaryAction: {
     alignItems: 'center',
@@ -748,11 +749,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50
   },
-  secondaryActionText: { ...type.label, color: colors.accent, fontSize: 16 },
+  secondaryActionText: { ...type.label, color: tabAccent.movement, fontSize: 16 },
 
   overviewRow: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -773,7 +774,7 @@ const styles = StyleSheet.create({
   },
   finishButton: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.movement,
     borderRadius: 15,
     justifyContent: 'center',
     minHeight: 52
@@ -794,24 +795,24 @@ const styles = StyleSheet.create({
 
   suggestion: {
     backgroundColor: colors.surfaceInset,
-    borderColor: colors.accentPale,
+    borderColor: pillarTint('movement_capacity', 0.22),
     borderRadius: 18,
     borderWidth: hairlineWidth,
     gap: 8,
     padding: 16
   },
   suggestionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  suggestionEyebrow: { ...type.eyebrow, color: colors.accent },
+  suggestionEyebrow: { ...type.eyebrow, color: tabAccent.movement },
   suggestionConfidence: { ...type.caption, color: colors.textFaint, textTransform: 'capitalize' },
   suggestionHeadline: { ...type.heading, color: colors.text },
   suggestionTarget: { ...type.body, color: colors.textMuted },
   whyRow: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 44 },
-  whyText: { ...type.label, color: colors.accent },
+  whyText: { ...type.label, color: tabAccent.movement },
   whyList: { gap: 6 },
   whyLine: { ...type.caption, color: colors.textMuted },
   useButton: {
     alignItems: 'center',
-    borderColor: colors.accentPale,
+    borderColor: pillarTint('movement_capacity', 0.22),
     borderRadius: 13,
     borderWidth: hairlineWidth,
     flexDirection: 'row',
@@ -819,7 +820,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48
   },
-  useText: { ...type.label, color: colors.accent, fontSize: 15 },
+  useText: { ...type.label, color: tabAccent.movement, fontSize: 15 },
 
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.35 }

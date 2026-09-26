@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   bpmFromCount,
   COUNT_WINDOW_SECONDS,
@@ -226,9 +227,9 @@ const styles = StyleSheet.create({
   contextNote: { ...type.caption, color: colors.textMuted, lineHeight: 18 },
   baselineTag: {
     ...type.caption,
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('mind_life_load', 0.11),
     borderRadius: 6,
-    color: colors.accent,
+    color: tabAccent.mood,
     fontWeight: '600',
     overflow: 'hidden',
     paddingHorizontal: 7,
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
     minHeight: 148,
     padding: 18
   },
-  padLive: { backgroundColor: colors.accentWash, borderColor: colors.accent },
+  padLive: { backgroundColor: pillarTint('mind_life_load', 0.11), borderColor: tabAccent.mood },
   padPressed: { opacity: 0.85 },
   padLead: { ...type.heading, color: colors.text },
   padCount: { ...type.hero, color: colors.text, fontSize: 52, lineHeight: 56 },
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   save: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.mood,
     borderRadius: 14,
     flexGrow: 1,
     justifyContent: 'center',

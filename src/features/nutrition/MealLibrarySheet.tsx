@@ -6,6 +6,7 @@ import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
 import { colors, type } from '../../styles/mobileTheme';
+import { tabAccent } from '../../styles/pillarColors';
 import type { MealLog } from '../../engines/nutrition';
 import type { MealLogItemRow } from './mealItemPersistence';
 import type { UserFoodProductRow } from './productLibraryPersistence';
@@ -92,8 +93,8 @@ export function MealLibrarySheet({ userId, demo, client, meals, items, foods, on
       <TextInput accessibilityLabel="Search past foods or meals" placeholder="Food, brand, or meal name" placeholderTextColor={colors.textMuted} value={query} maxLength={120} onChangeText={setQuery} style={styles.input} autoCapitalize="none" />
       <SegmentedControl options={['All', 'Foods', 'Meals'] as const} value={kind} onChange={setKind} />
       <View style={styles.filters}>{(['Recent', 'Saved'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: list === value }} onPress={() => setList(value)} style={styles.filter}><Text style={[styles.detail, list === value && styles.active]}>{value}</Text></Pressable>)}</View>
-      {loading ? <ActivityIndicator accessibilityLabel="Loading history" color={colors.accent} /> : null}
-      {kind !== 'Foods' && entries.length ? <View><Text style={styles.name}>Meals</Text>{entries.map(entry => <View style={styles.row} key={entry.library_key}><View style={styles.copy}><ActionRow title={entry.meal.name} detail={`${entry.items.length} foods${typeof entry.meal.calories === 'number' ? ` · ${Math.round(entry.meal.calories)} kcal` : ''}${entry.is_saved ? ' · Saved meal' : ''}`} onPress={() => { setSelected(entry); setError(''); }} /></View><Pressable accessibilityRole="button" accessibilityLabel={`${entry.is_starred ? 'Unstar' : 'Star'} ${entry.meal.name}`} disabled={busy || !ready} onPress={() => void toggle(entry, 'is_starred')} style={styles.star}><Ionicons name={entry.is_starred ? 'star' : 'star-outline'} color={entry.is_starred ? colors.accentMid : colors.textMuted} size={21} /></Pressable></View>)}</View> : null}
+      {loading ? <ActivityIndicator accessibilityLabel="Loading history" color={tabAccent.food} /> : null}
+      {kind !== 'Foods' && entries.length ? <View><Text style={styles.name}>Meals</Text>{entries.map(entry => <View style={styles.row} key={entry.library_key}><View style={styles.copy}><ActionRow title={entry.meal.name} detail={`${entry.items.length} foods${typeof entry.meal.calories === 'number' ? ` · ${Math.round(entry.meal.calories)} kcal` : ''}${entry.is_saved ? ' · Saved meal' : ''}`} onPress={() => { setSelected(entry); setError(''); }} /></View><Pressable accessibilityRole="button" accessibilityLabel={`${entry.is_starred ? 'Unstar' : 'Star'} ${entry.meal.name}`} disabled={busy || !ready} onPress={() => void toggle(entry, 'is_starred')} style={styles.star}><Ionicons name={entry.is_starred ? 'star' : 'star-outline'} color={entry.is_starred ? tabAccent.food : colors.textMuted} size={21} /></Pressable></View>)}</View> : null}
       {kind !== 'Meals' && personal.length ? <View><Text style={styles.name}>Foods</Text>{personal.map(food => <View key={food.id} style={styles.row}><ProductThumbnail url={userFoodProductRowToSnapshot(food).image_url} name={food.name} /><View style={styles.copy}><ActionRow title={food.name} detail={food.brand ?? food.serving_size ?? 'Size not reported'} onPress={() => onUseFood(userFoodProductRowToSnapshot(food))} /></View></View>)}</View> : null}
       {!loading && !(kind !== 'Foods' && entries.length) && !(kind !== 'Meals' && personal.length) ? <Text style={styles.detail}>{query ? 'No matches in your history. Try a food inside the meal or a shorter name.' : list === 'Saved' ? 'Save a meal from its details to keep it here.' : 'Your meals and foods will appear here after you log them.'}</Text> : null}
       {hasMore && !demo ? <ActionRow title="Load more history" onPress={() => { if (!loading) void load(offset + 50); }} /> : null}
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   name: { ...type.label, color: colors.text }, value: { ...type.number, color: colors.text },
   input: { ...type.body, color: colors.text, backgroundColor: colors.surfaceInset, minHeight: 50, borderRadius: 14, padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 }, copy: { flex: 1, minWidth: 0 }, star: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
-  filters: { flexDirection: 'row', gap: 20 }, filter: { minHeight: 44, justifyContent: 'center' }, active: { color: colors.accentMid, fontWeight: '600' },
+  filters: { flexDirection: 'row', gap: 20 }, filter: { minHeight: 44, justifyContent: 'center' }, active: { color: tabAccent.food, fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, metric: { flexGrow: 1, flexBasis: '44%', backgroundColor: colors.surfaceInset, borderRadius: 18, padding: 14, gap: 6 },
-  primary: { minHeight: 52, backgroundColor: colors.primary, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 }
+  primary: { minHeight: 52, backgroundColor: tabAccent.food, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 }
 });

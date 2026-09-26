@@ -12,6 +12,7 @@ import {
   type PostureFlag
 } from '../../engines/movement';
 import type { MovementCardPalette } from './MovementPillarCard';
+import { glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Doing the screen, and reading what it found.
@@ -74,7 +75,7 @@ export function MobilityScreenFlow({
         ) : null}
 
         {links.length === 0 ? (
-          <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
             <Text style={[styles.cardTitle, { color: palette.ink }]}>Nothing stood out</Text>
             <Text style={[styles.cardBody, { color: palette.muted }]}>
               {answered < 3
@@ -84,7 +85,7 @@ export function MobilityScreenFlow({
           </View>
         ) : (
           links.map((link) => (
-            <View key={link.id} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View key={link.id} style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
               <Text style={[styles.cardTitle, { color: palette.ink }]}>{link.headline}</Text>
               <Text style={[styles.cardBody, { color: palette.muted }]}>{link.reasoning}</Text>
 
@@ -148,7 +149,7 @@ export function MobilityScreenFlow({
       </Text>
 
       {MOBILITY_TESTS.map((test) => (
-        <View key={test.id} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View key={test.id} style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
           <Text style={[styles.cardTitle, { color: palette.ink }]}>{test.name}</Text>
           <Text style={[styles.cardBody, { color: palette.muted }]}>{test.how}</Text>
           <View style={styles.options}>
@@ -173,7 +174,7 @@ export function MobilityScreenFlow({
         </View>
       ))}
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
         <Text style={[styles.cardTitle, { color: palette.ink }]}>How you stand</Text>
         <Text style={[styles.cardBody, { color: palette.muted }]}>
           Tick anything that sounds like you. A mirror or a photo from the side helps; guessing is

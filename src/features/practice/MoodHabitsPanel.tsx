@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { TextInput } from '../../components/TextInput';
 import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   availableHabits,
   CUSTOM_HABIT_MAX_NAME,
@@ -161,7 +162,7 @@ export function MoodHabits({
                       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                     >
                       <View style={styles.addIcon}>
-                        <Ionicons accessible={false} color={colors.accent} name="add" size={17} />
+                        <Ionicons accessible={false} color={tabAccent.mood} name="add" size={17} />
                       </View>
                       <View style={styles.rowCopy}>
                         <Text style={styles.name}>{habit.name}</Text>
@@ -248,10 +249,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 26
   },
-  checkDone: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkDone: { backgroundColor: tabAccent.mood, borderColor: tabAccent.mood },
   addIcon: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('mind_life_load', 0.11),
     borderRadius: 13,
     height: 26,
     justifyContent: 'center',
@@ -281,13 +282,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 15
   },
-  chipActive: { backgroundColor: colors.accent },
+  chipActive: { backgroundColor: tabAccent.mood },
   chipText: { ...type.label, color: colors.textMuted },
   chipTextActive: { color: colors.primaryText },
 
   primary: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.mood,
     borderRadius: 14,
     justifyContent: 'center',
     minHeight: 52,
@@ -296,6 +297,6 @@ const styles = StyleSheet.create({
   primaryText: { ...type.label, color: colors.primaryText, fontSize: 16 },
   dim: { opacity: 0.45 },
   textButton: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 4 },
-  textButtonLabel: { ...type.label, color: colors.accent },
+  textButtonLabel: { ...type.label, color: tabAccent.mood },
   pressed: { opacity: 0.7 }
 });

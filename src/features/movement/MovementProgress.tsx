@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   buildExerciseProgress,
   recentTopSetChange,
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
 
   coverageList: { gap: 10 },
   coverageRow: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -279,13 +280,13 @@ const styles = StyleSheet.create({
   },
   coverageHead: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' },
   coverageLabel: { ...type.label, color: colors.text },
-  coverageCount: { ...type.number, color: colors.accent },
+  coverageCount: { ...type.number, color: tabAccent.movement },
   coverageTrack: { backgroundColor: colors.track, borderRadius: 3, height: 6, overflow: 'hidden' },
-  coverageFill: { backgroundColor: colors.accent, borderRadius: 3, height: '100%' },
+  coverageFill: { backgroundColor: tabAccent.movement, borderRadius: 3, height: '100%' },
   coverageMeta: { ...type.caption, color: colors.textFaint },
 
   empty: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -311,8 +312,8 @@ const styles = StyleSheet.create({
 
   sparkRow: { alignItems: 'flex-end', flexDirection: 'row', gap: 6, height: 44 },
   sparkColumn: { flex: 1, justifyContent: 'flex-end' },
-  sparkBar: { backgroundColor: colors.accentPale, borderRadius: 3, width: '100%' },
-  sparkBarLast: { backgroundColor: colors.accent },
+  sparkBar: { backgroundColor: pillarTint('movement_capacity', 0.22), borderRadius: 3, width: '100%' },
+  sparkBarLast: { backgroundColor: tabAccent.movement },
 
   recordGrid: { flexDirection: 'row', gap: 10 },
   record: {

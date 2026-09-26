@@ -64,7 +64,8 @@ import {
   type TensionRegion,
   type ZoneSession
 } from '../../../src/features/practice/zoneModel';
-import { colors, hairlineWidth, type } from '../../../src/styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { tabAccent } from '../../../src/styles/pillarColors';
 
 /**
  * Mood — the fourth pillar, and the one that does something rather than reporting.
@@ -404,7 +405,7 @@ export default function MoodScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: colors.background, flex: 1 },
+  safe: { backgroundColor: 'transparent', flex: 1 },
   scroll: { gap: 14, paddingBottom: 40, paddingHorizontal: 18, paddingTop: 8 },
 
   header: { gap: 4, paddingVertical: 6 },
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
   meta: { ...type.body, color: colors.textMuted },
 
   panel: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 18,
     borderWidth: hairlineWidth,
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16
   },
-  chipActive: { backgroundColor: colors.accent },
+  chipActive: { backgroundColor: tabAccent.mood },
   chipText: { ...type.label, color: colors.textMuted },
   chipTextActive: { color: colors.primaryText },
   purpose: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
   note: {
     ...type.caption,
     backgroundColor: colors.surfaceInset,
-    borderLeftColor: colors.accentMid,
+    borderLeftColor: tabAccent.mood,
     borderLeftWidth: 3,
     borderRadius: 10,
     color: colors.textMuted,

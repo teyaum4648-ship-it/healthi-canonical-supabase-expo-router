@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { tabAccent } from '../../styles/pillarColors';
 import { techniqueById } from './breathTechniques';
 import { PacedBreath } from './PacedBreath';
 import { REGION_RELEASES, regionRelease, type TensionRegion } from './zoneModel';
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
      kind of claim: here is why, in a sentence you can check against your own day. */
   mechanism: {
     backgroundColor: colors.surfaceInset,
-    borderLeftColor: colors.accent,
+    borderLeftColor: tabAccent.mood,
     borderLeftWidth: 3,
     borderRadius: 12,
     padding: 14
@@ -163,6 +164,6 @@ const styles = StyleSheet.create({
   pacerNote: { ...type.caption, color: colors.textMuted, lineHeight: 19, textAlign: 'center' },
 
   textButton: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44 },
-  textButtonLabel: { ...type.label, color: colors.accent },
+  textButtonLabel: { ...type.label, color: tabAccent.mood },
   pressed: { opacity: 0.7 }
 });

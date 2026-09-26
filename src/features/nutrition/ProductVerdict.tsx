@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
 import type { ProductLetterGrade } from '../../engines/nutrition/productScoring';
 import type { CompositionSlice, ProductExplanation } from '../../engines/nutrition/productScoring/explain';
 import { isCostRole } from '../../engines/nutrition/productScoring/explain';
@@ -144,7 +144,7 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
 const styles = StyleSheet.create({
   page: { gap: 14 },
   panel: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 18,
     borderWidth: hairlineWidth,

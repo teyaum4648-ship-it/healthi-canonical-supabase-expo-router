@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   BREATH_TECHNIQUES,
   breathsPerMinute,
@@ -73,7 +74,7 @@ export function TechniquePicker({
                 <View style={[styles.icon, selected && styles.iconSelected]}>
                   <Ionicons
                     accessible={false}
-                    color={selected ? colors.primaryText : colors.accent}
+                    color={selected ? colors.primaryText : tabAccent.mood}
                     name={technique.icon as never}
                     size={18}
                   />
@@ -153,13 +154,13 @@ const styles = StyleSheet.create({
   row: { alignItems: 'flex-start', flexDirection: 'row', gap: 11, minHeight: 64, paddingVertical: 11 },
   icon: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('mind_life_load', 0.11),
     borderRadius: 10,
     height: 34,
     justifyContent: 'center',
     width: 34
   },
-  iconSelected: { backgroundColor: colors.primary },
+  iconSelected: { backgroundColor: tabAccent.mood },
   copy: { flex: 1, gap: 2 },
   nameRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   name: { ...type.body, color: colors.text, fontWeight: '600' },
@@ -175,9 +176,9 @@ const styles = StyleSheet.create({
   },
   tagOn: {
     ...type.caption,
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('mind_life_load', 0.11),
     borderRadius: 5,
-    color: colors.accent,
+    color: tabAccent.mood,
     fontSize: 11,
     fontWeight: '600',
     overflow: 'hidden',
@@ -213,6 +214,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 16
   },
-  useText: { ...type.label, color: colors.accent },
+  useText: { ...type.label, color: tabAccent.mood },
   pressed: { opacity: 0.7 }
 });

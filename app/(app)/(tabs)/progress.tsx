@@ -18,7 +18,7 @@ import { TrendBarChart } from '../../../src/features/trends/TrendBarChart';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, type } from '../../../src/styles/mobileTheme';
+import { colors, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 
 const rangeLabels = ['7 days', '14 days', '30 days'] as const;
@@ -146,14 +146,14 @@ export default function ProgressScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { gap: 14, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
   back: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44, marginLeft: -6 },
   backText: { ...type.body, color: colors.accent },
   pressed: { opacity: 0.6 },
   title: { ...type.largeTitle, color: colors.text },
   subtitle: { ...type.body, color: colors.textMuted, marginTop: -8 },
-  card: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, gap: 10 },
+  card: { ...glassSurface, borderRadius: 20, padding: 18, gap: 10 },
   loading: { alignItems: 'center', minHeight: 140, justifyContent: 'center' },
   overviewTitle: { ...type.heading, color: colors.text },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },

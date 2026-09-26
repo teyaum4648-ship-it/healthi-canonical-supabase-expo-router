@@ -17,7 +17,7 @@ import {
   safetyStatusLabel,
   shouldSurfaceSafety
 } from '../../src/features/dailyProtocol';
-import { colors, hairlineWidth, radii, spacing, type } from '../../src/styles/mobileTheme';
+import { colors, hairlineWidth, radii, spacing, type, glassSurface } from '../../src/styles/mobileTheme';
 
 function actionIcon(kind: ProtocolActionKind): keyof typeof Ionicons.glyphMap {
   switch (kind) {
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   scroll: { gap: spacing.md, paddingBottom: 96, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   muted: { ...type.caption, color: colors.textMuted },
   emptyCard: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.hairline,
     borderRadius: radii.lg,
     borderWidth: hairlineWidth,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     padding: spacing.md
   },
   safetyText: { ...type.caption, color: colors.textMuted, flex: 1 },
-  list: { backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 16 },
+  list: { ...glassSurface, borderRadius: 20, paddingHorizontal: 16 },
   row: { paddingVertical: 12, gap: 10 },
   rowDivider: { borderBottomWidth: hairlineWidth, borderBottomColor: colors.borderStrong },
   rowMain: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

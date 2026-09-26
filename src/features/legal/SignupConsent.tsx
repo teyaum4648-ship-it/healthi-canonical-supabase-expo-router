@@ -1,7 +1,7 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CheckBox } from '../../components/CheckBox';
-import { colors, spacing, type } from '../../styles/mobileTheme';
+import { colors, spacing, type, glassSurface } from '../../styles/mobileTheme';
 import { type ConsentState } from './consentModel';
 import { legalUrl, MINIMUM_AGE, type LegalDocument } from './legalLinks';
 
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   error: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.danger,
     borderRadius: 10,
     borderWidth: 1,

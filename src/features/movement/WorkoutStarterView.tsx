@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { tabAccent } from '../../styles/pillarColors';
 import {
   canStart,
   minimumSets,
@@ -176,7 +177,7 @@ function SourceRow({ source, allowed, onPick }: {
           {source.movements.map((movement) => movement.name).join(' · ')}
         </Text>
       </View>
-      <Ionicons color={colors.accent} name="arrow-forward" size={18} />
+      <Ionicons color={tabAccent.movement} name="arrow-forward" size={18} />
     </Pressable>
   );
 }
@@ -225,7 +226,7 @@ export function WorkoutStarter(props: {
           onPress={props.onClose}
           style={({ pressed }) => [styles.topAction, pressed && styles.pressed]}
         >
-          <Ionicons color={colors.accent} name="chevron-back" size={24} />
+          <Ionicons color={tabAccent.movement} name="chevron-back" size={24} />
         </Pressable>
         <Text style={styles.topTitle}>{editing ? 'Edit workout' : 'Start a workout'}</Text>
         <View style={styles.topAction} />
@@ -265,7 +266,7 @@ export function WorkoutStarter(props: {
           onPress={props.onAddMovement}
           style={({ pressed }) => [styles.addMovement, pressed && styles.pressed]}
         >
-          <Ionicons color={colors.accent} name="add" size={20} />
+          <Ionicons color={tabAccent.movement} name="add" size={20} />
           <Text style={styles.addMovementText}>Add movement</Text>
         </Pressable>
 
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
   scroll: { gap: 12, padding: 16, paddingBottom: 28 },
   name: {
     ...type.title,
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderRadius: 16,
     color: colors.text,
     minHeight: 60,
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
   capacity: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4 },
 
   movement: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderRadius: 16,
     gap: 10,
     paddingHorizontal: 14,
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 54
   },
-  addMovementText: { ...type.body, color: colors.accent, fontWeight: '600' },
+  addMovementText: { ...type.body, color: tabAccent.movement, fontWeight: '600' },
 
   confirm: {
     alignItems: 'center',
@@ -401,18 +402,18 @@ const styles = StyleSheet.create({
   },
   confirmText: { ...type.caption, color: colors.danger, flex: 1 },
   confirmKeep: { alignItems: 'center', justifyContent: 'center', minHeight: 40, paddingHorizontal: 10 },
-  confirmKeepText: { ...type.caption, color: colors.accent, fontWeight: '600' },
+  confirmKeepText: { ...type.caption, color: tabAccent.movement, fontWeight: '600' },
   loggedNote: { ...type.caption, color: colors.textFaint },
 
   leave: { alignItems: 'center', justifyContent: 'center', marginTop: 12, minHeight: 48 },
-  leaveText: { ...type.caption, color: colors.accent },
+  leaveText: { ...type.caption, color: tabAccent.movement },
 
   shelf: { gap: 10, marginTop: 10 },
   shelfLabel: { ...type.label, color: colors.textMuted, letterSpacing: 0 },
   shelfEmpty: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4, paddingVertical: 8 },
   source: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
   notice: { ...type.caption, color: colors.danger, marginBottom: 10 },
   start: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: tabAccent.movement,
     borderRadius: 15,
     justifyContent: 'center',
     minHeight: 52

@@ -7,7 +7,7 @@ import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
 import { DemoEntry } from '../src/features/auth/DemoEntry';
 import { entryDestination } from '../src/features/auth/entryRouting';
-import { colors, fonts, spacing } from '../src/styles/mobileTheme';
+import { colors, fonts, spacing, glassSurface } from '../src/styles/mobileTheme';
 import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    ...glassSurface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderColor: colors.border,
     borderLeftColor: colors.primary,
-    backgroundColor: colors.surface,
+    ...glassSurface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm
   },

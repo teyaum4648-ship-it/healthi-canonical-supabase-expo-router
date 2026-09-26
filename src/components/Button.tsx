@@ -6,7 +6,7 @@ import {
   type PressableProps
 } from 'react-native';
 
-import { colors, radii, type } from '../styles/mobileTheme';
+import { accentFill, colors, glass, glassSurface, radii, type } from '../styles/mobileTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -59,21 +59,20 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingHorizontal: 20
   },
-  primary: {
-    backgroundColor: colors.primary
-  },
+  primary: accentFill(colors.primary),
   secondary: {
+    ...glassSurface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.surfaceInset
+    borderColor: glass.edge
   },
   danger: {
+    ...glassSurface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.danger,
-    backgroundColor: colors.surfaceInset
+    borderColor: colors.danger
   },
   pressed: {
-    opacity: 0.8
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }]
   },
   disabled: {
     opacity: 0.45

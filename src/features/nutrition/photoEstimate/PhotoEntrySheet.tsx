@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { ActionRow } from '../../../components/mobile/ActionRow';
 import { EntrySheet } from '../../../components/mobile/EntrySheet';
 import { colors, type } from '../../../styles/mobileTheme';
+import { tabAccent } from '../../../styles/pillarColors';
 import type { PhotoCaptureSource } from './photoCapture';
 
 export function PhotoEntrySheet({ available, busy, notice, onCapture, onClose, onSearch }: {
@@ -24,10 +25,10 @@ export function PhotoEntrySheet({ available, busy, notice, onCapture, onClose, o
       disabled={!available || busy}
       onPress={() => onCapture(source)}
       style={({ pressed }) => [styles.action, (!available || busy || pressed) && styles.dim]}>
-      <Ionicons name={source === 'camera' ? 'camera-outline' : 'images-outline'} size={24} color={colors.accent} />
+      <Ionicons name={source === 'camera' ? 'camera-outline' : 'images-outline'} size={24} color={tabAccent.food} />
       <Text style={styles.title}>{source === 'camera' ? 'Take a photo' : 'Choose a photo'}</Text>
     </Pressable>)}
-    {busy ? <><ActivityIndicator color={colors.accent} /><Text accessibilityLiveRegion="polite" style={styles.detail}>Preparing your photo estimate…</Text></> : null}
+    {busy ? <><ActivityIndicator color={tabAccent.food} /><Text accessibilityLiveRegion="polite" style={styles.detail}>Preparing your photo estimate…</Text></> : null}
     {notice ? <Text accessibilityRole="alert" style={styles.detail}>{notice}</Text> : null}
     {!busy ? <ActionRow title="Search foods instead" icon="search-outline" onPress={onSearch} last /> : null}
   </EntrySheet>;

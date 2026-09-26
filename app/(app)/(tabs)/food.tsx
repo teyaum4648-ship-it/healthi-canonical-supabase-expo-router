@@ -3,7 +3,7 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { rolloverDiaryDay } from '../../../src/utils/localDay';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 import { NutritionGoalSetup } from '../../../src/features/nutrition/NutritionGoalSetup';
-import { onPillar, tabAccent } from '../../../src/styles/pillarColors';
+import { onPillar, pillarTint, tabAccent } from '../../../src/styles/pillarColors';
 import { goalPatternInput } from '../../../src/features/nutrition/nutritionGoalEngine';
 import { unsetNutritionTargets } from '../../../src/features/nutrition/nutritionGoalEngine';
 import type { GoalClient } from '../../../src/features/nutrition/nutritionGoalStore';
@@ -194,17 +194,20 @@ import {
   fonts as themeFonts,
   hairlineWidth,
   palette,
-  type as themeType
+  type as themeType,
+  accentFill,
+  glassSurface,
+  hues
 } from '../../../src/styles/mobileTheme';
 
 const C = {
   bg: themeColors.background,
   card: themeColors.surface,
   hairline: themeColors.hairline,
-  gold: themeColors.accent,
-  goldSoft: themeColors.accentMid,
-  lavender: themeColors.accentMid,
-  teal: themeColors.accentSoft,
+  gold: tabAccent.food,
+  goldSoft: hues.irisSoft,
+  lavender: hues.irisSoft,
+  teal: hues.irisSoft,
   ink: themeColors.text,
   sub: themeColors.textMuted,
   muted: themeColors.textFaint
@@ -1556,7 +1559,7 @@ export default function FoodScreen() {
       <View style={styles.stack}>
         {productQualityExperimentEnabled || compositionKernelEnabled ? (
           <View style={styles.scoringLabBanner}>
-            <Ionicons color={colors.accent} name="flask-outline" size={18} />
+            <Ionicons color={tabAccent.food} name="flask-outline" size={18} />
             <View style={styles.scannerHeadingCopy}>
               <Text style={styles.scoringLabBannerTitle}>
                 {compositionKernelEnabled ? 'Scoring lab · V6 composition' : 'Scoring lab · V5 two axis'}
@@ -1587,7 +1590,7 @@ export default function FoodScreen() {
         <Card>
           <View style={styles.scannerIntroRow}>
             <View style={styles.scannerIcon}>
-              <Ionicons color={colors.accent} name="barcode-outline" size={24} />
+              <Ionicons color={tabAccent.food} name="barcode-outline" size={24} />
             </View>
             <View style={styles.scannerHeadingCopy}>
               <Text style={styles.cardTitle}>Barcode scanner</Text>
@@ -1673,7 +1676,7 @@ export default function FoodScreen() {
           <Card style={styles.productCard}>
             <Text style={styles.eyebrow}>On the label</Text>
             <View style={styles.productMetrics}>
-              <Metric label="Calories" value={formatProductAmount(scannerProduct.calories_per_serving)} tone={colors.accent} />
+              <Metric label="Calories" value={formatProductAmount(scannerProduct.calories_per_serving)} tone={tabAccent.food} />
               <Metric label="Protein" value={formatProductAmount(scannerProduct.protein_g, 'g')} />
               <Metric label="Carbs" value={formatProductAmount(scannerProduct.carbs_g, 'g')} />
               <Metric label="Fat" value={formatProductAmount(scannerProduct.fat_g, 'g')} />
@@ -1691,7 +1694,7 @@ export default function FoodScreen() {
                   style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
                 >
                   <View style={styles.disclosureTitleRow}>
-                    <Ionicons color={colors.accent} name="swap-horizontal-outline" size={18} />
+                    <Ionicons color={tabAccent.food} name="swap-horizontal-outline" size={18} />
                     <Text style={styles.disclosureTitle}>{productQuality.better_options?.[0]?.title ?? 'What to Compare'}</Text>
                   </View>
                   <Ionicons
@@ -1706,7 +1709,7 @@ export default function FoodScreen() {
                     <Text style={styles.signalReasonText}>{option.summary}</Text>
                     {option.criteria.map((criterion) => (
                       <View key={criterion} style={styles.signalReasonRow}>
-                        <Ionicons color={colors.accentMid} name="checkmark-circle-outline" size={16} />
+                        <Ionicons color={tabAccent.food} name="checkmark-circle-outline" size={16} />
                         <Text style={styles.signalReasonText}>{criterion}</Text>
                       </View>
                     ))}
@@ -1724,7 +1727,7 @@ export default function FoodScreen() {
                   style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
                 >
                   <View style={styles.disclosureTitleRow}>
-                    <Ionicons color={colors.accent} name="information-circle-outline" size={19} />
+                    <Ionicons color={tabAccent.food} name="information-circle-outline" size={19} />
                     <Text style={styles.disclosureTitle}>How this is grounded</Text>
                   </View>
                   <Ionicons
@@ -1766,7 +1769,7 @@ export default function FoodScreen() {
                 style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
               >
                 <View style={styles.disclosureTitleRow}>
-                  <Ionicons color={colors.accent} name="flask-outline" size={19} />
+                  <Ionicons color={tabAccent.food} name="flask-outline" size={19} />
                   <View style={styles.productHeaderCopy}>
                     <Text style={styles.disclosureTitle}>Lab Evidence</Text>
                     <Text style={styles.evidenceSource}>
@@ -1826,7 +1829,7 @@ export default function FoodScreen() {
                 style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
               >
                 <View style={styles.disclosureTitleRow}>
-                  <Ionicons color={colors.accent} name="ribbon-outline" size={19} />
+                  <Ionicons color={tabAccent.food} name="ribbon-outline" size={19} />
                   <Text style={styles.disclosureTitle}>Certifications</Text>
                 </View>
                 <Ionicons color={C.muted} name={showCertifications ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
@@ -1852,7 +1855,7 @@ export default function FoodScreen() {
                 style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
               >
                 <View style={styles.disclosureTitleRow}>
-                  <Ionicons color={colors.accent} name="document-text-outline" size={19} />
+                  <Ionicons color={tabAccent.food} name="document-text-outline" size={19} />
                   <Text style={styles.disclosureTitle}>Regulatory Status</Text>
                 </View>
                 <Ionicons color={C.muted} name={showRegulatoryStatus ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
@@ -1878,7 +1881,7 @@ export default function FoodScreen() {
                 style={({ pressed }) => [styles.disclosureHeader, pressed && styles.pressed]}
               >
                 <View style={styles.disclosureTitleRow}>
-                  <Ionicons color={colors.accent} name="layers-outline" size={19} />
+                  <Ionicons color={tabAccent.food} name="layers-outline" size={19} />
                   <Text style={styles.disclosureTitle}>Evidence Context</Text>
                 </View>
                 <Ionicons color={C.muted} name={showEvidenceContext ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} />
@@ -1901,7 +1904,7 @@ export default function FoodScreen() {
             </> : null}
 
             <View style={styles.personalResponseNote}>
-              <Ionicons color={colors.accentMid} name="pulse-outline" size={18} />
+              <Ionicons color={tabAccent.food} name="pulse-outline" size={18} />
               <Text style={styles.personalResponseText}>
                 Food quality is only one signal. Your personal food response can change how Healthi recommends this product for you.
               </Text>
@@ -2060,7 +2063,7 @@ export default function FoodScreen() {
             accessibilityLabel="Search nutrients"
             onChangeText={setNutrientQuery}
             placeholder="Search nutrients"
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor="#8C939D"
             style={styles.adaptiveSearch}
             value={nutrientQuery}
           />
@@ -2244,7 +2247,7 @@ export default function FoodScreen() {
           ))}
           <View style={styles.productFormDivider} />
           <View style={styles.metricGrid}>
-            <Metric label="Calories" value={formatProductAmount(mealBuilderTotals.calories)} tone={colors.accent} />
+            <Metric label="Calories" value={formatProductAmount(mealBuilderTotals.calories)} tone={tabAccent.food} />
             <Metric label="Protein" value={formatProductAmount(mealBuilderTotals.protein_g, 'g')} />
             <Metric label="Carbs" value={formatProductAmount(mealBuilderTotals.carbs_g, 'g')} />
             <Metric label="Fat" value={formatProductAmount(mealBuilderTotals.fat_g, 'g')} />
@@ -2275,7 +2278,7 @@ export default function FoodScreen() {
             onPress={() => openScanner()}
             style={({ pressed }) => [styles.scannerShortcut, pressed && styles.pressed]}
           >
-            <Ionicons color={colors.accent} name="barcode-outline" size={20} />
+            <Ionicons color={tabAccent.food} name="barcode-outline" size={20} />
             <Text style={styles.scannerShortcutText}>Scan Food</Text>
             <Ionicons color={colors.textFaint} name="chevron-forward" size={18} />
           </Pressable>
@@ -2285,12 +2288,12 @@ export default function FoodScreen() {
             onPress={openPhotoEntry}
             style={({ pressed }) => [styles.scannerShortcut, (pressed || photoBusy) && styles.pressed]}
           >
-            <Ionicons color={colors.accent} name="camera-outline" size={20} />
+            <Ionicons color={tabAccent.food} name="camera-outline" size={20} />
             <Text style={styles.scannerShortcutText}>
               {photoBusy ? 'Estimating from your photo…' : 'Estimate from a photo'}
             </Text>
             {photoBusy
-              ? <ActivityIndicator color={colors.accent} />
+              ? <ActivityIndicator color={tabAccent.food} />
               : <Ionicons color={colors.textFaint} name="chevron-forward" size={18} />}
           </Pressable>
           {photoNotice ? <Text accessibilityRole="alert" style={styles.fieldLabel}>{photoNotice}</Text> : null}
@@ -2441,7 +2444,7 @@ export default function FoodScreen() {
                 <Text
                   style={[
                     styles.answerText,
-                    testAnswers[currentQuestion.id] === option.value && { color: colors.accent }
+                    testAnswers[currentQuestion.id] === option.value && { color: tabAccent.food }
                   ]}
                 >
                   {option.label}
@@ -2498,9 +2501,9 @@ export default function FoodScreen() {
               'Healthi does not have enough food pattern signal yet. Take the Food Pattern Test or log a few meals.'}
           </Text>
           <View style={styles.signalGrid}>
-            <Metric label="Responses" value={`${responses.length}`} tone={colors.accent} />
-            <Metric label="Readiness" value={displayLabel(readinessSignal.label)} tone={colors.accentMid} />
-            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={colors.accentMid} />
+            <Metric label="Responses" value={`${responses.length}`} tone={tabAccent.food} />
+            <Metric label="Readiness" value={displayLabel(readinessSignal.label)} tone={tabAccent.food} />
+            <Metric label="Food quality" value={displayLabel(foodQuality.label)} tone={tabAccent.food} />
             <Metric label="Source" value={confidenceText(readinessSignal.confidence)} tone={colors.textMuted} />
           </View>
         </Card>
@@ -2533,7 +2536,7 @@ export default function FoodScreen() {
             </View>
             {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
               <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
-                <Ionicons name="chevron-back" size={20} color={colors.accentMid} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
+                <Ionicons name="chevron-back" size={20} color={tabAccent.food} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
               </Pressable>
             )}
             {/saved|logged|could not|unavailable|not saved/i.test(status) ? <Text accessibilityLiveRegion="polite" style={styles.diaryStatus}>{status}</Text> : null}
@@ -2569,7 +2572,7 @@ export default function FoodScreen() {
               onPress={() => openScanner('log')}
               style={({ pressed }) => [styles.dockScan, pressed && styles.pressed]}
             >
-              <Ionicons name="barcode-outline" color={colors.accent} size={24} />
+              <Ionicons name="barcode-outline" color={tabAccent.food} size={24} />
             </Pressable>
           </View> : null}
         </KeyboardAvoidingView>
@@ -2659,7 +2662,7 @@ function ChoiceRow({
 }
 
 const styles = StyleSheet.create({
-  diarySection: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, gap: 12 },
+  diarySection: { ...glassSurface, borderRadius: 20, padding: 18, gap: 12 },
   diaryHeading: { fontFamily: sans, fontSize: 20, lineHeight: 26, fontWeight: '600', color: colors.text },
   diaryDetail: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted },
   diaryEnergy: { paddingVertical: 8, gap: 3 },
@@ -2669,10 +2672,10 @@ const styles = StyleSheet.create({
   diaryMacroValue: { fontFamily: sans, fontSize: 17, lineHeight: 24, fontWeight: '600', color: colors.text },
   diaryNotice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   diaryTextButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: colors.accentMid, fontWeight: '500' },
+  diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: tabAccent.food, fontWeight: '500' },
   diaryStatus: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted, paddingVertical: 8 },
   diaryAddText: { color: onPillar, fontWeight: '600' },
-  diaryAdd: { flex: 1, backgroundColor: tabAccent.food, minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
+  diaryAdd: { flex: 1, ...accentFill(tabAccent.food), minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
   // Fixed width rather than a flex share, so the primary action keeps the bar and this
   // stays a key beside it at roughly a fifth of the width on a phone.
   dockScan: {
@@ -2688,7 +2691,7 @@ const styles = StyleSheet.create({
   diaryTabs: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
   screen: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: 'transparent'
   },
   safe: {
     flex: 1
@@ -2707,16 +2710,16 @@ const styles = StyleSheet.create({
   },
   adaptivePageLabel: {
     ...themeType.largeTitle,
-    color: '#F5F5F7'
+    color: '#F5F7FA'
   },
   trackerCard: {
-    backgroundColor: '#121214',
-    borderColor: 'rgba(30, 144, 255, 0.20)',
+    ...glassSurface,
+    borderColor: 'rgba(168, 143, 255, 0.20)',
     borderRadius: 22,
     borderWidth: 1
   },
   trackerTitle: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: serif,
     fontSize: 26,
     lineHeight: 32,
@@ -2724,25 +2727,25 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(30, 144, 255, 0.12)',
+    borderBottomColor: 'rgba(168, 143, 255, 0.12)',
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#1E90FF',
+    color: '#A88FFF',
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
   },
   trackerEnergyLabel: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12
   },
   trackerEnergyTarget: {
-    color: '#8E8E93',
+    color: '#8C939D',
     fontFamily: sansMedium,
     fontSize: 12,
     paddingBottom: 3
@@ -2754,29 +2757,29 @@ const styles = StyleSheet.create({
     gap: 7
   },
   trackerProgressLabel: {
-    color: '#D1D1D6',
+    color: '#C7CBD1',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(30, 144, 255, 0.10)',
+    backgroundColor: 'rgba(168, 143, 255, 0.10)',
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
   },
   trackerFill: {
-    backgroundColor: '#5AC8FA',
+    backgroundColor: '#C2B2FF',
     borderRadius: 4,
     height: 6
   },
   trackerMicroBlock: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#1E2126',
     borderRadius: 16,
     gap: 12,
     padding: 14
   },
   trackerMicroHeading: {
-    color: '#D1D1D6',
+    color: '#C7CBD1',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.3
@@ -2787,7 +2790,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   trackerMicroItem: {
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderRadius: 12,
     flexBasis: '47%',
     flexGrow: 1,
@@ -2796,17 +2799,17 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#1E90FF',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerMicroUnavailable: {
-    color: '#8E8E93',
+    color: '#8C939D',
     fontFamily: sansMedium,
     fontSize: 10
   },
   trackerMicroLabel: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 11
   },
@@ -2816,7 +2819,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(30, 144, 255, 0.28)',
+    borderColor: 'rgba(168, 143, 255, 0.28)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2826,13 +2829,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#1E90FF',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#1E90FF',
+    backgroundColor: '#A88FFF',
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2841,7 +2844,7 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerScanText: {
-    color: '#FFFFFF',
+    color: '#0A0D13',
     fontFamily: sansMedium,
     fontSize: 12
   },
@@ -2852,13 +2855,13 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   adaptiveModeDot: {
-    backgroundColor: '#FFD479',
+    backgroundColor: '#FFC25B',
     borderRadius: 3,
     height: 6,
     width: 6
   },
   adaptiveModeText: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -2877,17 +2880,17 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#1E90FF'
+    borderBottomColor: '#A88FFF'
   },
   adaptiveTabText: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 15,
     letterSpacing: -0.1,
     lineHeight: 21
   },
   adaptiveTabTextActive: {
-    color: '#F5F5F7'
+    color: '#F5F7FA'
   },
   adaptiveTabBaseline: {
     backgroundColor: 'rgba(255, 255, 255,0.10)',
@@ -2905,7 +2908,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   adaptiveBackText: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 13,
     lineHeight: 18
@@ -2926,21 +2929,21 @@ const styles = StyleSheet.create({
     paddingTop: 22
   },
   adaptiveSectionLabel: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptiveConfidenceValue: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#1E90FF',
+    backgroundColor: '#A88FFF',
     borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
@@ -2948,7 +2951,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptivePrimaryButtonText: {
-    color: '#FFFFFF',
+    color: '#0A0D13',
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
@@ -2960,7 +2963,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   adaptiveSectionAside: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15
@@ -2975,31 +2978,31 @@ const styles = StyleSheet.create({
     paddingBottom: 18
   },
   adaptivePriorityTag: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptivePriorityTagUrgent: {
-    color: '#FFD479'
+    color: '#FFC25B'
   },
   adaptiveMono: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15,
     fontVariant: ['tabular-nums']
   },
   adaptiveMonoStrong: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19,
     fontVariant: ['tabular-nums']
   },
   adaptivePriorityTitle: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 16.5,
     letterSpacing: -0.1,
@@ -3007,7 +3010,7 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   adaptivePriorityReason: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 13.5,
     lineHeight: 20,
@@ -3020,19 +3023,19 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(30, 144, 255,0.35)',
+    borderBottomColor: 'rgba(168, 143, 255, 0.35)',
     borderBottomWidth: 1,
     justifyContent: 'center',
     minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#1E90FF',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptivePriorityConfidence: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3040,7 +3043,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto'
   },
   adaptiveSectionVoice: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: serifItalic,
     fontSize: 14,
     fontStyle: 'italic',
@@ -3060,20 +3063,20 @@ const styles = StyleSheet.create({
     paddingVertical: 13
   },
   adaptiveLaneName: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     flex: 1,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveLaneState: {
-    color: '#5AC8FA',
+    color: '#C2B2FF',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveLaneStateWarm: {
-    color: '#FFD479'
+    color: '#FFC25B'
   },
   adaptiveLaneTrackRow: {
     alignItems: 'center',
@@ -3093,7 +3096,7 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   adaptiveLaneFill: {
-    backgroundColor: '#5AC8FA',
+    backgroundColor: '#C2B2FF',
     borderRadius: 2,
     bottom: 0,
     left: 0,
@@ -3101,21 +3104,21 @@ const styles = StyleSheet.create({
     top: 0
   },
   adaptiveLaneMeta: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 13
   },
   adaptiveLaneDetail: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 19,
     paddingBottom: 15
   },
   adaptiveCoverageLabel: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3123,14 +3126,14 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptiveCoverageNeed: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: serif,
     fontSize: 18,
     lineHeight: 24,
     marginTop: 6
   },
   adaptiveInsetCard: {
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 16,
     borderWidth: 1,
@@ -3138,7 +3141,7 @@ const styles = StyleSheet.create({
     padding: 18
   },
   adaptiveCoverageSuggestion: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: serif,
     fontSize: 20,
     lineHeight: 27,
@@ -3146,7 +3149,7 @@ const styles = StyleSheet.create({
   },
   adaptiveRecent: {
     alignItems: 'center',
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 14,
     borderWidth: 1,
@@ -3161,13 +3164,13 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveRecentTitle: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14.5,
     lineHeight: 20
   },
   adaptiveViewTitle: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: serifLight,
     fontSize: 23,
     lineHeight: 30,
@@ -3183,7 +3186,7 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   adaptiveTimelineTime: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 17,
@@ -3192,7 +3195,7 @@ const styles = StyleSheet.create({
     width: 54
   },
   adaptiveTimelineMarker: {
-    backgroundColor: '#5AC8FA',
+    backgroundColor: '#C2B2FF',
     borderColor: '#000000',
     borderRadius: 6,
     borderWidth: 2,
@@ -3209,13 +3212,13 @@ const styles = StyleSheet.create({
     paddingBottom: 14
   },
   adaptiveTimelineTitle: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveTimelineNote: {
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 14,
     borderWidth: 1,
@@ -3223,18 +3226,18 @@ const styles = StyleSheet.create({
     padding: 16
   },
   adaptiveEmpty: {
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     padding: 20
   },
   adaptiveSearch: {
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.12)',
     borderRadius: 12,
     borderWidth: 1,
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 15,
     height: 46,
@@ -3261,7 +3264,7 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveNutrientContext: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 16,
@@ -3277,21 +3280,21 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(30, 144, 255,0.40)',
+    borderColor: 'rgba(168, 143, 255, 0.40)',
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#1E90FF',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 14
   },
   adaptiveProfileLead: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: serifLight,
     fontSize: 19,
     lineHeight: 29,
@@ -3313,20 +3316,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12
   },
   adaptiveContributorLabel: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptiveContributorValue: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveSecondaryButton: {
     alignItems: 'center',
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.15)',
     borderRadius: 12,
     borderWidth: 1,
@@ -3336,13 +3339,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveSecondaryButtonText: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
   },
   adaptiveSafetyNote: {
-    color: '#A1A1A6',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 18,
@@ -3361,7 +3364,7 @@ const styles = StyleSheet.create({
   },
   adaptiveDockButton: {
     alignItems: 'center',
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.15)',
     borderRadius: 12,
     borderWidth: 1,
@@ -3373,7 +3376,7 @@ const styles = StyleSheet.create({
   },
   adaptiveDockAdd: {
     alignItems: 'center',
-    backgroundColor: '#121214',
+    ...glassSurface,
     borderColor: 'rgba(255, 255, 255,0.15)',
     borderRadius: 12,
     borderWidth: 1,
@@ -3384,7 +3387,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptiveDockText: {
-    color: '#F5F5F7',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
@@ -3417,8 +3420,8 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(30, 144, 255,0.08)',
-    borderColor: 'rgba(30, 144, 255,0.24)',
+    backgroundColor: 'rgba(168, 143, 255, 0.08)',
+    borderColor: 'rgba(168, 143, 255, 0.24)',
     borderRadius: 18,
     borderWidth: 1,
     height: 42,
@@ -3439,7 +3442,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   segmentActive: {
-    borderBottomColor: colors.accent
+    borderBottomColor: tabAccent.food
   },
   segmentText: {
     color: C.sub,
@@ -3458,7 +3461,7 @@ const styles = StyleSheet.create({
     paddingTop: 16
   },
   statusDot: {
-    backgroundColor: colors.accent,
+    backgroundColor: tabAccent.food,
     borderRadius: 3,
     height: 5,
     width: 5
@@ -3554,7 +3557,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   metric: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#1E2126',
     borderColor: C.hairline,
     borderRadius: 18,
     borderWidth: 1,
@@ -3620,8 +3623,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9
   },
   chipSelected: {
-    backgroundColor: colors.accentWash,
-    borderColor: colors.accent
+    backgroundColor: pillarTint('nourishment', 0.11),
+    borderColor: tabAccent.food
   },
   chipText: {
     color: C.sub,
@@ -3630,7 +3633,7 @@ const styles = StyleSheet.create({
     lineHeight: themeType.caption.lineHeight
   },
   chipTextSelected: {
-    color: colors.accent
+    color: tabAccent.food
   },
   twoCol: {
     columnGap: 10,
@@ -3639,7 +3642,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: C.gold,
+    backgroundColor: tabAccent.food,
     borderRadius: 18,
     justifyContent: 'center',
     marginTop: 8,
@@ -3653,7 +3656,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: '#0A0D13',
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3761,7 +3764,7 @@ const styles = StyleSheet.create({
   },
   scannerIcon: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('nourishment', 0.11),
     borderColor: palette.forestPale,
     borderRadius: 16,
     borderWidth: 1,
@@ -3852,7 +3855,7 @@ const styles = StyleSheet.create({
   },
   scoringLabBanner: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('nourishment', 0.11),
     borderColor: palette.forestPale,
     borderRadius: 16,
     borderWidth: 1,
@@ -3871,7 +3874,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   qualityLabel: {
-    color: colors.accent,
+    color: tabAccent.food,
     fontFamily: sansMedium,
     fontSize: themeType.caption.fontSize,
     lineHeight: themeType.caption.lineHeight,
@@ -3931,12 +3934,12 @@ const styles = StyleSheet.create({
   },
   evidenceSource: {
     ...themeType.caption,
-    color: colors.accent,
+    color: tabAccent.food,
     marginBottom: 5
   },
   personalResponseNote: {
     alignItems: 'flex-start',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('nourishment', 0.11),
     borderRadius: 14,
     flexDirection: 'row',
     gap: 10,
@@ -3964,7 +3967,7 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   inlineTextButtonText: {
-    color: colors.accent,
+    color: tabAccent.food,
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3989,7 +3992,7 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     alignItems: 'center',
-    backgroundColor: colors.accent,
+    backgroundColor: tabAccent.food,
     borderRadius: 16,
     height: 48,
     justifyContent: 'center',
@@ -4023,7 +4026,7 @@ const styles = StyleSheet.create({
     marginTop: 3
   },
   librarySignal: {
-    color: colors.accent,
+    color: tabAccent.food,
     fontFamily: sansMedium,
     fontSize: themeType.caption.fontSize,
     lineHeight: themeType.caption.lineHeight,
@@ -4031,7 +4034,7 @@ const styles = StyleSheet.create({
   },
   addIconButton: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('nourishment', 0.11),
     borderColor: palette.forestPale,
     borderRadius: 16,
     borderWidth: 1,
@@ -4079,7 +4082,7 @@ const styles = StyleSheet.create({
   },
   scannerShortcut: {
     alignItems: 'center',
-    backgroundColor: colors.accentWash,
+    backgroundColor: pillarTint('nourishment', 0.11),
     borderColor: palette.forestPale,
     borderRadius: 16,
     borderWidth: 1,
@@ -4090,7 +4093,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14
   },
   scannerShortcutText: {
-    color: colors.accent,
+    color: tabAccent.food,
     flex: 1,
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,

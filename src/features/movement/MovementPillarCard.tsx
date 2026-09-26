@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { FoundationScore } from '../../engines/foundations';
+import { glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Where movement stands, and what is holding it there.
@@ -70,14 +71,14 @@ export function MovementPillarCard({
 
   if (unread) {
     return (
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
         {checkRow}
       </View>
     );
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+    <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={[styles.eyebrow, { color: palette.muted }]}>Movement</Text>

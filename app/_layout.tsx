@@ -7,6 +7,7 @@ import {
   Inter_400Regular,
   Inter_500Medium
 } from '@expo-google-fonts/inter';
+import { DarkTheme, ThemeProvider, type Theme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +16,23 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '../src/features/auth/AuthProvider';
+import { colors } from '../src/styles/mobileTheme';
+
+/**
+ * Navigation's own surfaces — behind every screen and around the floating tab bar — are
+ * the app's true black rather than the library's light grey.
+ */
+const navigationTheme: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: colors.background,
+    card: colors.background,
+    border: 'transparent',
+    primary: colors.accent,
+    text: colors.text
+  }
+};
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -40,10 +58,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <Slot />
-          <StatusBar style="light" />
-        </AuthProvider>
+        <ThemeProvider value={navigationTheme}>
+          <AuthProvider>
+            <Slot />
+            <StatusBar style="light" />
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -51,6 +71,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1
+    flex: 1,
+    backgroundColor: colors.background
   }
 });

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { EntrySheet } from '../../../components/mobile/EntrySheet';
-import { colors, type } from '../../../styles/mobileTheme';
+import { colors, type, glassSurface } from '../../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../../styles/pillarColors';
 import {
   correctPortion,
   formatCalorieRange,
@@ -239,8 +240,8 @@ const styles = StyleSheet.create({
   macro: { minWidth: 64, gap: 2 },
   macroLabel: { ...type.label, color: colors.textFaint },
   macroValue: { ...type.body, color: colors.textMuted },
-  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: colors.accentWash },
-  tagLow: { backgroundColor: colors.surface },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: pillarTint('nourishment', 0.11) },
+  tagLow: { ...glassSurface },
   tagText: { ...type.label, color: colors.textMuted },
   portionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   portionInput: {
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: colors.surface
+    ...glassSurface
   },
   remove: { minHeight: 44, justifyContent: 'center' },
   removeText: { ...type.body, color: colors.textMuted },
@@ -260,11 +261,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary
+    backgroundColor: tabAccent.food
   },
   saveText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
   pressed: { opacity: 0.6 },
   secondary: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  secondaryText: { ...type.body, color: colors.accent, fontWeight: '600' },
+  secondaryText: { ...type.body, color: tabAccent.food, fontWeight: '600' },
   cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' }
 });

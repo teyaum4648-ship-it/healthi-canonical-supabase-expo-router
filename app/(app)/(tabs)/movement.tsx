@@ -176,7 +176,7 @@ import {
   type WorkoutExerciseDraft
 } from '../../../src/features/movement/workoutForms';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, hairlineWidth, spacing, type } from '../../../src/styles/mobileTheme';
+import { colors, hairlineWidth, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -197,14 +197,14 @@ type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 const segments: Segment[] = ['Today', 'Train', 'History'];
 const movePalette = {
   background: '#000000',
-  surface: '#121214',
-  ink: '#F5F5F7',
-  green: '#1E90FF',
-  greenMid: '#5AC8FA',
-  slate: '#A1A1A6',
+  surface: '#15171B',
+  ink: '#F5F7FA',
+  green: '#46C6FF',
+  greenMid: '#8AD9FF',
+  slate: '#A9B0BA',
   line: 'rgba(255, 255, 255, 0.075)',
   lineStrong: 'rgba(255, 255, 255, 0.12)',
-  wash: 'rgba(30, 144, 255, 0.12)'
+  wash: 'rgba(70, 198, 255, 0.12)'
 } as const;
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -653,7 +653,7 @@ export default function MovementScreen() {
     const rows = [
       { label: 'Strength', count: summary.strength_session_count, color: movePalette.green },
       { label: 'Cardio', count: summary.cardio_session_count, color: movePalette.greenMid },
-      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: '#8E8E93' },
+      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: '#8C939D' },
       { label: 'Mixed + sport', count: Math.max(0, summary.workout_count - known), color: movePalette.slate }
     ];
     const max = Math.max(1, ...rows.map((row) => row.count));
@@ -708,7 +708,7 @@ export default function MovementScreen() {
           : session.workout_type === 'cardio'
             ? movePalette.greenMid
             : session.workout_type === 'mobility' || session.workout_type === 'recovery'
-              ? '#8E8E93'
+              ? '#8C939D'
               : movePalette.slate
       };
     });
@@ -1586,7 +1586,7 @@ export default function MovementScreen() {
                 : day.category === 'cardio'
                   ? movePalette.greenMid
                   : day.category === 'mobility' || day.category === 'recovery'
-                    ? '#A1A1A6'
+                    ? '#A9B0BA'
                     : day.category
                       ? movePalette.slate
                       : 'transparent';
@@ -2100,7 +2100,7 @@ export default function MovementScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: movePalette.background },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingBottom: 28 },
   navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
   navigationTitle: { ...type.largeTitle, color: colors.text },
@@ -2125,7 +2125,7 @@ const styles = StyleSheet.create({
   segmentActive: { borderBottomColor: movePalette.green },
   segmentText: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontFamily: type.label.fontFamily, fontSize: 12 },
   segmentTextActive: { color: movePalette.green },
-  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: 'rgba(30, 144, 255, 0.16)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
+  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: 'rgba(70, 198, 255, 0.16)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
   previewDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 6, width: 6 },
   previewBannerText: { ...type.caption, color: movePalette.green, fontSize: 13 },
   page: { gap: 22, paddingHorizontal: 22, paddingTop: 30 },
@@ -2147,7 +2147,7 @@ const styles = StyleSheet.create({
   reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   reasonDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 5, width: 5 },
   reasonLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.65)', flex: 1 },
-  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(30, 144, 255, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
+  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(70, 198, 255, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
   protocolNoteText: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', flex: 1 },
   primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: tabAccent.movement, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
   primaryButtonText: { ...type.label, color: onPillar, fontSize: 15 },
@@ -2159,7 +2159,7 @@ const styles = StyleSheet.create({
   capacityRail: { flexDirection: 'row', gap: 3, marginTop: 8 },
   capacitySegment: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, flex: 1, height: 6 },
   capacitySegmentActive: { backgroundColor: movePalette.green },
-  capacityPanel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 15, borderWidth: hairlineWidth, marginTop: 14, padding: 16 },
+  capacityPanel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 15, borderWidth: hairlineWidth, marginTop: 14, padding: 16 },
   capacityTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 24 },
   body: { ...type.body, color: 'rgba(255, 255, 255, 0.66)', marginTop: 8 },
   monoMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontVariant: ['tabular-nums'], fontSize: 13 },
@@ -2174,7 +2174,7 @@ const styles = StyleSheet.create({
   supportCopy: { flex: 1 },
   supportTitle: { ...type.label, color: movePalette.ink },
   supportBody: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', marginTop: 3 },
-  feelingPanel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
+  feelingPanel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
   feelingTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 23 },
   feelingHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)', marginTop: 4 },
   mixList: { gap: 14, marginTop: 16 },
@@ -2190,15 +2190,15 @@ const styles = StyleSheet.create({
   weekDot: { borderColor: movePalette.lineStrong, borderRadius: 6, borderWidth: 1, height: 11, width: 11 },
   weekDotToday: { borderColor: movePalette.green, borderWidth: 2 },
   weekLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 16 },
-  panel: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 18 },
-  ledgerHero: { backgroundColor: movePalette.surface, borderColor: 'rgba(30, 144, 255, 0.15)', borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
+  panel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 18 },
+  ledgerHero: { ...glassSurface, borderColor: 'rgba(70, 198, 255, 0.15)', borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
   ledgerTitleInput: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 22, lineHeight: 28, minHeight: 48, paddingBottom: 8, paddingTop: 2 },
   ledgerTimestampRow: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 12 },
   ledgerTimestamp: { ...type.caption, color: movePalette.greenMid, flex: 1, fontSize: 13, fontVariant: ['tabular-nums'] },
   ledgerHelp: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', fontSize: 13.5, lineHeight: 20, marginTop: 12 },
   addMovementChip: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 12, borderWidth: hairlineWidth, flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   addMovementChipText: { ...type.caption, color: movePalette.green, fontFamily: type.label.fontFamily },
-  ledgerExerciseCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 18, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 14, paddingTop: 16 },
+  ledgerExerciseCard: { ...glassSurface, borderColor: movePalette.line, borderRadius: 18, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 14, paddingTop: 16 },
   ledgerExerciseHeading: { alignItems: 'flex-start', flexDirection: 'row', paddingHorizontal: 16 },
   ledgerExerciseTitleWrap: { flex: 1 },
   ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 0 },
@@ -2206,21 +2206,21 @@ const styles = StyleSheet.create({
   ledgerPreviousDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontSize: 13, marginTop: 6 },
   ledgerCategoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingVertical: 13 },
   ledgerCategoryChip: { borderColor: movePalette.lineStrong, borderRadius: 11, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },
-  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: 'rgba(30, 144, 255, 0.28)' },
+  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: 'rgba(70, 198, 255, 0.28)' },
   ledgerCategoryText: { ...type.caption, color: 'rgba(255, 255, 255, 0.55)', fontSize: 12 },
   ledgerCategoryTextActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
   ledgerSetCountRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   ledgerSetCountCopy: { flex: 1, paddingRight: 12 },
   ledgerSetCountTitle: { ...type.label, color: movePalette.ink, fontSize: 13 },
   ledgerSetCountHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.57)', fontSize: 13, marginTop: 2 },
-  ledgerSetStepper: { alignItems: 'center', borderColor: 'rgba(30, 144, 255, 0.20)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
-  ledgerStepperButton: { alignItems: 'center', backgroundColor: movePalette.surface, height: 44, justifyContent: 'center', width: 44 },
+  ledgerSetStepper: { alignItems: 'center', borderColor: 'rgba(70, 198, 255, 0.20)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
+  ledgerStepperButton: { alignItems: 'center', ...glassSurface, height: 44, justifyContent: 'center', width: 44 },
   ledgerSetCountValue: { ...type.label, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, borderRightColor: movePalette.line, borderRightWidth: hairlineWidth, color: movePalette.ink, fontSize: 14, textAlign: 'center', width: 34 },
   ledgerSheet: { borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, minWidth: 662 },
-  ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#1C1C1E', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
+  ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#1E2126', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
   ledgerHeader: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.55)', fontSize: 13, letterSpacing: 0, textAlign: 'center' },
   ledgerSetRow: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', minHeight: 54, paddingHorizontal: 10 },
-  ledgerSetRowComplete: { backgroundColor: 'rgba(30, 144, 255, 0.055)' },
+  ledgerSetRowComplete: { backgroundColor: 'rgba(70, 198, 255, 0.055)' },
   ledgerSetColumn: { width: 104 },
   ledgerPreviousColumn: { width: 126 },
   ledgerInputColumn: { width: 76 },
@@ -2237,12 +2237,12 @@ const styles = StyleSheet.create({
   ledgerRemoveText: { ...type.caption, color: colors.danger, fontFamily: type.label.fontFamily, fontSize: 12 },
   ledgerAddSet: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 4, minHeight: 44, paddingHorizontal: 16, paddingTop: 10 },
   ledgerAddSetText: { ...type.label, color: movePalette.green, fontSize: 12 },
-  ledgerFinishBar: { alignItems: 'center', backgroundColor: '#1C1C1E', borderColor: movePalette.lineStrong, borderRadius: 18, borderWidth: hairlineWidth, flexDirection: 'row', gap: 12, padding: 15 },
+  ledgerFinishBar: { alignItems: 'center', backgroundColor: '#1E2126', borderColor: movePalette.lineStrong, borderRadius: 18, borderWidth: hairlineWidth, flexDirection: 'row', gap: 12, padding: 15 },
   ledgerFinishCopy: { flex: 1 },
   ledgerFinishTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
   ledgerFinishHint: { ...type.caption, color: movePalette.slate, fontSize: 13, lineHeight: 18, marginTop: 3 },
   ledgerFinishButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
-  ledgerFinishButtonText: { ...type.label, color: '#FFFFFF' },
+  ledgerFinishButtonText: { ...type.label, color: '#0A0D13' },
   ledgerStatus: { ...type.caption, color: 'rgba(255, 255, 255, 0.60)', fontSize: 13, textAlign: 'center' },
   field: { marginTop: 15 },
   fieldLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.68)', marginTop: 12 },
@@ -2252,7 +2252,7 @@ const styles = StyleSheet.create({
   chip: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   chipSelected: { backgroundColor: movePalette.green, borderColor: movePalette.green },
   chipText: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontFamily: type.label.fontFamily },
-  chipTextSelected: { color: '#FFFFFF' },
+  chipTextSelected: { color: '#0A0D13' },
   twoFields: { flexDirection: 'row', gap: 10 },
   threeFields: { flexDirection: 'row', gap: 8 },
   flexField: { flex: 1, minWidth: 0 },
@@ -2268,7 +2268,7 @@ const styles = StyleSheet.create({
   textAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 },
   textActionLabel: { ...type.label, color: movePalette.green },
   sectionIntro: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', marginTop: -10 },
-  templateCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
+  templateCard: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
   templateCopy: { flex: 1 },
   templateTitle: { ...type.heading, color: movePalette.ink, fontSize: 19, lineHeight: 25 },
   monoLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'], marginTop: 7 },
@@ -2276,7 +2276,7 @@ const styles = StyleSheet.create({
   fitTag: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12 },
   templateActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
   templateStart: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 48 },
-  templateStartText: { ...type.label, color: '#FFFFFF' },
+  templateStartText: { ...type.label, color: '#0A0D13' },
   templatePreview: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 48, minWidth: 92 },
   templatePreviewText: { ...type.label, color: movePalette.ink },
   outlineAction: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 15, borderWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, padding: 16 },
@@ -2284,7 +2284,7 @@ const styles = StyleSheet.create({
   outlineActionTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
   outlineActionCopy: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', marginTop: 3 },
   footnote: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)' },
-  searchBox: { alignItems: 'center', backgroundColor: movePalette.surface, borderColor: movePalette.lineStrong, borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 10, paddingHorizontal: 14 },
+  searchBox: { alignItems: 'center', ...glassSurface, borderColor: movePalette.lineStrong, borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 10, paddingHorizontal: 14 },
   searchInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
   libraryFilters: { gap: 8, paddingRight: 22 },
   libraryList: { gap: 24, marginTop: 2 },
@@ -2299,7 +2299,7 @@ const styles = StyleSheet.create({
   libraryItemCategory: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', fontSize: 12 },
   emptyLibrary: { ...type.body, color: 'rgba(255, 255, 255, 0.48)', paddingVertical: 40, textAlign: 'center' },
   historyInsight: { ...type.voice, color: movePalette.ink, fontSize: 24, lineHeight: 31, marginTop: -6 },
-  historyPlotCard: { backgroundColor: movePalette.surface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 14 },
+  historyPlotCard: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 14 },
   plotArea: { height: 172, overflow: 'hidden', position: 'relative' },
   plotGridLine: { backgroundColor: 'rgba(255, 255, 255, 0.07)', height: hairlineWidth, left: 0, position: 'absolute', right: 0 },
   plotDot: { borderColor: movePalette.surface, borderRadius: 6, borderWidth: 1.5, height: 12, marginLeft: -6, marginTop: -6, position: 'absolute', width: 12 },
@@ -2319,7 +2319,7 @@ const styles = StyleSheet.create({
   patternLabel: { ...type.label, color: movePalette.ink },
   patternValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'] },
   mirrorLine: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 14 },
-  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(30, 144, 255, 0.17)', borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
+  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(70, 198, 255, 0.17)', borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
   emptyHistory: { paddingVertical: 14 },
   sessionRow: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, paddingVertical: 13 },
   sessionDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.44)', fontSize: 12, marginBottom: 5 },

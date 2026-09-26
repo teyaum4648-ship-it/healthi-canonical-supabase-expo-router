@@ -5,6 +5,7 @@ import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
 import { colors, type } from '../../styles/mobileTheme';
+import { tabAccent } from '../../styles/pillarColors';
 import type { HealthiProductSnapshot } from './productLookup/productLookupTypes';
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from './mealBuilder';
@@ -80,7 +81,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
       </Pressable>
     ) : undefined}>
       {selected ? <>
-        <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><Ionicons name="chevron-back" size={18} color={colors.accentMid} /><Text style={styles.link}>Choose another food</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><Ionicons name="chevron-back" size={18} color={tabAccent.food} /><Text style={styles.link}>Choose another food</Text></Pressable>
         <View style={styles.productRow}><ProductThumbnail url={selected.product.image_url} name={selected.product.name} size={76} /><View style={styles.libraryCopy}><Text style={styles.title}>{selected.product.name}</Text><Text style={styles.detail}>{selected.product.brand}</Text></View></View>
         <Text style={styles.detail}>Check the name, variety, and pack size—packaging photos may be older.</Text>
         {/* Placed above the portion controls: an avoid-list declaration should be read
@@ -122,13 +123,13 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           })}
           {catalog.incomplete.length ? <>
             {!catalog.ready.length ? <Text style={styles.detail}>These matches still need label details. Scan the package or enter its nutrition to log it accurately.</Text> : null}
-            <Pressable accessibilityRole="button" accessibilityState={{ expanded: showIncomplete }} onPress={() => setShowIncomplete(!showIncomplete)} style={styles.back}><Text style={styles.link}>{showIncomplete ? 'Hide' : 'Show'} {catalog.incomplete.length} matches needing label details</Text><Ionicons name={showIncomplete ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accentMid} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: showIncomplete }} onPress={() => setShowIncomplete(!showIncomplete)} style={styles.back}><Text style={styles.link}>{showIncomplete ? 'Hide' : 'Show'} {catalog.incomplete.length} matches needing label details</Text><Ionicons name={showIncomplete ? 'chevron-up' : 'chevron-down'} size={18} color={tabAccent.food} /></Pressable>
             {showIncomplete ? catalog.incomplete.map(product => <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} /><View style={styles.libraryCopy}><Text style={styles.label}>{product.name}</Text><Text style={styles.detail}>{foodSearchPortionDetail(product)}</Text><ActionRow title="Enter this food’s label" onPress={onManual} /></View></View>) : null}
           </> : null}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
         </> : <>
-          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><ScoreRing score={product.quality_score} size={34} label={`${product.name}: quality ${product.quality_score ?? 'not scored'}`} /><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.accentMid} /></Pressable></View>)}
+          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><ScoreRing score={product.quality_score} size={34} label={`${product.name}: quality ${product.quality_score ?? 'not scored'}`} /><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={tabAccent.food} /></Pressable></View>)}
           {!personal.length ? <Text style={styles.detail}>{query ? 'No matching foods in this list. Try Search for more options.' : tab === 'Saved' ? 'Bookmark foods in Recent to keep them here for next time.' : 'Foods you use will appear here. Search or scan to begin.'}</Text> : null}
         </>}
         {error ? <Text accessibilityRole="alert" style={styles.detail}>{error}</Text> : null}
@@ -138,13 +139,13 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   );
 }
 const styles = StyleSheet.create({
-  portionChoices: { gap: 8 }, portionChoice: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.surfaceInset, minHeight: 44 }, portionChoiceSelected: { borderColor: colors.accentMid, backgroundColor: colors.surfaceInset },
+  portionChoices: { gap: 8 }, portionChoice: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.surfaceInset, minHeight: 44 }, portionChoiceSelected: { borderColor: tabAccent.food, backgroundColor: colors.surfaceInset },
   productRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text }, detail: { ...type.body, color: colors.textMuted }, label: { ...type.label, color: colors.text },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: colors.accentMid },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: tabAccent.food },
   searchRow: { flexDirection: 'row', gap: 8 }, searchInput: { ...type.body, color: colors.text, minWidth: 0, flex: 1, backgroundColor: colors.surfaceInset, minHeight: 50, paddingHorizontal: 14, borderRadius: 14 },
-  search: { backgroundColor: colors.primary, minWidth: 70, paddingHorizontal: 12, minHeight: 50, justifyContent: 'center', alignItems: 'center', borderRadius: 14 }, source: { ...type.caption, color: colors.textMuted },
-  primary: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', borderRadius: 14, minHeight: 52, padding: 12 }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 },
+  search: { backgroundColor: tabAccent.food, minWidth: 70, paddingHorizontal: 12, minHeight: 50, justifyContent: 'center', alignItems: 'center', borderRadius: 14 }, source: { ...type.caption, color: colors.textMuted },
+  primary: { backgroundColor: tabAccent.food, alignItems: 'center', justifyContent: 'center', borderRadius: 14, minHeight: 52, padding: 12 }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 },
   portionRow: { flexDirection: 'row', gap: 12, alignItems: 'center' }, step: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceInset }, portion: { ...type.numberLg, color: colors.text, flex: 1, minHeight: 54, textAlign: 'center', backgroundColor: colors.surfaceInset, borderRadius: 12 },
   nutrients: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, nutrient: { minWidth: '40%', flex: 1, gap: 4 }, libraryRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, libraryCopy: { flex: 1 }
 });

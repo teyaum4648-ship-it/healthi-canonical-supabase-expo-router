@@ -4,10 +4,12 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mainTabs } from '../../../src/features/navigation/navigationModel';
 
-import { colors, fonts, hairlineWidth } from '../../../src/styles/mobileTheme';
+import { ambientGlow, colors, fonts, glassChrome } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
+
+const hairlineWidthOrOne = Platform.OS === 'web' ? 1 : glassChrome.borderWidth;
 
 const systemFont = Platform.select({
   ios: 'System',
@@ -31,21 +33,35 @@ export default function AppTabsLayout() {
       screenOptions={() => {
         return {
           headerShown: false,
+          sceneStyle: { backgroundColor: colors.background },
           tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: colors.textMuted,
+          tabBarInactiveTintColor: colors.textFaint,
           tabBarLabelStyle: {
             fontFamily: systemFont,
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: '600',
             letterSpacing: 0.1
           },
+          tabBarItemStyle: { paddingTop: 7, paddingBottom: 6 },
+          /*
+           * A pill that floats above the bottom edge, the way the system tab bar does now.
+           * It stays in the layout rather than over the content, so nothing on any screen
+           * has to make room for it; the margin around it is the page's own black.
+           */
           tabBarStyle: {
-            borderTopColor: colors.hairline,
-            borderTopWidth: hairlineWidth,
-            backgroundColor: '#08080A',
-            height: 62 + Math.max(insets.bottom, 8),
-            paddingBottom: Math.max(insets.bottom, 8),
-            paddingTop: 9
+            ...glassChrome,
+            position: 'relative',
+            borderTopWidth: hairlineWidthOrOne,
+            borderTopColor: glassChrome.borderColor,
+            borderRadius: 32,
+            height: 64,
+            marginHorizontal: 16,
+            marginBottom: Math.max(insets.bottom, 12),
+            marginTop: 6,
+            paddingBottom: 0,
+            paddingTop: 0,
+            paddingHorizontal: 6,
+            overflow: 'hidden'
           }
         };
       }}
@@ -55,17 +71,19 @@ export default function AppTabsLayout() {
         const accent = tab.route in tabAccent ? tabAccent[tab.route as keyof typeof tabAccent] : colors.accent;
         return <Tabs.Screen key={tab.route} name={tab.route} options={{
           title: tab.label,
+          sceneStyle: ambientGlow(accent),
           // Each pillar's tab lights up in its own colour, the way the Health app colours its categories.
           tabBarActiveTintColor: accent,
           // Keep the actual navigation state intact so Home remains tappable from Plan.
           tabBarIcon: (props) => tabIcon(tab.outline, tab.filled)({ ...props, focused: props.focused || homeContext, color: homeContext ? colors.accent : props.color }),
-          ...(homeContext ? { tabBarLabelStyle: { fontFamily: systemFont, fontSize: 12, fontWeight: '600' as const, letterSpacing: 0.1, color: colors.accent } } : {})
+          ...(homeContext ? { tabBarLabelStyle: { fontFamily: systemFont, fontSize: 10, fontWeight: '600' as const, letterSpacing: 0.1, color: colors.accent } } : {})
         }} />;
       })}
       <Tabs.Screen
         name="plan"
         options={{
-          href: null
+          href: null,
+          sceneStyle: ambientGlow(colors.accent)
         }}
       />
       {/* Reached from the Home header rather than the bar; see mainTabs. */}
@@ -78,7 +96,8 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          href: null
+          href: null,
+          sceneStyle: ambientGlow(colors.accent)
         }}
       />
     </Tabs>

@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 15
   },
-  chipActive: { backgroundColor: colors.accent },
+  chipActive: { backgroundColor: tabAccent.mood },
   chipText: { ...type.label, color: colors.textMuted },
   chipTextActive: { color: colors.primaryText },
 
@@ -172,6 +172,6 @@ const styles = StyleSheet.create({
   },
   secondaryText: { ...type.label, color: colors.text },
   textButton: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44 },
-  textButtonLabel: { ...type.label, color: colors.accent },
+  textButtonLabel: { ...type.label, color: tabAccent.mood },
   pressed: { opacity: 0.7 }
 });

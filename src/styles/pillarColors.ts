@@ -1,18 +1,16 @@
+import { hues } from './tokens';
+
 /**
- * One colour per pillar, used wherever a pillar is named.
- *
- * Each is the colour its own tab already used — the Sleep tab's night green, the Diet tab's
- * calorie purple, the Move tab's blue — so adopting it changes as little as possible. Home
- * had a separate set that nothing else used, and its nourishment cyan sat so close to the
- * Sleep green in both hue and lightness that the two pillars could not be told apart.
+ * One colour per pillar, used wherever a pillar is named: mint, iris, glacier and amber,
+ * a quarter of the wheel apart so no two can be mistaken for each other.
  *
  * Colour is never the only signal: every place that uses one also names the pillar.
  */
 export const pillarColors = {
-  recovery_rhythm: '#A9D8BF',
-  nourishment: '#AA8AF8',
-  movement_capacity: '#5AC8FA',
-  mind_life_load: '#FFD479'
+  recovery_rhythm: hues.mint,
+  nourishment: hues.iris,
+  movement_capacity: hues.glacier,
+  mind_life_load: hues.amber
 } as const;
 
 export type PillarId = keyof typeof pillarColors;
@@ -21,9 +19,9 @@ export type PillarId = keyof typeof pillarColors;
  * Text and icons on a pillar-coloured fill. The pillar colours are light, so white on
  * them fails contrast; near-black passes comfortably on all four.
  */
-export const onPillar = '#0B0B0C';
+export const onPillar = hues.onAccent;
 
-/** Each tab's accent, used for its tab-bar icon and its main button. Home keeps system blue. */
+/** Each tab's accent, used for its tab-bar icon and its main button. Home uses the brand mint. */
 export const tabAccent = {
   food: pillarColors.nourishment,
   movement: pillarColors.movement_capacity,

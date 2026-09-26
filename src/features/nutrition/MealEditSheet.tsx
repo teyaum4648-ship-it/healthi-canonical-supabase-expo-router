@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { colors, type } from '../../styles/mobileTheme';
+import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import { mealTypes } from './foodTabForms';
 import { mealAmountFields, type MealEditDraft } from './mealEditing';
 
@@ -21,6 +22,6 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: colors.text }, detail: { ...type.body, color: colors.textMuted },
   input: { ...type.body, minHeight: 48, color: colors.text, padding: 12, borderRadius: 12, backgroundColor: colors.surfaceInset },
   fields: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, field: { flexGrow: 1, flexBasis: '45%', minWidth: 130, gap: 8 },
-  types: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, chip: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceInset }, selected: { backgroundColor: colors.accentWash, borderWidth: 1, borderColor: colors.accent },
-  save: { minHeight: 52, padding: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary }, saveText: { ...type.body, color: colors.primaryText, fontWeight: '600' }, pressed: { opacity: 0.6 }, cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' }
+  types: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, chip: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceInset }, selected: { backgroundColor: pillarTint('nourishment', 0.11), borderWidth: 1, borderColor: tabAccent.food },
+  save: { minHeight: 52, padding: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: tabAccent.food }, saveText: { ...type.body, color: colors.primaryText, fontWeight: '600' }, pressed: { opacity: 0.6 }, cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' }
 });

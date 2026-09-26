@@ -5,8 +5,9 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { ActivityIndicator, AppState, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
-import type { DailyReadinessResult } from '../../engines/readiness';
-import { colors, type } from '../../styles/mobileTheme';
+import type { DailyReadinessDomain, DailyReadinessResult } from '../../engines/readiness';
+import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
+import { pillarColors } from '../../styles/pillarColors';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
@@ -24,15 +25,49 @@ const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
   surface: colors.surface, surfaceAlt: colors.surfaceInset, border: colors.borderStrong, hairline: colors.hairline,
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
-  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#FFD479', chip: colors.surfaceMuted
+  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#FFC25B', chip: colors.surfaceMuted
 };
 const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function clockLabel(value: string) {
   const [h, m] = value.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
-function Button({ title, onPress, disabled = false, secondary = false, grow = false, wide = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; grow?: boolean; wide?: boolean }) {
-  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, secondary && styles.secondary, grow && styles.grow, wide && styles.wide, (pressed || disabled) && { opacity: .6 }]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.buttonText}>{title}</Text></Pressable>;
+/** Short enough for a quarter of the row; the full names stay in the sheet and the labels. */
+const pillarShortNames: Record<DailyReadinessDomain, string> = {
+  recovery_rhythm: 'Recovery', nourishment: 'Nourish', movement_capacity: 'Movement', mind_life_load: 'Mind'
+};
+const pillarOrder: DailyReadinessDomain[] = ['recovery_rhythm', 'nourishment', 'movement_capacity', 'mind_life_load'];
+
+function pointsLabel(points: number): string {
+  if (points === 0) return '0';
+  return points > 0 ? `+${points}` : `−${Math.abs(points)}`;
+}
+
+/**
+ * What each foundation added to or took from the estimate, in the points the ledger uses.
+ * These are contributions, not per-pillar scores: the engine does not score the pillars
+ * out of 100 here, so the row says only what it knows. A foundation with no evidence shows
+ * a dash, because missing data adds nothing and takes nothing away.
+ */
+function PillarContributions({ rows }: { rows: { domain: DailyReadinessDomain; contribution: number; missing: boolean }[] }) {
+  return <View style={styles.pillars}>
+    {pillarOrder.map(domain => {
+      const row = rows.find(r => r.domain === domain);
+      const known = row && !row.missing;
+      const value = known ? pointsLabel(row.contribution) : '—';
+      return <View key={domain} accessible accessibilityLabel={`${domainNames[domain]}: ${known ? `${value} points` : 'no signal yet'}`} style={styles.pillar}>
+        <Text style={[styles.pillarValue, !known && styles.pillarValueMissing]}>{value}</Text>
+        <View style={styles.pillarNameRow}>
+          <View style={[styles.pillarDot, { backgroundColor: pillarColors[domain] }]} />
+          <Text numberOfLines={1} style={styles.pillarName}>{pillarShortNames[domain]}</Text>
+        </View>
+      </View>;
+    })}
+  </View>;
+}
+
+function Button({ title, label, onPress, disabled = false, secondary = false, grow = false, wide = false }: { title: string; label?: string; onPress: () => void; disabled?: boolean; secondary?: boolean; grow?: boolean; wide?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, secondary && styles.secondary, grow && styles.grow, wide && styles.wide, (pressed || disabled) && { opacity: .6 }]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.buttonText, secondary && styles.secondaryText]}>{title}</Text></Pressable>;
 }
 function Choices<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; title: string }[]; onChange: (value: T) => void }) {
   return <View style={styles.group}><Text style={styles.heading}>{label}</Text><View style={styles.choices}>{options.map(o => <Pressable key={o.value} accessibilityRole="radio" accessibilityLabel={`${label}: ${o.title}`} accessibilityState={{ checked: o.value === value }} onPress={() => onChange(o.value)} style={[styles.choice, o.value === value && styles.selected]}><Text style={styles.body}>{o.title}</Text></Pressable>)}</View></View>;
@@ -155,22 +190,17 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
   const remind = focused && shouldRemindAboutLunch(now, data.reminders, mealTimes, data.checkins);
   return <>
     {/*
-      One screen's worth, not a whole one: the estimate and its ring side by side, one line
-      of context, and two buttons. The reminder preference moved into "Why this estimate?",
-      where it sits with the rest of how the estimate works.
+      The estimate stands on the page rather than in a box: the ring, what it means, what
+      each foundation contributed, one line of context and the two things to do next.
     */}
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.headCopy}>
-          <Text style={styles.eyebrow}>Readiness now · {timeLabel(now)}</Text>
-          <Text style={styles.title}>{result.title}</Text>
-        </View>
-        {renderRing(result.publicScore)}
-      </View>
-      <Text style={styles.muted}>{result.attention[0]?.text ?? result.summary}</Text>
-      <Text style={styles.meta}>{result.publicScore !== null ? `${result.confidence === 'low' ? 'Limited' : 'Moderate'} confidence` : 'No current number yet'} · {result.checkin ? `Checked in ${timeLabel(result.checkin.at)}${result.state === 'update_needed' ? ', update needed' : ''}` : 'No check-in yet'} · Demo</Text>
+    <View style={styles.hero}>
+      {renderRing(result.publicScore)}
+      <Text style={styles.heroTitle}>{result.title}</Text>
+      <PillarContributions rows={result.ledger} />
+      <Text style={[styles.muted, styles.centered]}>{result.attention[0]?.text ?? result.summary}</Text>
+      <Text style={[styles.meta, styles.centered]}>{timeLabel(now)} · {result.publicScore !== null ? `${result.confidence === 'low' ? 'Limited' : 'Moderate'} confidence` : 'No current number yet'} · {result.checkin ? `Checked in ${timeLabel(result.checkin.at)}${result.state === 'update_needed' ? ', update needed' : ''}` : 'No check-in yet'} · Demo</Text>
       <View style={styles.buttonRow}>
-        <Button grow title={result.checkin ? 'Update check-in' : 'Check in'} onPress={() => setSheet('checkin')} />
+        <Button grow title={result.checkin ? 'Update' : 'Check in'} label={result.checkin ? 'Update check-in' : 'Check in'} onPress={() => setSheet('checkin')} />
         <Button grow wide secondary title="Why this estimate?" onPress={() => setSheet('why')} />
       </View>
     </View>
@@ -196,11 +226,21 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, renderRing, ch
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, padding: 20, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, gap: 12 },
+  card: { ...glassSurface, padding: 20, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge, gap: 12 },
+  hero: { alignItems: 'center', gap: 12, paddingTop: 4, paddingBottom: 4 },
+  heroTitle: { ...type.heading, color: colors.text, textAlign: 'center', marginTop: 2 },
+  centered: { textAlign: 'center', paddingHorizontal: 8 },
+  pillars: { flexDirection: 'row', alignSelf: 'stretch', marginVertical: 2 },
+  pillar: { flex: 1, alignItems: 'center', gap: 4 },
+  pillarValue: { ...type.number, fontSize: 20, lineHeight: 24, color: colors.text },
+  pillarValueMissing: { color: colors.textFaint },
+  pillarNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  pillarDot: { width: 6, height: 6, borderRadius: 3 },
+  pillarName: { ...type.caption, fontSize: 12, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text, fontSize: 24, lineHeight: 30 },
   headCopy: { flex: 1, minWidth: 0, gap: 4 },
-  buttonRow: { flexDirection: 'row', gap: 10 },
+  buttonRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 4 },
   grow: { flex: 1, paddingHorizontal: 10 },
   wide: { flex: 1.45 },
   heading: { ...type.body, fontWeight: '600', color: colors.text, marginTop: 4 },
@@ -208,13 +248,14 @@ const styles = StyleSheet.create({
   body: { ...type.body, color: colors.text },
   muted: { ...type.body, color: colors.textMuted, lineHeight: 23 },
   meta: { ...type.caption, color: colors.textMuted, lineHeight: 20 },
-  button: { minHeight: 48, borderRadius: 14, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
+  button: { minHeight: 50, borderRadius: 16, ...accentFill(colors.primary), justifyContent: 'center', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
   buttonText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
-  secondary: { backgroundColor: colors.surfaceMuted },
+  secondaryText: { color: colors.text },
+  secondary: { ...glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   group: { gap: 10, marginVertical: 6 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  notice: { ...type.body, color: '#FFD479' },
+  notice: { ...type.body, color: '#FFC25B' },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { fonts } from '../../styles/mobileTheme';
+import { fonts, glassSurface } from '../../styles/mobileTheme';
 import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
 import { SleepTimeWheel } from './SleepTimeWheel';
 import { sleepClockParts, sleepClockValue } from './sleepTimePickerModel';
@@ -31,7 +31,7 @@ export function SleepTimePicker({ label, value, palette, onCancel, onDone }: {
     <Modal transparent visible animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable accessibilityLabel="Cancel time selection" onPress={onCancel} style={StyleSheet.absoluteFill} />
-        <SafeAreaView edges={['bottom']} style={[styles.sheet, { backgroundColor: palette.surface, maxHeight: height }]}>
+        <SafeAreaView edges={['bottom']} style={[styles.sheet, { ...glassSurface, maxHeight: height }]}>
           <View style={[styles.header, { borderBottomColor: palette.border }]}>
             <Pressable accessibilityRole="button" onPress={onCancel} style={styles.action}><Text style={[styles.actionText, { color: palette.muted }]}>Cancel</Text></Pressable>
             <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{label}</Text>

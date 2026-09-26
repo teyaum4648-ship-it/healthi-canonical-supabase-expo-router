@@ -8,7 +8,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, G, Line, Polyline } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Line, LinearGradient as SvgLinearGradient, Polyline, RadialGradient, Stop } from 'react-native-svg';
 
 import { generateCircadianBriefing, type SleepNeedEstimate, type SleepSession } from '../../../src/engines/circadian';
 import { generateDayPlan } from '../../../src/engines/dayPlan';
@@ -88,7 +88,7 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, type } from '../../../src/styles/mobileTheme';
+import { fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -102,22 +102,23 @@ const recapDismissedKey = 'healthi:recap:dismissed:v1';
 const waterColor = dietAccents.water;
 const homePalette = {
   background: '#000000',
-  surface: '#121214',
-  surfaceRaised: '#1C1C1E',
-  surfaceSoft: '#242426',
+  surface: '#15171B',
+  surfaceRaised: '#1E2126',
+  surfaceSoft: '#272A30',
   border: 'rgba(255, 255, 255, 0.075)',
   borderStrong: 'rgba(255, 255, 255, 0.12)',
-  blue: '#1E90FF',
-  blueBright: '#64D2FF',
-  blueSoft: '#5AC8FA',
-  cyan: '#63E6CE',
-  violet: '#BF8BFF',
-  amber: '#FFD479',
-  text: '#F5F5F7',
-  textMuted: '#A1A1A6',
-  textFaint: '#8E8E93',
-  track: '#2C2C2E',
-  white: '#FFFFFF'
+  blue: '#00F6AA',
+  blueBright: '#8FFFD6',
+  blueSoft: '#5CF2C0',
+  cyan: '#5CF2C0',
+  violet: '#A88FFF',
+  amber: '#FFC25B',
+  text: '#F5F7FA',
+  textMuted: '#A9B0BA',
+  textFaint: '#8C939D',
+  track: '#2A2E35',
+  white: '#F5F7FA',
+  onAccent: '#0A0D13'
 } as const;
 
 const homeFont = Platform.select({
@@ -260,9 +261,26 @@ function ReadinessRing({ score, emptyLabel = 'Calibrating', size = 128 }: { scor
   const headX = c + arcRadius * Math.cos(headAngle);
   const headY = c + arcRadius * Math.sin(headAngle);
 
+  /* The hero size carries its own label inside the ring; the small one has no room for it. */
+  const hero = size >= 160;
+  const stroke = (hero ? 7 : 5) * k;
+
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={score === null ? `Readiness: ${emptyLabel}` : `Estimated readiness: ${score} out of 100`} style={[styles.ringShell, { width: size, height: size }]}>
       <Svg height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
+        <Defs>
+          {/* The arc brightens as it fills, the way a filled ring should read. */}
+          <SvgLinearGradient id="readinessArc" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={hues.mintPressed} />
+            <Stop offset="1" stopColor={hues.mint} />
+          </SvgLinearGradient>
+          <RadialGradient id="readinessGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={hues.mint} stopOpacity={score === null ? 0 : 0.14} />
+            <Stop offset="0.55" stopColor={hues.mint} stopOpacity={score === null ? 0 : 0.05} />
+            <Stop offset="1" stopColor={hues.mint} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        {hero ? <Circle cx={c} cy={c} fill="url(#readinessGlow)" r={c} /> : null}
         <G transform={`rotate(-90 ${c} ${c})`}>
           {Array.from({ length: tickCount }, (_, tick) => {
             const angle = (tick / tickCount) * Math.PI * 2;
@@ -273,7 +291,7 @@ function ReadinessRing({ score, emptyLabel = 'Calibrating', size = 128 }: { scor
             return (
               <Line
                 key={tick}
-                stroke={lit ? 'rgba(100, 210, 255, 0.45)' : homePalette.track}
+                stroke={lit ? 'rgba(0, 246, 170, 0.5)' : 'rgba(235, 240, 255, 0.1)'}
                 strokeLinecap="round"
                 strokeWidth={1.1}
                 x1={c + inner * Math.cos(angle)}
@@ -283,29 +301,30 @@ function ReadinessRing({ score, emptyLabel = 'Calibrating', size = 128 }: { scor
               />
             );
           })}
-          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke={homePalette.track} strokeWidth={5 * k} />
+          <Circle cx={c} cy={c} fill="none" r={arcRadius} stroke="rgba(235, 240, 255, 0.07)" strokeWidth={stroke} />
           <AnimatedCircle
             cx={c}
             cy={c}
             fill="none"
             r={arcRadius}
-            stroke={homePalette.blue}
+            stroke="url(#readinessArc)"
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
             strokeLinecap="round"
-            strokeWidth={5 * k}
+            strokeWidth={stroke}
           />
           {score !== null ? (
             <>
-              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blue} opacity={headOpacity} r={8 * k} fillOpacity={0.18} />
-              <AnimatedCircle cx={headX} cy={headY} fill={homePalette.blueBright} opacity={headOpacity} r={3.2 * k} />
+              <AnimatedCircle cx={headX} cy={headY} fill={hues.mint} opacity={headOpacity} r={stroke * 1.4} fillOpacity={0.22} />
+              <AnimatedCircle cx={headX} cy={headY} fill="#FFFFFF" opacity={headOpacity} r={stroke * 0.32} />
             </>
           ) : null}
         </G>
       </Svg>
       <View style={styles.ringCenter}>
-        <Text style={[styles.score, { fontSize: Math.round(44 * k), lineHeight: Math.round(50 * k) }, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
-        <Text style={styles.scoreLabel}>{score === null ? emptyLabel : '/ 100'}</Text>
+        {hero ? <Text style={styles.ringEyebrow}>Readiness</Text> : null}
+        <Text style={[styles.score, hero ? styles.scoreHero : { fontSize: Math.round(44 * k), lineHeight: Math.round(50 * k) }, { fontSize: Math.round((hero ? 40 : 44) * k * (score === null ? 0.55 : 1)), lineHeight: Math.round((hero ? 42 : 50) * k) }, score === null && styles.scoreCalibrating]}>{score === null ? '—' : displayScore}</Text>
+        <Text style={styles.scoreLabel}>{score === null ? emptyLabel : 'of 100'}</Text>
       </View>
     </View>
   );
@@ -942,7 +961,7 @@ export default function DashboardScreen() {
         </View>
         <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
 
-        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" size={104} />} /> : <View style={styles.heroCard}>
+        {mode === 'demo' ? <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} renderRing={score => <ReadinessRing score={score} emptyLabel="No estimate" size={216} />} /> : <View style={styles.heroCard}>
           <View style={styles.heroGlow}>
             <View style={styles.heroTopRow}>
               <View style={styles.heroCopy}>
@@ -1030,26 +1049,28 @@ const styles = StyleSheet.create({
   weekRow: { flexDirection: 'row', gap: 10 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   profileButton: {
+    ...glassSurface,
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
+    borderColor: glass.edge,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
     height: 44,
     justifyContent: 'center',
     width: 44
   },
-  calendarButton: { alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: homePalette.surfaceRaised },
+  calendarButton: { ...glassSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
   homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
-  homeNextAction: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, paddingHorizontal: 20, borderRadius: 20, backgroundColor: homePalette.surfaceRaised },
+  homeNextAction: { ...tintedGlass(hues.mint), flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 24 },
   homeEyebrow: { fontFamily: homeFont, fontSize: 14, fontWeight: '500', color: homePalette.blueSoft, marginBottom: 6 },
   homeDetail: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 4 },
   safe: {
-    backgroundColor: homePalette.background,
+    backgroundColor: 'transparent',
     flex: 1
   },
   scroll: {
-    gap: 13,
+    gap: 16,
     paddingBottom: 28,
     paddingHorizontal: 20
   },
@@ -1090,7 +1111,7 @@ const styles = StyleSheet.create({
     width: 40
   },
   avatarText: {
-    color: homePalette.white,
+    color: homePalette.onAccent,
     fontFamily: homeFont,
     fontSize: 14,
     fontWeight: '600'
@@ -1104,9 +1125,9 @@ const styles = StyleSheet.create({
   quickUndo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 6 },
   quickUndoText: { fontFamily: homeFont, fontSize: 15, fontWeight: '600', color: homePalette.blueSoft },
   quickLogSection: {
-    backgroundColor: homePalette.surface,
-    borderColor: homePalette.border,
-    borderRadius: 20,
+    ...glassSurface,
+    borderColor: glass.edge,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 13,
     paddingBottom: 13,
@@ -1169,7 +1190,7 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   heroCard: {
-    backgroundColor: homePalette.surface,
+    ...glassSurface,
     borderColor: homePalette.borderStrong,
     borderRadius: 26,
     borderWidth: 1,
@@ -1198,7 +1219,7 @@ const styles = StyleSheet.create({
   livePill: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(30, 144, 255, 0.12)',
+    backgroundColor: 'rgba(0, 246, 170, 0.12)',
     borderRadius: 999,
     flexDirection: 'row',
     gap: 7,
@@ -1263,6 +1284,17 @@ const styles = StyleSheet.create({
   scoreCalibrating: {
     color: homePalette.textMuted
   },
+  scoreHero: {
+    fontWeight: '600',
+    letterSpacing: -2
+  },
+  ringEyebrow: {
+    color: homePalette.textFaint,
+    fontFamily: homeFont,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2
+  },
   scoreLabel: {
     ...type.eyebrow,
     color: homePalette.textMuted,
@@ -1304,10 +1336,10 @@ const styles = StyleSheet.create({
     width: 36
   },
   panel: {
-    backgroundColor: homePalette.surface,
-    borderColor: homePalette.border,
+    ...glassSurface,
+    borderColor: glass.edge,
     borderRadius: 22,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     elevation: 1,
     padding: 17
   },
@@ -1398,7 +1430,7 @@ const styles = StyleSheet.create({
     fontFamily: homeFont
   },
   primaryAction: {
-    backgroundColor: homePalette.surface,
+    ...glassSurface,
     borderColor: homePalette.border,
     borderRadius: 20,
     borderWidth: 1,
@@ -1413,7 +1445,7 @@ const styles = StyleSheet.create({
   },
   primaryActionIcon: {
     alignItems: 'center',
-    backgroundColor: 'rgba(30, 144, 255, 0.13)',
+    backgroundColor: 'rgba(0, 246, 170, 0.13)',
     borderRadius: 15,
     height: 42,
     justifyContent: 'center',
@@ -1432,10 +1464,11 @@ const styles = StyleSheet.create({
   primaryActionTitle: {
     color: homePalette.white,
     fontFamily: homeFont,
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: '600',
-    lineHeight: 20,
-    marginTop: 4
+    letterSpacing: -0.3,
+    lineHeight: 25,
+    marginTop: 2
   },
   primaryActionDetail: {
     ...type.caption,
@@ -1532,7 +1565,7 @@ const styles = StyleSheet.create({
     gap: 12
   },
   miniCard: {
-    backgroundColor: homePalette.surface,
+    ...glassSurface,
     borderColor: homePalette.border,
     borderRadius: 20,
     borderWidth: 1,
@@ -1662,7 +1695,7 @@ const styles = StyleSheet.create({
   },
   actionIndex: {
     alignItems: 'center',
-    backgroundColor: 'rgba(30, 144, 255, 0.13)',
+    backgroundColor: 'rgba(0, 246, 170, 0.13)',
     borderRadius: 10,
     height: 24,
     justifyContent: 'center',

@@ -9,6 +9,7 @@ import {
   type DaySlot
 } from '../../engines/circadian';
 import type { SleepPalette } from './SleepExperience';
+import { glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Six questions, then a day built from the answers that the person gets to argue with.
@@ -86,7 +87,7 @@ export function ChronotypeQuiz({
         </View>
 
         {slots.map((slot) => (
-          <View key={slot.id} style={[styles.slot, { backgroundColor: palette.surface, borderColor: palette.hairline }]}>
+          <View key={slot.id} style={[styles.slot, { ...glassSurface, borderColor: palette.hairline }]}>
             <View style={styles.slotHead}>
               <View style={styles.flex}>
                 <Text style={[styles.slotLabel, { color: palette.text }]}>{slot.label}</Text>
@@ -170,7 +171,7 @@ export function ChronotypeQuiz({
       </Text>
 
       {CHRONOTYPE_QUESTIONS.map((question) => (
-        <View key={question.id} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <View key={question.id} style={[styles.card, { ...glassSurface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>{question.prompt}</Text>
           {question.note ? <Text style={[styles.cardNote, { color: palette.faint }]}>{question.note}</Text> : null}
           <View style={styles.options}>

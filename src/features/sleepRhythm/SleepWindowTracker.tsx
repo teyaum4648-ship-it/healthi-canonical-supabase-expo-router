@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { SleepSession } from '../../engines/circadian';
-import { fonts } from '../../styles/mobileTheme';
+import { fonts, glassSurface } from '../../styles/mobileTheme';
 import { SleepTimePicker } from './SleepTimePicker';
 import { DayNavigator } from '../../components/mobile/DayNavigator';
 import { shiftDay } from '../navigation/navigationModel';
@@ -237,7 +237,7 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
 
   return (
     <View style={styles.sectionPad}>
-      <View style={[styles.card, { backgroundColor: props.palette.surface, borderColor: props.palette.border }]}>
+      <View style={[styles.card, { ...glassSurface, borderColor: props.palette.border }]}>
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.eyebrow, { color: props.palette.faint }]}>{viewDate === props.date ? 'Last night' : 'Sleep history'}</Text>

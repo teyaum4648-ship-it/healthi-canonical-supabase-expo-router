@@ -69,7 +69,7 @@ import {
   workoutSessionRowToEngineSession
 } from '../../../src/features/movement/movementPersistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, fonts, hairlineWidth, palette, spacing, type } from '../../../src/styles/mobileTheme';
+import { colors, fonts, hairlineWidth, palette, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -102,18 +102,18 @@ function formatHourLabel(ms: number): string {
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: 'rgba(30, 144, 255, 0.14)',
-  exercise: 'rgba(255, 212, 121, 0.14)',
-  light_movement: 'rgba(90, 200, 250, 0.14)',
-  wind_down: 'rgba(255, 105, 97, 0.12)',
+  deep_work: 'rgba(168, 143, 255, 0.14)',
+  exercise: 'rgba(255, 194, 91, 0.14)',
+  light_movement: 'rgba(70, 198, 255, 0.14)',
+  wind_down: 'rgba(255, 107, 107, 0.12)',
   meal: 'rgba(255, 255, 255, 0.10)',
-  sleep: 'rgba(191, 139, 255, 0.12)',
+  sleep: 'rgba(168, 143, 255, 0.12)',
   neutral: 'rgba(255, 255, 255, 0.07)'
 };
 
 const SECTION_ACCENT: Record<CalendarSection, string> = {
   deep_work: palette.forest,
-  exercise: '#FFD479',
+  exercise: '#FFC25B',
   light_movement: palette.forestMid,
   wind_down: palette.clayDark,
   meal: palette.faint,
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
   backHomeLabel: { fontFamily: fonts.body, fontSize: 16, color: colors.accentMid },
   screen: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: 'transparent'
   },
   safe: {
     flex: 1
@@ -990,7 +990,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   card: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.hairline,
     borderRadius: 24,
     borderWidth: 1,
@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
     fontSize: 11
   },
   timelineBlock: {
-    backgroundColor: colors.surface,
+    ...glassSurface,
     borderColor: colors.hairline,
     borderLeftWidth: 3,
     borderRadius: 10,

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
 import type { ExerciseMovementPattern } from './movementPersistence';
 import {
   baselineNames,
@@ -24,15 +24,15 @@ import {
 
 const palette = {
   background: '#000000',
-  surface: '#121214',
-  ink: '#F5F5F7',
-  accent: '#1E90FF',
-  accentMid: '#5AC8FA',
-  slate: '#A1A1A6',
-  faint: '#8E8E93',
+  surface: '#15171B',
+  ink: '#F5F7FA',
+  accent: '#46C6FF',
+  accentMid: '#8AD9FF',
+  slate: '#A9B0BA',
+  faint: '#8C939D',
   line: 'rgba(255, 255, 255, 0.075)',
   record: '#FF9F0A',
-  up: '#63E6CE'
+  up: '#5CF2C0'
 } as const;
 
 function Eyebrow({ children }: { children: string }) {
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   meta: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'] },
   eyebrow: { ...type.eyebrow, color: palette.faint },
   panel: {
-    backgroundColor: palette.surface,
+    ...glassSurface,
     borderColor: palette.line,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -292,11 +292,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: 13
   },
-  chipPressed: { backgroundColor: 'rgba(30, 144, 255, 0.18)' },
+  chipPressed: { backgroundColor: 'rgba(70, 198, 255, 0.18)' },
   chipText: { ...type.caption, color: palette.ink },
   nextPanel: {
-    backgroundColor: 'rgba(30, 144, 255, 0.10)',
-    borderColor: 'rgba(30, 144, 255, 0.26)',
+    backgroundColor: 'rgba(70, 198, 255, 0.10)',
+    borderColor: 'rgba(70, 198, 255, 0.26)',
     borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 8,
@@ -325,6 +325,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52
   },
-  primaryLabel: { ...type.label, color: '#FFFFFF', fontSize: 15 },
+  primaryLabel: { ...type.label, color: '#0A0D13', fontSize: 15 },
   pressed: { opacity: 0.6 }
 });

@@ -77,8 +77,8 @@ describe('loggingPrompts', () => {
 
 describe('pillarTint', () => {
   it('turns a pillar colour into a translucent backing', () => {
-    expect(pillarTint('recovery_rhythm')).toBe('rgba(169, 216, 191, 0.16)');
-    expect(pillarTint('nourishment', 0.3)).toBe('rgba(170, 138, 248, 0.3)');
+    expect(pillarTint('recovery_rhythm')).toBe('rgba(0, 246, 170, 0.16)');
+    expect(pillarTint('nourishment', 0.3)).toBe('rgba(168, 143, 255, 0.3)');
   });
 
   it('keeps the four pillars distinct', () => {

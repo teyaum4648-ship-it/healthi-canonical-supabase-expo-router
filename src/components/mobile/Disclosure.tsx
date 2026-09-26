@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState, type PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, glassSurface } from '../../styles/mobileTheme';
 
 export function Disclosure({ title, detail, children, initiallyOpen = false }: PropsWithChildren<{
   title: string; detail?: string; initiallyOpen?: boolean;
@@ -21,7 +21,7 @@ export function Disclosure({ title, detail, children, initiallyOpen = false }: P
   );
 }
 const styles = StyleSheet.create({
-  section: { backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 18 },
+  section: { ...glassSurface, borderRadius: 20, paddingHorizontal: 18 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 16 },
   copy: { flex: 1, gap: 4 },
   title: { ...type.body, color: colors.text, fontWeight: '600' },

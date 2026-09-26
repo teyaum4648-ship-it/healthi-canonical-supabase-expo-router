@@ -9,7 +9,7 @@ import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { DemoEntry } from '../../src/features/auth/DemoEntry';
-import { colors, spacing } from '../../src/styles/mobileTheme';
+import { colors, spacing, glassSurface } from '../../src/styles/mobileTheme';
 
 export default function LoginScreen() {
   const { signIn, mode } = useAuth();
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   feedbackError: {
     borderColor: colors.danger,
-    backgroundColor: colors.surface
+    ...glassSurface
   },
   feedbackSuccess: {
     borderColor: colors.success,
