@@ -1,0 +1,53 @@
+# Rebuilds the restaurant dishes built into the app from USDA FoodData Central.
+#
+# Run by hand from the Actions tab (or the API) on the branch to update. USDA's bulk CSV
+# needs no key, and the data is public domain. The generated list is checked, then
+# committed back to the same branch.
+name: Build restaurant foods
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_url:
+        description: USDA SR Legacy CSV download
+        default: https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Download USDA SR Legacy
+        env:
+          DATASET_URL: ${{ inputs.dataset_url }}
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/sr.zip" "$DATASET_URL"
+          unzip -q "$RUNNER_TEMP/sr.zip" -d "$RUNNER_TEMP/sr"
+
+      - name: Generate the list
+        run: node scripts/build-restaurant-foods.mjs "$RUNNER_TEMP/sr"
+
+      - name: Check it
+        run: |
+          npm run typecheck
+          npx vitest run tests/features/nutrition/bundledRestaurantFoods.test.ts
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add src/features/nutrition/productLookup/generatedRestaurantFoods.ts
+          if git diff --cached --quiet; then echo "No change to the restaurant list."; exit 0; fi
+          git commit -m "Regenerate the built-in restaurant foods from USDA SR Legacy"
+          git push

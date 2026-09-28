@@ -1,5 +1,7 @@
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
-import { searchOpenFoodFactsProducts, type ProductSearchResult } from './openFoodFactsClient';
+import { searchOpenFoodFactsProducts, type ProductLookupFetch, type ProductSearchResult } from './openFoodFactsClient';
+import { matchRestaurantFoods } from './bundledRestaurantFoods';
+import type { RestaurantFoodRow } from './restaurantFoodTypes';
 import { resolveSearchFoods } from './searchFoodResolution';
 import { readUsdaMicronutrients } from './micronutrientReaders';
 import { correctSearchQuery, guessSearchQuery } from './searchQueryCorrection';
@@ -70,6 +72,27 @@ export function normalizeSearchPayload(payload: unknown, query: string): Healthi
 }
 type SearchResult = ProductSearchResult & { notice?: string; searchedFor?: string };
 const cache = new Map<string, { at: number; result: SearchResult }>();
+
+/** The built-in restaurant dishes that match, best first, at most a dozen. */
+export function bundledRestaurantMatches(query: string, rows?: readonly RestaurantFoodRow[]): HealthiProductSnapshot[] {
+  const found = matchRestaurantFoods(query, rows).flatMap(food => normalizeUsdaSearchFood(food) ?? []);
+  return resolveSearchFoods(found, query).slice(0, 12);
+}
+
+/**
+ * Puts built-in restaurant matches in with a catalogue's answer. They are ranked together,
+ * so a chain dish leads only when it matches the words better. If the catalogue failed,
+ * the built-in matches still answer, and say where they came from.
+ */
+function withBundled(result: SearchResult, local: HealthiProductSnapshot[], query: string): SearchResult {
+  if (!local.length) return result;
+  if (result.status === 'found') return { ...result, products: resolveSearchFoods([...local, ...result.products], query) };
+  return {
+    status: 'found', products: local,
+    ...(result.status === 'error' ? { notice: 'Online search is unavailable, so these are restaurant dishes built into the app.' } : {}),
+    ...(result.searchedFor ? { searchedFor: result.searchedFor } : {})
+  };
+}
 /**
  * Searches for what somebody probably meant, and says so when that differs from what
  * they typed.
@@ -79,13 +102,17 @@ const cache = new Map<string, { at: number; result: SearchResult }>();
  * request has come back with nothing, because a query that has not failed yet does not
  * need guessing at, and guessing early mangles correct words.
  */
-export async function searchFoods(query: string, options: { signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string } = {}): Promise<SearchResult> {
+export async function searchFoods(query: string, options: { signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string; restaurantRows?: readonly RestaurantFoodRow[] } = {}): Promise<SearchResult> {
   const typed = query.trim().replace(/\s+/g,' ');
   if (typed.length < 2 || typed.length > 120) return { status: 'empty', products: [], message: 'Enter a food or brand between 2 and 120 characters.' };
   const correction = correctSearchQuery(typed);
   const q = correction.query || typed;
+  const local = bundledRestaurantMatches(q, options.restaurantRows);
   const endpoint = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
-  if (!endpoint) return searchOpenFoodFactsProducts(q, { signal: options.signal });
+  if (!endpoint) {
+    const off = await searchOpenFoodFactsProducts(q, { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) });
+    return options.signal?.aborted ? off : withBundled(off, local, q);
+  }
   const key = `${endpoint}:${q.toLowerCase()}`;
   const cached = options.fetcher ? null : cache.get(key);
   if (options.signal?.aborted) return { status: 'error', products: [], message: 'Search canceled.' };
@@ -97,11 +124,12 @@ export async function searchFoods(query: string, options: { signal?: AbortSignal
     const r = await (options.fetcher ?? fetch)(`${endpoint}?q=${encodeURIComponent(q)}`, { signal: controller.signal, headers: { Accept: 'application/json' } });
     if (!r.ok) {
       if (cached && Date.now() - cached.at < 86400_000) return { ...cached.result, notice: 'Showing earlier results while the database is unavailable. Check the package label.' };
-      return { status: 'error', products: [], message: r.status === 429 ? 'Please wait a moment, then search again. Recent and Saved are available now.' : 'The food database is temporarily unavailable. Try again, or use Recent, Saved, or scan the barcode.' };
+      return withBundled({ status: 'error', products: [], message: r.status === 429 ? 'Please wait a moment, then search again. Recent and Saved are available now.' : 'The food database is temporarily unavailable. Try again, or use Recent, Saved, or scan the barcode.' }, local, q);
     }
     const payload: unknown = await r.json();
     if (options.signal?.aborted) throw new Error('canceled');
-    const products = normalizeSearchPayload(payload, q);
+    const catalog = normalizeSearchPayload(payload, q);
+    const products = local.length ? resolveSearchFoods([...local, ...catalog], q) : catalog;
     const notice = record(payload) && payload.stale ? 'Showing earlier catalog results. Check the package label.' : record(payload) && payload.partial ? 'One database is unavailable; showing the matches we could load.' : record(payload) && payload.servingDetailsIncomplete ? 'Some label serving sizes could not load. Results marked per 100 g or 100 mL need an amount from the package.' : undefined;
     if (products.length === 0) {
       /*
@@ -121,6 +149,7 @@ export async function searchFoods(query: string, options: { signal?: AbortSignal
     return result;
   } catch(error) {
     if (!options.signal?.aborted && cached && Date.now() - cached.at < 86400_000) return { ...cached.result, notice: 'Showing earlier results. Check the package label.' };
-    return { status: 'error', products: [], message: options.signal?.aborted ? 'Search canceled.' : timedOut ? 'Search took too long. Try again; your Recent and Saved foods are ready now.' : error instanceof SyntaxError ? 'The database returned unreadable results. Please try again.' : 'Could not reach food search. Check your connection or use Recent and Saved.' };
+    const failed: SearchResult = { status: 'error', products: [], message: options.signal?.aborted ? 'Search canceled.' : timedOut ? 'Search took too long. Try again; your Recent and Saved foods are ready now.' : error instanceof SyntaxError ? 'The database returned unreadable results. Please try again.' : 'Could not reach food search. Check your connection or use Recent and Saved.' };
+    return options.signal?.aborted ? failed : withBundled(failed, local, q);
   } finally { clearTimeout(timeout); options.signal?.removeEventListener('abort', cancel); }
 }

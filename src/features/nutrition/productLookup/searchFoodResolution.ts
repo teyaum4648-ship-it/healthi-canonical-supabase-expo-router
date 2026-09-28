@@ -47,6 +47,21 @@ function termCredit(term: string, words: Set<string>): number {
   return 0;
 }
 
+/** Words a person types around a food that no food name carries. */
+const FILLER = new Set(['a', 'an', 'the', 'and', 'with', 'from', 'at', 'of', 'in']);
+
+/**
+ * Whether every word of a query appears in a food's name or brand, fully or as a near
+ * miss. A local list has to filter itself — unlike a catalogue, it has not already been
+ * asked the question — and this uses the same word rules as the ranking below.
+ */
+export function matchesEveryTerm(haystack: string, query: string): boolean {
+  const words = new Set(normalized(haystack).split(' '));
+  const terms = [...new Set(normalized(query).split(/\s+/).filter(Boolean))];
+  const meaningful = terms.filter(term => !FILLER.has(term) || words.has(term));
+  return meaningful.length > 0 && meaningful.every(term => termCredit(term, words) > 0);
+}
+
 /** Completeness breaks ties among relevant foods, never across identities.
  * A secondary-provider record wins a duplicate only as a whole nutrition record.
  */
