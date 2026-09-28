@@ -36,6 +36,11 @@ import {
   type ChronotypeRecord
 } from '../../../src/features/sleepRhythm/chronotypeStore';
 import { scoreChronotype, suggestDayArchitecture } from '../../../src/engines/circadian';
+import type { MorningReport } from '../../../src/engines/circadian/sleepRecoveryAdapter';
+import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
+import type { BiomarkerReading } from '../../../src/engines/biomarkers';
+import { MorningCheckIn } from '../../../src/features/sleepRhythm/MorningCheckIn';
+import { localMorningReportStore, saveMorningReport, type MorningReportRow } from '../../../src/features/sleepRhythm/morningReportStore';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
 
@@ -168,6 +173,43 @@ export default function RhythmScreen() {
     return () => { active = false; };
   }, [user?.id]);
 
+  /*
+   * This morning's answers and pulse, for the sleep-to-energy prediction. The pulse is
+   * the same resting-heart-rate reading Home shows, so it is typed once and read in both.
+   */
+  const [morningReports, setMorningReports] = useState<MorningReportRow[]>([]);
+  const [biomarkers, setBiomarkers] = useState<BiomarkerReading[]>([]);
+  useEffect(() => {
+    let active = true;
+    const scope = protocolScope(user?.id);
+    void Promise.all([localMorningReportStore.read(scope), localBiomarkerStore.read(scope)]).then(([reports, readings]) => {
+      if (!active) return;
+      setMorningReports(reports);
+      setBiomarkers(readings);
+    });
+    return () => { active = false; };
+  }, [user?.id]);
+  const morningReport = useMemo<MorningReport | null>(() => morningReports.find((row) => row.date === today) ?? null, [morningReports, today]);
+  const morningPulses = useMemo(() => {
+    const latest = new Map<string, BiomarkerReading>();
+    for (const reading of biomarkers) {
+      if (reading.kind !== 'resting_heart_rate') continue;
+      const current = latest.get(reading.date);
+      if (!current || reading.recorded_at > current.recorded_at) latest.set(reading.date, reading);
+    }
+    return [...latest.values()].map((reading) => ({ date: reading.date, bpm: reading.value }));
+  }, [biomarkers]);
+  async function updateMorningReport(patch: MorningReport) {
+    const scope = protocolScope(user?.id);
+    setMorningReports((rows) => rows.some((row) => row.date === today)
+      ? rows.map((row) => (row.date === today ? { ...row, ...patch } : row))
+      : [...rows, { ...patch, date: today, recordedAt: new Date().toISOString() }]);
+    setMorningReports(await saveMorningReport(scope, today, patch));
+  }
+  async function saveMorningPulse(bpm: number) {
+    setBiomarkers(await saveManualReading(protocolScope(user?.id), { kind: 'resting_heart_rate', value: bpm, date: today }));
+  }
+
   const preferredBedtime = useMemo(() => {
     if (!chronotype || chronotype.accepted === false) return null;
     const bedtime = suggestDayArchitecture({
@@ -197,10 +239,20 @@ export default function RhythmScreen() {
       refreshment: boundedQuality(sleepQuality),
       morningLightDates: light.morningDates,
       morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null,
-      chronotypeMidSleepMinutes: chronotypePrior(chronotype)
+      chronotypeMidSleepMinutes: chronotypePrior(chronotype),
+      morningReport,
+      morningPulses
     }),
-    [briefingSessions, chronotype, light, now, preferredBedtime, sleepNeed, sleepQuality, today]
+    [briefingSessions, chronotype, light, morningPulses, morningReport, now, preferredBedtime, sleepNeed, sleepQuality, today]
   );
+
+  const lastNight = useMemo(() => briefingSessions.find((session) => session.date === today) ?? null, [briefingSessions, today]);
+  const awakeFromWindow = useMemo(() => {
+    const awake = (lastNight?.sleep_intervals ?? []).filter((interval) => interval.state === 'awake');
+    if (!awake.length) return null;
+    const minutes = awake.reduce((sum, interval) => sum + Math.max(0, (Date.parse(interval.end_at) - Date.parse(interval.start_at)) / 60000), 0);
+    return { count: awake.length, minutes };
+  }, [lastNight]);
 
   async function persistChronotype(answers: Record<string, string>, accepted: boolean, slotOverrides: Record<string, number>) {
     const scored = scoreChronotype(answers);
@@ -308,6 +360,18 @@ export default function RhythmScreen() {
       sleepSessions={briefingSessions}
       sleepStartTime={sleepStartTime}
       wakeTime={wakeTime}
+      morningSlot={
+        <MorningCheckIn
+          palette={paletteFor(now)}
+          hasNight={lastNight !== null}
+          report={morningReport}
+          awakeFromWindow={awakeFromWindow}
+          recovery={briefing.sleep_recovery ?? null}
+          savedPulse={morningPulses.find((pulse) => pulse.date === today)?.bpm ?? null}
+          onChange={(patch) => { void updateMorningReport(patch); }}
+          onSavePulse={saveMorningPulse}
+        />
+      }
     />
   );
 }

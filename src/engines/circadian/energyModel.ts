@@ -234,6 +234,12 @@ export type EnergyModifiers = {
    * Omitted falls back to `minutesSinceWake`, which is the old behaviour.
    */
   minutesSinceCircadianWake?: number | null;
+  /**
+   * Leave sleep inertia out. The sleep-to-energy prediction adds its own inertia on top,
+   * scaled by how well the night went, so the timing curve it scales must not carry one
+   * already or the first two hours would be penalised twice.
+   */
+  excludeInertia?: boolean;
 };
 
 export function circadianEnergyAt(
@@ -264,7 +270,7 @@ export function circadianEnergyAt(
   // drags toward ~4 h, rather than both being gone inside 90 minutes.
   const inertiaDepth = 20 * (1.5 - 0.9 * R);
   const inertiaTau = 1.2 + 0.8 * (1 - R);
-  const inertia = inertiaDepth * gaussian(h, 0, inertiaTau);
+  const inertia = modifiers.excludeInertia ? 0 : inertiaDepth * gaussian(h, 0, inertiaTau);
 
   const morningPeak = 32 * amp * gaussian(c, 3.5, 2.2);
   const afternoonDip = 15 * (1.6 - 0.6 * R) * gaussian(c, 7, 1.6);

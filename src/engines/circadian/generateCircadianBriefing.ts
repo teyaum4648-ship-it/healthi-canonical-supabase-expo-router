@@ -12,6 +12,14 @@ import {
   type EnergyModifiers
 } from './energyModel';
 import { calculateSleepDuration } from './calculateSleepDuration';
+import {
+  limiterFromPrediction,
+  predictFromSession,
+  summarizeRecovery,
+  typicalBandFromTiming,
+  type MorningPulse,
+  type MorningReport
+} from './sleepRecoveryAdapter';
 import type {
   CircadianBriefing,
   CircadianEnergyPoint,
@@ -47,6 +55,13 @@ type GenerateCircadianBriefingParams = {
    * proposed, since carrying on from answers they have rejected is not listening.
    */
   chronotypeMidSleepMinutes?: number | null;
+  /**
+   * This morning's answers about last night: time to fall asleep, time awake, how rested.
+   * Feeds the sleep-to-energy prediction; anything unanswered lowers its confidence only.
+   */
+  morningReport?: MorningReport | null;
+  /** Morning pulses by date, taken at the wrist before getting up. */
+  morningPulses?: MorningPulse[];
 };
 
 /**
@@ -440,7 +455,8 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
       circadian_phase: phaseEstimate,
       limiter: null,
       input_coverage: 0,
-      typical_band: null
+      typical_band: null,
+      sleep_recovery: null
     };
   }
 
@@ -467,13 +483,40 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
         )
       : null;
 
-  const energyCurve = generateEnergyCurve(wakeTime, targetBedtime, restorationFactor, {
+  const curveModifiers: EnergyModifiers = {
     misalignmentMinutes: sessionIsStale ? null : usableMisalignment,
     caffeineOnBoardMg: params.caffeineOnBoardMg ?? null,
     morningLightMinutes: params.morningLightMinutes ?? null,
     minutesSinceCircadianWake: clockOffsetMinutes
-  });
-  const dayOutlook = deriveDayOutlook(energyCurve, restoration.coverage, ENERGY_SAMPLE_STEP_MINUTES);
+  };
+
+  /*
+   * With a current night on record, timing and recovery are kept apart. The circadian
+   * model draws the day at full strength and without inertia, which fixes when the peaks
+   * and dips fall; the sleep-to-energy prediction then decides how strong they are likely
+   * to feel and adds the morning's inertia. Without one, the older restoration path runs.
+   */
+  const timingCurve = !sessionIsStale && session && actualWake
+    ? generateEnergyCurve(wakeTime, targetBedtime, 1, { ...curveModifiers, excludeInertia: true })
+    : null;
+  const predicted = timingCurve && session
+    ? predictFromSession({
+        date: params.date,
+        session,
+        sessions: params.recentSleepSessions,
+        sleepNeedMinutes: params.sleepNeed.minutes,
+        timingCurve,
+        report: params.morningReport ?? null,
+        pulses: params.morningPulses ?? [],
+        refreshment: params.refreshment ?? null
+      })
+    : null;
+  const prediction = predicted && 'prediction' in predicted ? predicted.prediction : null;
+  const energyCurve = predicted && 'curve' in predicted
+    ? predicted.curve
+    : generateEnergyCurve(wakeTime, targetBedtime, restorationFactor, curveModifiers);
+  const inputCoverage = prediction ? prediction.modelConfidence / 100 : restoration.coverage;
+  const dayOutlook = deriveDayOutlook(energyCurve, inputCoverage, ENERGY_SAMPLE_STEP_MINUTES);
   const energyZones = deriveEnergyZones(energyCurve);
   const energyExtrema = deriveEnergyExtrema(energyCurve);
   const rhythmPlan = createRhythmPlan(wakeTime, targetBedtime, sleepDebt7Day.nightly_average_debt_minutes);
@@ -481,8 +524,9 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
    * Thin input lowers confidence rather than the score, which is the rule the previous
    * version broke by filling unknown terms with a flattering placeholder.
    */
-  const coverageConfidence: DataConfidence =
-    restoration.coverage >= 0.7 ? 'high' : restoration.coverage >= THIN_COVERAGE ? 'medium' : 'low';
+  const coverageConfidence: DataConfidence = prediction
+    ? prediction.modelConfidence >= 85 ? 'high' : prediction.modelConfidence >= 60 ? 'medium' : 'low'
+    : restoration.coverage >= 0.7 ? 'high' : restoration.coverage >= THIN_COVERAGE ? 'medium' : 'low';
   const confidence = combineConfidence(
     sessionIsStale ? 'low' : sourceConfidence,
     params.sleepNeed.confidence,
@@ -490,6 +534,9 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     coverageConfidence,
     phaseEstimate?.confidence ?? 'low'
   );
+  const recentNightMinutes = sleepDebt14Day.nights
+    .map((night) => night.sleep_minutes)
+    .filter((minutes): minutes is number => typeof minutes === 'number');
   const reasonCodes = [
     'circadian_phase_estimated',
     ...sleepDebt7Day.reason_codes,
@@ -500,8 +547,13 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     /* The rhythm is anchored to the clock's expected wake, not to a real record. */
     reasonCodes.push('sleep_data_stale', 'wake_time_estimated');
   }
-  if (restoration.coverage < THIN_COVERAGE) {
+  if (inputCoverage < THIN_COVERAGE) {
     reasonCodes.push('sleep_inputs_thin');
+  }
+  if (prediction) {
+    reasonCodes.push('sleep_recovery_predicted', ...prediction.reason_codes);
+  } else if (predicted && 'errors' in predicted) {
+    reasonCodes.push('sleep_prediction_input_invalid');
   }
   if (usableMisalignment !== null && Math.abs(usableMisalignment) >= 60) {
     reasonCodes.push('rhythm_out_of_step');
@@ -509,8 +561,9 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
   if (phaseEstimate?.regularityScore !== null && phaseEstimate?.regularityScore !== undefined && phaseEstimate.regularityScore < 0.5) {
     reasonCodes.push('schedule_irregular');
   }
-  if (restoration.limiter) {
-    reasonCodes.push(`limiter_${restoration.limiter}`);
+  const limiter = prediction ? limiterFromPrediction(prediction) : restoration.limiter;
+  if (limiter) {
+    reasonCodes.push(`limiter_${limiter}`);
   }
 
   if (session?.corrected_by_user) {
@@ -539,15 +592,12 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     },
     day_outlook: dayOutlook,
     circadian_phase: phaseEstimate,
-    limiter: restoration.limiter,
-    input_coverage: restoration.coverage,
-    typical_band: deriveTypicalBand(
-      sleepDebt14Day.nights
-        .map((night) => night.sleep_minutes)
-        .filter((minutes): minutes is number => typeof minutes === 'number'),
-      params.sleepNeed.minutes,
-      (targetBedtime.getTime() - wakeTime.getTime()) / MINUTE_MS
-    )
+    limiter,
+    input_coverage: inputCoverage,
+    typical_band: prediction && timingCurve
+      ? typicalBandFromTiming(timingCurve, recentNightMinutes, params.sleepNeed.minutes)
+      : deriveTypicalBand(recentNightMinutes, params.sleepNeed.minutes, (targetBedtime.getTime() - wakeTime.getTime()) / MINUTE_MS),
+    sleep_recovery: prediction ? summarizeRecovery(prediction) : null
   };
 }
 

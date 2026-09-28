@@ -456,7 +456,9 @@ const LIMITER_COPY: Record<string, string> = {
   duration: 'A short night is the main factor.',
   debt: 'Accumulated sleep debt across recent nights is the main factor.',
   regularity: 'An irregular recent schedule is the main factor — the nights vary more than they settle.',
-  misalignment: 'The hours were there; the timing was not. Your body clock and last night disagree.'
+  misalignment: 'The hours were there; the timing was not. Your body clock and last night disagree.',
+  fragmentation: 'Time awake during the night is the main factor.',
+  heart_rate: 'A morning pulse above your usual is the main factor.'
 };
 
 export type OutlookSummary = {

@@ -155,11 +155,17 @@ export type CircadianBriefing = {
    */
   circadian_phase: CircadianPhaseEstimate | null;
   /** Which single input cost the most, when one clearly dominates. Names the limiter. */
-  limiter: Restoration['limiter'];
-  /** 0–1: how much of the restoration weight was actually known. Drives confidence, not score. */
+  limiter: Restoration['limiter'] | 'fragmentation' | 'heart_rate';
+  /** 0–1: how much of the input was actually known. Drives confidence, not score. */
   input_coverage: number;
   /** This person's own typical day, for the chart to read today against. */
   typical_band: TypicalBand | null;
+  /**
+   * Last night's sleep recovery, from the sleep-to-energy prediction: the day's Sleep
+   * score, what went into it and how sure the prediction is. Null when there is no
+   * current night to read, in which case the curve comes from the older restoration path.
+   */
+  sleep_recovery?: SleepRecoverySummary | null;
 };
 
 export type DailySignalNeed =
@@ -177,5 +183,22 @@ export type DailySignalNeed =
 export type MissingDailySignalsResult = {
   signals_to_ask: DailySignalNeed[];
   signals_already_known: DailySignalNeed[];
+  reason_codes: string[];
+};
+
+/** What the Sleep tab shows about last night's recovery. See src/engines/sleepEnergy. */
+export type SleepRecoverySummary = {
+  /** 0–100, the day's Sleep score. */
+  score: number;
+  /** 0–1: how much of the day's energy the night leaves available. */
+  multiplier: number;
+  /** 0–100: confidence in the prediction, not a statement about health. */
+  confidence: number;
+  contributors: { id: string; score: number; impact: 'positive' | 'neutral' | 'negative'; message: string }[];
+  notes: string[];
+  estimated_sleep_minutes: number;
+  sleep_efficiency: number;
+  weighted_debt_minutes: number | null;
+  morning_hr_deviation_percent: number | null;
   reason_codes: string[];
 };
