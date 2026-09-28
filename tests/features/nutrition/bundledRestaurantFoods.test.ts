@@ -24,7 +24,8 @@ describe('restaurant names', () => {
   it('turns USDA capitals into readable names and leaves lower-case detail alone', () => {
     expect(prettyRestaurantName("McDONALD'S, BIG MAC")).toBe("McDonald's, Big Mac");
     expect(prettyRestaurantName('BURGER KING, WHOPPER, no cheese')).toBe('Burger King, Whopper, no cheese');
-    expect(prettyRestaurantName('CHICK-FIL-A, chicken sandwich')).toBe('Chick-Fil-A, chicken sandwich');
+    expect(prettyRestaurantName('CHICK-FIL-A, chicken sandwich')).toBe('Chick-fil-A, chicken sandwich');
+    expect(prettyRestaurantName("WEND'YS, Crispy Chicken Sandwich")).toBe("Wendy's, Crispy Chicken Sandwich");
     expect(prettyRestaurantName("KFC, Fried Chicken, ORIGINAL RECIPE")).toBe('KFC, Fried Chicken, Original Recipe');
     expect(prettyRestaurantName("T.G.I. FRIDAY'S, chicken fingers")).toBe("T.G.I. Friday's, chicken fingers");
   });
@@ -49,6 +50,9 @@ describe('matching the built-in list', () => {
   it('needs every meaningful word, so a pizza query does not bring back burgers', () => {
     expect(names('pepperoni pizza')).toEqual(['Pizza Hut 14" Pepperoni Pizza, Pan Crust']);
     expect(names('big mac pizza')).toEqual([]);
+    // A shared prefix ranks a near miss but does not let it in.
+    expect(names('pancakes')).toEqual([]);
+    expect(names('chick fil a')).toEqual(['Chicken sandwich']);
     expect(names('x')).toEqual([]);
   });
 
@@ -89,7 +93,7 @@ describe('search with the built-in list', () => {
     const fetcher = vi.fn(async () => json({}, 503));
     const result = await searchFoods('chicken sandwich', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS });
     expect(result.status).toBe('found');
-    expect(result.products[0].brand).toBe('Chick-Fil-A');
+    expect(result.products[0].brand).toBe('Chick-fil-A');
     expect(result.notice).toMatch(/built into the app/);
   });
 

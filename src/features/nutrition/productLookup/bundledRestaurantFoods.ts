@@ -7,6 +7,10 @@ const NUTRIENTS: readonly (readonly [id: number, unit: string])[] = [
   [1008, 'kcal'], [1003, 'g'], [1005, 'g'], [1004, 'g'], [1079, 'g'], [2000, 'g'], [1258, 'g'], [1093, 'mg']
 ];
 
+/** Names title case gets wrong, and one USDA typo ("WEND'YS"), as the chain writes them. */
+const NAME_FIXES: Record<string, string> = { 'CHICK-FIL-A': 'Chick-fil-A', "WEND'YS": "Wendy's", DIGIORNO: 'DiGiorno' };
+const NAME_FIX_PATTERN = new RegExp(Object.keys(NAME_FIXES).join('|'), 'g');
+
 /** Short capitalised names that are initials, not words. */
 const INITIALS = new Set(['KFC', 'BLT', 'BBQ', 'TGI', 'DQ', 'USA']);
 
@@ -23,7 +27,7 @@ function prettyWord(word: string): string {
  * in a list. Capitalised words become title case; lower-case detail is left alone.
  */
 export function prettyRestaurantName(description: string): string {
-  return description.split(/([\s,\-/()]+)/).map(part => /^[\s,\-/()]*$/.test(part) ? part : prettyWord(part)).join('');
+  return description.replace(NAME_FIX_PATTERN, match => NAME_FIXES[match]).split(/([\s,\-/()]+)/).map(part => /^[\s,\-/()]*$/.test(part) ? part : prettyWord(part)).join('');
 }
 
 /** The chain, when USDA led the name with one: its first segment is in capitals. */
