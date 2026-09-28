@@ -5,7 +5,7 @@ import { FluidPressable } from '../../components/mobile/FluidPressable';
 import type { MorningReport } from '../../engines/circadian/sleepRecoveryAdapter';
 import type { SleepRecoverySummary } from '../../engines/circadian/types';
 import { isPlausibleMorningHR, PLAUSIBLE_MORNING_HR, type Restedness } from '../../engines/sleepEnergy';
-import { cardSurface, type, zones } from '../../styles/mobileTheme';
+import { cardSurface, fonts, zones } from '../../styles/mobileTheme';
 
 export type MorningCheckInPalette = {
   border: string;
@@ -114,7 +114,10 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
   return (
     <View style={styles.pad}>
       <View style={[styles.card, { borderColor: palette.border }]}>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>This morning</Text>
+        <View>
+          <Text style={[styles.eyebrow, { color: palette.faint }]}>This morning</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>How today is likely to feel</Text>
+        </View>
 
         {recovery && words ? (
           <View style={styles.result} accessible accessibilityLabel={`Sleep score ${recovery.score}, ${words.label}. Prediction confidence ${recovery.confidence} percent.`}>
@@ -199,7 +202,7 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
 
         <View style={[styles.rule, { backgroundColor: palette.border }]} />
 
-        <Text style={[styles.question, { color: palette.text }]}>Morning pulse <Text style={{ color: palette.faint, fontWeight: '400' }}>(optional)</Text></Text>
+        <Text style={[styles.question, { color: palette.text }]}>Morning pulse <Text style={{ color: palette.faint }}>(optional)</Text></Text>
         <Text style={[styles.note, { color: palette.muted }]}>
           Before you get up, rest two fingers on the thumb side of your wrist, count the beats for 30 seconds and double it.
         </Text>
@@ -230,28 +233,30 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingTop: 16 },
   card: { ...cardSurface, borderRadius: 22, borderWidth: 1, gap: 10, padding: 18 },
-  title: { ...type.label, fontSize: 17, lineHeight: 22 },
+  /* Set like the window card above it: regular weights, a small eyebrow, a 20px title. */
+  eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0, lineHeight: 15 },
+  title: { fontFamily: fonts.bodyMedium, fontSize: 20, letterSpacing: -0.35, lineHeight: 25, marginTop: 3 },
   result: { gap: 8 },
   scoreRow: { alignItems: 'center', flexDirection: 'row', gap: 14 },
-  score: { fontSize: 44, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -1.5, lineHeight: 48 },
+  score: { fontFamily: fonts.display, fontSize: 40, fontVariant: ['tabular-nums'], letterSpacing: -1, lineHeight: 46 },
   scoreCopy: { gap: 4 },
-  scoreLabel: { ...type.caption, fontWeight: '600' },
+  scoreLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16 },
   zone: { alignSelf: 'flex-start', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 3 },
-  zoneText: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
-  body: { ...type.body, fontSize: 15, lineHeight: 21 },
+  zoneText: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16 },
+  body: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
   contributor: { alignItems: 'flex-start', flexDirection: 'row', gap: 8 },
   dot: { borderRadius: 3, height: 6, marginTop: 7, width: 6 },
-  contributorText: { ...type.body, flex: 1, fontSize: 14, lineHeight: 20 },
-  note: { ...type.caption, fontSize: 12.5, lineHeight: 17 },
-  rule: { height: 1, marginVertical: 4 },
-  question: { ...type.label, fontSize: 15, marginTop: 4 },
-  subQuestion: { ...type.caption, fontSize: 13 },
+  contributorText: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
+  note: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 17 },
+  rule: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
+  question: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, marginTop: 4 },
+  subQuestion: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderCurve: 'continuous', borderRadius: 14, justifyContent: 'center', minHeight: 36, paddingHorizontal: 12, paddingVertical: 7 },
-  chipText: { fontSize: 14, fontWeight: '600' },
+  chip: { borderCurve: 'continuous', borderRadius: 18, justifyContent: 'center', minHeight: 36, paddingHorizontal: 12, paddingVertical: 8 },
+  chipText: { fontFamily: fonts.bodyMedium, fontSize: 13 },
   switchRow: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between', marginTop: 6 },
-  switchLabel: { ...type.body, flex: 1, fontSize: 15 },
+  switchLabel: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
   pulseRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  pulseInput: { borderRadius: 14, fontSize: 20, fontVariant: ['tabular-nums'], fontWeight: '600', minHeight: 44, paddingHorizontal: 14, width: 90 },
+  pulseInput: { borderRadius: 14, fontFamily: fonts.bodyMedium, fontSize: 18, fontVariant: ['tabular-nums'], minHeight: 44, paddingHorizontal: 14, width: 90 },
   pulseSave: { alignItems: 'center', borderRadius: 14, justifyContent: 'center', marginLeft: 'auto', minHeight: 40, paddingHorizontal: 16 }
 });
