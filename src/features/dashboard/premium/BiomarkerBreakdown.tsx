@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import { BIOMARKER_SPECS, formatBiomarkerValue, type BiomarkerKind, type BiomarkerSummary } from '../../../engines/biomarkers';
-import { colors, type, zones } from '../../../styles/mobileTheme';
+import { colors, fonts, type, zones } from '../../../styles/mobileTheme';
 
 /**
  * The deep layer behind the readiness ring: last night's HRV, resting heart rate and
@@ -65,10 +65,10 @@ const styles = StyleSheet.create({
   tileHover: { backgroundColor: colors.surfaceMuted },
   name: { ...type.caption, color: colors.textMuted, fontWeight: '600' },
   valueRow: { alignItems: 'baseline', flexDirection: 'row', gap: 3 },
-  value: { color: colors.text, fontSize: 24, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.5, lineHeight: 28 },
+  value: { color: colors.text, fontFamily: fonts.display, fontSize: 24, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.5, lineHeight: 28 },
   valueEmpty: { color: colors.textMuted },
   unit: { ...type.caption, color: colors.textMuted, fontSize: 12 },
   status: { alignSelf: 'flex-start', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '600', lineHeight: 14 },
+  statusText: { fontFamily: fonts.bodyMedium, fontSize: 11, fontWeight: '600', lineHeight: 14 },
   note: { ...type.caption, color: colors.textMuted, fontSize: 12, lineHeight: 16, textAlign: 'center' }
 });

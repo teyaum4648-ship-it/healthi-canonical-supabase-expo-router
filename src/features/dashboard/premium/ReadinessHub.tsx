@@ -4,7 +4,7 @@ import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native
 
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import { useReducedMotion } from '../../../components/mobile/useReducedMotion';
-import { cardSurface, colors, motion, surfaces, type, zones, type ZoneTone } from '../../../styles/mobileTheme';
+import { cardSurface, colors, fonts, motion, surfaces, type, zones, type ZoneTone } from '../../../styles/mobileTheme';
 import { MetricRing } from './MetricRing';
 import { ZoneChip } from './ZoneChip';
 
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   headRow: { alignItems: 'center', alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between' },
   eyebrow: { ...type.label, color: colors.text, fontSize: 17, lineHeight: 22 },
   ringButton: { alignItems: 'center', borderRadius: 999, marginTop: 2 },
-  score: { color: colors.text, fontSize: 56, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -2, lineHeight: 60 },
+  score: { color: colors.text, fontFamily: fonts.display, fontSize: 56, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -2, lineHeight: 60 },
   scoreEmpty: { color: colors.textMuted, fontSize: 36, lineHeight: 44 },
   scoreCaption: { ...type.caption, color: colors.textMuted, marginTop: 2 },
   insight: { ...type.body, color: colors.text, fontSize: 17, fontWeight: '500', lineHeight: 24, textAlign: 'center' },

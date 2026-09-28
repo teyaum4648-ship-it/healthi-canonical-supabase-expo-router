@@ -4,7 +4,7 @@ import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import { BIOMARKER_SPECS, compareToUsual, formatBiomarkerValue, type BiomarkerSummary } from '../../../engines/biomarkers';
-import { cardSurface, colors, surfaces, type, zones } from '../../../styles/mobileTheme';
+import { cardSurface, colors, fonts, surfaces, type, zones } from '../../../styles/mobileTheme';
 import { ZoneChip } from './ZoneChip';
 
 const CHART_HEIGHT = 72;
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   rowDayToday: { fontWeight: '600' },
   rowValueWrap: { alignItems: 'baseline', flexDirection: 'row', gap: 6 },
   rowDelta: { ...type.caption, fontSize: 12, fontVariant: ['tabular-nums'], fontWeight: '600' },
-  rowValue: { color: colors.text, fontSize: 17, fontVariant: ['tabular-nums'], fontWeight: '600' },
+  rowValue: { color: colors.text, fontFamily: fonts.display, fontSize: 17, fontVariant: ['tabular-nums'], fontWeight: '600' },
   rowUnit: { ...type.caption, color: colors.textMuted, fontSize: 12, width: 28 },
   rowAdd: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   rowAddText: { ...type.label, color: colors.accent }

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { FoundationScore } from '../../engines/foundations';
-import { glassSurface } from '../../styles/mobileTheme';
+import { fonts, glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Where movement stands, and what is holding it there.
@@ -126,21 +126,21 @@ const styles = StyleSheet.create({
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   headerCopy: { flex: 1, gap: 6, minWidth: 0 },
   flex: { flex: 1, gap: 2, minWidth: 0 },
-  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
-  summary: { fontSize: 17, lineHeight: 24 },
+  eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 12, fontWeight: '600', letterSpacing: 0 },
+  summary: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   scoreBlock: { alignItems: 'flex-end' },
-  score: { fontSize: 34, fontVariant: ['tabular-nums'], fontWeight: '600', lineHeight: 38 },
-  scoreUnit: { fontSize: 12 },
-  meta: { fontSize: 13, lineHeight: 18 },
+  score: { fontFamily: fonts.display, fontSize: 34, fontVariant: ['tabular-nums'], fontWeight: '600', lineHeight: 38 },
+  scoreUnit: { fontFamily: fonts.body, fontSize: 12 },
+  meta: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
   limiters: { gap: 10 },
   limiterRow: { flexDirection: 'row', gap: 10 },
   limiterDot: { borderRadius: 3, height: 6, marginTop: 7, width: 6 },
-  limiterLabel: { fontSize: 15, fontWeight: '600' },
-  limiterDetail: { fontSize: 13, lineHeight: 19 },
+  limiterLabel: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600' },
+  limiterDetail: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
   causes: { borderRadius: 12, gap: 8, padding: 14 },
-  cause: { fontSize: 13, lineHeight: 20 },
+  cause: { fontFamily: fonts.body, fontSize: 13, lineHeight: 20 },
   action: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 52 },
-  actionTitle: { fontSize: 16, fontWeight: '600' },
-  actionDetail: { fontSize: 13, lineHeight: 19 },
+  actionTitle: { fontFamily: fonts.bodyMedium, fontSize: 16, fontWeight: '600' },
+  actionDetail: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
   pressed: { opacity: 0.65 }
 });

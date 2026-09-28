@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import type { LoadSummary } from '../../../engines/load';
-import { cardSurface, colors, surfaces, type } from '../../../styles/mobileTheme';
+import { cardSurface, colors, fonts, surfaces, type } from '../../../styles/mobileTheme';
 import { pillarColors } from '../../../styles/pillarColors';
 import { formatHoursMinutes, type SleepGlance } from '../dashboardZones';
 import { MiniBars } from './MiniBars';
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   title: { ...type.label, color: colors.text, flex: 1 },
   chevron: { marginRight: -2 },
   valueRow: { alignItems: 'baseline', flexDirection: 'row', gap: 4, marginTop: 2 },
-  value: { color: colors.text, flexShrink: 1, fontSize: 28, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.8, lineHeight: 32 },
+  value: { color: colors.text, flexShrink: 1, fontFamily: fonts.display, fontSize: 28, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.8, lineHeight: 32 },
   valueEmpty: { color: colors.textMuted },
   unit: { ...type.caption, color: colors.textMuted },
   caption: { ...type.caption, color: colors.textMuted, fontSize: 12, lineHeight: 16, minHeight: 32 }
