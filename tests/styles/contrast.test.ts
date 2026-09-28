@@ -1,18 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { colors, surfaces } from '../../src/styles/tokens';
-import { compositeOver, contrastRatio, relativeLuminance, WCAG } from '../../src/styles/contrast';
+import { colors } from '../../src/styles/tokens';
+import { contrastRatio, relativeLuminance, WCAG } from '../../src/styles/contrast';
 
 /**
- * The app is light-only, so every piece of text sits on one of four off-white surfaces.
+ * The app is dark-only, so every piece of text sits on one of four near-black surfaces.
  * These are the four, and a colour has to clear its threshold on all of them — checking
- * only against pure white would pass colours that fail on the canvas or a muted chip.
+ * only against pure black is how #6E6E73 shipped at 3.06:1 on the lightest panel.
  */
 const SURFACES: Array<[string, string]> = [
   ['background', colors.background],
   ['surface', colors.surface],
-  // Cards are translucent; this is the card material as it reads over the canvas.
-  ['card material', compositeOver(surfaces.card, colors.background)],
   ['surfaceInset', colors.surfaceInset],
   ['surfaceMuted', colors.surfaceMuted]
 ];
@@ -26,14 +24,6 @@ function worstCase(foreground: string): { ratio: number; surface: string } {
     { ratio: Infinity, surface: '' }
   );
 }
-
-describe('compositeOver', () => {
-  it('lays a translucent colour over an opaque one', () => {
-    expect(compositeOver('rgba(255, 255, 255, 0.88)', '#F5F5F7')).toBe('#FEFEFE');
-    expect(compositeOver('rgba(0, 0, 0, 0.5)', '#FFFFFF')).toBe('#808080');
-    expect(() => compositeOver('#FFFFFF', '#000000')).toThrow(/rgba/);
-  });
-});
 
 describe('contrastRatio', () => {
   it('matches the known anchors', () => {
@@ -96,9 +86,9 @@ describe('filled controls meet WCAG 2.2 AA for their own label', () => {
 describe('score ring colours meet the non-text threshold', () => {
   // From scoreRing.ts. A ring stroke is a graphic, so 1.4.11 applies rather than 1.4.3.
   it.each([
-    ['green', '#248A3D'],
-    ['yellow', '#9A7400'],
-    ['red', '#D70015'],
+    ['green', '#30D158'],
+    ['yellow', '#FFD60A'],
+    ['red', '#FF6961'],
     ['unscored', colors.textFaint]
   ])('%s reaches 3:1 on every surface', (name, value) => {
     const { ratio, surface } = worstCase(value);

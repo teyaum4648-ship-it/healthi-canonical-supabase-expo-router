@@ -13,7 +13,7 @@ const curve = Easing.bezier(...motion.bezier);
  * fills on the shared curve when the value changes; with Reduce Motion it is drawn in
  * place. Whatever sits in the middle is the caller's, so the number is always text.
  */
-export function MetricRing({ value, size, stroke, color, track = '#E8E8ED', children }: {
+export function MetricRing({ value, size, stroke, color, track = 'rgba(235, 240, 255, 0.08)', children }: {
   /** 0–100, or null for an empty track. */
   value: number | null;
   size: number;

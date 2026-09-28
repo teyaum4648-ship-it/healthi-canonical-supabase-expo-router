@@ -58,6 +58,9 @@ export function TrendBarChart({ series, color, unit, label }: {
       <Text style={styles.scale}>{formatTrendValue(ceiling, unit)}</Text>
     </View>
     <View style={styles.plot}>
+      <View pointerEvents="none" style={[styles.gridLine, { top: 0 }]} />
+      <View pointerEvents="none" style={[styles.gridLine, { top: CHART_HEIGHT / 2 }]} />
+      <View pointerEvents="none" style={styles.baseline} />
       {series.map((point) => {
         const fraction = point.value === null ? null : Math.min(1, point.value / ceiling);
         const dim = chosen !== null && chosen.date !== point.date;
@@ -88,6 +91,8 @@ const styles = StyleSheet.create({
   readout: { ...type.caption, color: colors.textMuted, flexShrink: 1 },
   scale: { ...type.caption, color: colors.textMuted, fontVariant: ['tabular-nums'] },
   plot: { height: CHART_HEIGHT, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline },
+  baseline: { position: 'absolute', left: 0, right: 0, bottom: 0, height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong },
   slot: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
   bar: { width: '100%', maxWidth: 22, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   barNarrow: { borderTopLeftRadius: 2, borderTopRightRadius: 2 },

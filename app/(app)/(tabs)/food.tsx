@@ -188,16 +188,26 @@ import {
 import type { PhotoEstimate } from '../../../src/features/nutrition/photoEstimate/photoEstimateTypes';
 import type { AllergenGroup } from '../../../src/features/nutrition/allergens';
 import { allergenProfileScope, readAllergenProfile } from '../../../src/features/nutrition/allergenProfileStore';
-import { colors, colors as themeColors, fonts as themeFonts, hairlineWidth, palette, type as themeType, accentFill, cardSurface, hues } from '../../../src/styles/mobileTheme';
+import {
+  colors,
+  colors as themeColors,
+  fonts as themeFonts,
+  hairlineWidth,
+  palette,
+  type as themeType,
+  accentFill,
+  glassSurface,
+  hues
+} from '../../../src/styles/mobileTheme';
 
 const C = {
   bg: themeColors.background,
   card: themeColors.surface,
   hairline: themeColors.hairline,
   gold: tabAccent.food,
-  goldSoft: hues.purple,
-  lavender: hues.purple,
-  teal: hues.purple,
+  goldSoft: hues.irisSoft,
+  lavender: hues.irisSoft,
+  teal: hues.irisSoft,
   ink: themeColors.text,
   sub: themeColors.textMuted,
   muted: themeColors.textFaint
@@ -2053,7 +2063,7 @@ export default function FoodScreen() {
             accessibilityLabel="Search nutrients"
             onChangeText={setNutrientQuery}
             placeholder="Search nutrients"
-            placeholderTextColor="#6E6E73"
+            placeholderTextColor="#8C939D"
             style={styles.adaptiveSearch}
             value={nutrientQuery}
           />
@@ -2652,7 +2662,7 @@ function ChoiceRow({
 }
 
 const styles = StyleSheet.create({
-  diarySection: { ...cardSurface, borderRadius: 16, padding: 18, gap: 12 },
+  diarySection: { ...glassSurface, borderRadius: 20, padding: 18, gap: 12 },
   diaryHeading: { fontFamily: sans, fontSize: 20, lineHeight: 26, fontWeight: '600', color: colors.text },
   diaryDetail: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted },
   diaryEnergy: { paddingVertical: 8, gap: 3 },
@@ -2700,16 +2710,16 @@ const styles = StyleSheet.create({
   },
   adaptivePageLabel: {
     ...themeType.largeTitle,
-    color: '#1D1D1F'
+    color: '#F5F7FA'
   },
   trackerCard: {
-    ...cardSurface,
-    borderColor: 'rgba(137, 68, 171, 0.16)',
-    borderRadius: 16,
+    ...glassSurface,
+    borderColor: 'rgba(168, 143, 255, 0.20)',
+    borderRadius: 22,
     borderWidth: 1
   },
   trackerTitle: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: serif,
     fontSize: 26,
     lineHeight: 32,
@@ -2717,25 +2727,25 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(137, 68, 171, 0.096)',
+    borderBottomColor: 'rgba(168, 143, 255, 0.12)',
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#8944AB',
+    color: '#A88FFF',
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
   },
   trackerEnergyLabel: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12
   },
   trackerEnergyTarget: {
-    color: '#6E6E73',
+    color: '#8C939D',
     fontFamily: sansMedium,
     fontSize: 12,
     paddingBottom: 3
@@ -2747,29 +2757,29 @@ const styles = StyleSheet.create({
     gap: 7
   },
   trackerProgressLabel: {
-    color: '#1D1D1F',
+    color: '#C7CBD1',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(137, 68, 171, 0.08)',
+    backgroundColor: 'rgba(168, 143, 255, 0.10)',
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
   },
   trackerFill: {
-    backgroundColor: '#8944AB',
+    backgroundColor: '#C2B2FF',
     borderRadius: 4,
     height: 6
   },
   trackerMicroBlock: {
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#1E2126',
     borderRadius: 16,
     gap: 12,
     padding: 14
   },
   trackerMicroHeading: {
-    color: '#1D1D1F',
+    color: '#C7CBD1',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.3
@@ -2780,8 +2790,8 @@ const styles = StyleSheet.create({
     gap: 8
   },
   trackerMicroItem: {
-    ...cardSurface,
-    borderRadius: 14,
+    ...glassSurface,
+    borderRadius: 12,
     flexBasis: '47%',
     flexGrow: 1,
     gap: 3,
@@ -2789,17 +2799,17 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#8944AB',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerMicroUnavailable: {
-    color: '#6E6E73',
+    color: '#8C939D',
     fontFamily: sansMedium,
     fontSize: 10
   },
   trackerMicroLabel: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 11
   },
@@ -2809,7 +2819,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(137, 68, 171, 0.224)',
+    borderColor: 'rgba(168, 143, 255, 0.28)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2819,13 +2829,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#8944AB',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#8944AB',
+    backgroundColor: '#A88FFF',
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2834,7 +2844,7 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerScanText: {
-    color: '#FFFFFF',
+    color: '#0A0D13',
     fontFamily: sansMedium,
     fontSize: 12
   },
@@ -2845,13 +2855,13 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   adaptiveModeDot: {
-    backgroundColor: '#A05A00',
+    backgroundColor: '#FFC25B',
     borderRadius: 3,
     height: 6,
     width: 6
   },
   adaptiveModeText: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -2870,20 +2880,20 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#8944AB'
+    borderBottomColor: '#A88FFF'
   },
   adaptiveTabText: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 15,
     letterSpacing: -0.1,
     lineHeight: 21
   },
   adaptiveTabTextActive: {
-    color: '#1D1D1F'
+    color: '#F5F7FA'
   },
   adaptiveTabBaseline: {
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255,0.10)',
     height: hairlineWidth,
     marginTop: -1
   },
@@ -2898,7 +2908,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   adaptiveBackText: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 13,
     lineHeight: 18
@@ -2912,36 +2922,36 @@ const styles = StyleSheet.create({
     paddingTop: 26
   },
   adaptiveSection: {
-    borderTopColor: 'rgba(0, 0, 0, 0.04)',
+    borderTopColor: 'rgba(255, 255, 255,0.10)',
     borderTopWidth: hairlineWidth,
     paddingBottom: 24,
     paddingHorizontal: 22,
     paddingTop: 22
   },
   adaptiveSectionLabel: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptiveConfidenceValue: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#8944AB',
-    borderRadius: 14,
+    backgroundColor: '#A88FFF',
+    borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
     minHeight: 52,
     paddingHorizontal: 18
   },
   adaptivePrimaryButtonText: {
-    color: '#FFFFFF',
+    color: '#0A0D13',
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
@@ -2953,7 +2963,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   adaptiveSectionAside: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15
@@ -2962,37 +2972,37 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptivePriority: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth,
     marginBottom: 18,
     paddingBottom: 18
   },
   adaptivePriorityTag: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptivePriorityTagUrgent: {
-    color: '#A05A00'
+    color: '#FFC25B'
   },
   adaptiveMono: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15,
     fontVariant: ['tabular-nums']
   },
   adaptiveMonoStrong: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19,
     fontVariant: ['tabular-nums']
   },
   adaptivePriorityTitle: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 16.5,
     letterSpacing: -0.1,
@@ -3000,7 +3010,7 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   adaptivePriorityReason: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 13.5,
     lineHeight: 20,
@@ -3013,19 +3023,19 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(137, 68, 171, 0.28)',
+    borderBottomColor: 'rgba(168, 143, 255, 0.35)',
     borderBottomWidth: 1,
     justifyContent: 'center',
     minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#8944AB',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptivePriorityConfidence: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3033,7 +3043,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto'
   },
   adaptiveSectionVoice: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: serifItalic,
     fontSize: 14,
     fontStyle: 'italic',
@@ -3044,7 +3054,7 @@ const styles = StyleSheet.create({
     marginTop: 17
   },
   adaptiveLane: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth
   },
   adaptiveLaneButton: {
@@ -3053,20 +3063,20 @@ const styles = StyleSheet.create({
     paddingVertical: 13
   },
   adaptiveLaneName: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     flex: 1,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveLaneState: {
-    color: '#8944AB',
+    color: '#C2B2FF',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveLaneStateWarm: {
-    color: '#A05A00'
+    color: '#FFC25B'
   },
   adaptiveLaneTrackRow: {
     alignItems: 'center',
@@ -3075,18 +3085,18 @@ const styles = StyleSheet.create({
     marginTop: 9
   },
   adaptiveLaneTrack: {
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 2,
     flex: 1,
     height: 4,
     overflow: 'hidden'
   },
   adaptiveLaneTrackLimited: {
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(255, 255, 255,0.25)',
     borderWidth: 1
   },
   adaptiveLaneFill: {
-    backgroundColor: '#8944AB',
+    backgroundColor: '#C2B2FF',
     borderRadius: 2,
     bottom: 0,
     left: 0,
@@ -3094,21 +3104,21 @@ const styles = StyleSheet.create({
     top: 0
   },
   adaptiveLaneMeta: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 13
   },
   adaptiveLaneDetail: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 19,
     paddingBottom: 15
   },
   adaptiveCoverageLabel: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3116,22 +3126,22 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptiveCoverageNeed: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: serif,
     fontSize: 18,
     lineHeight: 24,
     marginTop: 6
   },
   adaptiveInsetCard: {
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     marginTop: 18,
     padding: 18
   },
   adaptiveCoverageSuggestion: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: serif,
     fontSize: 20,
     lineHeight: 27,
@@ -3139,8 +3149,8 @@ const styles = StyleSheet.create({
   },
   adaptiveRecent: {
     alignItems: 'center',
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3154,13 +3164,13 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveRecentTitle: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14.5,
     lineHeight: 20
   },
   adaptiveViewTitle: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: serifLight,
     fontSize: 23,
     lineHeight: 30,
@@ -3176,7 +3186,7 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   adaptiveTimelineTime: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 17,
@@ -3185,8 +3195,8 @@ const styles = StyleSheet.create({
     width: 54
   },
   adaptiveTimelineMarker: {
-    backgroundColor: '#8944AB',
-    borderColor: '#FFFFFF',
+    backgroundColor: '#C2B2FF',
+    borderColor: '#000000',
     borderRadius: 6,
     borderWidth: 2,
     height: 12,
@@ -3195,39 +3205,39 @@ const styles = StyleSheet.create({
     width: 12
   },
   adaptiveTimelineCopy: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth,
     flex: 1,
     minHeight: 64,
     paddingBottom: 14
   },
   adaptiveTimelineTitle: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveTimelineNote: {
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 8,
     padding: 16
   },
   adaptiveEmpty: {
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     padding: 20
   },
   adaptiveSearch: {
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 14,
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.12)',
+    borderRadius: 12,
     borderWidth: 1,
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 15,
     height: 46,
@@ -3235,14 +3245,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveConfidenceSummary: {
-    borderTopColor: 'rgba(0, 0, 0, 0.04)',
+    borderTopColor: 'rgba(255, 255, 255,0.08)',
     borderTopWidth: hairlineWidth,
     marginTop: 16,
     paddingTop: 15
   },
   adaptiveNutrientRow: {
     alignItems: 'center',
-    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
+    borderBottomColor: 'rgba(255, 255, 255,0.07)',
     borderBottomWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 12,
@@ -3254,7 +3264,7 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveNutrientContext: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 16,
@@ -3270,58 +3280,58 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(137, 68, 171, 0.3)',
+    borderColor: 'rgba(168, 143, 255, 0.40)',
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#8944AB',
+    color: '#A88FFF',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 14
   },
   adaptiveProfileLead: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: serifLight,
     fontSize: 19,
     lineHeight: 29,
     marginTop: 14
   },
   adaptiveContributorList: {
-    backgroundColor: 'rgba(0, 0, 0, 0.048)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255,0.08)',
+    borderRadius: 12,
     gap: 1,
     marginTop: 18,
     overflow: 'hidden'
   },
   adaptiveContributorRow: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000',
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
     paddingVertical: 12
   },
   adaptiveContributorLabel: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptiveContributorValue: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveSecondaryButton: {
     alignItems: 'center',
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 14,
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
     marginTop: 18,
@@ -3329,13 +3339,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveSecondaryButtonText: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
   },
   adaptiveSafetyNote: {
-    color: '#6E6E73',
+    color: '#A9B0BA',
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 18,
@@ -3343,8 +3353,8 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   adaptiveActionDock: {
-    backgroundColor: '#F5F5F7',
-    borderTopColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: '#000000',
+    borderTopColor: 'rgba(255, 255, 255,0.10)',
     borderTopWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 10,
@@ -3354,9 +3364,9 @@ const styles = StyleSheet.create({
   },
   adaptiveDockButton: {
     alignItems: 'center',
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 14,
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderRadius: 12,
     borderWidth: 1,
     flex: 1,
     flexDirection: 'row',
@@ -3366,9 +3376,9 @@ const styles = StyleSheet.create({
   },
   adaptiveDockAdd: {
     alignItems: 'center',
-    ...cardSurface,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 14,
+    ...glassSurface,
+    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 7,
@@ -3377,7 +3387,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptiveDockText: {
-    color: '#1D1D1F',
+    color: '#F5F7FA',
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
@@ -3410,9 +3420,9 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(137, 68, 171, 0.064)',
-    borderColor: 'rgba(137, 68, 171, 0.192)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(168, 143, 255, 0.08)',
+    borderColor: 'rgba(168, 143, 255, 0.24)',
+    borderRadius: 18,
     borderWidth: 1,
     height: 42,
     justifyContent: 'center',
@@ -3471,9 +3481,9 @@ const styles = StyleSheet.create({
     gap: 8
   },
   card: {
-    ...cardSurface,
+    backgroundColor: C.card,
     borderColor: C.hairline,
-    borderRadius: 16,
+    borderRadius: 26,
     borderWidth: 1,
     overflow: 'hidden',
     padding: 18
@@ -3547,9 +3557,9 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   metric: {
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#1E2126',
     borderColor: C.hairline,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     minWidth: '30%',
     padding: 12
@@ -3633,7 +3643,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: 'center',
     backgroundColor: tabAccent.food,
-    borderRadius: 16,
+    borderRadius: 18,
     justifyContent: 'center',
     marginTop: 8,
     minHeight: 52,
@@ -3646,7 +3656,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: '#0A0D13',
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3688,7 +3698,7 @@ const styles = StyleSheet.create({
   answerButton: {
     backgroundColor: palette.paper,
     borderColor: C.hairline,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     minHeight: 50,
     justifyContent: 'center',
@@ -3741,7 +3751,7 @@ const styles = StyleSheet.create({
   iconButton: {
     alignItems: 'center',
     borderColor: C.hairline,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     height: 44,
     justifyContent: 'center',
@@ -3764,7 +3774,7 @@ const styles = StyleSheet.create({
   },
   cameraShell: {
     backgroundColor: '#000000',
-    borderRadius: 16,
+    borderRadius: 20,
     height: 320,
     marginTop: 16,
     overflow: 'hidden'
@@ -3783,7 +3793,7 @@ const styles = StyleSheet.create({
   cameraCancel: {
     alignItems: 'center',
     backgroundColor: 'rgba(26,33,29,0.78)',
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(253,252,249,0.38)',
     borderRadius: 16,
     borderWidth: 1,
     bottom: 18,

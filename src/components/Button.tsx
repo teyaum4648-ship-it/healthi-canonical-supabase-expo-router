@@ -6,7 +6,7 @@ import {
   type PressableProps
 } from 'react-native';
 
-import { accentFill, colors, surfaces, cardSurface, radii, type } from '../styles/mobileTheme';
+import { accentFill, colors, glass, glassSurface, radii, type } from '../styles/mobileTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -61,12 +61,12 @@ const styles = StyleSheet.create({
   },
   primary: accentFill(colors.primary),
   secondary: {
-    ...cardSurface,
+    ...glassSurface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surfaces.edge
+    borderColor: glass.edge
   },
   danger: {
-    ...cardSurface,
+    ...glassSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.danger
   },

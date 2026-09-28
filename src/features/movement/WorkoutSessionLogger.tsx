@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type, cardSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   formatRestClock,
@@ -621,9 +621,9 @@ const styles = StyleSheet.create({
 
   restBar: {
     alignItems: 'center',
-    ...cardSurface,
+    ...glassSurface,
     borderColor: colors.borderStrong,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 8,
@@ -673,9 +673,9 @@ const styles = StyleSheet.create({
   focusPrevious: { ...type.caption, color: colors.textMuted, textAlign: 'center' },
 
   setCard: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: hairlineWidth,
     gap: 12,
     padding: 16
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
   stepButton: {
     alignItems: 'center',
     backgroundColor: colors.surfaceInset,
-    borderRadius: 14,
+    borderRadius: 12,
     height: 48,
     justifyContent: 'center',
     width: 44
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
 
   overviewRow: {
     alignItems: 'center',
-    ...cardSurface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   suggestion: {
     backgroundColor: colors.surfaceInset,
     borderColor: pillarTint('movement_capacity', 0.22),
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: hairlineWidth,
     gap: 8,
     padding: 16
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
   useButton: {
     alignItems: 'center',
     borderColor: pillarTint('movement_capacity', 0.22),
-    borderRadius: 14,
+    borderRadius: 13,
     borderWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 8,

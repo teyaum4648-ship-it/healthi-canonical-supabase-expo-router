@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type, cardSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import {
   canStart,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   scroll: { gap: 12, padding: 16, paddingBottom: 28 },
   name: {
     ...type.title,
-    ...cardSurface,
+    ...glassSurface,
     borderRadius: 16,
     color: colors.text,
     minHeight: 60,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   capacity: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4 },
 
   movement: {
-    ...cardSurface,
+    ...glassSurface,
     borderRadius: 16,
     gap: 10,
     paddingHorizontal: 14,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   setStepper: {
     alignItems: 'center',
     backgroundColor: colors.surfaceInset,
-    borderRadius: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     gap: 2
   },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   confirm: {
     alignItems: 'center',
     backgroundColor: colors.surfaceInset,
-    borderRadius: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 12,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   shelfEmpty: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4, paddingVertical: 8 },
   source: {
     alignItems: 'center',
-    ...cardSurface,
+    ...glassSurface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,

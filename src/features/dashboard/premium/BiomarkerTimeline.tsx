@@ -52,7 +52,7 @@ function TrendLine({ summary, color }: { summary: BiomarkerSummary; color: strin
         <Polyline key={index} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeOpacity={0.35} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       ))}
       {points.map((point, index) => point ? (
-        <Circle key={index} cx={point.x} cy={point.y} r={index === points.length - 1 ? DOT + 1 : DOT} fill={index === points.length - 1 ? color : '#FFFFFF'} stroke={color} strokeWidth={2} />
+        <Circle key={index} cx={point.x} cy={point.y} r={index === points.length - 1 ? DOT + 1 : DOT} fill={index === points.length - 1 ? color : colors.surface} stroke={color} strokeWidth={2} />
       ) : null)}
     </Svg>
   );
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   card: {
     ...cardSurface,
     borderColor: surfaces.edge,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     gap: 14,
     paddingHorizontal: 16,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   log: { marginHorizontal: -8 },
   row: { alignItems: 'center', borderRadius: 14, flexDirection: 'row', justifyContent: 'space-between', minHeight: 46, paddingHorizontal: 8 },
   rowDivider: { borderBottomColor: surfaces.edge, borderBottomWidth: 1 },
-  rowHover: { backgroundColor: 'rgba(0, 0, 0, 0.03)' },
+  rowHover: { backgroundColor: 'rgba(235, 240, 255, 0.05)' },
   rowDay: { ...type.body, color: colors.text, fontSize: 15 },
   rowDayToday: { fontWeight: '600' },
   rowValueWrap: { alignItems: 'baseline', flexDirection: 'row', gap: 6 },

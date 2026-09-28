@@ -12,7 +12,7 @@ import {
   type PostureFlag
 } from '../../engines/movement';
 import type { MovementCardPalette } from './MovementPillarCard';
-import { cardSurface } from '../../styles/mobileTheme';
+import { glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Doing the screen, and reading what it found.
@@ -75,7 +75,7 @@ export function MobilityScreenFlow({
         ) : null}
 
         {links.length === 0 ? (
-          <View style={[styles.card, { ...cardSurface, borderColor: palette.line }]}>
+          <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
             <Text style={[styles.cardTitle, { color: palette.ink }]}>Nothing stood out</Text>
             <Text style={[styles.cardBody, { color: palette.muted }]}>
               {answered < 3
@@ -85,7 +85,7 @@ export function MobilityScreenFlow({
           </View>
         ) : (
           links.map((link) => (
-            <View key={link.id} style={[styles.card, { ...cardSurface, borderColor: palette.line }]}>
+            <View key={link.id} style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
               <Text style={[styles.cardTitle, { color: palette.ink }]}>{link.headline}</Text>
               <Text style={[styles.cardBody, { color: palette.muted }]}>{link.reasoning}</Text>
 
@@ -149,7 +149,7 @@ export function MobilityScreenFlow({
       </Text>
 
       {MOBILITY_TESTS.map((test) => (
-        <View key={test.id} style={[styles.card, { ...cardSurface, borderColor: palette.line }]}>
+        <View key={test.id} style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
           <Text style={[styles.cardTitle, { color: palette.ink }]}>{test.name}</Text>
           <Text style={[styles.cardBody, { color: palette.muted }]}>{test.how}</Text>
           <View style={styles.options}>
@@ -174,7 +174,7 @@ export function MobilityScreenFlow({
         </View>
       ))}
 
-      <View style={[styles.card, { ...cardSurface, borderColor: palette.line }]}>
+      <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
         <Text style={[styles.cardTitle, { color: palette.ink }]}>How you stand</Text>
         <Text style={[styles.cardBody, { color: palette.muted }]}>
           Tick anything that sounds like you. A mirror or a photo from the side helps; guessing is
@@ -242,23 +242,23 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 26, fontWeight: '600', lineHeight: 32 },
   intro: { fontSize: 15, lineHeight: 22 },
   flex: { flex: 1, gap: 6, minWidth: 0 },
-  card: { borderRadius: 16, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
+  card: { borderRadius: 18, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
   cardTitle: { fontSize: 19, fontWeight: '600', lineHeight: 25 },
   cardBody: { fontSize: 15, lineHeight: 22 },
   options: { gap: 6, marginTop: 6 },
-  option: { borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
+  option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   optionText: { fontSize: 15, lineHeight: 21 },
   listBlock: { gap: 4, marginTop: 6 },
   listLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
   listItem: { fontSize: 15, lineHeight: 22 },
   withheld: { fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
-  referral: { alignItems: 'flex-start', borderRadius: 14, flexDirection: 'row', gap: 10, padding: 14 },
+  referral: { alignItems: 'flex-start', borderRadius: 12, flexDirection: 'row', gap: 10, padding: 14 },
   referralText: { fontSize: 15, lineHeight: 22 },
   footnote: { fontSize: 13, lineHeight: 20 },
   actions: { gap: 10 },
-  primaryButton: { alignItems: 'center', borderRadius: 14, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
+  primaryButton: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
   primaryButtonText: { color: '#0B0B0C', fontSize: 16, fontWeight: '600' },
-  secondaryButton: { alignItems: 'center', borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
+  secondaryButton: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
   secondaryButtonText: { fontSize: 16, textAlign: 'center' },
   buttonDisabled: { opacity: 0.4 },
   pressed: { opacity: 0.65 }

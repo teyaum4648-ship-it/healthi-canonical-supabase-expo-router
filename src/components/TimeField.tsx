@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   numberField: {
     backgroundColor: colors.surfaceInset,
     borderColor: colors.hairline,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: hairlineWidth,
     color: colors.text,
     fontSize: 16,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   meridiemGroup: {
     borderColor: colors.hairline,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: hairlineWidth,
     flexDirection: 'row',
     marginLeft: 4,

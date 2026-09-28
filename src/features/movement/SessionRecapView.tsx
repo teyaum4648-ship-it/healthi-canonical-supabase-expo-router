@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type, cardSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
 import type { ExerciseMovementPattern } from './movementPersistence';
 import {
   baselineNames,
@@ -23,16 +23,16 @@ import {
  */
 
 const palette = {
-  background: '#F5F5F7',
-  surface: '#FFFFFF',
-  ink: '#1D1D1F',
-  accent: '#0071A4',
-  accentMid: '#0071A4',
-  slate: '#6E6E73',
-  faint: '#6E6E73',
-  line: 'rgba(0, 0, 0, 0.04)',
-  record: '#C25400',
-  up: '#247A31'
+  background: '#000000',
+  surface: '#15171B',
+  ink: '#F5F7FA',
+  accent: '#46C6FF',
+  accentMid: '#8AD9FF',
+  slate: '#A9B0BA',
+  faint: '#8C939D',
+  line: 'rgba(255, 255, 255, 0.075)',
+  record: '#FF9F0A',
+  up: '#5CF2C0'
 } as const;
 
 function Eyebrow({ children }: { children: string }) {
@@ -234,10 +234,10 @@ const styles = StyleSheet.create({
   savedRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   savedLabel: { ...type.eyebrow, color: palette.up },
   title: { ...type.title, color: palette.ink },
-  meta: { ...type.body, color: '#6E6E73', fontVariant: ['tabular-nums'] },
+  meta: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'] },
   eyebrow: { ...type.eyebrow, color: palette.faint },
   panel: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: palette.line,
     borderRadius: 16,
     borderWidth: hairlineWidth,
@@ -267,24 +267,24 @@ const styles = StyleSheet.create({
   },
   recordCopy: { flex: 1, gap: 3 },
   recordTitle: { ...type.label, color: palette.record, fontSize: 15 },
-  recordDetail: { ...type.caption, color: '#6E6E73' },
+  recordDetail: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)' },
   coverageRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   // Wide enough for the longest pattern name, and pinned to one line so a narrow
   // phone breaks the bar instead of the word: "Locomotio / n" reads as a bug.
-  coverageLabel: { ...type.caption, color: '#1D1D1F', width: 86 },
-  coverageTrack: { backgroundColor: 'rgba(0, 0, 0, 0.048)', borderRadius: 3, flex: 1, height: 6, overflow: 'hidden' },
+  coverageLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', width: 86 },
+  coverageTrack: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, flex: 1, height: 6, overflow: 'hidden' },
   coverageFill: { backgroundColor: palette.accent, height: '100%' },
   coverageValue: { ...type.caption, color: palette.accentMid, fontVariant: ['tabular-nums'], textAlign: 'right', width: 52 },
   coverageNone: { ...type.caption, color: palette.faint, textAlign: 'right', width: 52 },
-  coverageNote: { ...type.caption, color: '#6E6E73' },
+  coverageNote: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)' },
   classify: { borderTopColor: palette.line, borderTopWidth: hairlineWidth, gap: 14, paddingTop: 14 },
   classifyRow: { gap: 8 },
-  classifyAsk: { ...type.caption, color: '#1D1D1F' },
+  classifyAsk: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)' },
   classifyName: { color: palette.ink },
   classifyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderColor: palette.line,
     borderRadius: 999,
     borderWidth: hairlineWidth,
@@ -292,11 +292,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: 13
   },
-  chipPressed: { backgroundColor: 'rgba(0, 113, 164, 0.144)' },
+  chipPressed: { backgroundColor: 'rgba(70, 198, 255, 0.18)' },
   chipText: { ...type.caption, color: palette.ink },
   nextPanel: {
-    backgroundColor: 'rgba(0, 113, 164, 0.08)',
-    borderColor: 'rgba(0, 113, 164, 0.208)',
+    backgroundColor: 'rgba(70, 198, 255, 0.10)',
+    borderColor: 'rgba(70, 198, 255, 0.26)',
     borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 8,
@@ -304,27 +304,27 @@ const styles = StyleSheet.create({
   },
   nextHeadline: { ...type.heading, color: palette.ink, fontSize: 20, lineHeight: 26 },
   nextName: { ...type.caption, color: palette.accentMid },
-  nextReason: { ...type.caption, color: '#6E6E73' },
+  nextReason: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)' },
   nextConfidence: { ...type.caption, color: palette.faint },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 14,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 13,
     borderWidth: hairlineWidth,
     flex: 1,
     justifyContent: 'center',
     minHeight: 52
   },
-  secondaryLabel: { ...type.label, color: '#1D1D1F', fontSize: 15 },
+  secondaryLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.78)', fontSize: 15 },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: palette.accent,
-    borderRadius: 14,
+    borderRadius: 13,
     flex: 1,
     justifyContent: 'center',
     minHeight: 52
   },
-  primaryLabel: { ...type.label, color: '#FFFFFF', fontSize: 15 },
+  primaryLabel: { ...type.label, color: '#0A0D13', fontSize: 15 },
   pressed: { opacity: 0.6 }
 });

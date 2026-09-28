@@ -64,7 +64,7 @@ import {
   type TensionRegion,
   type ZoneSession
 } from '../../../src/features/practice/zoneModel';
-import { colors, hairlineWidth, type, cardSurface } from '../../../src/styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
 
 /**
@@ -415,9 +415,9 @@ const styles = StyleSheet.create({
   meta: { ...type.body, color: colors.textMuted },
 
   panel: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: hairlineWidth,
     gap: 12,
     padding: 18

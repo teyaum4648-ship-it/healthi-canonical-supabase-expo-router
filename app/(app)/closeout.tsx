@@ -15,7 +15,7 @@ import {
   type EveningCloseoutAnswers,
   type EveningCloseoutResult
 } from '../../src/features/eveningCloseout';
-import { colors, hairlineWidth, radii, spacing, type, cardSurface } from '../../src/styles/mobileTheme';
+import { colors, hairlineWidth, radii, spacing, type, glassSurface } from '../../src/styles/mobileTheme';
 
 type QuestionKey = keyof EveningCloseoutAnswers;
 
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   saveButtonText: { ...type.label, color: colors.textInverse },
   pressed: { opacity: 0.82 },
   resultCard: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: colors.hairline,
     borderRadius: radii.lg,
     borderWidth: hairlineWidth,

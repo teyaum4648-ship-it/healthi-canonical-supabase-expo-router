@@ -111,6 +111,6 @@ const styles = StyleSheet.create({
   input: { ...type.body, color: colors.text, backgroundColor: colors.surfaceInset, minHeight: 50, borderRadius: 14, padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 }, copy: { flex: 1, minWidth: 0 }, star: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
   filters: { flexDirection: 'row', gap: 20 }, filter: { minHeight: 44, justifyContent: 'center' }, active: { color: tabAccent.food, fontWeight: '600' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, metric: { flexGrow: 1, flexBasis: '44%', backgroundColor: colors.surfaceInset, borderRadius: 16, padding: 14, gap: 6 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, metric: { flexGrow: 1, flexBasis: '44%', backgroundColor: colors.surfaceInset, borderRadius: 18, padding: 14, gap: 6 },
   primary: { minHeight: 52, backgroundColor: tabAccent.food, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 }
 });

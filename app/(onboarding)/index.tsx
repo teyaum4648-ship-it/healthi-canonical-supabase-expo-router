@@ -22,7 +22,7 @@ import { onboardingV2FocusLabels, onboardingV2Welcome } from '../../src/features
 import { generateOnboardingV2Result } from '../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2Result } from '../../src/features/onboarding/onboardingV2Types';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
-import { colors, fonts, radii, spacing, cardSurface } from '../../src/styles/mobileTheme';
+import { colors, fonts, radii, spacing, glassSurface } from '../../src/styles/mobileTheme';
 import type {
   BiweeklyFocusProfile,
   DynamicScoreSheet,
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.sm,
-    ...cardSurface
+    ...glassSurface
   },
   scaleOptionSelected: {
     borderColor: colors.primary,
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.sm,
-    ...cardSurface,
+    ...glassSurface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm
   },
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     gap: spacing.lg,
     overflow: 'hidden',
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(239, 232, 255, 0.12)',
     borderRadius: radii.xl,
     backgroundColor: colors.plum,
     padding: spacing.lg
@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderRadius: 107,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(19, 10, 33, 0.74)',
     paddingHorizontal: spacing.lg
   },
   scoreAura: {
@@ -1065,9 +1065,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(239, 232, 255, 0.1)',
     borderRadius: radii.lg,
-    backgroundColor: 'rgba(0, 0, 0, 0.042)',
+    backgroundColor: 'rgba(248, 245, 255, 0.07)',
     padding: spacing.md
   },
   domainTopRow: {
@@ -1124,7 +1124,7 @@ const styles = StyleSheet.create({
   scoreSection: {
     gap: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.04)',
+    borderTopColor: 'rgba(239, 232, 255, 0.1)',
     paddingTop: spacing.md
   },
   scoreSectionTitle: {
@@ -1138,9 +1138,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(239, 232, 255, 0.1)',
     borderRadius: radii.lg,
-    backgroundColor: 'rgba(0, 0, 0, 0.042)',
+    backgroundColor: 'rgba(248, 245, 255, 0.07)',
     padding: spacing.sm
   },
   rankNumber: {
@@ -1150,10 +1150,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.078)'
+    backgroundColor: 'rgba(248, 245, 255, 0.13)'
   },
   rankNumberText: {
-    color: '#1D1D1F',
+    color: '#FFFFFF',
     fontFamily: fonts.body,
     fontSize: 12,
     fontWeight: '800',
@@ -1225,13 +1225,13 @@ const styles = StyleSheet.create({
   focusCard: {
     gap: spacing.xs,
     borderRadius: radii.lg,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    backgroundColor: 'rgba(0, 0, 0, 0.048)'
+    borderColor: 'rgba(239, 232, 255, 0.1)',
+    backgroundColor: 'rgba(248, 245, 255, 0.08)'
   },
   resultPanel: {
     borderRadius: radii.lg,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    backgroundColor: 'rgba(0, 0, 0, 0.042)'
+    borderColor: 'rgba(239, 232, 255, 0.1)',
+    backgroundColor: 'rgba(248, 245, 255, 0.07)'
   },
   focusLabel: {
     color: colors.signalGold,
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
   changeRow: {
     gap: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.04)',
+    borderTopColor: 'rgba(239, 232, 255, 0.1)',
     paddingTop: spacing.sm
   },
   changeLabel: {

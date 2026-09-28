@@ -13,7 +13,7 @@ vi.mock('react-native', () => ({
 vi.mock('../../../src/components/Screen', () => ({ Screen: ({ children }: React.PropsWithChildren) => <main>{children}</main> }));
 vi.mock('../../../src/components/Button', () => ({ Button: ({ label }: { label: string }) => <button>{label}</button> }));
 vi.mock('../../../src/features/auth/DemoEntry', () => ({ DemoEntry: () => <button>Continue demo</button> }));
-vi.mock('../../../src/styles/mobileTheme', () => ({ colors: { text: '#fff' }, fonts: {}, spacing: {}, type: { body: {} }, cardSurface: {} }));
+vi.mock('../../../src/styles/mobileTheme', () => ({ colors: { text: '#fff' }, fonts: {}, spacing: {}, type: { body: {} }, glassSurface: {} }));
 import IndexRoute from '../../../app/index';
 
 describe('installed app root screen', () => {

@@ -229,7 +229,7 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
 
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingTop: 16 },
-  card: { ...cardSurface, borderRadius: 16, borderWidth: 1, gap: 10, padding: 18 },
+  card: { ...cardSurface, borderRadius: 22, borderWidth: 1, gap: 10, padding: 18 },
   title: { ...type.label, fontSize: 17, lineHeight: 22 },
   result: { gap: 8 },
   scoreRow: { alignItems: 'center', flexDirection: 'row', gap: 14 },

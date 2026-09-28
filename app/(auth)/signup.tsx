@@ -16,7 +16,7 @@ import {
 } from '../../src/features/legal/consentModel';
 import { CONSENT_VERSION } from '../../src/features/legal/legalLinks';
 import { SignupConsent } from '../../src/features/legal/SignupConsent';
-import { colors, spacing, cardSurface } from '../../src/styles/mobileTheme';
+import { colors, spacing, glassSurface } from '../../src/styles/mobileTheme';
 
 export default function SignupScreen() {
   const { signUp, mode } = useAuth();
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   feedbackError: {
     borderColor: colors.danger,
-    ...cardSurface
+    ...glassSurface
   },
   feedbackSuccess: {
     borderColor: colors.success,

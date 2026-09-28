@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { fonts, cardSurface } from '../../styles/mobileTheme';
+import { fonts, glassSurface } from '../../styles/mobileTheme';
 import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
 import { SleepTimeWheel } from './SleepTimeWheel';
 import { sleepClockParts, sleepClockValue } from './sleepTimePickerModel';
@@ -31,7 +31,7 @@ export function SleepTimePicker({ label, value, palette, onCancel, onDone }: {
     <Modal transparent visible animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable accessibilityLabel="Cancel time selection" onPress={onCancel} style={StyleSheet.absoluteFill} />
-        <SafeAreaView edges={['bottom']} style={[styles.sheet, { ...cardSurface, maxHeight: height }]}>
+        <SafeAreaView edges={['bottom']} style={[styles.sheet, { ...glassSurface, maxHeight: height }]}>
           <View style={[styles.header, { borderBottomColor: palette.border }]}>
             <Pressable accessibilityRole="button" onPress={onCancel} style={styles.action}><Text style={[styles.actionText, { color: palette.muted }]}>Cancel</Text></Pressable>
             <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{label}</Text>
@@ -54,7 +54,7 @@ export function SleepTimePicker({ label, value, palette, onCancel, onDone }: {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(3,7,5,0.34)' },
-  sheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 16, width: '100%', maxWidth: 520, alignSelf: 'center' },
+  sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 16, width: '100%', maxWidth: 520, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   action: { minHeight: 48, minWidth: 64, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   actionText: { fontFamily: fonts.body, fontSize: 16 },
@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
   labels: { flexDirection: 'row', paddingHorizontal: 18, paddingTop: 18 },
   label: { flex: 1, fontFamily: fonts.body, fontSize: 14, textAlign: 'center' },
   wheels: { flexDirection: 'row', marginHorizontal: 18, marginTop: 4, position: 'relative' },
-  selection: { left: 0, right: 0, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, position: 'absolute' }
+  selection: { left: 0, right: 0, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, position: 'absolute' }
 });

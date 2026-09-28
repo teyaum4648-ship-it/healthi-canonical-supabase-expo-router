@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
-import { colors, type, cardSurface } from '../../styles/mobileTheme';
+import { colors, type, glassSurface } from '../../styles/mobileTheme';
 import { pillarColors, pillarTint } from '../../styles/pillarColors';
 import type { WeekBar, WeekCard } from './weekCards';
 
@@ -86,7 +86,7 @@ export function WeekFlipCard({ card, onAction }: { card: WeekCard; onAction: (ca
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, minWidth: 0, minHeight: 236, ...cardSurface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.04)', padding: 14, gap: 10 },
+  card: { flex: 1, minWidth: 0, minHeight: 236, ...glassSurface, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.075)', padding: 14, gap: 10 },
   face: { flex: 1, gap: 4 },
   pressed: { opacity: 0.7 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 20, marginBottom: 4 },

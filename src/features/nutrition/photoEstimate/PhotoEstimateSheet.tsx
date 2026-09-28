@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { EntrySheet } from '../../../components/mobile/EntrySheet';
-import { colors, type, cardSurface } from '../../../styles/mobileTheme';
+import { colors, type, glassSurface } from '../../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../../styles/pillarColors';
 import {
   correctPortion,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   macroLabel: { ...type.label, color: colors.textFaint },
   macroValue: { ...type.body, color: colors.textMuted },
   tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: pillarTint('nourishment', 0.11) },
-  tagLow: { ...cardSurface },
+  tagLow: { ...glassSurface },
   tagText: { ...type.label, color: colors.textMuted },
   portionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   portionInput: {
@@ -250,8 +250,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     color: colors.text,
     padding: 12,
-    borderRadius: 14,
-    ...cardSurface
+    borderRadius: 12,
+    ...glassSurface
   },
   remove: { minHeight: 44, justifyContent: 'center' },
   removeText: { ...type.body, color: colors.textMuted },

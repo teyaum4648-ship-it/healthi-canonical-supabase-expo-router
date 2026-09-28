@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { SleepSession } from '../../engines/circadian';
-import { fonts, cardSurface } from '../../styles/mobileTheme';
+import { fonts, glassSurface } from '../../styles/mobileTheme';
 import { SleepTimePicker } from './SleepTimePicker';
 import { DayNavigator } from '../../components/mobile/DayNavigator';
 import { shiftDay } from '../navigation/navigationModel';
@@ -237,7 +237,7 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
 
   return (
     <View style={styles.sectionPad}>
-      <View style={[styles.card, { ...cardSurface, borderColor: props.palette.border }]}>
+      <View style={[styles.card, { ...glassSurface, borderColor: props.palette.border }]}>
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.eyebrow, { color: props.palette.faint }]}>{viewDate === props.date ? 'Last night' : 'Sleep history'}</Text>
@@ -397,7 +397,7 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
 
 const styles = StyleSheet.create({
   sectionPad: { paddingHorizontal: 22, paddingTop: 18 },
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 18 },
+  card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 18 },
   headerRow: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between' },
   eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0, lineHeight: 15 },
   cardTitle: { fontFamily: fonts.bodyMedium, fontSize: 20, letterSpacing: -0.35, lineHeight: 25, marginTop: 3 },
@@ -422,9 +422,9 @@ const styles = StyleSheet.create({
   timeLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0, lineHeight: 15 },
   timePickerButton: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, minHeight: 48 },
   timeControlRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  timeStepButton: { alignItems: 'center', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, height: 44, justifyContent: 'center', width: 44 },
+  timeStepButton: { alignItems: 'center', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, height: 44, justifyContent: 'center', width: 44 },
   timeValue: { fontFamily: fonts.bodyMedium, fontSize: 16, fontVariant: ['tabular-nums'], lineHeight: 22 },
-  awakeCard: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, marginTop: 12, padding: 11 },
+  awakeCard: { borderRadius: 17, borderWidth: StyleSheet.hairlineWidth, marginTop: 12, padding: 11 },
   awakeHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   awakeTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   awakeDot: { borderRadius: 4, height: 8, width: 8 },

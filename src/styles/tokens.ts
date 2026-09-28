@@ -10,64 +10,51 @@
  */
 
 /**
- * The light canvas. The page is Apple's off-white, and pure white is kept for the things
- * that float on it: cards and the controls inside them. Text is a rich charcoal with one
- * muted grey for labels, timestamps and captions, which is enough hierarchy on its own.
- *
- * Each pillar keeps one colour, darkened until it passes 4.5:1 as text on the canvas and
- * carries white text as a fill, so the same value works for a label, an icon and a button.
+ * OLED black with cool slate layers, and four accents that only mark data or the one
+ * action on a screen. The accents are the sRGB edge of the Display P3 set in the design
+ * files: mint for recovery and the brand, iris for nourishment, glacier for movement and
+ * amber for mind. Coral is kept for safety and nothing else.
  */
 export const hues = {
-  green: '#247A31',
-  purple: '#8944AB',
-  teal: '#0071A4',
-  amber: '#A05A00',
-  blue: '#0066CC',
-  blueFill: '#0071E3',
-  blueFillPressed: '#0062C4',
-  red: '#B31A12',
-  /** Text and icons on any accent fill. */
-  onAccent: '#FFFFFF'
+  mint: '#00F6AA',
+  mintSoft: '#5CF2C0',
+  mintFill: '#00F0A8',
+  mintPressed: '#00C98D',
+  iris: '#A88FFF',
+  irisSoft: '#C2B2FF',
+  glacier: '#46C6FF',
+  glacierSoft: '#8AD9FF',
+  amber: '#FFC25B',
+  coral: '#FF6B6B',
+  /** Text and icons on any accent fill; 7.4:1 on iris, the darkest of them. */
+  onAccent: '#0A0D13'
 } as const;
-
-/**
- * Wellness zones, as washes rather than raw colour: a translucent tint of the system hue
- * behind text in a darker shade of it. Every pair reads at 4.7:1 or better.
- */
-export const zones = {
-  optimal: { background: 'rgba(52, 199, 89, 0.08)', text: '#247A31', solid: '#34C759' },
-  warning: { background: 'rgba(255, 204, 0, 0.1)', text: '#8A6D00', solid: '#FFCC00' },
-  critical: { background: 'rgba(255, 59, 48, 0.08)', text: '#B31A12', solid: '#FF3B30' },
-  neutral: { background: 'rgba(0, 0, 0, 0.04)', text: '#6E6E73', solid: '#AEAEB2' }
-} as const;
-
-export type ZoneTone = keyof typeof zones;
 
 export const palette = {
-  ink: '#1D1D1F',
-  inkSoft: '#1D1D1F',
-  ivory: '#F5F5F7',
-  paper: '#FFFFFF',
-  muted: '#6E6E73',
-  faint: '#6E6E73',
-  hairline: 'rgba(0, 0, 0, 0.04)',
-  hairlineSoft: 'rgba(0, 0, 0, 0.04)',
-  sand: '#E8E8ED',
-  forest: hues.blue,
-  forestMid: hues.blue,
-  forestFill: hues.blueFill,
-  forestFillPressed: hues.blueFillPressed,
-  forestSoft: hues.green,
-  forestPale: 'rgba(0, 113, 227, 0.14)',
-  forestWash: 'rgba(0, 113, 227, 0.07)',
-  clayDark: hues.red
+  ink: '#F5F7FA',
+  inkSoft: '#C7CBD1',
+  ivory: '#000000',
+  paper: '#15171B',
+  muted: '#A9B0BA',
+  faint: '#8C939D',
+  hairline: 'rgba(235, 240, 255, 0.08)',
+  hairlineSoft: 'rgba(235, 240, 255, 0.055)',
+  sand: '#2A2E35',
+  forest: hues.mint,
+  forestMid: hues.mintSoft,
+  forestFill: hues.mintFill,
+  forestFillPressed: hues.mintPressed,
+  forestSoft: hues.mintSoft,
+  forestPale: 'rgba(0, 246, 170, 0.22)',
+  forestWash: 'rgba(0, 246, 170, 0.11)',
+  clayDark: hues.coral
 } as const;
 
 export const colors = {
   background: palette.ivory,
   surface: palette.paper,
-  surfaceInset: '#F5F5F7',
-  surfaceMuted: '#F2F2F5',
+  surfaceInset: '#1E2126',
+  surfaceMuted: '#272A30',
   text: palette.ink,
   textMuted: palette.muted,
   textFaint: palette.faint,
@@ -77,7 +64,7 @@ export const colors = {
   hairlineSoft: palette.hairlineSoft,
   border: palette.hairline,
   borderMuted: palette.hairlineSoft,
-  borderStrong: 'rgba(0, 0, 0, 0.04)',
+  borderStrong: 'rgba(235, 240, 255, 0.12)',
   track: palette.sand,
   accent: palette.forest,
   accentMid: palette.forestMid,
@@ -89,9 +76,9 @@ export const colors = {
   primaryMuted: palette.forestWash,
   primaryText: hues.onAccent,
   danger: palette.clayDark,
-  success: hues.green,
+  success: palette.forestSoft,
   dim: palette.faint,
-  glow: 'rgba(0, 113, 227, 0.14)',
+  glow: 'rgba(0, 246, 170, 0.22)',
 
   // Legacy aliases let established screens adopt the mobile shell without
   // changing their data or interaction logic.
@@ -99,7 +86,7 @@ export const colors = {
   goldSoft: palette.forestMid,
   deepViolet: palette.ink,
   midnightPlum: palette.paper,
-  plum: '#F2F2F5',
+  plum: '#272A30',
   softViolet: palette.forestSoft,
   mutedViolet: palette.faint,
   violetMuted: palette.muted,
@@ -108,7 +95,7 @@ export const colors = {
   teal: palette.forestSoft,
   warmIvory: palette.ivory,
   cosmicWhite: palette.ink,
-  signalGreen: hues.green,
+  signalGreen: palette.forestSoft,
   signalGold: hues.amber,
   signalAmber: hues.amber,
   signalCoral: palette.clayDark,
@@ -126,11 +113,25 @@ export const spacing = {
 
 export const radii = {
   sm: 10,
-  md: 14,
-  lg: 16,
-  xl: 16,
+  md: 16,
+  lg: 22,
+  xl: 28,
   full: 999
 } as const;
+
+/**
+ * Glass: a card is a faint top-lit gradient over black, a hairline edge and a highlight
+ * along its top, with a soft shadow under it. Written once here so every card agrees.
+ */
+export const glass = {
+  gradient: ['rgba(235, 240, 255, 0.075)', 'rgba(235, 240, 255, 0.03)'] as const,
+  gradientRaised: ['rgba(235, 240, 255, 0.11)', 'rgba(235, 240, 255, 0.05)'] as const,
+  edge: 'rgba(235, 240, 255, 0.09)',
+  highlight: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+  shadow: '0 14px 34px rgba(0, 0, 0, 0.45)',
+  chrome: 'rgba(22, 25, 30, 0.86)'
+} as const;
+
 
 /** One curve for every hover, press, focus and open: a quick start that settles softly. */
 export const motion = {
@@ -139,19 +140,21 @@ export const motion = {
   css: 'all 0.25s cubic-bezier(0.25, 1, 0.5, 1)'
 } as const;
 
-/**
- * Cards are a material, not paint: white at 88% over the canvas with the backdrop blurred
- * and its colour lifted, so whatever scrolls behind a card or the tab bar softens rather
- * than showing through. Edges are a 4% hairline that adapts to what is behind them, and
- * the shadow is wide and faint enough to lift a card without drawing a line under it.
- *
- * Over the canvas the card composites to #FEFEFE, which is what text contrast is checked
- * against (tests/styles/contrast.test.ts).
- */
+/** The glass card's parts by name, for components that set their own edge. */
 export const surfaces = {
-  card: 'rgba(255, 255, 255, 0.88)',
-  blur: 'blur(20px) saturate(190%)',
-  edge: 'rgba(0, 0, 0, 0.04)',
-  shadow: '0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01)',
-  chrome: 'rgba(255, 255, 255, 0.88)'
+  edge: glass.edge,
+  chrome: glass.chrome
 } as const;
+
+/**
+ * Wellness zones on black: a low-strength wash of the accent behind text in the accent
+ * itself. Each text colour clears 4.5:1 on the darkest and lightest surfaces it sits on.
+ */
+export const zones = {
+  optimal: { background: 'rgba(0, 246, 170, 0.12)', text: hues.mintSoft, solid: hues.mint },
+  warning: { background: 'rgba(255, 194, 91, 0.14)', text: hues.amber, solid: hues.amber },
+  critical: { background: 'rgba(255, 107, 107, 0.14)', text: hues.coral, solid: hues.coral },
+  neutral: { background: 'rgba(235, 240, 255, 0.06)', text: '#A9B0BA', solid: '#8C939D' }
+} as const;
+
+export type ZoneTone = keyof typeof zones;

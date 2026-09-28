@@ -97,7 +97,7 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, surfaces, cardSurface, type } from '../../../src/styles/mobileTheme';
+import { fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -108,24 +108,24 @@ const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 const recapDismissedKey = 'healthi:recap:dismissed:v1';
 const waterColor = dietAccents.water;
 const homePalette = {
-  background: '#F5F5F7',
-  surface: '#FFFFFF',
-  surfaceRaised: '#F5F5F7',
-  surfaceSoft: '#F2F2F5',
-  border: 'rgba(0, 0, 0, 0.04)',
-  borderStrong: 'rgba(0, 0, 0, 0.04)',
-  blue: '#0066CC',
-  blueBright: '#0071E3',
-  blueSoft: '#0066CC',
-  cyan: '#247A31',
-  violet: '#8944AB',
-  amber: '#A05A00',
-  text: '#1D1D1F',
-  textMuted: '#6E6E73',
-  textFaint: '#6E6E73',
-  track: '#E8E8ED',
-  white: '#1D1D1F',
-  onAccent: '#FFFFFF'
+  background: '#000000',
+  surface: '#15171B',
+  surfaceRaised: '#1E2126',
+  surfaceSoft: '#272A30',
+  border: 'rgba(255, 255, 255, 0.075)',
+  borderStrong: 'rgba(255, 255, 255, 0.12)',
+  blue: '#00F6AA',
+  blueBright: '#8FFFD6',
+  blueSoft: '#5CF2C0',
+  cyan: '#5CF2C0',
+  violet: '#A88FFF',
+  amber: '#FFC25B',
+  text: '#F5F7FA',
+  textMuted: '#A9B0BA',
+  textFaint: '#8C939D',
+  track: '#2A2E35',
+  white: '#F5F7FA',
+  onAccent: '#0A0D13'
 } as const;
 
 const homeFont = Platform.select({
@@ -965,20 +965,20 @@ const styles = StyleSheet.create({
   weekRow: { flexDirection: 'row', gap: 10 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   profileButton: {
-    ...cardSurface,
+    ...glassSurface,
     alignItems: 'center',
-    borderColor: surfaces.edge,
+    borderColor: glass.edge,
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     height: 44,
     justifyContent: 'center',
     width: 44
   },
-  calendarButton: { ...cardSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: surfaces.edge },
+  calendarButton: { ...glassSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
   homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
-  homeNextAction: { ...cardSurface, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 16 },
+  homeNextAction: { ...tintedGlass(hues.mint), flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 24 },
   homeEyebrow: { fontFamily: homeFont, fontSize: 14, fontWeight: '500', color: homePalette.blueSoft, marginBottom: 6 },
   homeDetail: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 4 },
   safe: {
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     backgroundColor: homePalette.blue,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(255,255,255,0.24)',
     borderRadius: 20,
     borderWidth: 1,
     height: 40,
@@ -1041,9 +1041,9 @@ const styles = StyleSheet.create({
   quickUndo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 6 },
   quickUndoText: { fontFamily: homeFont, fontSize: 15, fontWeight: '600', color: homePalette.blueSoft },
   quickLogSection: {
-    ...cardSurface,
-    borderColor: surfaces.edge,
-    borderRadius: 16,
+    ...glassSurface,
+    borderColor: glass.edge,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 13,
     paddingBottom: 13,
@@ -1106,9 +1106,9 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   heroCard: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: homePalette.borderStrong,
-    borderRadius: 16,
+    borderRadius: 26,
     borderWidth: 1,
     elevation: 2,
     overflow: 'hidden',
@@ -1135,7 +1135,7 @@ const styles = StyleSheet.create({
   livePill: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(36, 122, 49, 0.096)',
+    backgroundColor: 'rgba(0, 246, 170, 0.12)',
     borderRadius: 999,
     flexDirection: 'row',
     gap: 7,
@@ -1252,9 +1252,9 @@ const styles = StyleSheet.create({
     width: 36
   },
   panel: {
-    ...cardSurface,
-    borderColor: surfaces.edge,
-    borderRadius: 16,
+    ...glassSurface,
+    borderColor: glass.edge,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     elevation: 1,
     padding: 17
@@ -1284,7 +1284,7 @@ const styles = StyleSheet.create({
   },
   foundationRow: {
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 13,
     flexDirection: 'row',
     gap: 11,
     marginHorizontal: -5,
@@ -1346,9 +1346,9 @@ const styles = StyleSheet.create({
     fontFamily: homeFont
   },
   primaryAction: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: homePalette.border,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     elevation: 1,
     overflow: 'hidden'
@@ -1361,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   primaryActionIcon: {
     alignItems: 'center',
-    backgroundColor: 'rgba(36, 122, 49, 0.104)',
+    backgroundColor: 'rgba(0, 246, 170, 0.13)',
     borderRadius: 15,
     height: 42,
     justifyContent: 'center',
@@ -1481,9 +1481,9 @@ const styles = StyleSheet.create({
     gap: 12
   },
   miniCard: {
-    ...cardSurface,
+    ...glassSurface,
     borderColor: homePalette.border,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     flex: 1,
     minHeight: 170,
@@ -1603,7 +1603,7 @@ const styles = StyleSheet.create({
   actionPreviewRow: {
     alignItems: 'center',
     backgroundColor: homePalette.surfaceRaised,
-    borderRadius: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 10,
@@ -1611,7 +1611,7 @@ const styles = StyleSheet.create({
   },
   actionIndex: {
     alignItems: 'center',
-    backgroundColor: 'rgba(36, 122, 49, 0.104)',
+    backgroundColor: 'rgba(0, 246, 170, 0.13)',
     borderRadius: 10,
     height: 24,
     justifyContent: 'center',

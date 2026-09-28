@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     minHeight: 112,
     padding: 12
   },
-  tileHover: { backgroundColor: '#ECECF0' },
+  tileHover: { backgroundColor: colors.surfaceMuted },
   name: { ...type.caption, color: colors.textMuted, fontWeight: '600' },
   valueRow: { alignItems: 'baseline', flexDirection: 'row', gap: 3 },
   value: { color: colors.text, fontSize: 24, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.5, lineHeight: 28 },

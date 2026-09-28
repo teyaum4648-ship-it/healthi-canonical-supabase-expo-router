@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   danger: {
     backgroundColor: colors.surfaceInset,
     borderColor: colors.danger,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     padding: 14
   },

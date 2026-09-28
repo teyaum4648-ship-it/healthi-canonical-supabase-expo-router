@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceInset,
     borderLeftColor: tabAccent.mood,
     borderLeftWidth: 3,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 14
   },
   mechanismText: { ...type.caption, color: colors.text, lineHeight: 20 },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   caution: {
     backgroundColor: colors.surfaceInset,
     borderColor: colors.danger,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: hairlineWidth,
     gap: 3,
     padding: 13

@@ -7,7 +7,7 @@ import {
   Inter_400Regular,
   Inter_500Medium
 } from '@expo-google-fonts/inter';
-import { DefaultTheme, ThemeProvider, type Theme } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider, type Theme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -20,12 +20,12 @@ import { colors } from '../src/styles/mobileTheme';
 
 /**
  * Navigation's own surfaces — behind every screen and around the floating tab bar — are
- * the app's canvas rather than the library's own grey.
+ * the app's true black rather than the library's light grey.
  */
 const navigationTheme: Theme = {
-  ...DefaultTheme,
+  ...DarkTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...DarkTheme.colors,
     background: colors.background,
     card: colors.background,
     border: 'transparent',
@@ -61,7 +61,7 @@ export default function RootLayout() {
         <ThemeProvider value={navigationTheme}>
           <AuthProvider>
             <Slot />
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

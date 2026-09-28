@@ -139,13 +139,13 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
   );
 }
 const styles = StyleSheet.create({
-  portionChoices: { gap: 8 }, portionChoice: { padding: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.surfaceInset, minHeight: 44 }, portionChoiceSelected: { borderColor: tabAccent.food, backgroundColor: colors.surfaceInset },
+  portionChoices: { gap: 8 }, portionChoice: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.surfaceInset, minHeight: 44 }, portionChoiceSelected: { borderColor: tabAccent.food, backgroundColor: colors.surfaceInset },
   productRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text }, detail: { ...type.body, color: colors.textMuted }, label: { ...type.label, color: colors.text },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: tabAccent.food },
   searchRow: { flexDirection: 'row', gap: 8 }, searchInput: { ...type.body, color: colors.text, minWidth: 0, flex: 1, backgroundColor: colors.surfaceInset, minHeight: 50, paddingHorizontal: 14, borderRadius: 14 },
   search: { backgroundColor: tabAccent.food, minWidth: 70, paddingHorizontal: 12, minHeight: 50, justifyContent: 'center', alignItems: 'center', borderRadius: 14 }, source: { ...type.caption, color: colors.textMuted },
   primary: { backgroundColor: tabAccent.food, alignItems: 'center', justifyContent: 'center', borderRadius: 14, minHeight: 52, padding: 12 }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 },
-  portionRow: { flexDirection: 'row', gap: 12, alignItems: 'center' }, step: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.surfaceInset }, portion: { ...type.numberLg, color: colors.text, flex: 1, minHeight: 54, textAlign: 'center', backgroundColor: colors.surfaceInset, borderRadius: 14 },
+  portionRow: { flexDirection: 'row', gap: 12, alignItems: 'center' }, step: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceInset }, portion: { ...type.numberLg, color: colors.text, flex: 1, minHeight: 54, textAlign: 'center', backgroundColor: colors.surfaceInset, borderRadius: 12 },
   nutrients: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, nutrient: { minWidth: '40%', flex: 1, gap: 4 }, libraryRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, libraryCopy: { flex: 1 }
 });

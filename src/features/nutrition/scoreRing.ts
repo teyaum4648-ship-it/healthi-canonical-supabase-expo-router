@@ -11,15 +11,15 @@ import { productLetterGrade, type ProductLetterGrade } from '../../engines/nutri
  */
 
 const RING_COLOR: Record<ProductLetterGrade, string> = {
-  A: '#248A3D',
-  B: '#248A3D',
-  C: '#9A7400',
-  D: '#9A7400',
-  F: '#D70015'
+  A: '#30D158',
+  B: '#30D158',
+  C: '#FFD60A',
+  D: '#FFD60A',
+  F: '#FF6961'
 };
 
 /** The colour for a score, or a muted grey when there is no score to show. */
-export function scoreRingColor(score: number | null | undefined, unscored = '#6E6E73'): string {
+export function scoreRingColor(score: number | null | undefined, unscored = '#8E8E93'): string {
   if (typeof score !== 'number' || !Number.isFinite(score)) return unscored;
   return RING_COLOR[productLetterGrade(score)];
 }

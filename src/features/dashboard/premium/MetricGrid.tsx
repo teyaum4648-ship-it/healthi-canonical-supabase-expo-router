@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
   card: {
     ...cardSurface,
     borderColor: surfaces.edge,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     flex: 1,
     gap: 8,
     padding: 16
   },
-  cardHover: { boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04), 0 10px 28px rgba(0, 0, 0, 0.07)' },
+  cardHover: { borderColor: 'rgba(235, 240, 255, 0.16)' },
   titleRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   title: { ...type.label, color: colors.text, flex: 1 },
   chevron: { marginRight: -2 },

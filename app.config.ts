@@ -7,7 +7,7 @@ const config: ExpoConfig = {
   version: '0.1.0',
   icon: './public/icons/healthi-icon-1024.png',
   orientation: 'portrait',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'dark',
   web: {
     bundler: 'metro',
     output: 'single',
@@ -16,13 +16,13 @@ const config: ExpoConfig = {
     shortName: 'Healthi',
     lang: 'en',
     scope: '/',
-    themeColor: '#F5F5F7',
-    backgroundColor: '#F5F5F7',
+    themeColor: '#000000',
+    backgroundColor: '#000000',
     description: 'Adaptive wellness guidance for your day.',
     display: 'standalone',
     startUrl: '/',
     orientation: 'portrait',
-    barStyle: 'default',
+    barStyle: 'black-translucent',
     preferRelatedApplications: false
   },
   ios: {

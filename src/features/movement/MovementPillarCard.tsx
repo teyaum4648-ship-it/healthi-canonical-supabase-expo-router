@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { FoundationScore } from '../../engines/foundations';
-import { cardSurface } from '../../styles/mobileTheme';
+import { glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Where movement stands, and what is holding it there.
@@ -71,14 +71,14 @@ export function MovementPillarCard({
 
   if (unread) {
     return (
-      <View style={[styles.card, { ...cardSurface, borderColor: palette.line }]}>
+      <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
         {checkRow}
       </View>
     );
   }
 
   return (
-    <View style={[styles.card, { ...cardSurface, borderColor: palette.line }]}>
+    <View style={[styles.card, { ...glassSurface, borderColor: palette.line }]}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={[styles.eyebrow, { color: palette.muted }]}>Movement</Text>
@@ -122,7 +122,7 @@ export function MovementPillarCard({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 1, gap: 14, paddingHorizontal: 18, paddingVertical: 16 },
+  card: { borderRadius: 18, borderWidth: 1, gap: 14, paddingHorizontal: 18, paddingVertical: 16 },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   headerCopy: { flex: 1, gap: 6, minWidth: 0 },
   flex: { flex: 1, gap: 2, minWidth: 0 },
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   limiterDot: { borderRadius: 3, height: 6, marginTop: 7, width: 6 },
   limiterLabel: { fontSize: 15, fontWeight: '600' },
   limiterDetail: { fontSize: 13, lineHeight: 19 },
-  causes: { borderRadius: 14, gap: 8, padding: 14 },
+  causes: { borderRadius: 12, gap: 8, padding: 14 },
   cause: { fontSize: 13, lineHeight: 20 },
   action: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 52 },
   actionTitle: { fontSize: 16, fontWeight: '600' },

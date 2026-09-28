@@ -122,9 +122,9 @@ export function BiomarkerEntrySheet({ initialKind, date, readings, onSave, onClo
 
 const styles = StyleSheet.create({
   muted: { ...type.body, color: colors.textMuted, fontSize: 15, lineHeight: 21 },
-  kinds: { backgroundColor: 'rgba(118, 118, 128, 0.12)', borderRadius: 14, flexDirection: 'row', gap: 3, padding: 3 },
+  kinds: { backgroundColor: colors.surfaceInset, borderRadius: 14, flexDirection: 'row', gap: 3, padding: 3 },
   kind: { alignItems: 'center', borderCurve: 'continuous', borderRadius: 14, flex: 1, justifyContent: 'center', minHeight: 40, paddingHorizontal: 6 },
-  kindSelected: { backgroundColor: colors.surface, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.04)' },
+  kindSelected: { backgroundColor: colors.surfaceMuted },
   kindText: { ...type.label, color: colors.textMuted, fontSize: 14 },
   kindTextSelected: { color: colors.text },
   field: {

@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: colors.surfaceInset,
-    borderRadius: 14,
+    borderRadius: 12,
     justifyContent: 'center',
     marginTop: 10,
     minHeight: 44,

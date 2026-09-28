@@ -9,7 +9,7 @@ import {
   type DaySlot
 } from '../../engines/circadian';
 import type { SleepPalette } from './SleepExperience';
-import { cardSurface } from '../../styles/mobileTheme';
+import { glassSurface } from '../../styles/mobileTheme';
 
 /**
  * Six questions, then a day built from the answers that the person gets to argue with.
@@ -87,7 +87,7 @@ export function ChronotypeQuiz({
         </View>
 
         {slots.map((slot) => (
-          <View key={slot.id} style={[styles.slot, { ...cardSurface, borderColor: palette.hairline }]}>
+          <View key={slot.id} style={[styles.slot, { ...glassSurface, borderColor: palette.hairline }]}>
             <View style={styles.slotHead}>
               <View style={styles.flex}>
                 <Text style={[styles.slotLabel, { color: palette.text }]}>{slot.label}</Text>
@@ -171,7 +171,7 @@ export function ChronotypeQuiz({
       </Text>
 
       {CHRONOTYPE_QUESTIONS.map((question) => (
-        <View key={question.id} style={[styles.card, { ...cardSurface, borderColor: palette.border }]}>
+        <View key={question.id} style={[styles.card, { ...glassSurface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>{question.prompt}</Text>
           {question.note ? <Text style={[styles.cardNote, { color: palette.faint }]}>{question.note}</Text> : null}
           <View style={styles.options}>
@@ -238,13 +238,13 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 26, fontWeight: '600', lineHeight: 32 },
   intro: { fontSize: 15, lineHeight: 22 },
   flex: { flex: 1, gap: 4, minWidth: 0 },
-  card: { borderRadius: 16, borderWidth: 1, gap: 6, paddingHorizontal: 18, paddingVertical: 16 },
+  card: { borderRadius: 18, borderWidth: 1, gap: 6, paddingHorizontal: 18, paddingVertical: 16 },
   cardTitle: { fontSize: 19, fontWeight: '600', lineHeight: 25 },
   cardNote: { fontSize: 13, lineHeight: 19 },
   options: { gap: 6, marginTop: 6 },
-  option: { borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
+  option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   optionText: { fontSize: 15, lineHeight: 21 },
-  resultCard: { borderRadius: 16, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
+  resultCard: { borderRadius: 18, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
   eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
   resultSummary: { fontSize: 16, lineHeight: 23 },
   resultMeta: { fontSize: 13, lineHeight: 19 },
@@ -258,9 +258,9 @@ const styles = StyleSheet.create({
   nudgeText: { fontSize: 13 },
   footnote: { fontSize: 13, lineHeight: 20 },
   actions: { gap: 10 },
-  primaryButton: { alignItems: 'center', borderRadius: 14, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
+  primaryButton: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
   primaryButtonText: { fontSize: 16, fontWeight: '600' },
-  secondaryButton: { alignItems: 'center', borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
+  secondaryButton: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
   secondaryButtonText: { fontSize: 15, textAlign: 'center' },
   tertiaryButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
   tertiaryButtonText: { fontSize: 13 },

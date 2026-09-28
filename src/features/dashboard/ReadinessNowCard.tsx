@@ -6,7 +6,7 @@ import { ActivityIndicator, AppState, Pressable, StyleSheet, Switch, Text, View 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import type { DailyReadinessDomain, DailyReadinessResult } from '../../engines/readiness';
-import { accentFill, colors, surfaces, cardSurface, type } from '../../styles/mobileTheme';
+import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
 import { pillarColors } from '../../styles/pillarColors';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
@@ -27,7 +27,7 @@ const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
   surface: colors.surface, surfaceAlt: colors.surfaceInset, border: colors.borderStrong, hairline: colors.hairline,
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
-  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#A05A00', chip: colors.surfaceMuted
+  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#FFC25B', chip: colors.surfaceMuted
 };
 const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function clockLabel(value: string) {
@@ -232,10 +232,10 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
 }
 
 const styles = StyleSheet.create({
-  card: { ...cardSurface, padding: 20, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: surfaces.edge, gap: 12 },
+  card: { ...glassSurface, padding: 20, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge, gap: 12 },
   details: { alignSelf: 'stretch', gap: 12 },
   detailsHeading: { ...type.caption, color: colors.textMuted, fontWeight: '600', textAlign: 'center' },
-  pillars: { flexDirection: 'row', alignSelf: 'stretch', marginBottom: 4 },
+  pillars: { flexDirection: 'row', alignSelf: 'stretch', marginVertical: 2 },
   pillar: { flex: 1, alignItems: 'center', gap: 4 },
   pillarValue: { ...type.number, fontSize: 20, lineHeight: 24, color: colors.text },
   pillarValueMissing: { color: colors.textFaint },
@@ -256,11 +256,11 @@ const styles = StyleSheet.create({
   button: { minHeight: 50, borderRadius: 16, ...accentFill(colors.primary), justifyContent: 'center', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
   buttonText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
   secondaryText: { color: colors.text },
-  secondary: { ...cardSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: surfaces.edge },
+  secondary: { ...glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   group: { gap: 10, marginVertical: 6 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
+  choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  notice: { ...type.body, color: '#A05A00' },
+  notice: { ...type.body, color: '#FFC25B' },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

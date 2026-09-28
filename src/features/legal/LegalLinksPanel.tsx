@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   rowDetail: { ...type.caption, color: colors.textMuted },
   notice: {
     backgroundColor: colors.surfaceInset,
-    borderRadius: 14,
+    borderRadius: 12,
     gap: 4,
     marginTop: spacing.sm,
     padding: spacing.md

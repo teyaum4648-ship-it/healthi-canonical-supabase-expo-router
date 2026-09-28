@@ -9,9 +9,9 @@ import { scoreRingColor } from '../../../src/features/nutrition/scoreRing';
  * this fails rather than the two quietly disagreeing.
  */
 describe('the score ring reads the bands, not its own numbers', () => {
-  const green = '#248A3D';
-  const amber = '#9A7400';
-  const red = '#D70015';
+  const green = '#30D158';
+  const amber = '#FFD60A';
+  const red = '#FF6961';
 
   it('is green from 80 up', () => {
     expect(scoreRingColor(100)).toBe(green);

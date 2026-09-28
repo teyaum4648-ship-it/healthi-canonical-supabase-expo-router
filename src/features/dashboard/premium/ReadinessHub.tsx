@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     ...cardSurface,
     alignItems: 'center',
     borderColor: surfaces.edge,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     gap: 14,
     paddingBottom: 8,
@@ -151,9 +151,9 @@ const styles = StyleSheet.create({
   primaryHover: { backgroundColor: colors.primaryPressed },
   primaryText: { ...type.label, color: colors.primaryText, fontSize: 15 },
   secondary: { backgroundColor: colors.surfaceInset, flex: 1.2 },
-  secondaryHover: { backgroundColor: '#ECECF0' },
+  secondaryHover: { backgroundColor: colors.surfaceMuted },
   secondaryText: { ...type.label, color: colors.text, fontSize: 15 },
   disclosure: { alignItems: 'center', alignSelf: 'stretch', borderRadius: 14, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 44 },
-  disclosureHover: { backgroundColor: 'rgba(0, 0, 0, 0.03)' },
+  disclosureHover: { backgroundColor: 'rgba(235, 240, 255, 0.05)' },
   disclosureText: { ...type.label, color: colors.textMuted }
 });

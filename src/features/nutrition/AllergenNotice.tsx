@@ -79,7 +79,7 @@ export function AllergenNotice({ product, avoiding }: {
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 6, padding: 12, borderRadius: 14, borderWidth: 1 },
+  panel: { gap: 6, padding: 12, borderRadius: 12, borderWidth: 1 },
   panelDeclared: { backgroundColor: colors.surfaceInset, borderColor: colors.danger },
   panelAdvisory: { backgroundColor: colors.surfaceInset, borderColor: tabAccent.food },
   panelQuiet: { backgroundColor: colors.surfaceInset, borderColor: colors.border },
