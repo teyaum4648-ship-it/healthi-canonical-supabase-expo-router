@@ -7,7 +7,7 @@
  * was April 2018, so rows describe dishes as measured then, not a chain's current menu.
  * Nutrients are per 100 g; null means USDA did not report it, never zero.
  *
- * Generated 2026-09-28: 421 dishes, 417 with a serving weight.
+ * Generated 2026-09-29: 421 dishes, 417 with a serving weight.
  */
 import type { RestaurantFoodRow } from './restaurantFoodTypes';
 
