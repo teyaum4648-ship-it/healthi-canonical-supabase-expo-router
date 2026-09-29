@@ -29,77 +29,65 @@ jobs:
           };
           const line = (...a) => console.log(...a);
 
-          line('\n===== MENUSTAT (NYC Open Data qgc5-ecnb) =====');
-          const sample = await get('https://data.cityofnewyork.us/resource/qgc5-ecnb.json?$limit=2');
-          line('sample:', JSON.stringify(sample).slice(0, 3000));
-          const keys = Array.isArray(sample) && sample[0] ? Object.keys(sample[0]) : [];
-          line('columns:', keys.join(', '));
-          const yearKey = keys.find(k => /year/i.test(k));
-          if (yearKey) {
-            const years = await get(`https://data.cityofnewyork.us/resource/qgc5-ecnb.json?$select=${yearKey},count(*)&$group=${yearKey}&$order=${yearKey}`);
-            line('rows per year:', JSON.stringify(years));
-          }
-          const total = await get('https://data.cityofnewyork.us/resource/qgc5-ecnb.json?$select=count(*)');
-          line('total rows:', JSON.stringify(total));
-          const restKey = keys.find(k => /restaurant/i.test(k));
-          if (restKey && yearKey) {
-            const latest = await get(`https://data.cityofnewyork.us/resource/qgc5-ecnb.json?$select=max(${yearKey})`);
-            line('latest year:', JSON.stringify(latest));
-            const y = Array.isArray(latest) ? Object.values(latest[0] ?? {})[0] : null;
-            if (y) {
-              const chains = await get(`https://data.cityofnewyork.us/resource/qgc5-ecnb.json?$select=${restKey},count(*)&$where=${yearKey}=${encodeURIComponent(`'${y}'`)}&$group=${restKey}&$order=count(*) DESC&$limit=400`);
-              line(`chains in ${y}:`, Array.isArray(chains) ? chains.length : JSON.stringify(chains));
-              line(JSON.stringify(chains).slice(0, 6000));
+          line('\n===== MENUSTAT on Harvard Dataverse =====');
+          const found = await get('https://dataverse.harvard.edu/api/search?q=MenuStat&type=dataset&per_page=20');
+          const items = found?.data?.items ?? [];
+          for (const it of items) line(`dataset: ${it.global_id} | ${it.name} | ${it.published_at}`);
+          for (const it of items.filter(i => /menustat/i.test(i.name)).slice(0, 4)) {
+            const ds = await get(`https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=${encodeURIComponent(it.global_id)}`);
+            const files = ds?.data?.latestVersion?.files ?? [];
+            line(`\n${it.global_id} license=${JSON.stringify(ds?.data?.latestVersion?.license ?? ds?.data?.latestVersion?.termsOfUse ?? null)}`);
+            for (const f of files) line(`   file ${f.dataFile?.id} | ${f.label} | ${f.dataFile?.contentType} | ${f.dataFile?.filesize} | original=${f.dataFile?.originalFileFormat ?? ''}`);
+            const latest = files.filter(f => /2018/.test(f.label)).concat(files).find(Boolean);
+            if (latest) {
+              const head = await get(`https://dataverse.harvard.edu/api/access/datafile/${latest.dataFile.id}?format=original`, 'text');
+              const text = typeof head === 'string' ? head : JSON.stringify(head);
+              line(`   first lines of ${latest.label}:\n` + text.split(/\r?\n/).slice(0, 4).join('\n').slice(0, 2500));
             }
           }
-          const page = await get('https://www.menustat.org/data.html', 'text');
-          line('menustat.org download links:', typeof page === 'string' ? [...new Set(page.match(/href="[^"]+\.(?:xlsx|csv|zip)[^"]*"/gi) ?? [])].join('\n') : JSON.stringify(page));
-          const meta = await get('https://data.cityofnewyork.us/api/views/qgc5-ecnb.json');
-          line('dataset meta:', JSON.stringify({ name: meta.name, rowsUpdatedAt: meta.rowsUpdatedAt && new Date(meta.rowsUpdatedAt * 1000).toISOString(), license: meta.license, attribution: meta.attribution, category: meta.category }));
 
-          line('\n===== OPEN FOOD FACTS: store-brand counts (US) =====');
-          const brands = ['kirkland-signature', 'trader-joe-s', 'kroger', 'simple-truth', 'simple-truth-organic', 'private-selection', 'great-value', 'good-gather', '365-by-whole-foods-market', '365-everyday-value', 'whole-foods-market', 'signature-select', 'o-organics', 'members-mark', 'h-e-b', 'hill-country-fare', 'publix', 'wegmans', 'market-pantry', 'aldi', 'simply-nature', 'sprouts-farmers-market', 'costco', 'safeway', 'meijer', 'food-lion', 'target', 'walmart'];
-          for (const b of brands) {
-            const r = await get(`https://world.openfoodfacts.org/api/v2/search?brands_tags=${b}&countries_tags_en=united-states&fields=code&page_size=1`);
-            const all = await get(`https://world.openfoodfacts.org/api/v2/search?brands_tags=${b}&fields=code&page_size=1`);
-            line(`${b}: US ${r.count ?? JSON.stringify(r)} · all ${all.count ?? JSON.stringify(all)}`);
-            await new Promise(res => setTimeout(res, 700));
-          }
-
-          line('\n===== OPEN FOOD FACTS: how queries behave (the app\'s legacy search URL) =====');
+          line('\n===== OPEN FOOD FACTS: apostrophe-free store names (the app strips apostrophes) =====');
           const fields = 'code,product_name,brands,countries_tags';
           const legacy = (q, extra = '') => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=8${extra}`;
           const show = async (label, url) => {
-            const r = await get(url);
-            const ps = r.products ?? [];
+            let r = await get(url);
+            if (r.error) { await new Promise(res => setTimeout(res, 15000)); r = await get(url); }
             line(`\n[${label}] count=${r.count ?? r.error}`);
-            for (const p of ps.slice(0, 6)) line(`   ${p.brands ?? '-'} | ${p.product_name ?? '-'} | ${(p.countries_tags ?? []).includes('en:united-states') ? 'US' : ''}`);
-            await new Promise(res => setTimeout(res, 7000));
+            for (const p of (r.products ?? []).slice(0, 6)) line(`   ${p.brands ?? '-'} | ${p.product_name ?? '-'} | ${(p.countries_tags ?? []).includes('en:united-states') ? 'US' : ''}`);
+            await new Promise(res => setTimeout(res, 8000));
           };
-          await show('costco almond butter', legacy('costco almond butter'));
-          await show('kirkland almond butter', legacy('kirkland almond butter'));
-          await show('kirkland signature almond butter', legacy('kirkland signature almond butter'));
           await show('trader joes mandarin orange chicken', legacy('trader joes mandarin orange chicken'));
-          await show("trader joe's mandarin orange chicken", legacy("trader joe's mandarin orange chicken"));
-          await show('mandarin orange chicken + brand tag trader-joe-s', legacy('mandarin orange chicken', '&tagtype_0=brands&tag_contains_0=contains&tag_0=trader-joe-s'));
-          await show('almond butter + brand tag kirkland-signature', legacy('almond butter', '&tagtype_0=brands&tag_contains_0=contains&tag_0=kirkland-signature'));
-          await show('kroger greek yogurt', legacy('kroger greek yogurt'));
-          await show('greek yogurt + brand tag kroger', legacy('greek yogurt', '&tagtype_0=brands&tag_contains_0=contains&tag_0=kroger'));
-          await show('greek yogurt + country united-states', legacy('greek yogurt', '&tagtype_0=countries&tag_contains_0=contains&tag_0=united-states'));
-          await show('greek yogurt (no filter)', legacy('greek yogurt'));
-
-          line('\n===== OFF search-a-licious (the server path) =====');
-          for (const q of ['trader joes mandarin orange chicken', 'kirkland signature almond butter', 'brands:"trader-joe-s" mandarin orange chicken']) {
-            try {
-              const r = await fetch('https://search.openfoodfacts.org/search', { method: 'POST', headers: { ...UA, 'Content-Type': 'application/json' }, body: JSON.stringify({ q, langs: ['en'], fields: ['code', 'product_name', 'brands'], page_size: 6 }), signal: AbortSignal.timeout(30000) });
-              const j = await r.json();
-              line(`\n[SAL ${q}] count=${j.count ?? r.status}`);
-              for (const h of (j.hits ?? []).slice(0, 6)) line(`   ${JSON.stringify(h.brands)} | ${h.product_name}`);
-            } catch (e) { line(`[SAL ${q}] ${e}`); }
-          }
-
-          line('\n===== USDA FoodData Central downloads =====');
-          const fdc = await get('https://fdc.nal.usda.gov/download-datasets', 'text');
-          line(typeof fdc === 'string' ? [...new Set(fdc.match(/fdc-datasets\/[^"'\s]+\.zip/g) ?? [])].join('\n') : JSON.stringify(fdc));
+          await show('almond butter + brand kirkland-signature + US', legacy('almond butter', '&tagtype_0=brands&tag_contains_0=contains&tag_0=kirkland-signature&tagtype_1=countries&tag_contains_1=contains&tag_1=united-states'));
+          await show('(empty terms) + brand trader-joe-s', legacy('', '&tagtype_0=brands&tag_contains_0=contains&tag_0=trader-joe-s'));
+          await show('frozen pizza + brand great-value', legacy('frozen pizza', '&tagtype_0=brands&tag_contains_0=contains&tag_0=great-value'));
+          await show('protein bar + US', legacy('protein bar', '&tagtype_0=countries&tag_contains_0=contains&tag_0=united-states'));
           EOF
           node report.mjs
+
+      - name: USDA branded foods by store brand
+        continue-on-error: true
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/b.zip" https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_branded_food_csv_2026-04-30.zip
+          ls -la "$RUNNER_TEMP/b.zip"
+          unzip -l "$RUNNER_TEMP/b.zip"
+          unzip -q -j "$RUNNER_TEMP/b.zip" '*branded_food.csv' -d "$RUNNER_TEMP/b"
+          python3 - "$RUNNER_TEMP/b/branded_food.csv" <<'PY'
+          import csv, sys, collections
+          csv.field_size_limit(10**9)
+          stores = ['kirkland', "trader joe", 'kroger', 'simple truth', 'private selection', 'great value', 'good & gather', 'market pantry', '365', 'whole foods', 'signature select', "member's mark", 'h-e-b', 'publix', 'wegmans', 'aldi', 'meijer', 'costco', 'sprouts']
+          owners = collections.Counter(); hits = collections.Counter(); total = 0; header = None
+          with open(sys.argv[1], newline='', encoding='utf-8', errors='replace') as f:
+              r = csv.DictReader(f)
+              header = r.fieldnames
+              for row in r:
+                  total += 1
+                  owner = (row.get('brand_owner') or '').strip(); brand = (row.get('brand_name') or '').strip()
+                  owners[owner] += 1
+                  text = f"{owner} | {brand}".lower()
+                  for s in stores:
+                      if s in text: hits[s] += 1
+          print('columns:', header)
+          print('rows:', total)
+          for s in stores: print(f'{s}: {hits[s]}')
+          print('top owners:', owners.most_common(40))
+          PY
