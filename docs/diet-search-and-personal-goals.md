@@ -42,3 +42,19 @@ outside conservative scope (below resting estimate, below 1500 or above 4500 kca
 These are scope guards, not universal intake recommendations or a diagnosis.
 See https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner .
 This initial policy needs qualified nutrition review before wider beta use.
+
+## Built-in restaurant lists and store brands
+
+Two restaurant lists ship inside the app, so chain meals are searchable with no server:
+USDA SR Legacy's Fast Foods and Restaurant Foods (about 420 dishes) and MenuStat's 2018
+chain menus (about 26,600 items from 96 chains; NYC DOHMH, Harvard Dataverse
+doi:10.7910/DVN/K4NYTR, CC0). Both are public domain and both are from 2018; each row
+says so. The "Build restaurant foods" workflow regenerates them. MenuStat items that it
+reports only as a calorie range (customisable bowls and burritos) are left out. MenuStat
+items use the `manual` provider, which the diary's stored-provider checks already accept,
+with `food_data_type` naming the source.
+
+Store names map to their house brands (Costco to Kirkland Signature, Walmart to Great
+Value, Target to Good & Gather, and so on; see `storeBrands.ts`). The phone searches Open
+Food Facts with a brand filter and limits results to the device's country, falling back
+once on an empty answer. The "Food sources report" workflow re-measures these sources.

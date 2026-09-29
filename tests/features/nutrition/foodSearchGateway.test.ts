@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleFoodSearch, searchCatalog } from '../../../src/server/foodSearch';
+// These tests are about the server search; the built-in restaurant lists are tested on their own.
+const NO_LOCAL_LISTS = { restaurantRows: [], menuStat: { restaurants: [], foods: [] } };
 import { normalizeSearchPayload, normalizeUsdaSearchFood, searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 const product = { code: '12345678', product_name: 'Hamburger bun', brands: ['Example bakery'], serving_size: '1 bun (50 g)', nutriments: { 'energy-kcal_100g': 270, proteins_100g: 9, carbohydrates_100g: 50, fat_100g: 4 } };
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -63,20 +65,20 @@ describe('food search client normalization and states', () => {
   });
   it('calls the gateway without a custom CORS-preflight header and does not retry it', async () => {
     const fetcher = vi.fn(async() => response({ products: [{ ...product, brands: 'Example' }], usdaFoods: [] }));
-    const result = await searchFoods('hamburger bun', { endpoint: '/api/food-search', fetcher });
+    const result = await searchFoods('hamburger bun', { ...NO_LOCAL_LISTS, endpoint: '/api/food-search', fetcher });
     expect(result.status).toBe('found'); expect(fetcher).toHaveBeenCalledTimes(1);
     const calls = fetcher.mock.calls as unknown as [string, RequestInit][];
     expect(calls[0][0]).toContain('q=hamburger%20bun'); expect(calls[0][1].headers).toEqual({ Accept: 'application/json' });
   });
   it('distinguishes outages from no matches and reports partial results', async () => {
-    expect((await searchFoods('empty', { endpoint: '/api/food-search', fetcher: vi.fn(async()=>response({ products: [], usdaFoods: [] })) })).status).toBe('empty');
-    expect((await searchFoods('offline', { endpoint: '/api/food-search', fetcher: vi.fn(async()=>response({},503)) })).status).toBe('error');
-    const result = await searchFoods('partial', { endpoint: '/api/food-search', fetcher: vi.fn(async()=>response({ products: [], usdaFoods: [usda], partial: true })) });
+    expect((await searchFoods('empty', { ...NO_LOCAL_LISTS, endpoint: '/api/food-search', fetcher: vi.fn(async()=>response({ products: [], usdaFoods: [] })) })).status).toBe('empty');
+    expect((await searchFoods('offline', { ...NO_LOCAL_LISTS, endpoint: '/api/food-search', fetcher: vi.fn(async()=>response({},503)) })).status).toBe('error');
+    const result = await searchFoods('partial', { ...NO_LOCAL_LISTS, endpoint: '/api/food-search', fetcher: vi.fn(async()=>response({ products: [], usdaFoods: [usda], partial: true })) });
     expect(result.status).toBe('found'); expect(result.notice).toContain('One database');
   });
   it('cancels before sending and does not publish obsolete responses', async () => {
     const controller = new AbortController(); controller.abort(); const fetcher = vi.fn();
-    expect((await searchFoods('canceled', { endpoint: '/api/food-search', signal: controller.signal, fetcher })).status).toBe('error');
+    expect((await searchFoods('canceled', { ...NO_LOCAL_LISTS, endpoint: '/api/food-search', signal: controller.signal, fetcher })).status).toBe('error');
     expect(fetcher).not.toHaveBeenCalled();
   });
 });

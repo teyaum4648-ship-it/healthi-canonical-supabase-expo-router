@@ -89,13 +89,15 @@ export async function restaurantMatches(query: string, options: { restaurantRows
   let menu: HealthiProductSnapshot[] = [];
   try { menu = matchMenuStat(query, options.menuStat ?? await loadMenuStat()); } catch { /* the chain list is optional; USDA's still answers */ }
   const usda = matchRestaurantFoods(query, options.restaurantRows).flatMap(food => normalizeUsdaSearchFood(food) ?? []);
-  const seen = new Set<string>();
-  return resolveSearchFoods([...menu, ...usda], query).filter(p => {
-    const key = `${p.brand ?? ''}|${p.name}`.toLowerCase().replace(/[^a-z0-9|]+/g, ' ').trim();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 15);
+  // Of two rows for one dish, keep the one that knows its serving weight.
+  const key = (p: HealthiProductSnapshot) => `${p.brand ?? ''}|${p.name}`.toLowerCase().replace(/[^a-z0-9|]+/g, ' ').trim();
+  const weighed = (p: HealthiProductSnapshot) => (p.serving_quantity_g ?? p.serving_quantity ?? 0) > 0;
+  const best = new Map<string, HealthiProductSnapshot>();
+  for (const p of [...menu, ...usda]) {
+    const held = best.get(key(p));
+    if (!held || (!weighed(held) && weighed(p))) best.set(key(p), p);
+  }
+  return resolveSearchFoods([...best.values()], query).slice(0, 15);
 }
 
 /**

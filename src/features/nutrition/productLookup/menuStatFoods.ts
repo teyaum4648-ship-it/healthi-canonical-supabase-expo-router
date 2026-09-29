@@ -25,7 +25,7 @@ export function menuStatSnapshot(row: MenuStatRow, restaurants: readonly string[
   const [id, restaurant, name, serving, quantity, unit, kcal, protein, carbs, fat, saturated, fiber, sugar, sodium] = row;
   return {
     barcode: '', provider: 'manual', provider_product_id: `menustat:${id}`,
-    name, brand: restaurants[restaurant] ?? null, image_url: null, ingredients_text: null,
+    name, brand: restaurants[restaurant] ? CHAIN_NAMES[restaurants[restaurant]] ?? restaurants[restaurant] : null, image_url: null, ingredients_text: null,
     serving_size: serving, serving_quantity: quantity, serving_unit: unit, serving_quantity_g: unit === 'g' ? quantity : null,
     food_data_type: MENUSTAT_DATA_TYPE,
     calories_per_serving: kcal, protein_g: protein, carbs_g: carbs, fat_g: fat, saturated_fat_g: saturated,
@@ -33,6 +33,9 @@ export function menuStatSnapshot(row: MenuStatRow, restaurants: readonly string[
     confidence: 'medium', quality_flags: [], reason_codes: []
   };
 }
+
+/** Chain names as the chains write them, where MenuStat's spelling differs. */
+const CHAIN_NAMES: Readonly<Record<string, string>> = { 'Chick-Fil-A': 'Chick-fil-A', Dominos: 'Domino’s' };
 
 /** Each row's words, worked out once per list rather than once per search. */
 const wordCache = new WeakMap<MenuStatData, ReadonlySet<string>[]>();

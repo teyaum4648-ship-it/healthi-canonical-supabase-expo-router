@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { searchCatalog, handleFoodSearch } from '../../../src/server/foodSearch';
 import { normalizeSearchPayload, searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount } from '../../../src/features/nutrition/foodLoggingNutrition';
+// These tests are about the server search; the built-in restaurant lists are tested on their own.
+const NO_LOCAL_LISTS = { restaurantRows: [], menuStat: { restaurants: [], foods: [] } };
 import { addMealBuilderItem, createEmptyMealBuilder, calculateMealBuilderTotals } from '../../../src/features/nutrition/mealBuilder';
 
 const raw = { code: '12345678', product_name: 'Example snack', nutriments: { 'energy-kcal_100g': 400, proteins_100g: 20, carbohydrates_100g: 40, fat_100g: 17 } };
@@ -62,7 +64,7 @@ describe('search label enrichment', () => {
     expect(cache.match.mock.calls[0][0].url).toContain('/food-search-cache/v3');
   });
   it('reports when serving details could not load rather than silently implying no label exists', async () => {
-    const result = await searchFoods('snack', { endpoint: '/api/food-search', fetcher: vi.fn(async () => response({ products: [raw], usdaFoods: [], servingDetailsIncomplete: true })) });
+    const result = await searchFoods('snack', { ...NO_LOCAL_LISTS, endpoint: '/api/food-search', fetcher: vi.fn(async () => response({ products: [raw], usdaFoods: [], servingDetailsIncomplete: true })) });
     expect(result.status).toBe('found');
     expect(result.notice).toContain('serving sizes could not load');
   });

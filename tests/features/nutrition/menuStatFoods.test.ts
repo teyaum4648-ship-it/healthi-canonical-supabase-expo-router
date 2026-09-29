@@ -23,6 +23,7 @@ const DATA: MenuStatData = {
 describe('matching chain menus', () => {
   it('finds an item by chain and dish', () => {
     expect(matchMenuStat('chipotle burrito', DATA).map(p => p.name)).toEqual(['Chicken Burrito']);
+    expect(matchMenuStat('chick fil a', { restaurants: ['Chick-Fil-A'], foods: [[7, 0, 'Nuggets', null, null, null, 260, 28, 11, 12, 2.5, 0, 1, 1210]] })[0].brand).toBe('Chick-fil-A');
     expect(matchMenuStat('mcdonalds big mac', DATA).map(p => p.name)).toEqual(['Big Mac']);
     expect(matchMenuStat('guacamole', DATA).map(p => p.name)).toEqual(['Chips & Guacamole']);
     expect(matchMenuStat('pizza', DATA)).toEqual([]);
@@ -53,8 +54,11 @@ describe('matching chain menus', () => {
 
   it('shows a dish once when both built-in lists have it', async () => {
     const usda: RestaurantFoodRow[] = [[9001, "McDONALD'S, BIG MAC", 'Fast Foods', 257, 12, 20, 15, null, null, null, null, [['1 item', 219]]]];
-    const found = await restaurantMatches('big mac', { restaurantRows: usda, menuStat: DATA });
-    expect(found.filter(p => p.name === 'Big Mac')).toHaveLength(1);
+    const found = await restaurantMatches('big mac', { restaurantRows: usda, menuStat: { ...DATA, foods: [[3, 1, 'Big Mac', null, null, null, 540, 25, 45, 28, 10, 3, 9, 950]] } });
+    const macs = found.filter(p => p.name === 'Big Mac');
+    expect(macs).toHaveLength(1);
+    // The USDA row knows the sandwich weighs 219 g; the chain row did not report it.
+    expect(macs[0].serving_quantity_g).toBe(219);
   });
 
   it('ships rows in the generated shape', () => {
