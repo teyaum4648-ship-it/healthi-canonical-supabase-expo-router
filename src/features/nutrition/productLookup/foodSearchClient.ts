@@ -1,5 +1,6 @@
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
 import { searchOpenFoodFactsProducts, type ProductLookupFetch, type ProductSearchResult } from './openFoodFactsClient';
+import { deviceCountryTag, findStoreBrand, storeBrandNotice, storeBrandText } from './storeBrands';
 import { matchRestaurantFoods } from './bundledRestaurantFoods';
 import type { RestaurantFoodRow } from './restaurantFoodTypes';
 import { resolveSearchFoods } from './searchFoodResolution';
@@ -102,18 +103,43 @@ function withBundled(result: SearchResult, local: HealthiProductSnapshot[], quer
  * request has come back with nothing, because a query that has not failed yet does not
  * need guessing at, and guessing early mangles correct words.
  */
-export async function searchFoods(query: string, options: { signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string; restaurantRows?: readonly RestaurantFoodRow[] } = {}): Promise<SearchResult> {
+export async function searchFoods(query: string, options: {
+  signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string; restaurantRows?: readonly RestaurantFoodRow[];
+  /** Override the device's country; null searches every country. */
+  countryTag?: string | null;
+} = {}): Promise<SearchResult> {
   const typed = query.trim().replace(/\s+/g,' ');
   if (typed.length < 2 || typed.length > 120) return { status: 'empty', products: [], message: 'Enter a food or brand between 2 and 120 characters.' };
   const correction = correctSearchQuery(typed);
   const q = correction.query || typed;
   const local = bundledRestaurantMatches(q, options.restaurantRows);
+  const store = findStoreBrand(q);
+  const storeNotice = store ? storeBrandNotice(store) : undefined;
   const endpoint = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
   if (!endpoint) {
-    const off = await searchOpenFoodFactsProducts(q, { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) });
-    return options.signal?.aborted ? off : withBundled(off, local, q);
+    /*
+     * Searched among products sold in the device's country, and a named store or house
+     * brand as a brand filter on top. The country matters for brands too: "Trader Joe's"
+     * alone brought back German Aldi goods sold under the same name. Each falls back
+     * once, and only on an empty answer: an error is usually the rate limit, which a
+     * second request would only make worse.
+     */
+    const base = { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) };
+    const countryTag = options.countryTag === undefined ? deviceCountryTag() : options.countryTag;
+    let off: ProductSearchResult;
+    if (store) {
+      off = await searchOpenFoodFactsProducts(store.rest, { ...base, brandTag: store.store.tag, ...(countryTag ? { countryTag } : {}) });
+      if (off.status === 'empty' && !options.signal?.aborted) off = await searchOpenFoodFactsProducts(storeBrandText(store), base);
+    } else {
+      off = await searchOpenFoodFactsProducts(q, countryTag ? { ...base, countryTag } : base);
+      if (countryTag && off.status === 'empty' && !options.signal?.aborted) off = await searchOpenFoodFactsProducts(q, base);
+    }
+    if (options.signal?.aborted) return off;
+    return withBundled(storeNotice && off.status === 'found' ? { ...off, notice: storeNotice } : off, local, q);
   }
-  const key = `${endpoint}:${q.toLowerCase()}`;
+  // The server's full-text search has no brand filter, so the brand's own words stand in.
+  const sent = store ? storeBrandText(store) : q;
+  const key = `${endpoint}:${sent.toLowerCase()}`;
   const cached = options.fetcher ? null : cache.get(key);
   if (options.signal?.aborted) return { status: 'error', products: [], message: 'Search canceled.' };
   if (cached && Date.now() - cached.at < 5 * 60_000) return cached.result;
@@ -121,16 +147,16 @@ export async function searchFoods(query: string, options: { signal?: AbortSignal
   const cancel = () => controller.abort(); options.signal?.addEventListener('abort', cancel, { once: true });
   const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 10_000);
   try {
-    const r = await (options.fetcher ?? fetch)(`${endpoint}?q=${encodeURIComponent(q)}`, { signal: controller.signal, headers: { Accept: 'application/json' } });
+    const r = await (options.fetcher ?? fetch)(`${endpoint}?q=${encodeURIComponent(sent)}`, { signal: controller.signal, headers: { Accept: 'application/json' } });
     if (!r.ok) {
       if (cached && Date.now() - cached.at < 86400_000) return { ...cached.result, notice: 'Showing earlier results while the database is unavailable. Check the package label.' };
       return withBundled({ status: 'error', products: [], message: r.status === 429 ? 'Please wait a moment, then search again. Recent and Saved are available now.' : 'The food database is temporarily unavailable. Try again, or use Recent, Saved, or scan the barcode.' }, local, q);
     }
     const payload: unknown = await r.json();
     if (options.signal?.aborted) throw new Error('canceled');
-    const catalog = normalizeSearchPayload(payload, q);
+    const catalog = normalizeSearchPayload(payload, sent);
     const products = local.length ? resolveSearchFoods([...local, ...catalog], q) : catalog;
-    const notice = record(payload) && payload.stale ? 'Showing earlier catalog results. Check the package label.' : record(payload) && payload.partial ? 'One database is unavailable; showing the matches we could load.' : record(payload) && payload.servingDetailsIncomplete ? 'Some label serving sizes could not load. Results marked per 100 g or 100 mL need an amount from the package.' : undefined;
+    const notice = storeNotice ?? (record(payload) && payload.stale ? 'Showing earlier catalog results. Check the package label.' : record(payload) && payload.partial ? 'One database is unavailable; showing the matches we could load.' : record(payload) && payload.servingDetailsIncomplete ? 'Some label serving sizes could not load. Results marked per 100 g or 100 mL need an amount from the package.' : undefined);
     if (products.length === 0) {
       /*
        * Nothing came back, so the query has demonstrably failed and a guess is now worth

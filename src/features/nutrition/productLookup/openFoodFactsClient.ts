@@ -24,6 +24,10 @@ export type OpenFoodFactsLookupOptions = {
   locale?: string;
   scheduler?: Pick<ProviderRequestScheduler, 'schedule' | 'defer'> | null;
   signal?: AbortSignal;
+  /** Search only this brand (an Open Food Facts brands tag). The query may then be empty. */
+  brandTag?: string;
+  /** Search only products sold in this country (an Open Food Facts countries tag). */
+  countryTag?: string;
 };
 
 export type ProductSearchResult =
@@ -225,7 +229,7 @@ export async function searchOpenFoodFactsProducts(
   options: OpenFoodFactsLookupOptions = {}
 ): Promise<ProductSearchResult> {
   const searchTerms = query.trim();
-  if (searchTerms.length < 2) {
+  if (searchTerms.length < 2 && !options.brandTag) {
     return { status: 'empty', products: [], message: 'Enter at least two letters to search foods.' };
   }
 
@@ -233,8 +237,9 @@ export async function searchOpenFoodFactsProducts(
   const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
   // V2 search is filter-only. The existing provider's keyword endpoint also
   // permits browser requests; Search-a-licious currently blocks this app origin.
-  const url = buildFoodSearchUrl(searchTerms, options.locale);
-  const cacheKey = `${options.locale ?? 'en'}:${searchTerms.toLocaleLowerCase()}`;
+  const filters = { brandTag: options.brandTag, countryTag: options.countryTag };
+  const url = buildFoodSearchUrl(searchTerms, options.locale, filters);
+  const cacheKey = `${options.locale ?? 'en'}:${filters.brandTag ?? ''}:${filters.countryTag ?? ''}:${searchTerms.toLocaleLowerCase()}`;
   const cached = !options.fetcher ? foodSearchCache.get(cacheKey) : null;
   if (cached && cached.expiresAt > Date.now()) return cached.result;
   const scheduler = options.scheduler === undefined ? (options.fetcher ? null : foodSearchScheduler) : options.scheduler;
@@ -300,8 +305,17 @@ export async function searchOpenFoodFactsProducts(
 const foodSearchScheduler = new ProviderRequestScheduler({ minimumIntervalMs: 6_100 });
 const foodSearchCache = new Map<string, { expiresAt: number; result: ProductSearchResult }>();
 
-export function buildFoodSearchUrl(query: string, locale = 'en') {
-  return `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query.trim())}&search_simple=1&action=process&json=1&fields=${productFields(locale)}&page_size=24`;
+/**
+ * The keyword search URL. Brand and country filters use the endpoint's tag criteria, which
+ * combine with the words: "almond butter" inside the kirkland-signature brand, or "greek
+ * yogurt" among products sold in the United States.
+ */
+export function buildFoodSearchUrl(query: string, locale = 'en', filters: { brandTag?: string; countryTag?: string } = {}) {
+  const tags = ([['brands', filters.brandTag], ['countries', filters.countryTag]] as const)
+    .filter((entry): entry is readonly ['brands' | 'countries', string] => Boolean(entry[1]))
+    .map(([type, tag], index) => `&tagtype_${index}=${type}&tag_contains_${index}=contains&tag_${index}=${encodeURIComponent(tag)}`)
+    .join('');
+  return `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query.trim())}&search_simple=1&action=process&json=1&fields=${productFields(locale)}&page_size=24${tags}`;
 }
 const searchable = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 export function rankFoodSearchResults(products: HealthiProductSnapshot[], query: string) {
