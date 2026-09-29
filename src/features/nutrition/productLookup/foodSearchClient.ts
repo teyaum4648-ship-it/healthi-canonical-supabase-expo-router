@@ -2,6 +2,7 @@ import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './norm
 import { searchOpenFoodFactsProducts, type ProductLookupFetch, type ProductSearchResult } from './openFoodFactsClient';
 import { deviceCountryTag, findStoreBrand, storeBrandNotice, storeBrandText } from './storeBrands';
 import { matchRestaurantFoods } from './bundledRestaurantFoods';
+import { loadMenuStat, matchMenuStat, type MenuStatData } from './menuStatFoods';
 import type { RestaurantFoodRow } from './restaurantFoodTypes';
 import { resolveSearchFoods } from './searchFoodResolution';
 import { readUsdaMicronutrients } from './micronutrientReaders';
@@ -81,6 +82,23 @@ export function bundledRestaurantMatches(query: string, rows?: readonly Restaura
 }
 
 /**
+ * Built-in restaurant matches from both lists, best first, one row per chain and dish.
+ * The same Big Mac is in USDA's list and MenuStat's; showing it twice reads as two foods.
+ */
+export async function restaurantMatches(query: string, options: { restaurantRows?: readonly RestaurantFoodRow[]; menuStat?: MenuStatData } = {}): Promise<HealthiProductSnapshot[]> {
+  let menu: HealthiProductSnapshot[] = [];
+  try { menu = matchMenuStat(query, options.menuStat ?? await loadMenuStat()); } catch { /* the chain list is optional; USDA's still answers */ }
+  const usda = matchRestaurantFoods(query, options.restaurantRows).flatMap(food => normalizeUsdaSearchFood(food) ?? []);
+  const seen = new Set<string>();
+  return resolveSearchFoods([...menu, ...usda], query).filter(p => {
+    const key = `${p.brand ?? ''}|${p.name}`.toLowerCase().replace(/[^a-z0-9|]+/g, ' ').trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 15);
+}
+
+/**
  * Puts built-in restaurant matches in with a catalogue's answer. They are ranked together,
  * so a chain dish leads only when it matches the words better. If the catalogue failed,
  * the built-in matches still answer, and say where they came from.
@@ -104,7 +122,7 @@ function withBundled(result: SearchResult, local: HealthiProductSnapshot[], quer
  * need guessing at, and guessing early mangles correct words.
  */
 export async function searchFoods(query: string, options: {
-  signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string; restaurantRows?: readonly RestaurantFoodRow[];
+  signal?: AbortSignal; fetcher?: typeof fetch; endpoint?: string; restaurantRows?: readonly RestaurantFoodRow[]; menuStat?: MenuStatData;
   /** Override the device's country; null searches every country. */
   countryTag?: string | null;
 } = {}): Promise<SearchResult> {
@@ -112,7 +130,7 @@ export async function searchFoods(query: string, options: {
   if (typed.length < 2 || typed.length > 120) return { status: 'empty', products: [], message: 'Enter a food or brand between 2 and 120 characters.' };
   const correction = correctSearchQuery(typed);
   const q = correction.query || typed;
-  const local = bundledRestaurantMatches(q, options.restaurantRows);
+  const local = await restaurantMatches(q, options);
   const store = findStoreBrand(q);
   const storeNotice = store ? storeBrandNotice(store) : undefined;
   const endpoint = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;

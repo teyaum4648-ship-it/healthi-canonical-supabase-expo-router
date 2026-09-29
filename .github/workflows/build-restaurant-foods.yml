@@ -1,7 +1,8 @@
-# Rebuilds the restaurant dishes built into the app from USDA FoodData Central.
+# Rebuilds the restaurant dishes built into the app from USDA FoodData Central and
+# MenuStat's chain menus.
 #
-# Run by hand from the Actions tab (or the API) on the branch to update. USDA's bulk CSV
-# needs no key, and the data is public domain. The generated list is checked, then
+# Run by hand from the Actions tab (or the API) on the branch to update. Neither
+# download needs a key, and both are public domain. The generated list is checked, then
 # committed back to the same branch.
 name: Build restaurant foods
 
@@ -11,6 +12,9 @@ on:
       dataset_url:
         description: USDA SR Legacy CSV download
         default: https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip
+      menustat_url:
+        description: MenuStat annual CSV (Harvard Dataverse doi:10.7910/DVN/K4NYTR, CC0)
+        default: https://dataverse.harvard.edu/api/access/datafile/6191167?format=original
 
 permissions:
   contents: write
@@ -38,16 +42,24 @@ jobs:
       - name: Generate the list
         run: node scripts/build-restaurant-foods.mjs "$RUNNER_TEMP/sr"
 
+      - name: Download MenuStat
+        env:
+          MENUSTAT_URL: ${{ inputs.menustat_url }}
+        run: curl -fsSL --retry 3 -o "$RUNNER_TEMP/menustat.csv" "$MENUSTAT_URL"
+
+      - name: Generate the chain menus
+        run: node scripts/build-menustat-foods.mjs "$RUNNER_TEMP/menustat.csv"
+
       - name: Check it
         run: |
           npm run typecheck
-          npx vitest run tests/features/nutrition/bundledRestaurantFoods.test.ts
+          npx vitest run tests/features/nutrition/bundledRestaurantFoods.test.ts tests/features/nutrition/menuStatFoods.test.ts
 
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
-          git add src/features/nutrition/productLookup/generatedRestaurantFoods.ts
-          if git diff --cached --quiet; then echo "No change to the restaurant list."; exit 0; fi
-          git commit -m "Regenerate the built-in restaurant foods from USDA SR Legacy"
+          git add src/features/nutrition/productLookup/generatedRestaurantFoods.ts src/features/nutrition/productLookup/generatedMenuStatFoods.ts
+          if git diff --cached --quiet; then echo "No change to the restaurant lists."; exit 0; fi
+          git commit -m "Regenerate the built-in restaurant foods from USDA SR Legacy and MenuStat"
           git push

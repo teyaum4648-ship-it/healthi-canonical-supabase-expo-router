@@ -20,3 +20,27 @@ export type RestaurantFoodRow = readonly [
   sodium_mg: number | null,
   portions: readonly (readonly [label: string, grams: number])[]
 ];
+
+/** The data type a search result carries when it came from MenuStat's chain menus. */
+export const MENUSTAT_DATA_TYPE = 'MenuStat 2018';
+
+/**
+ * One chain menu item, as scripts/build-menustat-foods.mjs writes it. Nutrients are per
+ * serving, as the chain published them; null means not reported, never zero.
+ */
+export type MenuStatRow = readonly [
+  menuItemId: number,
+  restaurant: number,
+  name: string,
+  serving: string | null,
+  servingQuantity: number | null,
+  servingUnit: 'g' | 'mL' | null,
+  kcal: number,
+  protein_g: number | null,
+  carbs_g: number | null,
+  fat_g: number | null,
+  saturated_fat_g: number | null,
+  fiber_g: number | null,
+  sugar_g: number | null,
+  sodium_mg: number | null
+];

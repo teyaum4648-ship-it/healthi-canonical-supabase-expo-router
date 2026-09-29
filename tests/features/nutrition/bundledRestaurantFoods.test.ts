@@ -8,6 +8,8 @@ import { RESTAURANT_FOODS } from '../../../src/features/nutrition/productLookup/
 import { BUNDLED_RESTAURANT_DATA_TYPE, type RestaurantFoodRow } from '../../../src/features/nutrition/productLookup/restaurantFoodTypes';
 import { foodSearchPortionDetail } from '../../../src/features/nutrition/foodLoggingNutrition';
 
+const NO_MENUSTAT = { restaurants: [], foods: [] };
+
 /*
  * Fixture rows in the generated shape. The numbers are test values chosen to be easy to
  * check, not USDA's measurements.
@@ -84,14 +86,14 @@ describe('search with the built-in list', () => {
 
   it('adds matching dishes to the catalogue results', async () => {
     const fetcher = vi.fn(async () => json({ products: [], usdaFoods: [] }));
-    const result = await searchFoods('big mac', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS });
+    const result = await searchFoods('big mac', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS, menuStat: NO_MENUSTAT });
     expect(result.status).toBe('found');
     expect(result.products.map(p => p.name)).toEqual(['Big Mac']);
   });
 
   it('still answers from the built-in list when the catalogue is down, and says so', async () => {
     const fetcher = vi.fn(async () => json({}, 503));
-    const result = await searchFoods('chicken sandwich', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS });
+    const result = await searchFoods('chicken sandwich', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS, menuStat: NO_MENUSTAT });
     expect(result.status).toBe('found');
     expect(result.products[0].brand).toBe('Chick-fil-A');
     expect(result.notice).toMatch(/built into the app/);
@@ -99,14 +101,14 @@ describe('search with the built-in list', () => {
 
   it('merges into the phone path, which searches Open Food Facts directly', async () => {
     const fetcher = vi.fn(async () => json({ products: [] }));
-    const result = await searchFoods('whopper', { fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS });
+    const result = await searchFoods('whopper', { fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS, menuStat: NO_MENUSTAT });
     expect(fetcher).toHaveBeenCalled();
     expect(result.products.map(p => p.name)).toEqual(['Whopper, no cheese']);
   });
 
   it('changes nothing when no built-in dish matches', async () => {
     const fetcher = vi.fn(async () => json({ products: [], usdaFoods: [] }));
-    const result = await searchFoods('greek yogurt', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS });
+    const result = await searchFoods('greek yogurt', { endpoint: '/api/food-search', fetcher: fetcher as unknown as typeof fetch, restaurantRows: ROWS, menuStat: NO_MENUSTAT });
     expect(result.status).toBe('empty');
   });
 });

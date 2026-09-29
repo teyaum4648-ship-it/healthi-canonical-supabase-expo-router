@@ -7,6 +7,7 @@ import { SegmentedControl } from '../../components/mobile/SegmentedControl';
 import { colors, type } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import type { HealthiProductSnapshot } from './productLookup/productLookupTypes';
+import { MENUSTAT_DATA_TYPE } from './productLookup/restaurantFoodTypes';
 import type { UserFoodProductRow } from './productLibraryPersistence';
 import { userFoodProductRowToSnapshot } from './mealBuilder';
 import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
@@ -127,7 +128,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
             {showIncomplete ? catalog.incomplete.map(product => <View key={`${product.provider}-${product.barcode}-${product.name}`} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} /><View style={styles.libraryCopy}><Text style={styles.label}>{product.name}</Text><Text style={styles.detail}>{foodSearchPortionDetail(product)}</Text><ActionRow title="Enter this food’s label" onPress={onManual} /></View></View>) : null}
           </> : null}
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
-          <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
+          <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}{results.some(p => p.food_data_type === MENUSTAT_DATA_TYPE) ? ' · MenuStat, NYC Health' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
         </> : <>
           {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><ScoreRing score={product.quality_score} size={34} label={`${product.name}: quality ${product.quality_score ?? 'not scored'}`} /><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={tabAccent.food} /></Pressable></View>)}
           {!personal.length ? <Text style={styles.detail}>{query ? 'No matching foods in this list. Try Search for more options.' : tab === 'Saved' ? 'Bookmark foods in Recent to keep them here for next time.' : 'Foods you use will appear here. Search or scan to begin.'}</Text> : null}

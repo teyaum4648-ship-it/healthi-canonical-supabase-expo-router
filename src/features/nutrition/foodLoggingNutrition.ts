@@ -1,5 +1,5 @@
 import type { HealthiProductSnapshot } from './productLookup/productLookupTypes';
-import { BUNDLED_RESTAURANT_DATA_TYPE } from './productLookup/restaurantFoodTypes';
+import { BUNDLED_RESTAURANT_DATA_TYPE, MENUSTAT_DATA_TYPE } from './productLookup/restaurantFoodTypes';
 import { metricServing, metricServingFromText } from './labelServing';
 
 const keys = ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g', 'sodium_mg', 'saturated_fat_g'] as const;
@@ -84,6 +84,7 @@ export function foodSearchPortionDetail(product: HealthiProductSnapshot): string
   const nutrition = foodLoggingNutrition(product);
   const reference = nutrition.basis === 'per_100g' || nutrition.basis === 'per_100ml';
   return [product.brand, product.quantity, product.food_data_type === BUNDLED_RESTAURANT_DATA_TYPE ? 'USDA restaurant data, 2018'
+      : product.food_data_type === MENUSTAT_DATA_TYPE ? 'Chain menu data (MenuStat), 2018'
       : product.provider === 'usda_food_data_central' && product.food_data_type !== 'Branded' ? 'USDA reference food' : null,
     reference ? 'Serving size not listed' : nutrition.basis === 'unreported' && !product.serving_size ? 'Serving size not listed' : nutrition.label,
     nutrition.nutrients.calories === null ? 'Calories not reported'

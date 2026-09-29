@@ -34,7 +34,7 @@ const singular = (word: string) =>
       : word.endsWith('s') && !word.endsWith('ss') && word.length > 3 ? word.slice(0, -1)
         : word;
 
-function termCredit(term: string, words: Set<string>): number {
+function termCredit(term: string, words: ReadonlySet<string>): number {
   if (words.has(term)) return 1;
   const stem = singular(term);
   for (const word of words) {
@@ -56,11 +56,21 @@ const FILLER = new Set(['a', 'an', 'the', 'and', 'with', 'from', 'at', 'of', 'in
  * asked the question. Near misses rank but do not admit: as a filter they let "pancakes"
  * in through "pan crust" and "fil" in through "fillet".
  */
-export function matchesEveryTerm(haystack: string, query: string): boolean {
-  const words = new Set(normalized(haystack).split(' '));
-  const terms = [...new Set(normalized(query).split(/\s+/).filter(Boolean))];
+export function matchesEveryTerm(haystack: string | ReadonlySet<string>, query: string | readonly string[]): boolean {
+  const words = typeof haystack === 'string' ? searchWords(haystack) : haystack;
+  const terms = typeof query === 'string' ? queryTerms(query) : query;
   const meaningful = terms.filter(term => !FILLER.has(term) || words.has(term));
   return meaningful.length > 0 && meaningful.every(term => termCredit(term, words) === 1);
+}
+
+/** The words of a name, normalised the way matching reads them. Worth caching for a long list. */
+export function searchWords(text: string): ReadonlySet<string> {
+  return new Set(normalized(text).split(' '));
+}
+
+/** The distinct words of a query. */
+export function queryTerms(query: string): string[] {
+  return [...new Set(normalized(query).split(/\s+/).filter(Boolean))];
 }
 
 /** Completeness breaks ties among relevant foods, never across identities.

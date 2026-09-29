@@ -4,6 +4,8 @@ import { searchFoods } from '../../../src/features/nutrition/productLookup/foodS
 import { buildFoodSearchUrl } from '../../../src/features/nutrition/productLookup/openFoodFactsClient';
 import { deviceCountryTag, findStoreBrand, storeBrandNotice, storeBrandText } from '../../../src/features/nutrition/productLookup/storeBrands';
 
+const NO_MENUSTAT = { restaurants: [], foods: [] };
+
 describe('store names and house brands', () => {
   it('reads a store as the brand on its shelves, and keeps what else was asked for', () => {
     const costco = findStoreBrand('costco almond butter');
@@ -66,7 +68,7 @@ describe('search URLs and fallbacks', () => {
 
   it('searches a store as its brand in the device country, and says which brand', async () => {
     const { urls, fetcher } = offFetcher(() => [almondButter]);
-    const result = await searchFoods('costco almond butter', { fetcher, countryTag: 'united-states', restaurantRows: [] });
+    const result = await searchFoods('costco almond butter', { fetcher, countryTag: 'united-states', restaurantRows: [], menuStat: NO_MENUSTAT });
     expect(urls).toHaveLength(1);
     expect(urls[0]).toContain('tag_0=kirkland-signature');
     expect(urls[0]).toContain('tag_1=united-states');
@@ -77,7 +79,7 @@ describe('search URLs and fallbacks', () => {
 
   it('falls back to the brand as words when the brand filter finds nothing', async () => {
     const { urls, fetcher } = offFetcher(url => url.includes('tagtype_0=brands') ? [] : [almondButter]);
-    const result = await searchFoods('costco almond butter', { fetcher, countryTag: 'united-states', restaurantRows: [] });
+    const result = await searchFoods('costco almond butter', { fetcher, countryTag: 'united-states', restaurantRows: [], menuStat: NO_MENUSTAT });
     expect(urls).toHaveLength(2);
     expect(urls[1]).toContain('search_terms=Kirkland%20Signature%20almond%20butter&');
     expect(urls[1]).not.toContain('tagtype_');
@@ -86,7 +88,7 @@ describe('search URLs and fallbacks', () => {
 
   it('searches the device country first and every country only if that is empty', async () => {
     const { urls, fetcher } = offFetcher(url => url.includes('tagtype_0=countries') ? [] : [almondButter]);
-    const result = await searchFoods('almond butter', { fetcher, countryTag: 'united-states', restaurantRows: [] });
+    const result = await searchFoods('almond butter', { fetcher, countryTag: 'united-states', restaurantRows: [], menuStat: NO_MENUSTAT });
     expect(urls).toHaveLength(2);
     expect(urls[0]).toContain('tag_0=united-states');
     expect(urls[1]).not.toContain('tagtype_');
@@ -95,14 +97,14 @@ describe('search URLs and fallbacks', () => {
 
   it('searches every country when the region is unknown', async () => {
     const { urls, fetcher } = offFetcher(() => [almondButter]);
-    await searchFoods('almond butter', { fetcher, countryTag: null, restaurantRows: [] });
+    await searchFoods('almond butter', { fetcher, countryTag: null, restaurantRows: [], menuStat: NO_MENUSTAT });
     expect(urls).toHaveLength(1);
     expect(urls[0]).not.toContain('tagtype_');
   });
 
   it('sends the brand words to the server search, which has no brand filter', async () => {
     const { urls, fetcher } = offFetcher(() => []);
-    await searchFoods('costco almond butter', { endpoint: '/api/food-search', fetcher, restaurantRows: [] });
+    await searchFoods('costco almond butter', { endpoint: '/api/food-search', fetcher, restaurantRows: [], menuStat: NO_MENUSTAT });
     expect(urls[0]).toBe('/api/food-search?q=Kirkland%20Signature%20almond%20butter');
   });
 });
