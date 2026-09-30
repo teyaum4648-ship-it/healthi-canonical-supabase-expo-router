@@ -88,12 +88,15 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
   const [pulseText, setPulseText] = useState('');
   const [pulseError, setPulseError] = useState<string | null>(null);
   const [savingPulse, setSavingPulse] = useState(false);
+  const [saved, setSaved] = useState(false);
   const answers = report ?? {};
   const awake = answers.awakeDuringNightMinutes;
 
+  /** Saves the check-in. The answers are already stored as they are tapped; a pulse is optional. */
   async function savePulse() {
     const bpm = Number(pulseText.trim());
-    if (!pulseText.trim()) return;
+    setPulseError(null);
+    if (!pulseText.trim()) { setSaved(true); return; }
     if (!isPlausibleMorningHR(bpm)) {
       setPulseError(`Enter a pulse between ${PLAUSIBLE_MORNING_HR.min} and ${PLAUSIBLE_MORNING_HR.max} bpm. Count for 30 seconds and double it.`);
       return;
@@ -103,6 +106,7 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
     try {
       await onSavePulse(Math.round(bpm));
       setPulseText('');
+      setSaved(true);
     } catch {
       setPulseError('That pulse could not be saved. Try again.');
     } finally {
@@ -215,20 +219,18 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
             inputMode="numeric"
             keyboardType="number-pad"
             maxLength={3}
-            onChangeText={(value) => { setPulseText(value.replace(/[^0-9]/g, '')); setPulseError(null); }}
+            onChangeText={(value) => { setPulseText(value.replace(/[^0-9]/g, '')); setPulseError(null); setSaved(false); }}
             placeholder={savedPulse ? String(savedPulse) : '—'}
             placeholderTextColor={palette.faint}
             style={[styles.pulseInput, { backgroundColor: palette.chip, color: palette.text }]}
             value={pulseText}
           />
           <Text style={[styles.body, { color: palette.muted }]}>bpm</Text>
-          {/* Save appears once there is a pulse to save, so an empty box never blocks anything. */}
-          {pulseText ? (
-            <FluidPressable accessibilityRole="button" accessibilityLabel="Save morning pulse" disabled={savingPulse} onPress={() => void savePulse()} style={[styles.pulseSave, { backgroundColor: palette.primary }]}>
-              <Text style={[styles.chipText, { color: palette.primaryText }]}>{savingPulse ? 'Saving…' : 'Save pulse'}</Text>
-            </FluidPressable>
-          ) : null}
+          <FluidPressable accessibilityRole="button" accessibilityLabel="Save check-in" disabled={savingPulse} onPress={() => void savePulse()} style={[styles.pulseSave, { backgroundColor: palette.primary }]}>
+            <Text style={[styles.chipText, { color: palette.primaryText }]}>{savingPulse ? 'Saving…' : 'Save'}</Text>
+          </FluidPressable>
         </View>
+        {saved ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: palette.muted }]}>Saved.</Text> : null}
         {savedPulse ? <Text style={[styles.note, { color: palette.faint }]}>Saved for today: {savedPulse} bpm.</Text> : null}
         {pulseError ? <Text accessibilityRole="alert" style={[styles.note, { color: zones.warning.text }]}>{pulseError}</Text> : null}
       </View>
