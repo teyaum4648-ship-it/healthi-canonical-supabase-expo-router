@@ -48,6 +48,17 @@ export const READINESS_BASELINE = 70;
 const NOURISHMENT_NEUTRAL = 70;
 const NOURISHMENT_CEILING = 10;
 const NOURISHMENT_FLOOR = -18;
+
+/**
+ * How far each foundation can move the score, lowest to highest. The domain functions
+ * clamp to these, and the Home ring reads them to show where each foundation sits.
+ */
+export const READINESS_CONTRIBUTION_RANGE: Readonly<Record<DailyReadinessDomain, readonly [number, number]>> = {
+  recovery_rhythm: [-25, 15],
+  nourishment: [NOURISHMENT_FLOOR, NOURISHMENT_CEILING],
+  movement_capacity: [-15, 12],
+  mind_life_load: [-10, 6]
+};
 /**
  * The pillar score at which the floor is reached, rather than zero.
  *
@@ -114,7 +125,7 @@ function rhythmScore(input: GenerateDailyReadinessInput['rhythm']): DomainScore 
   const hasSignal = typeof duration === 'number' || typeof debt === 'number' || Boolean(input.energy_phase);
   return {
     domain: 'recovery_rhythm',
-    contribution: clamp(contribution, -25, 15),
+    contribution: clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.recovery_rhythm),
     confidence: input.confidence ?? 'low',
     missing: !hasSignal,
     reasons: unique(hasSignal ? reasons : [...reasons, 'rhythm_data_missing'])
@@ -176,7 +187,7 @@ function movementScore(input: GenerateDailyReadinessInput['movement']): DomainSc
 
   return {
     domain: 'movement_capacity',
-    contribution: clamp(contribution, -15, 12),
+    contribution: clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.movement_capacity),
     confidence: input.confidence ?? 'low',
     missing: !hasSignal,
     reasons: unique(reasons)
@@ -202,7 +213,7 @@ function scheduleScore(input: GenerateDailyReadinessInput['schedule']): DomainSc
 
   return {
     domain: 'mind_life_load',
-    contribution: clamp(contribution, -10, 6),
+    contribution: clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.mind_life_load),
     confidence: input.confidence ?? 'low',
     missing: !hasSignal,
     reasons: unique(reasons)

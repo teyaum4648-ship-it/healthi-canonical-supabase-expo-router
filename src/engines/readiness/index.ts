@@ -1,5 +1,6 @@
 export {
   READINESS_BASELINE,
+  READINESS_CONTRIBUTION_RANGE,
   generateDailyReadiness,
   nourishmentContribution
 } from './generateDailyReadiness';

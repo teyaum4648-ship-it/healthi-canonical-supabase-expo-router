@@ -26,13 +26,13 @@ const palette = {
   background: '#000000',
   surface: '#15171B',
   ink: '#F5F7FA',
-  accent: '#46C6FF',
-  accentMid: '#8AD9FF',
+  accent: '#86C8F0',
+  accentMid: '#A5D6F4',
   slate: '#A9B0BA',
   faint: '#8C939D',
   line: 'rgba(255, 255, 255, 0.075)',
   record: '#FF9F0A',
-  up: '#5CF2C0'
+  up: '#A6EAD2'
 } as const;
 
 function Eyebrow({ children }: { children: string }) {
@@ -292,11 +292,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: 13
   },
-  chipPressed: { backgroundColor: 'rgba(70, 198, 255, 0.18)' },
+  chipPressed: { backgroundColor: 'rgba(134, 200, 240, 0.18)' },
   chipText: { ...type.caption, color: palette.ink },
   nextPanel: {
-    backgroundColor: 'rgba(70, 198, 255, 0.10)',
-    borderColor: 'rgba(70, 198, 255, 0.26)',
+    backgroundColor: 'rgba(134, 200, 240, 0.10)',
+    borderColor: 'rgba(134, 200, 240, 0.26)',
     borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 8,

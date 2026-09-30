@@ -5,9 +5,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { ActivityIndicator, AppState, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
-import type { DailyReadinessDomain, DailyReadinessResult } from '../../engines/readiness';
+import type { DailyReadinessResult } from '../../engines/readiness';
 import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
-import { pillarColors } from '../../styles/pillarColors';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
@@ -27,47 +26,13 @@ const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
   surface: colors.surface, surfaceAlt: colors.surfaceInset, border: colors.borderStrong, hairline: colors.hairline,
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
-  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#FFC25B', chip: colors.surfaceMuted
+  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#F2C87E', chip: colors.surfaceMuted
 };
 const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function clockLabel(value: string) {
   const [h, m] = value.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
-/** Short enough for a quarter of the row; the full names stay in the sheet and the labels. */
-const pillarShortNames: Record<DailyReadinessDomain, string> = {
-  recovery_rhythm: 'Recovery', nourishment: 'Nourish', movement_capacity: 'Movement', mind_life_load: 'Mind'
-};
-const pillarOrder: DailyReadinessDomain[] = ['recovery_rhythm', 'nourishment', 'movement_capacity', 'mind_life_load'];
-
-function pointsLabel(points: number): string {
-  if (points === 0) return '0';
-  return points > 0 ? `+${points}` : `−${Math.abs(points)}`;
-}
-
-/**
- * What each foundation added to or took from the estimate, in the points the ledger uses.
- * These are contributions, not per-pillar scores: the engine does not score the pillars
- * out of 100 here, so the row says only what it knows. A foundation with no evidence shows
- * a dash, because missing data adds nothing and takes nothing away.
- */
-function PillarContributions({ rows }: { rows: { domain: DailyReadinessDomain; contribution: number; missing: boolean }[] }) {
-  return <View style={styles.pillars}>
-    {pillarOrder.map(domain => {
-      const row = rows.find(r => r.domain === domain);
-      const known = row && !row.missing;
-      const value = known ? pointsLabel(row.contribution) : '—';
-      return <View key={domain} accessible accessibilityLabel={`${domainNames[domain]}: ${known ? `${value} points` : 'no signal yet'}`} style={styles.pillar}>
-        <Text style={[styles.pillarValue, !known && styles.pillarValueMissing]}>{value}</Text>
-        <View style={styles.pillarNameRow}>
-          <View style={[styles.pillarDot, { backgroundColor: pillarColors[domain] }]} />
-          <Text numberOfLines={1} style={styles.pillarName}>{pillarShortNames[domain]}</Text>
-        </View>
-      </View>;
-    })}
-  </View>;
-}
-
 function Button({ title, label, onPress, disabled = false, secondary = false, grow = false, wide = false }: { title: string; label?: string; onPress: () => void; disabled?: boolean; secondary?: boolean; grow?: boolean; wide?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, secondary && styles.secondary, grow && styles.grow, wide && styles.wide, (pressed || disabled) && { opacity: .6 }]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.buttonText, secondary && styles.secondaryText]}>{title}</Text></Pressable>;
 }
@@ -208,7 +173,8 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
       primaryLabel={result.checkin ? 'Update check-in' : 'Check in'}
       onPrimary={() => setSheet('checkin')}
       onWhy={() => setSheet('why')}
-      details={<View style={styles.details}><Text style={styles.detailsHeading}>What moved the estimate</Text><PillarContributions rows={result.ledger} />{details}</View>}
+      details={details}
+      pillars={result.ledger}
     />
     {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); }} /> : null}
@@ -233,15 +199,6 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
 
 const styles = StyleSheet.create({
   card: { ...glassSurface, padding: 20, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge, gap: 12 },
-  details: { alignSelf: 'stretch', gap: 12 },
-  detailsHeading: { ...type.caption, color: colors.textMuted, fontWeight: '600', textAlign: 'center' },
-  pillars: { flexDirection: 'row', alignSelf: 'stretch', marginVertical: 2 },
-  pillar: { flex: 1, alignItems: 'center', gap: 4 },
-  pillarValue: { ...type.number, fontSize: 20, lineHeight: 24, color: colors.text },
-  pillarValueMissing: { color: colors.textFaint },
-  pillarNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  pillarDot: { width: 6, height: 6, borderRadius: 3 },
-  pillarName: { ...type.caption, fontSize: 12, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { ...type.heading, color: colors.text, fontSize: 24, lineHeight: 30 },
   headCopy: { flex: 1, minWidth: 0, gap: 4 },
@@ -261,6 +218,6 @@ const styles = StyleSheet.create({
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  notice: { ...type.body, color: '#FFC25B' },
+  notice: { ...type.body, color: '#F2C87E' },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

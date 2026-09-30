@@ -5,8 +5,23 @@ import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import { useReducedMotion } from '../../../components/mobile/useReducedMotion';
 import { cardSurface, colors, fonts, motion, surfaces, type, zones, type ZoneTone } from '../../../styles/mobileTheme';
+import { pillarColors } from '../../../styles/pillarColors';
 import { MetricRing } from './MetricRing';
+import { PILLAR_ORDER, PillarRing, type PillarReading } from './PillarRing';
 import { ZoneChip } from './ZoneChip';
+
+const PILLAR_NAMES: Record<PillarReading['domain'], string> = {
+  recovery_rhythm: 'Recovery',
+  nourishment: 'Nourish',
+  movement_capacity: 'Movement',
+  mind_life_load: 'Mind'
+};
+
+/** Signed points, short enough for a quarter of the row. */
+function points(contribution: number): string {
+  const value = Math.round(contribution);
+  return value > 0 ? `+${value}` : value < 0 ? `\u2212${Math.abs(value)}` : '0';
+}
 
 const curve = Easing.bezier(...motion.bezier);
 
@@ -28,7 +43,8 @@ export function ReadinessHub({
   primaryAccessibilityLabel,
   onPrimary,
   onWhy,
-  details
+  details,
+  pillars
 }: {
   score: number | null;
   zone: ZoneTone;
@@ -43,6 +59,8 @@ export function ReadinessHub({
   onWhy?: () => void;
   /** Revealed when the ring is tapped. */
   details: ReactNode;
+  /** What each foundation moved the estimate. Given, the ring splits into the four of them. */
+  pillars?: readonly PillarReading[];
 }) {
   const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -60,11 +78,14 @@ export function ReadinessHub({
   const ringColor = zones[zone].solid;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.headRow}>
-        <Text style={styles.eyebrow}>Readiness</Text>
-        <ZoneChip tone={zone} label={word} />
-      </View>
+    <View style={pillars ? styles.open : styles.card}>
+      {/* The pillar ring carries its own label and status, and stands on the page, not in a card. */}
+      {pillars ? null : (
+        <View style={styles.headRow}>
+          <Text style={styles.eyebrow}>Readiness</Text>
+          <ZoneChip tone={zone} label={word} />
+        </View>
+      )}
 
       <FluidPressable
         accessibilityRole="button"
@@ -74,11 +95,41 @@ export function ReadinessHub({
         pressedScale={0.97}
         style={styles.ringButton}
       >
-        <MetricRing value={score} size={184} stroke={14} color={ringColor}>
-          <Text style={[styles.score, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
-          <Text style={styles.scoreCaption}>{score === null ? 'No estimate' : 'of 100'}</Text>
-        </MetricRing>
+        {pillars ? (
+          <PillarRing pillars={pillars}>
+            <Text style={styles.ringLabel}>READINESS</Text>
+            <Text style={[styles.heroScore, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
+            <View style={styles.statusRow}>
+              <View style={[styles.statusDot, { backgroundColor: zones[zone].text }]} />
+              <Text style={[styles.statusWord, { color: zones[zone].text }]}>{word}</Text>
+            </View>
+          </PillarRing>
+        ) : (
+          <MetricRing value={score} size={184} stroke={14} color={ringColor}>
+            <Text style={[styles.score, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
+            <Text style={styles.scoreCaption}>{score === null ? 'No estimate' : 'of 100'}</Text>
+          </MetricRing>
+        )}
       </FluidPressable>
+
+      {pillars ? (
+        <View style={styles.pillarRow}>
+          {PILLAR_ORDER.map(domain => {
+            const reading = pillars.find(p => p.domain === domain);
+            const known = reading && !reading.missing;
+            const value = known ? points(reading.contribution) : '—';
+            return (
+              <View key={domain} accessible accessibilityLabel={`${PILLAR_NAMES[domain]}: ${known ? `${value} points` : 'no signal yet'}`} style={styles.pillar}>
+                <Text style={[styles.pillarValue, !known && styles.pillarValueMissing]}>{value}</Text>
+                <View style={styles.pillarNameRow}>
+                  <View style={[styles.pillarDot, { backgroundColor: pillarColors[domain] }]} />
+                  <Text numberOfLines={1} style={styles.pillarName}>{PILLAR_NAMES[domain]}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
 
       <Text style={styles.insight}>{insight}</Text>
       {note ? <Text style={styles.note}>{note}</Text> : null}
@@ -136,12 +187,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18
   },
+  open: { alignItems: 'center', gap: 14, paddingBottom: 4, paddingTop: 2 },
   headRow: { alignItems: 'center', alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between' },
   eyebrow: { ...type.label, color: colors.text, fontSize: 17, lineHeight: 22 },
   ringButton: { alignItems: 'center', borderRadius: 999, marginTop: 2 },
   score: { color: colors.text, fontFamily: fonts.display, fontSize: 56, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -2, lineHeight: 60 },
   scoreEmpty: { color: colors.textMuted, fontSize: 36, lineHeight: 44 },
   scoreCaption: { ...type.caption, color: colors.textMuted, marginTop: 2 },
+  ringLabel: { color: colors.textFaint, fontFamily: fonts.bodyMedium, fontSize: 12, fontWeight: '600', letterSpacing: 1.4 },
+  heroScore: { color: colors.text, fontFamily: fonts.display, fontSize: 84, fontVariant: ['tabular-nums'], fontWeight: '600', letterSpacing: -3, lineHeight: 90 },
+  statusRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  statusDot: { borderRadius: 4, height: 7, width: 7 },
+  statusWord: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600' },
+  pillarRow: { alignSelf: 'stretch', flexDirection: 'row', marginTop: -2 },
+  pillar: { alignItems: 'center', flex: 1, gap: 3 },
+  pillarValue: { color: colors.text, fontFamily: fonts.display, fontSize: 20, fontVariant: ['tabular-nums'], fontWeight: '600' },
+  pillarValueMissing: { color: colors.textFaint },
+  pillarNameRow: { alignItems: 'center', flexDirection: 'row', gap: 5 },
+  pillarDot: { borderRadius: 3, height: 6, width: 6 },
+  pillarName: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
   insight: { ...type.body, color: colors.text, fontSize: 17, fontWeight: '500', lineHeight: 24, textAlign: 'center' },
   note: { ...type.body, color: colors.textMuted, fontSize: 15, lineHeight: 21, marginTop: -6, textAlign: 'center' },
   meta: { ...type.caption, color: colors.textMuted, textAlign: 'center' },

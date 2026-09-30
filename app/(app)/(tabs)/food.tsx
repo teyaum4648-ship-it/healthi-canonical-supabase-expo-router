@@ -2714,7 +2714,7 @@ const styles = StyleSheet.create({
   },
   trackerCard: {
     ...glassSurface,
-    borderColor: 'rgba(168, 143, 255, 0.20)',
+    borderColor: 'rgba(180, 166, 246, 0.20)',
     borderRadius: 22,
     borderWidth: 1
   },
@@ -2727,14 +2727,14 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(168, 143, 255, 0.12)',
+    borderBottomColor: 'rgba(180, 166, 246, 0.12)',
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#A88FFF',
+    color: '#B4A6F6',
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
@@ -2762,13 +2762,13 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(168, 143, 255, 0.10)',
+    backgroundColor: 'rgba(180, 166, 246, 0.10)',
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
   },
   trackerFill: {
-    backgroundColor: '#C2B2FF',
+    backgroundColor: '#C9BFF9',
     borderRadius: 4,
     height: 6
   },
@@ -2799,7 +2799,7 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#A88FFF',
+    color: '#B4A6F6',
     fontFamily: sansMedium,
     fontSize: 13
   },
@@ -2819,7 +2819,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(168, 143, 255, 0.28)',
+    borderColor: 'rgba(180, 166, 246, 0.28)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2829,13 +2829,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#A88FFF',
+    color: '#B4A6F6',
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#A88FFF',
+    backgroundColor: '#B4A6F6',
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2855,7 +2855,7 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   adaptiveModeDot: {
-    backgroundColor: '#FFC25B',
+    backgroundColor: '#F2C87E',
     borderRadius: 3,
     height: 6,
     width: 6
@@ -2880,7 +2880,7 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#A88FFF'
+    borderBottomColor: '#B4A6F6'
   },
   adaptiveTabText: {
     color: '#A9B0BA',
@@ -2943,7 +2943,7 @@ const styles = StyleSheet.create({
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#A88FFF',
+    backgroundColor: '#B4A6F6',
     borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
@@ -2985,7 +2985,7 @@ const styles = StyleSheet.create({
     lineHeight: 15
   },
   adaptivePriorityTagUrgent: {
-    color: '#FFC25B'
+    color: '#F2C87E'
   },
   adaptiveMono: {
     color: '#A9B0BA',
@@ -3023,13 +3023,13 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(168, 143, 255, 0.35)',
+    borderBottomColor: 'rgba(180, 166, 246, 0.35)',
     borderBottomWidth: 1,
     justifyContent: 'center',
     minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#A88FFF',
+    color: '#B4A6F6',
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
@@ -3070,13 +3070,13 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   adaptiveLaneState: {
-    color: '#C2B2FF',
+    color: '#C9BFF9',
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveLaneStateWarm: {
-    color: '#FFC25B'
+    color: '#F2C87E'
   },
   adaptiveLaneTrackRow: {
     alignItems: 'center',
@@ -3096,7 +3096,7 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   adaptiveLaneFill: {
-    backgroundColor: '#C2B2FF',
+    backgroundColor: '#C9BFF9',
     borderRadius: 2,
     bottom: 0,
     left: 0,
@@ -3195,7 +3195,7 @@ const styles = StyleSheet.create({
     width: 54
   },
   adaptiveTimelineMarker: {
-    backgroundColor: '#C2B2FF',
+    backgroundColor: '#C9BFF9',
     borderColor: '#000000',
     borderRadius: 6,
     borderWidth: 2,
@@ -3280,14 +3280,14 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(168, 143, 255, 0.40)',
+    borderColor: 'rgba(180, 166, 246, 0.40)',
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#A88FFF',
+    color: '#B4A6F6',
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3420,8 +3420,8 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(168, 143, 255, 0.08)',
-    borderColor: 'rgba(168, 143, 255, 0.24)',
+    backgroundColor: 'rgba(180, 166, 246, 0.08)',
+    borderColor: 'rgba(180, 166, 246, 0.24)',
     borderRadius: 18,
     borderWidth: 1,
     height: 42,

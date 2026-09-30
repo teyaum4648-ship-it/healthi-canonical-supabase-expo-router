@@ -10,32 +10,32 @@
  */
 
 /**
- * OLED black with cool slate layers, and four accents that only mark data or the one
- * action on a screen. The accents are the sRGB edge of the Display P3 set in the design
- * files: mint for recovery and the brand, iris for nourishment, glacier for movement and
- * amber for mind. Coral is kept for safety and nothing else.
+ * Deep slate with cool layers, and four soft accents that only mark data or the one
+ * action on a screen, taken from the Healthi Premium Direction design: mint for recovery
+ * and the brand, iris for nourishment, glacier for movement and amber for mind. Coral is
+ * kept for safety and nothing else.
  */
 export const hues = {
-  mint: '#00F6AA',
-  mintSoft: '#5CF2C0',
-  mintFill: '#00F0A8',
-  mintPressed: '#00C98D',
-  iris: '#A88FFF',
-  irisSoft: '#C2B2FF',
-  glacier: '#46C6FF',
-  glacierSoft: '#8AD9FF',
-  amber: '#FFC25B',
+  mint: '#8FE3C4',
+  mintSoft: '#A6EAD2',
+  mintFill: '#8FE3C4',
+  mintPressed: '#76CCAD',
+  iris: '#B4A6F6',
+  irisSoft: '#C9BFF9',
+  glacier: '#86C8F0',
+  glacierSoft: '#A5D6F4',
+  amber: '#F2C87E',
   coral: '#FF6B6B',
-  /** Text and icons on any accent fill; 7.4:1 on iris, the darkest of them. */
-  onAccent: '#0A0D13'
+  /** Text and icons on any accent fill; clears 4.5:1 on all four (tests/styles/contrast.test.ts). */
+  onAccent: '#0A0D10'
 } as const;
 
 export const palette = {
-  ink: '#F5F7FA',
+  ink: '#EEF1F4',
   inkSoft: '#C7CBD1',
-  ivory: '#000000',
+  ivory: '#08090C',
   paper: '#15171B',
-  muted: '#A9B0BA',
+  muted: '#A7AFB9',
   faint: '#8C939D',
   hairline: 'rgba(235, 240, 255, 0.08)',
   hairlineSoft: 'rgba(235, 240, 255, 0.055)',
@@ -45,8 +45,8 @@ export const palette = {
   forestFill: hues.mintFill,
   forestFillPressed: hues.mintPressed,
   forestSoft: hues.mintSoft,
-  forestPale: 'rgba(0, 246, 170, 0.22)',
-  forestWash: 'rgba(0, 246, 170, 0.11)',
+  forestPale: 'rgba(143, 227, 196, 0.22)',
+  forestWash: 'rgba(143, 227, 196, 0.11)',
   clayDark: hues.coral
 } as const;
 
@@ -78,7 +78,7 @@ export const colors = {
   danger: palette.clayDark,
   success: palette.forestSoft,
   dim: palette.faint,
-  glow: 'rgba(0, 246, 170, 0.22)',
+  glow: 'rgba(143, 227, 196, 0.22)',
 
   // Legacy aliases let established screens adopt the mobile shell without
   // changing their data or interaction logic.
@@ -151,8 +151,8 @@ export const surfaces = {
  * itself. Each text colour clears 4.5:1 on the darkest and lightest surfaces it sits on.
  */
 export const zones = {
-  optimal: { background: 'rgba(0, 246, 170, 0.12)', text: hues.mintSoft, solid: hues.mint },
-  warning: { background: 'rgba(255, 194, 91, 0.14)', text: hues.amber, solid: hues.amber },
+  optimal: { background: 'rgba(143, 227, 196, 0.12)', text: hues.mintSoft, solid: hues.mint },
+  warning: { background: 'rgba(242, 200, 126, 0.14)', text: hues.amber, solid: hues.amber },
   critical: { background: 'rgba(255, 107, 107, 0.14)', text: hues.coral, solid: hues.coral },
   neutral: { background: 'rgba(235, 240, 255, 0.06)', text: '#A9B0BA', solid: '#8C939D' }
 } as const;

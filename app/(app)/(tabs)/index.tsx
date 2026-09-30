@@ -114,12 +114,12 @@ const homePalette = {
   surfaceSoft: '#272A30',
   border: 'rgba(255, 255, 255, 0.075)',
   borderStrong: 'rgba(255, 255, 255, 0.12)',
-  blue: '#00F6AA',
+  blue: '#8FE3C4',
   blueBright: '#8FFFD6',
-  blueSoft: '#5CF2C0',
-  cyan: '#5CF2C0',
-  violet: '#A88FFF',
-  amber: '#FFC25B',
+  blueSoft: '#A6EAD2',
+  cyan: '#A6EAD2',
+  violet: '#B4A6F6',
+  amber: '#F2C87E',
   text: '#F5F7FA',
   textMuted: '#A9B0BA',
   textFaint: '#8C939D',
@@ -885,6 +885,7 @@ export default function DashboardScreen() {
             primaryLabel="Check in"
             onPrimary={openCheckin}
             details={biomarkerBreakdown}
+            pillars={morningBriefing.driver_cards}
           />
         )}
         {shouldSurfaceSafety(protocol.safety.status) ? (
@@ -1135,7 +1136,7 @@ const styles = StyleSheet.create({
   livePill: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0, 246, 170, 0.12)',
+    backgroundColor: 'rgba(143, 227, 196, 0.12)',
     borderRadius: 999,
     flexDirection: 'row',
     gap: 7,
@@ -1361,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   primaryActionIcon: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 246, 170, 0.13)',
+    backgroundColor: 'rgba(143, 227, 196, 0.13)',
     borderRadius: 15,
     height: 42,
     justifyContent: 'center',
@@ -1611,7 +1612,7 @@ const styles = StyleSheet.create({
   },
   actionIndex: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 246, 170, 0.13)',
+    backgroundColor: 'rgba(143, 227, 196, 0.13)',
     borderRadius: 10,
     height: 24,
     justifyContent: 'center',

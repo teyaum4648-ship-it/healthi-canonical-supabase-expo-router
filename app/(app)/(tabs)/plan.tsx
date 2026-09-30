@@ -102,18 +102,18 @@ function formatHourLabel(ms: number): string {
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: 'rgba(168, 143, 255, 0.14)',
-  exercise: 'rgba(255, 194, 91, 0.14)',
-  light_movement: 'rgba(70, 198, 255, 0.14)',
+  deep_work: 'rgba(180, 166, 246, 0.14)',
+  exercise: 'rgba(242, 200, 126, 0.14)',
+  light_movement: 'rgba(134, 200, 240, 0.14)',
   wind_down: 'rgba(255, 107, 107, 0.12)',
   meal: 'rgba(255, 255, 255, 0.10)',
-  sleep: 'rgba(168, 143, 255, 0.12)',
+  sleep: 'rgba(180, 166, 246, 0.12)',
   neutral: 'rgba(255, 255, 255, 0.07)'
 };
 
 const SECTION_ACCENT: Record<CalendarSection, string> = {
   deep_work: palette.forest,
-  exercise: '#FFC25B',
+  exercise: '#F2C87E',
   light_movement: palette.forestMid,
   wind_down: palette.clayDark,
   meal: palette.faint,
