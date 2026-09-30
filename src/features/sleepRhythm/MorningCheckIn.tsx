@@ -93,7 +93,8 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
 
   async function savePulse() {
     const bpm = Number(pulseText.trim());
-    if (!pulseText.trim() || !isPlausibleMorningHR(bpm)) {
+    if (!pulseText.trim()) return;
+    if (!isPlausibleMorningHR(bpm)) {
       setPulseError(`Enter a pulse between ${PLAUSIBLE_MORNING_HR.min} and ${PLAUSIBLE_MORNING_HR.max} bpm. Count for 30 seconds and double it.`);
       return;
     }
@@ -199,6 +200,8 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
           <Text style={[styles.switchLabel, { color: palette.text }]}>I’m not sure of my sleep times</Text>
           <Switch accessibilityLabel="I’m not sure of my sleep times" value={Boolean(answers.timesUncertain)} onValueChange={(value) => onChange({ timesUncertain: value })} />
         </View>
+        {/* Nothing below needs a button press: the forecast above updates on each tap. */}
+        <Text style={[styles.note, { color: palette.faint }]}>Answers save as you tap. Everything here is optional.</Text>
 
         <View style={[styles.rule, { backgroundColor: palette.border }]} />
 
@@ -213,18 +216,21 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
             keyboardType="number-pad"
             maxLength={3}
             onChangeText={(value) => { setPulseText(value.replace(/[^0-9]/g, '')); setPulseError(null); }}
-            placeholder={savedPulse ? String(savedPulse) : '58'}
+            placeholder={savedPulse ? String(savedPulse) : '—'}
             placeholderTextColor={palette.faint}
             style={[styles.pulseInput, { backgroundColor: palette.chip, color: palette.text }]}
             value={pulseText}
           />
           <Text style={[styles.body, { color: palette.muted }]}>bpm</Text>
-          <FluidPressable accessibilityRole="button" disabled={savingPulse} onPress={() => void savePulse()} style={[styles.pulseSave, { backgroundColor: palette.primary }]}>
-            <Text style={[styles.chipText, { color: palette.primaryText }]}>{savingPulse ? 'Saving…' : 'Save'}</Text>
-          </FluidPressable>
+          {/* Save appears once there is a pulse to save, so an empty box never blocks anything. */}
+          {pulseText ? (
+            <FluidPressable accessibilityRole="button" accessibilityLabel="Save morning pulse" disabled={savingPulse} onPress={() => void savePulse()} style={[styles.pulseSave, { backgroundColor: palette.primary }]}>
+              <Text style={[styles.chipText, { color: palette.primaryText }]}>{savingPulse ? 'Saving…' : 'Save pulse'}</Text>
+            </FluidPressable>
+          ) : null}
         </View>
         {savedPulse ? <Text style={[styles.note, { color: palette.faint }]}>Saved for today: {savedPulse} bpm.</Text> : null}
-        {pulseError ? <Text accessibilityRole="alert" style={[styles.note, { color: zones.critical.text }]}>{pulseError}</Text> : null}
+        {pulseError ? <Text accessibilityRole="alert" style={[styles.note, { color: zones.warning.text }]}>{pulseError}</Text> : null}
       </View>
     </View>
   );
