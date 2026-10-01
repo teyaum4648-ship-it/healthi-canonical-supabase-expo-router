@@ -230,6 +230,9 @@ export default function RhythmScreen() {
     return { morningDates, todayMinutes: summariseDaylightDay(daylight, today).morningMinutes };
   }, [daylight, today]);
 
+  // The local wall clock on the UTC axis the sleep times use; the screen and engine read this.
+  const clock = useMemo(() => wallClockIso(new Date(now)), [now]);
+
   const briefing: CircadianBriefing = useMemo(
     () => generateCircadianBriefing({
       date: today,
@@ -237,7 +240,7 @@ export default function RhythmScreen() {
       recentSleepSessions: briefingSessions,
       sleepNeed,
       preferredBedtime,
-      now: wallClockIso(new Date(now)),
+      now: clock,
       refreshment: boundedQuality(sleepQuality),
       morningLightDates: light.morningDates,
       morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null,
@@ -245,7 +248,7 @@ export default function RhythmScreen() {
       morningReport,
       morningPulses
     }),
-    [briefingSessions, chronotype, light, morningPulses, morningReport, now, preferredBedtime, sleepNeed, sleepQuality, today]
+    [briefingSessions, chronotype, clock, light, morningPulses, morningReport, preferredBedtime, sleepNeed, sleepQuality, today]
   );
 
   const lastNight = useMemo(() => briefingSessions.find((session) => session.date === today) ?? null, [briefingSessions, today]);
@@ -333,7 +336,7 @@ export default function RhythmScreen() {
     return (
       <ChronotypeQuiz
         initialAnswers={chronotype?.answers}
-        palette={paletteFor(now)}
+        palette={paletteFor(clock)}
         sleepNeedMinutes={sleepNeed.minutes}
         onAccept={({ answers, slotOverrides }) => { void persistChronotype(answers, true, slotOverrides); }}
         onDecline={(answers) => { void persistChronotype(answers, false, {}); }}
@@ -351,7 +354,7 @@ export default function RhythmScreen() {
       dataMode={dataMode}
       isLoading={isLoading}
       isSaving={isSaving}
-      now={now}
+      now={clock}
       onSaveManual={handleManualSubmit}
       onSaveSleepWindow={handleSleepWindowSave}
       onSleepQualityChange={(value) => { setInputsTouched(true); setSleepQuality(value); }}
@@ -364,7 +367,7 @@ export default function RhythmScreen() {
       wakeTime={wakeTime}
       morningSlot={
         <MorningCheckIn
-          palette={paletteFor(now)}
+          palette={paletteFor(clock)}
           hasNight={lastNight !== null}
           report={morningReport}
           awakeFromWindow={awakeFromWindow}
