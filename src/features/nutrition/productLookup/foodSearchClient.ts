@@ -136,7 +136,14 @@ export async function searchFoods(query: string, options: {
   const local = await restaurantMatches(q, options);
   const store = findStoreBrand(q);
   const storeNotice = store ? storeBrandNotice(store) : undefined;
-  const endpoint = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
+  const configured = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
+  /*
+   * A same-origin path such as "/api/food-search" only means something in a browser served
+   * from that origin. In the app on a phone there is no origin to resolve it against and
+   * every search against it fails, so there the catalogue is searched directly instead.
+   */
+  const endpoint = configured && (options.endpoint || /^https?:\/\//i.test(configured) || typeof (globalThis as { location?: unknown }).location !== 'undefined')
+    ? configured : undefined;
   if (!endpoint) {
     const base = { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) };
     const countryTag = options.countryTag === undefined ? deviceCountryTag() : options.countryTag;

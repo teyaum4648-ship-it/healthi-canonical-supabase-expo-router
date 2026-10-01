@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { foodLoggingNutrition } from '../../../src/features/nutrition/foodLoggingNutrition';
 import { buildEngineSearchUrl, catalogueBrand, engineWords, searchCatalogueEngine } from '../../../src/features/nutrition/productLookup/catalogueEngine';
@@ -132,6 +132,26 @@ describe('the app’s search on the phone', () => {
     const { fetcher } = catalogue((url) => isEngine(url) ? { body: { hits: [] } } : { status: 503, body: 'busy' });
     const result = await searchFoods('zzqx flavour', { fetcher, countryTag: null, ...NO_LOCAL_LISTS });
     expect(result.status).toBe('empty');
+  });
+
+  describe('a search address set for the web build', () => {
+    afterEach(() => { vi.unstubAllEnvs(); });
+    const engineOnly = () => catalogue((url) => isLabels(url) ? { body: { products: [] } } : isEngine(url) ? { body: { hits: [BREYERS_BUTTER_PECAN] } } : { status: 503, body: 'busy' });
+
+    it('is ignored on a phone when it is a same-origin path, which a phone cannot reach', async () => {
+      vi.stubEnv('EXPO_PUBLIC_FOOD_SEARCH_URL', '/api/food-search');
+      const { urls, fetcher } = engineOnly();
+      const result = await searchFoods('breyers butter pecan', { fetcher, countryTag: 'united-states', ...NO_LOCAL_LISTS });
+      expect(urls[0].hostname).toBe('search.openfoodfacts.org');
+      expect(result.status).toBe('found');
+    });
+
+    it('is used when it is a full address', async () => {
+      vi.stubEnv('EXPO_PUBLIC_FOOD_SEARCH_URL', 'https://search.example.test/api/food-search');
+      const { urls, fetcher } = engineOnly();
+      await searchFoods('breyers butter pecan', { fetcher, countryTag: 'united-states', ...NO_LOCAL_LISTS });
+      expect(urls[0].hostname).toBe('search.example.test');
+    });
   });
 
   it('asks the engine for a store’s house brand by name, and still says which brand', async () => {
