@@ -15,6 +15,7 @@ import { buildFoodSearchUrl } from '../../../src/features/nutrition/productLooku
 const query = process.env.HEALTHI_TRACE_SEARCH?.trim() ?? '';
 const reliability = process.env.HEALTHI_TRACE_RELIABILITY === '1';
 const engineForms = process.env.HEALTHI_TRACE_ENGINE === '1';
+const appSearches = process.env.HEALTHI_TRACE_APP_SEARCH === '1';
 const out = process.env.HEALTHI_TRACE_OUT ?? 'food-search-trace.txt';
 const countryTag = process.env.HEALTHI_TRACE_COUNTRY ?? 'united-states';
 
@@ -179,4 +180,41 @@ describe.skipIf(!engineForms)('live phrasing of the newer catalogue engine', () 
     log('\nAnswered, and brand led the top five, by phrasing (10 branded searches, 12 in all):');
     for (const [id, row] of tally) log(`   ${id}: answered ${row.ok}/${cases.length} · brand led ${row.brandLed}/10`);
   }, 600_000);
+});
+
+/*
+ * The app's own search, end to end against the live catalogue, for the searches that
+ * prompted this work. What a person would see: whether anything came back, how long it
+ * took, whether the typed brand leads, and whether the first result logs by serving.
+ */
+describe.skipIf(!appSearches)('live app search across branded queries', () => {
+  it('answers and puts the typed brand first', async () => {
+    writeFileSync(out, '');
+    const cases: [string, string][] = [
+      ['breyers butter pecan ice cream', 'breyers'], ['chobani vanilla greek yogurt', 'chobani'], ['daves killer bread good seed', 'dave'],
+      ['tillamook sharp cheddar', 'tillamook'], ['halo top birthday cake', 'halo top'], ['annies mac and cheese', 'annie'],
+      ['fairlife chocolate milk', 'fairlife'], ['kind dark chocolate nuts sea salt', 'kind'], ['siete tortilla chips', 'siete'],
+      ['olipop vintage cola', 'olipop'], ['ben and jerrys half baked', 'ben'], ['kodiak pancake mix', 'kodiak'],
+      ['costco almond butter', 'kirkland'], ['greek yogurt', ''], ['butter pecan ice cream', '']
+    ];
+    let answered = 0; let led = 0; let served = 0; let branded = 0;
+    for (const [q, brand] of cases) {
+      const requests = recordRequests();
+      const started = Date.now();
+      const result = await searchFoods(q, { countryTag: 'united-states' });
+      const ms = Date.now() - started;
+      requests.restore();
+      const top = result.products.slice(0, 3);
+      const brandLeads = !!brand && top.length > 0 && top.every((p) => (p.brand ?? '').toLowerCase().replace(/['\u2019]/g, '').startsWith(brand));
+      if (result.status === 'found') answered += 1;
+      if (brand) branded += 1;
+      if (brandLeads) led += 1;
+      if (top[0] && foodLoggingNutrition(top[0]).basis === 'serving') served += 1;
+      log(`\n"${q}": ${result.status} in ${ms} ms${result.notice ? ` — ${result.notice}` : ''}${'message' in result && result.message ? ` — ${result.message}` : ''}`);
+      for (const p of top) log(`   ${p.brand ?? '(no brand)'} | ${p.name} | ${foodLoggingNutrition(p).basis}`);
+      for (const line of requests.seen) log(`      ${line}`);
+      await pause(3_000);
+    }
+    log(`\nAnswered ${answered}/${cases.length} · typed brand led the top three ${led}/${branded} · first result logs by serving ${served}/${cases.length}`);
+  }, 900_000);
 });

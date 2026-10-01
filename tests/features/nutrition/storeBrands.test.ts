@@ -57,9 +57,14 @@ describe('search URLs and fallbacks', () => {
   });
 
   const almondButter = { code: '0096619000000', product_name: 'Organic Creamy Almond Butter', brands: 'Kirkland Signature', serving_size: '2 tbsp (32 g)', nutriments: { 'energy-kcal_100g': 600, proteins_100g: 21, carbohydrates_100g: 21, fat_100g: 53 } };
+  /*
+   * These cases are about the keyword search, which the app falls back to when the newer
+   * engine is unavailable; the engine has its own tests. So the engine answers busy here.
+   */
   const offFetcher = (answer: (url: string) => unknown[]) => {
     const urls: string[] = [];
     const fetcher = async (url: string | URL | Request) => {
+      if (String(url).startsWith('https://search.openfoodfacts.org/')) return new Response('busy', { status: 503 });
       urls.push(String(url));
       return new Response(JSON.stringify({ products: answer(String(url)) }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     };

@@ -1,24 +1,13 @@
 /*
- * Finding a product by its brand when the brand is not in the product's name.
- *
- * A Chobani cup is named "Greek Yogurt, Vanilla" with "Chobani" only in its brand field.
- * Searched as "chobani vanilla greek yogurt", it competes on the words with every vanilla
- * Greek yogurt in the catalogue, and the catalogue ranks by popularity, not by how well
- * the words fit. So the cup could be one barcode away and still missing from the list.
- * Searching the rest of the words inside the brand finds it.
+ * Reading the brand at the start of a search: "breyers butter pecan ice cream" is the brand
+ * Breyers and the words "butter pecan ice cream". The catalogue engine is then asked again
+ * inside that brand, which puts the brand's own products first even when the brand is only
+ * on the label's brand line and not in the product's name.
  */
 
-const normalize = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+/** A brand or query as plain words: "Ben & Jerry's" and "ben and jerrys" read the same. */
+export const brandText = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   .replace(/['’]/g, '').replace(/&/g, ' and ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-
-/**
- * Open Food Facts' brand tag for a brand as printed: "Dave's Killer Bread" becomes
- * "dave-s-killer-bread", "Good & Gather" becomes "good-gather".
- */
-export function brandTag(name: string): string {
-  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
-}
 
 export type LeadingBrand = {
   /** The brand as the catalogue spells it. */
@@ -34,10 +23,10 @@ export type LeadingBrand = {
  * brand is already answered by the ordinary search.
  */
 export function leadingBrand(query: string, brands: readonly string[]): LeadingBrand | null {
-  const words = normalize(query).split(' ').filter(Boolean);
+  const words = brandText(query).split(' ').filter(Boolean);
   let best: { brand: string; length: number } | null = null;
   for (const brand of brands) {
-    const brandWords = normalize(brand).split(' ').filter(Boolean);
+    const brandWords = brandText(brand).split(' ').filter(Boolean);
     if (!brandWords.length || brandWords.length >= words.length) continue;
     if (!brandWords.every((word, index) => words[index] === word)) continue;
     if (!best || brandWords.length > best.length) best = { brand, length: brandWords.length };

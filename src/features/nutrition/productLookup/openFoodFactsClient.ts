@@ -304,6 +304,48 @@ export async function searchOpenFoodFactsProducts(
 
 const foodSearchScheduler = new ProviderRequestScheduler({ minimumIntervalMs: 6_100 });
 const foodSearchCache = new Map<string, { expiresAt: number; result: ProductSearchResult }>();
+const labelScheduler = new ProviderRequestScheduler({ minimumIntervalMs: 6_100 });
+
+/**
+ * Full label records for a list of barcodes, in one request, keyed by barcode identity.
+ *
+ * Search indexes leave out label servings and ingredients; this fills them in. It is
+ * given a short budget, waiting included, and a failure returns nothing: the caller keeps
+ * what it had, which still logs per 100 g.
+ * https://openfoodfacts.github.io/openfoodfacts-server/api/ref-cheatsheet/#get-data-for-a-list-of-products
+ */
+export async function fetchLabelsByCode(codes: readonly string[], options: {
+  fetcher?: ProductLookupFetch; signal?: AbortSignal; budgetMs?: number; locale?: string;
+} = {}): Promise<Map<string, Record<string, unknown>>> {
+  const labels = new Map<string, Record<string, unknown>>();
+  const wanted = [...new Set(codes.filter((code) => /^\d{8,14}$/.test(code)))].slice(0, 30);
+  if (!wanted.length || options.signal?.aborted) return labels;
+  const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
+  const url = `https://world.openfoodfacts.org/api/v2/search?code=${wanted.join(',')}&fields=${productFields(options.locale)}&page_size=${wanted.length}`;
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  options.signal?.addEventListener('abort', cancel, { once: true });
+  const timer = setTimeout(cancel, options.budgetMs ?? 4_000);
+  try {
+    const request = async () => {
+      if (controller.signal.aborted) throw new Error('Label budget spent');
+      const response = await fetcher(url, { headers: requestHeaders, signal: controller.signal });
+      return response.ok ? await response.json() : null;
+    };
+    const body = options.fetcher ? await request() : await labelScheduler.schedule(request);
+    if (isRecord(body) && Array.isArray(body.products)) {
+      for (const product of body.products) {
+        if (isRecord(product) && typeof product.code === 'string') labels.set(canonicalBarcodeIdentity(product.code), product);
+      }
+    }
+  } catch {
+    // Labels are an improvement on the answer, never a condition of it.
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', cancel);
+  }
+  return labels;
+}
 
 /**
  * The keyword search URL. Brand and country filters use the endpoint's tag criteria, which

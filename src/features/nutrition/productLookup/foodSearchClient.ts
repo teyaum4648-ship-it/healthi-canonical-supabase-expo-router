@@ -1,3 +1,4 @@
+import { searchCatalogueEngine } from './catalogueEngine';
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
 import { searchOpenFoodFactsProducts, type ProductLookupFetch, type ProductSearchResult } from './openFoodFactsClient';
 import { deviceCountryTag, findStoreBrand, storeBrandNotice, storeBrandText } from './storeBrands';
@@ -137,6 +138,17 @@ export async function searchFoods(query: string, options: {
   const storeNotice = store ? storeBrandNotice(store) : undefined;
   const endpoint = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
   if (!endpoint) {
+    const base = { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) };
+    const countryTag = options.countryTag === undefined ? deviceCountryTag() : options.countryTag;
+    /*
+     * The catalogue's newer engine first. The keyword search below turned away most
+     * requests when measured, so it is the fallback now rather than the front door; see
+     * catalogueEngine for the numbers. A store name goes in as its house brand's words,
+     * and the engine reads the brand back off its answers.
+     */
+    const engine = await searchCatalogueEngine(store ? storeBrandText(store) : q, { ...base, countryTag });
+    if (options.signal?.aborted) return engine;
+    if (engine.status === 'found') return withBundled(storeNotice ? { ...engine, notice: storeNotice } : engine, local, q);
     /*
      * Searched among products sold in the device's country, and a named store or house
      * brand as a brand filter on top. The country matters for brands too: "Trader Joe's"
@@ -144,8 +156,6 @@ export async function searchFoods(query: string, options: {
      * once, and only on an empty answer: an error is usually the rate limit, which a
      * second request would only make worse.
      */
-    const base = { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) };
-    const countryTag = options.countryTag === undefined ? deviceCountryTag() : options.countryTag;
     let off: ProductSearchResult;
     if (store) {
       off = await searchOpenFoodFactsProducts(store.rest, { ...base, brandTag: store.store.tag, ...(countryTag ? { countryTag } : {}) });
@@ -155,6 +165,8 @@ export async function searchFoods(query: string, options: {
       if (countryTag && off.status === 'empty' && !options.signal?.aborted) off = await searchOpenFoodFactsProducts(q, base);
     }
     if (options.signal?.aborted) return off;
+    // The engine answered and found nothing; the keyword search failing too does not make that an outage.
+    if (off.status === 'error' && engine.status === 'empty') off = engine;
     return withBundled(storeNotice && off.status === 'found' ? { ...off, notice: storeNotice } : off, local, q);
   }
   // The server's full-text search has no brand filter, so the brand's own words stand in.

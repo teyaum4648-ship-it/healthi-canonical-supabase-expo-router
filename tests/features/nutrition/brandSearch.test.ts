@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { brandTag, leadingBrand } from '../../../src/features/nutrition/productLookup/brandSearch';
+import { brandText, leadingBrand } from '../../../src/features/nutrition/productLookup/brandSearch';
 
-describe('brand tags', () => {
-  it('spells a brand the way the catalogue tags it', () => {
-    expect(brandTag("Dave's Killer Bread")).toBe('dave-s-killer-bread');
-    expect(brandTag('Good & Gather')).toBe('good-gather');
-    expect(brandTag('Siggi’s')).toBe('siggi-s');
-    expect(brandTag('  Chobani ')).toBe('chobani');
-    expect(brandTag('Häagen-Dazs')).toBe('haagen-dazs');
+describe('brand text', () => {
+  it('reads punctuation and ampersands the way people type them', () => {
+    expect(brandText("Ben & Jerry's")).toBe('ben and jerrys');
+    expect(brandText('Siggi’s')).toBe('siggis');
+    expect(brandText('Häagen-Dazs')).toBe('haagen dazs');
   });
 });
 
