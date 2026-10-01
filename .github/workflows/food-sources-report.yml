@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Brand-plus-product searches
+      - name: Why a branded product is missing from a brand-plus-product search
         run: |
           cat > report.mjs <<'EOF'
           const UA = { 'User-Agent': 'Healthi/0.1 (food source report)', Accept: 'application/json' };
@@ -29,42 +29,80 @@ jobs:
                 if (r.ok) return await r.json();
                 if (r.status !== 503 && r.status !== 429) return { error: `HTTP ${r.status}` };
               } catch (e) { if (attempt === 2) return { error: String(e) }; }
-              await sleep(12000);
+              await sleep(15000);
             }
             return { error: 'gave up' };
           };
-          const fields = 'code,product_name,brands,brands_tags,countries_tags';
-          const legacy = (q, extra = '') => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24${extra}`;
           const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+          const fields = 'code,product_name,product_name_en,generic_name,brands,brands_tags,countries_tags,categories_tags,_keywords,unique_scans_n,lang';
+          // Exactly what the phone sends today: legacy keyword search, 24 rows, US filter.
+          const legacy = (q, extra = '') => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&fields=code,product_name,brands&page_size=24${extra}`;
+          const US = '&tagtype_0=countries&tag_contains_0=contains&tag_0=united-states';
+          const rank = (rows, codes) => { const i = (rows ?? []).findIndex(p => codes.has(p.code)); return i < 0 ? 'absent' : `#${i + 1}`; };
+          // [typed query, brand tags to try, words the wanted product's name contains]
           const cases = [
-            ['chobani', 'greek yogurt'], ['fage', 'total 0'], ['siggis', 'vanilla yogurt'], ['oikos', 'triple zero'],
-            ['daves killer bread', 'good seed'], ['kind', 'dark chocolate nuts sea salt'], ['rxbar', 'chocolate sea salt'],
-            ['quest', 'cookies and cream bar'], ['barebells', 'caramel cashew'], ['fairlife', 'core power'],
-            ['premier protein', 'chocolate shake'], ['olipop', 'vintage cola'], ['simple mills', 'almond flour crackers'],
-            ['siete', 'tortilla chips'], ['ghost', 'protein'], ['clif', 'builders bar']
+            ['breyers butter pecan ice cream', ['breyers'], 'butter pecan'],
+            ['chobani vanilla greek yogurt', ['chobani'], 'vanilla'],
+            ['daves killer bread good seed', ['dave-s-killer-bread', 'daves-killer-bread'], 'good seed'],
+            ['ben and jerrys half baked', ['ben-jerry-s', 'ben-jerrys', 'ben-and-jerry-s'], 'half baked'],
+            ['halo top birthday cake ice cream', ['halo-top', 'halo-top-creamery'], 'birthday cake'],
+            ['tillamook sharp cheddar cheese', ['tillamook'], 'sharp cheddar'],
+            ['nature valley oats and honey granola bar', ['nature-valley'], 'oats'],
+            ['annies mac and cheese', ['annie-s', 'annies', 'annie-s-homegrown'], 'mac'],
+            ['kodiak pancake mix', ['kodiak-cakes', 'kodiak'], 'power'],
+            ['fairlife chocolate milk', ['fairlife'], 'chocolate'],
+            ['quest cookies and cream protein bar', ['quest-nutrition', 'quest'], 'cookies'],
+            ['kind dark chocolate nuts sea salt bar', ['kind'], 'dark chocolate']
           ];
-          for (const [brand, product] of cases) {
-            const q = `${brand} ${product}`;
-            const plain = await get(legacy(q));
-            const rows = plain.products ?? [];
-            const branded = rows.filter(p => norm(p.brands).includes(norm(brand)));
-            const nameHasBrand = branded.filter(p => norm(p.product_name).includes(norm(brand))).length;
-            console.log(`\n[${q}] plain: count=${plain.count ?? plain.error} top24=${rows.length} brandInTop24=${branded.length} (of those, brand also in name: ${nameHasBrand})`);
-            for (const p of rows.slice(0, 4)) console.log(`   plain  ${p.brands ?? '-'} | ${p.product_name ?? '-'}`);
-            await sleep(7000);
-            const productOnly = await get(legacy(product));
-            const poRows = productOnly.products ?? [];
-            console.log(`   product words only: count=${productOnly.count ?? productOnly.error} brandInTop24=${poRows.filter(p => norm(p.brands).includes(norm(brand))).length}`);
-            await sleep(7000);
-            const suggest = await get(`https://world.openfoodfacts.org/api/v3/taxonomy_suggestions?tagtype=brands&string=${encodeURIComponent(brand)}&limit=5`);
-            console.log(`   suggest v3: ${JSON.stringify(suggest).slice(0, 400)}`);
-            const tag = (suggest.suggestions?.[0] && typeof suggest.suggestions[0] === 'string') ? suggest.suggestions[0] : null;
-            const guessTag = norm(brand).replace(/ /g, '-');
-            const filtered = await get(legacy(product, `&tagtype_0=brands&tag_contains_0=contains&tag_0=${encodeURIComponent(guessTag)}`));
-            const fRows = filtered.products ?? [];
-            console.log(`   brand filter (${guessTag}) + "${product}": count=${filtered.count ?? filtered.error}`);
-            for (const p of fRows.slice(0, 4)) console.log(`   filter ${p.brands ?? '-'} | ${p.product_name ?? '-'}`);
-            await sleep(7000);
+          const tally = { legacyUS: 0, legacyAll: 0, salicious: 0, brandFilter: 0, found: 0 };
+          for (const [typed, tags, nameHas] of cases) {
+            console.log(`\n=== "${typed}"`);
+            // 1. The products themselves, straight from the brand, most scanned first.
+            let brandTag = null, targets = [];
+            for (const tag of tags) {
+              const list = await get(`https://world.openfoodfacts.org/api/v2/search?brands_tags=${encodeURIComponent(tag)}&fields=${fields}&page_size=100&sort_by=unique_scans_n`);
+              await sleep(7000);
+              const rows = list.products ?? [];
+              console.log(`  brand tag ${tag}: ${list.count ?? list.error} products`);
+              if (!rows.length) continue;
+              brandTag = tag;
+              targets = rows.filter(p => norm(p.product_name || p.product_name_en).includes(norm(nameHas)));
+              break;
+            }
+            if (!targets.length) { console.log(`  no product named "${nameHas}" found under ${tags.join(', ')}`); continue; }
+            tally.found += 1;
+            const words = norm(typed).split(' ');
+            for (const p of targets.slice(0, 3)) {
+              const keys = new Set(p._keywords ?? []);
+              const missing = words.filter(w => !keys.has(w));
+              console.log(`  target ${p.code} | ${p.brands} | ${p.product_name || p.product_name_en} | lang=${p.lang} scans=${p.unique_scans_n ?? 0}`);
+              console.log(`     countries: ${(p.countries_tags ?? []).join(' ')}`);
+              console.log(`     index words: ${[...keys].join(' ')}`);
+              console.log(`     typed words NOT in its index: ${missing.length ? missing.join(', ') : 'none'}`);
+            }
+            const codes = new Set(targets.map(p => p.code));
+            // 2. The app's current request, then without the country filter.
+            const us = await get(legacy(typed, US)); await sleep(7000);
+            const all = await get(legacy(typed)); await sleep(7000);
+            console.log(`  legacy, US filter : count=${us.count ?? us.error} target=${rank(us.products, codes)}`);
+            console.log(`  legacy, any country: count=${all.count ?? all.error} target=${rank(all.products, codes)}`);
+            for (const p of (us.products ?? []).slice(0, 3)) console.log(`     US top: ${p.brands ?? '-'} | ${p.product_name ?? '-'}`);
+            // 3. The newer relevance-ranked search engine.
+            const sal = await get(`https://search.openfoodfacts.org/search?q=${encodeURIComponent(typed)}&page_size=24&langs=en&fields=code,product_name,brands`);
+            console.log(`  search-a-licious  : count=${sal.count ?? sal.error} target=${rank(sal.hits, codes)}`);
+            for (const p of (sal.hits ?? []).slice(0, 3)) console.log(`     SAL top: ${Array.isArray(p.brands) ? p.brands.join(', ') : p.brands ?? '-'} | ${p.product_name ?? '-'}`);
+            // 4. The rest of the words inside the brand.
+            const brandWords = norm(targets[0].brands?.split(',')[0]).split(' ');
+            const rest = words.filter((w, i) => !(i < brandWords.length && brandWords[i] === w)).join(' ');
+            const inBrand = await get(legacy(rest, `&tagtype_0=brands&tag_contains_0=contains&tag_0=${encodeURIComponent(brandTag)}`)); await sleep(7000);
+            console.log(`  legacy "${rest}" inside ${brandTag}: count=${inBrand.count ?? inBrand.error} target=${rank(inBrand.products, codes)}`);
+            if (rank(us.products, codes) !== 'absent') tally.legacyUS += 1;
+            if (rank(all.products, codes) !== 'absent') tally.legacyAll += 1;
+            if (rank(sal.hits, codes) !== 'absent') tally.salicious += 1;
+            if (rank(inBrand.products, codes) !== 'absent') tally.brandFilter += 1;
+            const suggest = await get(`https://world.openfoodfacts.org/api/v3/taxonomy_suggestions?tagtype=brands&string=${encodeURIComponent(words[0])}&limit=8`);
+            console.log(`  brand suggestions for "${words[0]}": ${JSON.stringify(suggest.suggestions ?? suggest).slice(0, 300)}`);
           }
+          console.log(`\nTARGET FOUND IN TOP 24, of ${tally.found} cases: legacy+US ${tally.legacyUS}, legacy any ${tally.legacyAll}, search-a-licious ${tally.salicious}, inside brand ${tally.brandFilter}`);
           EOF
           node report.mjs
