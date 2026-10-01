@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { foodLoggingNutrition } from '../../../src/features/nutrition/foodLoggingNutrition';
-import { buildEngineSearchUrl, catalogueBrand, engineWords, searchCatalogueEngine } from '../../../src/features/nutrition/productLookup/catalogueEngine';
+import { buildEngineSearchUrl, catalogueBrand, dominantBrand, engineWords, searchCatalogueEngine } from '../../../src/features/nutrition/productLookup/catalogueEngine';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
 
 const NO_LOCAL_LISTS = { restaurantRows: [], menuStat: { restaurants: [], foods: [] } };
@@ -68,6 +68,34 @@ describe('reading the brand off the answers', () => {
   });
 });
 
+describe('a first word that stands for a brand', () => {
+  const kodiak = (code: string, name: string) => hit(code, name, ['Kodiak Cakes']);
+  const probe = [kodiak('1', 'Power Cakes Flapjack & Waffle Mix'), kodiak('2', 'Power Waffles'), kodiak('3', 'Oat Cups'), kodiak('4', 'Granola Bars'), hit('5', 'Kodiak Coffee', ['Kodiak Roasters']), kodiak('6', 'Brownie Mix')];
+
+  it('reads the word as the brand that dominates what it finds alone', () => {
+    expect(dominantBrand('kodiak pancake mix', probe)).toEqual({ brand: 'Kodiak Cakes', rest: 'pancake mix' });
+  });
+
+  it('leaves a word many brands share as a word', () => {
+    const greek = [hit('1', 'Greek Yogurt', ['Chobani']), hit('2', 'Greek Yogurt', ['Fage']), hit('3', 'Yogurt', ['The Greek Gods']), hit('4', 'Greek Salad', ['Greek Isle']), hit('5', 'Greek Yogurt', ['Oikos'])];
+    expect(dominantBrand('greek yogurt', greek)).toBeNull();
+    expect(dominantBrand('kodiak', probe)).toBeNull();
+  });
+
+  it('is asked only when the first answer names no brand, and then searches inside it', async () => {
+    const generic = [hit('7', 'Pancake & Waffle Mix', ['Key Food']), hit('8', 'Pancake Mix', ['Krusteaz'])];
+    const { urls, fetcher } = catalogue((url) => {
+      const q = url.searchParams.get('q') ?? '';
+      if (isLabels(url) || isProductRead(url)) return { status: 503, body: 'busy' };
+      if (q.startsWith('brands:')) return { body: { hits: [kodiak('1', 'Power Cakes Flapjack & Waffle Mix')] } };
+      return { body: { hits: q === 'kodiak' ? probe : generic } };
+    });
+    const result = await searchCatalogueEngine('kodiak pancake mix', { fetcher: fetcher as never });
+    expect(result.products[0].brand).toBe('Kodiak Cakes');
+    expect(urls.filter(isEngine).map((url) => url.searchParams.get('q'))).toEqual(['kodiak AND pancake AND mix', 'kodiak', 'brands:"kodiak cakes" AND pancake AND mix']);
+  });
+});
+
 describe('searching the engine', () => {
   const labels = { products: [
     { code: '0077567254405', product_name: 'Butter Pecan Ice Cream', brands: 'Breyers, Unilever', serving_size: '1/2 cup (63 g)', serving_quantity: 63, nutriments: per100(140, 2, 18, 6) }
@@ -112,7 +140,7 @@ describe('searching the engine', () => {
       : (url.searchParams.get('q') ?? '').includes('countries_tags') ? { body: { hits: [] } } : { body: { hits: [FRIENDLYS] } });
     const result = await searchCatalogueEngine('butter pecan', { fetcher: fetcher as never, countryTag: 'united-states' });
     expect(result.status).toBe('found');
-    expect(urls.filter(isEngine).map((url) => url.searchParams.get('q'))).toEqual(['butter AND pecan AND countries_tags:"en:united-states"', 'butter AND pecan']);
+    expect(urls.filter(isEngine).map((url) => url.searchParams.get('q')).slice(0, 2)).toEqual(['butter AND pecan AND countries_tags:"en:united-states"', 'butter AND pecan']);
   });
 
   it('reports an outage as an error, not as nothing found', async () => {

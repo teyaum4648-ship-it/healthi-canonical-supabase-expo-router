@@ -81,6 +81,35 @@ export function catalogueBrand(query: string, hits: readonly Hit[]): { brand: st
   return { brand: counts[0][0], rest: found.rest };
 }
 
+/**
+ * The brand a short first word stands for, when one brand dominates what that word alone
+ * finds: "kodiak" for Kodiak Cakes, whose products never surfaced among the pancake mixes
+ * that "kodiak pancake mix" brought back. A word many brands share, like "greek", is
+ * dominated by none and reads as a word.
+ */
+export function dominantBrand(query: string, hits: readonly Hit[]): { brand: string; rest: string } | null {
+  const words = brandText(query).split(' ').filter(Boolean);
+  if (words.length < 2) return null;
+  const top = hits.slice(0, 10);
+  const brands = new Map<string, { hits: number; spellings: Map<string, number> }>();
+  for (const hit of top) {
+    const counted = new Set<string>();
+    for (const brand of hitBrands(hit)) {
+      const key = brandText(brand);
+      if (!key || key.split(' ')[0] !== words[0] || counted.has(key)) continue;
+      counted.add(key);
+      const entry = brands.get(key) ?? { hits: 0, spellings: new Map<string, number>() };
+      entry.hits += 1;
+      entry.spellings.set(brand, (entry.spellings.get(brand) ?? 0) + 1);
+      brands.set(key, entry);
+    }
+  }
+  const leader = [...brands.values()].sort((a, b) => b.hits - a.hits)[0];
+  if (!leader || leader.hits < Math.max(3, Math.ceil(top.length / 2))) return null;
+  const spelling = [...leader.spellings.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  return { brand: spelling, rest: words.slice(1).join(' ') };
+}
+
 type EngineAnswer = { ok: true; hits: Hit[] } | { ok: false };
 
 async function ask(url: string, fetcher: ProductLookupFetch, signal: AbortSignal | undefined, timeoutMs: number): Promise<EngineAnswer> {
@@ -141,10 +170,19 @@ export async function searchCatalogueEngine(query: string, options: {
   if (first.ok && !first.hits.length && countryTag && !options.signal?.aborted) first = await ask(buildEngineSearchUrl(words), fetcher, options.signal, timeoutMs);
   if (!first.ok) return { status: 'error', products: [], message: 'The food database is unavailable right now.' };
   let hits = first.hits;
-  const brand = catalogueBrand(query, first.hits);
+  /** Barcodes the engine returned from inside the brand: the brand's own products. */
+  const brandCodes = new Set<string>();
+  let brand = catalogueBrand(query, first.hits);
+  if (!brand && words.length > 1 && !options.signal?.aborted) {
+    const probe = await ask(buildEngineSearchUrl([words[0]], { countryTag }), fetcher, options.signal, timeoutMs);
+    if (probe.ok) brand = dominantBrand(query, probe.hits);
+  }
   if (brand && !options.signal?.aborted) {
     const inside = await ask(buildEngineSearchUrl(engineWords(brand.rest), { brand: brand.brand, countryTag }), fetcher, options.signal, timeoutMs);
-    if (inside.ok) hits = [...inside.hits, ...first.hits];
+    if (inside.ok) {
+      hits = [...inside.hits, ...first.hits];
+      for (const hit of inside.hits) if (typeof hit.code === 'string') brandCodes.add(canonicalBarcodeIdentity(hit.code));
+    }
   }
   if (options.signal?.aborted) return { status: 'error', products: [], message: 'Search canceled.' };
 
@@ -169,9 +207,16 @@ export async function searchCatalogueEngine(query: string, options: {
     const read = await Promise.all(unlabelled.map((code) => fetchLabelByCode(code, { fetcher: options.fetcher, signal: options.signal })));
     read.forEach((label, index) => { if (label) labels.set(canonicalBarcodeIdentity(unlabelled[index]), label); });
   }
-  const products = snapshots();
+  /*
+   * A named brand is what the person asked for, so its products come first, best match
+   * first among them. Word overlap alone ranked a generic "Pancake Mix" above Kodiak's
+   * "Power Cakes Flapjack & Waffle Mix" for "kodiak pancake mix".
+   */
+  const ranked = resolveSearchFoods(snapshots(), query);
+  const ofBrand = (product: HealthiProductSnapshot) => brandCodes.has(canonicalBarcodeIdentity(product.barcode));
+  const products = [...ranked.filter(ofBrand), ...ranked.filter((product) => !ofBrand(product))];
   const result: ProductSearchResult = products.length
-    ? { status: 'found', products: resolveSearchFoods(products, query) }
+    ? { status: 'found', products }
     : { status: 'empty', products: [], message: 'No foods matched. Try a simpler name or include the brand. You can also scan or enter the label.' };
   if (!options.fetcher) {
     if (cache.size >= 30) cache.delete(cache.keys().next().value!);
