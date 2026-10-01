@@ -14,6 +14,7 @@ import { buildFoodSearchUrl } from '../../../src/features/nutrition/productLooku
  */
 const query = process.env.HEALTHI_TRACE_SEARCH?.trim() ?? '';
 const reliability = process.env.HEALTHI_TRACE_RELIABILITY === '1';
+const engineForms = process.env.HEALTHI_TRACE_ENGINE === '1';
 const out = process.env.HEALTHI_TRACE_OUT ?? 'food-search-trace.txt';
 const countryTag = process.env.HEALTHI_TRACE_COUNTRY ?? 'united-states';
 
@@ -123,4 +124,59 @@ describe.skipIf(!reliability)('live reliability of the catalogue search', () => 
     log('\nAnswered, of each way of asking:');
     for (const [id, row] of tally) log(`   ${id}: ${row.ok}/${queries.length} · average ${Math.round(row.ms / queries.length)} ms · ${row.statuses.join(' ')}`);
   }, 900_000);
+});
+
+/*
+ * Open Food Facts' newer engine answered every request in these reports, where the
+ * keyword search turned most away, but its plain-text ranking is loose. This compares
+ * ways of phrasing the same words to it, by whether the typed brand leads the answer.
+ */
+describe.skipIf(!engineForms)('live phrasing of the newer catalogue engine', () => {
+  it('compares query forms', async () => {
+    writeFileSync(out, '');
+    const cases: [string, string][] = [
+      ['breyers', 'butter pecan ice cream'], ['chobani', 'vanilla greek yogurt'], ['daves killer bread', 'good seed'], ['tillamook', 'sharp cheddar'],
+      ['halo top', 'birthday cake'], ['annies', 'mac and cheese'], ['fairlife', 'chocolate milk'], ['kind', 'dark chocolate nuts sea salt'],
+      ['siete', 'tortilla chips'], ['olipop', 'vintage cola'], ['', 'greek yogurt'], ['', 'butter pecan ice cream']
+    ];
+    const fields = 'code,product_name,brands,countries_tags,serving_size,serving_quantity,nutriments,ingredients_text,categories_tags,image_front_small_url';
+    const words = (text: string) => text.split(' ').filter(Boolean);
+    const forms: { id: string; q: (brand: string, rest: string) => string }[] = [
+      { id: 'plain words', q: (b, r) => `${b} ${r}`.trim() },
+      { id: 'every word required', q: (b, r) => words(`${b} ${r}`).join(' AND ') },
+      { id: 'every word + US', q: (b, r) => `${words(`${b} ${r}`).join(' AND ')} AND countries_tags:"en:united-states"` },
+      { id: 'brand field + words + US', q: (b, r) => b ? `brands:"${b}" AND ${words(r).join(' AND ')} AND countries_tags:"en:united-states"` : `${words(r).join(' AND ')} AND countries_tags:"en:united-states"` }
+    ];
+    const tally = new Map(forms.map((f) => [f.id, { ok: 0, brandLed: 0 }]));
+    let shownFields = false;
+    for (const [brand, rest] of cases) {
+      log(`\n"${`${brand} ${rest}`.trim()}"`);
+      for (const form of forms) {
+        const started = Date.now();
+        const url = `https://search.openfoodfacts.org/search?q=${encodeURIComponent(form.q(brand, rest))}&langs=en&page_size=24&fields=${fields}`;
+        let line = '';
+        try {
+          const response = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'Healthi/0.1 (engine phrasing report)' }, signal: AbortSignal.timeout(20_000) });
+          const body = response.ok ? await response.json() as { count?: number; hits?: Record<string, unknown>[] } : {};
+          const hits = body.hits ?? [];
+          const brandOf = (hit: Record<string, unknown>) => (Array.isArray(hit.brands) ? hit.brands.join(', ') : String(hit.brands ?? '')).toLowerCase().replace(/['\u2019]/g, '');
+          const led = brand ? hits.slice(0, 5).filter((hit) => brandOf(hit).includes(brand.split(' ')[0].replace(/s$/, ''))).length : 0;
+          const row = tally.get(form.id)!;
+          if (response.ok) row.ok += 1;
+          if (brand && led >= 3) row.brandLed += 1;
+          line = `${response.status} · ${Date.now() - started} ms · count ${body.count ?? '-'} · brand in top 5: ${brand ? led : 'n/a'} · ${hits.slice(0, 3).map((hit) => `${brandOf(hit) || '(no brand)'} | ${String(hit.product_name ?? '')}`).join(' ; ')}`;
+          if (!shownFields && hits[0]) {
+            shownFields = true;
+            const first = hits[0];
+            const nutriments = (first.nutriments ?? {}) as Record<string, unknown>;
+            log(`   (fields on a hit: ${Object.keys(first).join(', ')}; nutriment keys: ${Object.keys(nutriments).slice(0, 12).join(', ')})`);
+          }
+        } catch (error) { line = `threw ${String(error).slice(0, 80)}`; }
+        log(`   ${form.id}: ${line}`);
+        await pause(1_500);
+      }
+    }
+    log('\nAnswered, and brand led the top five, by phrasing (10 branded searches, 12 in all):');
+    for (const [id, row] of tally) log(`   ${id}: answered ${row.ok}/${cases.length} · brand led ${row.brandLed}/10`);
+  }, 600_000);
 });

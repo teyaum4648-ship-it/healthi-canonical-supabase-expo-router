@@ -15,6 +15,11 @@ on:
         type: boolean
         required: false
         default: false
+      engine:
+        description: 'Compare ways of phrasing a search to the newer catalogue engine'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -24,15 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        if: ${{ inputs.query != '' || inputs.reliability }}
+        if: ${{ inputs.query != '' || inputs.reliability || inputs.engine }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: ${{ (inputs.query != '' || inputs.reliability) && 'npm' || '' }}
+          cache: ${{ (inputs.query != '' || inputs.reliability || inputs.engine) && 'npm' || '' }}
 
       - name: Install the app's dependencies
-        if: ${{ inputs.query != '' || inputs.reliability }}
+        if: ${{ inputs.query != '' || inputs.reliability || inputs.engine }}
         run: npm ci
 
       - name: How often the catalogue answers
@@ -40,6 +45,15 @@ jobs:
         env:
           HEALTHI_TRACE_RELIABILITY: '1'
           HEALTHI_TRACE_OUT: ${{ runner.temp }}/food-search-reliability.txt
+        run: |
+          npx vitest run tests/features/nutrition/foodSearchTrace.live.test.ts
+          cat "$HEALTHI_TRACE_OUT"
+
+      - name: Phrasing for the newer catalogue engine
+        if: ${{ inputs.engine }}
+        env:
+          HEALTHI_TRACE_ENGINE: '1'
+          HEALTHI_TRACE_OUT: ${{ runner.temp }}/food-search-engine.txt
         run: |
           npx vitest run tests/features/nutrition/foodSearchTrace.live.test.ts
           cat "$HEALTHI_TRACE_OUT"
@@ -117,7 +131,7 @@ jobs:
           node trace.mjs
 
       - name: Why a branded product is missing from a brand-plus-product search
-        if: ${{ inputs.query == '' && !inputs.reliability }}
+        if: ${{ inputs.query == '' && !inputs.reliability && !inputs.engine }}
         run: |
           cat > report.mjs <<'EOF'
           const UA = { 'User-Agent': 'Healthi/0.1 (food source report)', Accept: 'application/json' };
