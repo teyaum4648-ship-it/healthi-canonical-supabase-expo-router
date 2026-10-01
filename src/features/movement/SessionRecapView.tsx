@@ -23,7 +23,7 @@ import {
  */
 
 const palette = {
-  background: '#000000',
+  background: '#08090C',
   surface: '#15171B',
   ink: '#F5F7FA',
   accent: '#86C8F0',

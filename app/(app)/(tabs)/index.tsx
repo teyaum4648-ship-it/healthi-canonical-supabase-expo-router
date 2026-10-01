@@ -108,7 +108,7 @@ const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 const recapDismissedKey = 'healthi:recap:dismissed:v1';
 const waterColor = dietAccents.water;
 const homePalette = {
-  background: '#000000',
+  background: '#08090C',
   surface: '#15171B',
   surfaceRaised: '#1E2126',
   surfaceSoft: '#272A30',

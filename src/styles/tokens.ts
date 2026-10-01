@@ -30,10 +30,20 @@ export const hues = {
   onAccent: '#0A0D10'
 } as const;
 
+/**
+ * The ground every screen stands on: near-black charcoal with a cool navy undertone,
+ * deepest at the bottom. From the Healthi Premium Direction design.
+ */
+export const ground = {
+  top: '#121720',
+  middle: '#0C0F14',
+  base: '#08090C'
+} as const;
+
 export const palette = {
   ink: '#EEF1F4',
   inkSoft: '#C7CBD1',
-  ivory: '#08090C',
+  ivory: ground.base,
   paper: '#15171B',
   muted: '#A7AFB9',
   faint: '#8C939D',

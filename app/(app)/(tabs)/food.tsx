@@ -3309,7 +3309,7 @@ const styles = StyleSheet.create({
   },
   adaptiveContributorRow: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: colors.background,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
@@ -3353,7 +3353,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   adaptiveActionDock: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.background,
     borderTopColor: 'rgba(255, 255, 255,0.10)',
     borderTopWidth: hairlineWidth,
     flexDirection: 'row',

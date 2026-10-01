@@ -197,7 +197,7 @@ type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
 const segments: Segment[] = ['Today', 'Train', 'History'];
 const movePalette = {
-  background: '#000000',
+  background: '#08090C',
   surface: '#15171B',
   ink: '#F5F7FA',
   green: '#86C8F0',
