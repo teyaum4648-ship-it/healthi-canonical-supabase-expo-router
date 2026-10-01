@@ -1,5 +1,6 @@
-# Reports what the public food sources actually contain, so importers are written
-# against real data rather than guesses. Read-only: prints to the log, commits nothing.
+# Reports how the public food sources answer real searches, so search changes are made
+# against measured behaviour rather than guesses. Read-only: prints to the log, commits
+# nothing.
 name: Food sources report
 
 on:
@@ -16,78 +17,54 @@ jobs:
         with:
           node-version: 22
 
-      - name: Report
+      - name: Brand-plus-product searches
         run: |
           cat > report.mjs <<'EOF'
           const UA = { 'User-Agent': 'Healthi/0.1 (food source report)', Accept: 'application/json' };
-          const get = async (url, as = 'json') => {
-            try {
-              const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(30000) });
-              if (!r.ok) return { error: `HTTP ${r.status}` };
-              return as === 'json' ? await r.json() : await r.text();
-            } catch (e) { return { error: String(e) }; }
-          };
-          const line = (...a) => console.log(...a);
-
-          line('\n===== MENUSTAT on Harvard Dataverse =====');
-          const found = await get('https://dataverse.harvard.edu/api/search?q=MenuStat&type=dataset&per_page=20');
-          const items = found?.data?.items ?? [];
-          for (const it of items) line(`dataset: ${it.global_id} | ${it.name} | ${it.published_at}`);
-          for (const it of items.filter(i => /menustat/i.test(i.name)).slice(0, 4)) {
-            const ds = await get(`https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=${encodeURIComponent(it.global_id)}`);
-            const files = ds?.data?.latestVersion?.files ?? [];
-            line(`\n${it.global_id} license=${JSON.stringify(ds?.data?.latestVersion?.license ?? ds?.data?.latestVersion?.termsOfUse ?? null)}`);
-            for (const f of files) line(`   file ${f.dataFile?.id} | ${f.label} | ${f.dataFile?.contentType} | ${f.dataFile?.filesize} | original=${f.dataFile?.originalFileFormat ?? ''}`);
-            const latest = files.filter(f => /2018/.test(f.label)).concat(files).find(Boolean);
-            if (latest) {
-              const head = await get(`https://dataverse.harvard.edu/api/access/datafile/${latest.dataFile.id}?format=original`, 'text');
-              const text = typeof head === 'string' ? head : JSON.stringify(head);
-              line(`   first lines of ${latest.label}:\n` + text.split(/\r?\n/).slice(0, 4).join('\n').slice(0, 2500));
+          const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+          const get = async (url) => {
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+              try {
+                const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(30000) });
+                if (r.ok) return await r.json();
+                if (r.status !== 503 && r.status !== 429) return { error: `HTTP ${r.status}` };
+              } catch (e) { if (attempt === 2) return { error: String(e) }; }
+              await sleep(12000);
             }
-          }
-
-          line('\n===== OPEN FOOD FACTS: apostrophe-free store names (the app strips apostrophes) =====');
-          const fields = 'code,product_name,brands,countries_tags';
-          const legacy = (q, extra = '') => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=8${extra}`;
-          const show = async (label, url) => {
-            let r = await get(url);
-            if (r.error) { await new Promise(res => setTimeout(res, 15000)); r = await get(url); }
-            line(`\n[${label}] count=${r.count ?? r.error}`);
-            for (const p of (r.products ?? []).slice(0, 6)) line(`   ${p.brands ?? '-'} | ${p.product_name ?? '-'} | ${(p.countries_tags ?? []).includes('en:united-states') ? 'US' : ''}`);
-            await new Promise(res => setTimeout(res, 8000));
+            return { error: 'gave up' };
           };
-          await show('trader joes mandarin orange chicken', legacy('trader joes mandarin orange chicken'));
-          await show('almond butter + brand kirkland-signature + US', legacy('almond butter', '&tagtype_0=brands&tag_contains_0=contains&tag_0=kirkland-signature&tagtype_1=countries&tag_contains_1=contains&tag_1=united-states'));
-          await show('(empty terms) + brand trader-joe-s', legacy('', '&tagtype_0=brands&tag_contains_0=contains&tag_0=trader-joe-s'));
-          await show('frozen pizza + brand great-value', legacy('frozen pizza', '&tagtype_0=brands&tag_contains_0=contains&tag_0=great-value'));
-          await show('protein bar + US', legacy('protein bar', '&tagtype_0=countries&tag_contains_0=contains&tag_0=united-states'));
+          const fields = 'code,product_name,brands,brands_tags,countries_tags';
+          const legacy = (q, extra = '') => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24${extra}`;
+          const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+          const cases = [
+            ['chobani', 'greek yogurt'], ['fage', 'total 0'], ['siggis', 'vanilla yogurt'], ['oikos', 'triple zero'],
+            ['daves killer bread', 'good seed'], ['kind', 'dark chocolate nuts sea salt'], ['rxbar', 'chocolate sea salt'],
+            ['quest', 'cookies and cream bar'], ['barebells', 'caramel cashew'], ['fairlife', 'core power'],
+            ['premier protein', 'chocolate shake'], ['olipop', 'vintage cola'], ['simple mills', 'almond flour crackers'],
+            ['siete', 'tortilla chips'], ['ghost', 'protein'], ['clif', 'builders bar']
+          ];
+          for (const [brand, product] of cases) {
+            const q = `${brand} ${product}`;
+            const plain = await get(legacy(q));
+            const rows = plain.products ?? [];
+            const branded = rows.filter(p => norm(p.brands).includes(norm(brand)));
+            const nameHasBrand = branded.filter(p => norm(p.product_name).includes(norm(brand))).length;
+            console.log(`\n[${q}] plain: count=${plain.count ?? plain.error} top24=${rows.length} brandInTop24=${branded.length} (of those, brand also in name: ${nameHasBrand})`);
+            for (const p of rows.slice(0, 4)) console.log(`   plain  ${p.brands ?? '-'} | ${p.product_name ?? '-'}`);
+            await sleep(7000);
+            const productOnly = await get(legacy(product));
+            const poRows = productOnly.products ?? [];
+            console.log(`   product words only: count=${productOnly.count ?? productOnly.error} brandInTop24=${poRows.filter(p => norm(p.brands).includes(norm(brand))).length}`);
+            await sleep(7000);
+            const suggest = await get(`https://world.openfoodfacts.org/api/v3/taxonomy_suggestions?tagtype=brands&string=${encodeURIComponent(brand)}&limit=5`);
+            console.log(`   suggest v3: ${JSON.stringify(suggest).slice(0, 400)}`);
+            const tag = (suggest.suggestions?.[0] && typeof suggest.suggestions[0] === 'string') ? suggest.suggestions[0] : null;
+            const guessTag = norm(brand).replace(/ /g, '-');
+            const filtered = await get(legacy(product, `&tagtype_0=brands&tag_contains_0=contains&tag_0=${encodeURIComponent(guessTag)}`));
+            const fRows = filtered.products ?? [];
+            console.log(`   brand filter (${guessTag}) + "${product}": count=${filtered.count ?? filtered.error}`);
+            for (const p of fRows.slice(0, 4)) console.log(`   filter ${p.brands ?? '-'} | ${p.product_name ?? '-'}`);
+            await sleep(7000);
+          }
           EOF
           node report.mjs
-
-      - name: USDA branded foods by store brand
-        continue-on-error: true
-        run: |
-          curl -fsSL --retry 3 -o "$RUNNER_TEMP/b.zip" https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_branded_food_csv_2026-04-30.zip
-          ls -la "$RUNNER_TEMP/b.zip"
-          unzip -l "$RUNNER_TEMP/b.zip"
-          unzip -q -j "$RUNNER_TEMP/b.zip" '*branded_food.csv' -d "$RUNNER_TEMP/b"
-          python3 - "$RUNNER_TEMP/b/branded_food.csv" <<'PY'
-          import csv, sys, collections
-          csv.field_size_limit(10**9)
-          stores = ['kirkland', "trader joe", 'kroger', 'simple truth', 'private selection', 'great value', 'good & gather', 'market pantry', '365', 'whole foods', 'signature select', "member's mark", 'h-e-b', 'publix', 'wegmans', 'aldi', 'meijer', 'costco', 'sprouts']
-          owners = collections.Counter(); hits = collections.Counter(); total = 0; header = None
-          with open(sys.argv[1], newline='', encoding='utf-8', errors='replace') as f:
-              r = csv.DictReader(f)
-              header = r.fieldnames
-              for row in r:
-                  total += 1
-                  owner = (row.get('brand_owner') or '').strip(); brand = (row.get('brand_name') or '').strip()
-                  owners[owner] += 1
-                  text = f"{owner} | {brand}".lower()
-                  for s in stores:
-                      if s in text: hits[s] += 1
-          print('columns:', header)
-          print('rows:', total)
-          for s in stores: print(f'{s}: {hits[s]}')
-          print('top owners:', owners.most_common(40))
-          PY
