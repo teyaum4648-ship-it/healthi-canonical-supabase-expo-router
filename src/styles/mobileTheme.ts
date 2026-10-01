@@ -151,37 +151,44 @@ export function withAlpha(hex: string, alpha: number): string {
 const GROUND_GRADIENT = `linear-gradient(180deg, ${ground.top} 0%, ${ground.middle} 34%, ${ground.base} 100%)`;
 
 /**
- * The ground with no accent: for screens outside the tabs, such as sign-in and settings.
+ * A diffused glow: an ellipse of colour that fades through several steps to nothing, so it
+ * reads as light spreading rather than a shape with an edge.
  */
+function diffuse(rgb: string, peak: number, size: string, at: string): string {
+  const stops = [[1, 0], [0.62, 22], [0.3, 45], [0.1, 68], [0, 100]] as const;
+  return `radial-gradient(${size} at ${at}, ${stops.map(([share, offset]) => `rgba(${rgb}, ${+(peak * share).toFixed(4)}) ${offset}%`).join(', ')})`;
+}
+
+const NAVY = '96, 128, 196';
+const DEEP_NAVY = '70, 96, 160';
+
+/** The cool navy light that sits in the ground on every screen. */
+const NAVY_GLOWS = [
+  diffuse(NAVY, 0.16, '75% 40%', '95% 0%'),
+  diffuse(DEEP_NAVY, 0.08, '85% 40%', '0% 88%')
+];
+
+/** The ground with no accent: for screens outside the tabs, such as sign-in and settings. */
 export function groundStyle(): ViewStyle {
+  const image = [...NAVY_GLOWS, GROUND_GRADIENT].join(', ');
   return {
     backgroundColor: ground.base,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: GROUND_GRADIENT } as ViewStyle) : { experimental_backgroundImage: GROUND_GRADIENT })
+    ...(Platform.OS === 'web' ? ({ backgroundImage: image } as ViewStyle) : { experimental_backgroundImage: image })
   };
 }
 
 /**
- * A tab's ambient light on the ground: a soft glow of its accent up near the top left, a
- * cooler navy one at the top right, both gone by the first third, over the navy-charcoal
- * gradient. It sits behind everything and carries no information.
- *
- * The web gets real radial glows. Native draws the same idea with angled linear washes,
- * which every supported React Native version renders.
+ * A tab's ambient light on the ground: its accent diffused behind the upper middle of the
+ * screen, where the main content sits, with the ground's navy light at the top right and
+ * lower left. It sits behind everything and carries no information. React Native 0.83
+ * draws the same radial layers natively, so phone and web match.
  */
 export function ambientGlow(hex: string): ViewStyle {
-  const web = [
-    `radial-gradient(75% 40% at 20% 10%, ${withAlpha(hex, 0.12)} 0%, ${withAlpha(hex, 0.04)} 45%, rgba(0, 0, 0, 0) 75%)`,
-    'radial-gradient(80% 45% at 90% 0%, rgba(96, 128, 196, 0.14) 0%, rgba(96, 128, 196, 0) 70%)',
-    GROUND_GRADIENT
-  ].join(', ');
-  const native = [
-    `linear-gradient(160deg, ${withAlpha(hex, 0.11)} 0%, ${withAlpha(hex, 0.035)} 22%, rgba(0, 0, 0, 0) 42%)`,
-    'linear-gradient(210deg, rgba(96, 128, 196, 0.12) 0%, rgba(96, 128, 196, 0) 35%)',
-    GROUND_GRADIENT
-  ].join(', ');
+  const rgb = withAlpha(hex, 1).slice(5, -4);
+  const image = [diffuse(rgb, 0.12, '90% 42%', '50% 22%'), ...NAVY_GLOWS, GROUND_GRADIENT].join(', ');
   return {
     backgroundColor: ground.base,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: web } as ViewStyle) : { experimental_backgroundImage: native })
+    ...(Platform.OS === 'web' ? ({ backgroundImage: image } as ViewStyle) : { experimental_backgroundImage: image })
   };
 }
 
