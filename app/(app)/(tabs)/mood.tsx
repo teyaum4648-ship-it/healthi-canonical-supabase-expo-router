@@ -1,9 +1,23 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { calculateMindScore, type MindSuggestion } from '../../../src/engines/mind';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
+import type { ReadinessCheckin } from '../../../src/features/dashboard/readinessNow';
+import { createReadinessNowDemoStore } from '../../../src/features/dashboard/readinessNowStore';
+import { moodWeekCard } from '../../../src/features/dashboard/weekCards';
+import { getDemoScheduleBlocksForDate } from '../../../src/features/dayPlan/localDemoScheduleStore';
+import { getScheduleBlocksForDate, type DayScheduleBlockSupabaseClient } from '../../../src/features/dayPlan/scheduleBlockPersistence';
+import { MoodToday } from '../../../src/features/practice/MoodToday';
+import { moodRings, moodScoreInput, moodWeek } from '../../../src/features/practice/moodDashboardModel';
+import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
+import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
+import type { SleepSession } from '../../../src/engines/circadian/types';
+import { supabase } from '../../../src/lib/supabase';
 import { protocolScope } from '../../../src/features/dailyProtocol';
 import { CyclicBreathRounds } from '../../../src/features/practice/CyclicBreathRounds';
 import { DaylightLog } from '../../../src/features/practice/DaylightLog';
@@ -89,12 +103,22 @@ import { tabAccent } from '../../../src/styles/pillarColors';
  * a bad moment, so it stays first and above the fold; the rest is available rather than
  * demanded. Blocks with nothing to say are not rendered, which is why "today" summaries
  * appear only once there is a today.
+ *
+ * Those levers live under Practice. Today is the readout every other tab already had: the
+ * day's Mind + Life Load from signals the app holds (sleep against need, today's plan, the
+ * morning check-in, pulse against the person's own range, resets done — see engines/mind),
+ * what weighs most, and one suggested reset that opens the practice it names.
  */
 
 type Busy = 'pulse' | 'daylight' | 'zone' | null;
+type Segment = 'Today' | 'Practice' | 'Trends';
+const SEGMENTS: readonly Segment[] = ['Today', 'Practice', 'Trends'];
+const checkinStore = createReadinessNowDemoStore(AsyncStorage);
+const isUuid = (value: string | undefined): value is string =>
+  Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
 export default function MoodScreen() {
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
   const date = localDateKey();
 
@@ -108,6 +132,11 @@ export default function MoodScreen() {
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [roundsAcknowledged, setRoundsAcknowledged] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
+  const [segment, setSegment] = useState<Segment>('Today');
+  const [sleepSessions, setSleepSessions] = useState<SleepSession[]>([]);
+  const [sleepNeedMinutes, setSleepNeedMinutes] = useState<number | null>(null);
+  const [scheduleBlocks, setScheduleBlocks] = useState<number | null>(null);
+  const [checkins, setCheckins] = useState<ReadinessCheckin[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -137,6 +166,29 @@ export default function MoodScreen() {
     }, [scope])
   );
 
+  /*
+   * The day's other signals, for the Today view. Each is read on its own and a failure
+   * leaves that signal unknown, which lowers confidence rather than breaking the tab.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const userId = user?.id;
+      void loadSleepHistory({ mode, userId, client: supabase as unknown as SleepRhythmSupabaseClient })
+        .then(({ sessions: nights, sleepNeed }) => { if (active) { setSleepSessions(nights); setSleepNeedMinutes(sleepNeed?.minutes ?? null); } })
+        .catch(() => { if (active) setSleepSessions([]); });
+      void (isUuid(userId)
+        ? getScheduleBlocksForDate(supabase as unknown as DayScheduleBlockSupabaseClient, userId, date)
+        : getDemoScheduleBlocksForDate(date))
+        .then((blocks) => { if (active) setScheduleBlocks(blocks.length); })
+        .catch(() => { if (active) setScheduleBlocks(null); });
+      void checkinStore.read()
+        .then((data) => { if (active) setCheckins(data.checkins); })
+        .catch(() => { if (active) setCheckins([]); });
+      return () => { active = false; };
+    }, [date, mode, user?.id])
+  );
+
   const day = useMemo(() => summarisePracticeDay(sessions, date), [sessions, date]);
   const pulseDay = useMemo(() => summarisePulseDay(pulses, date), [pulses, date]);
   const daylightDay = useMemo(() => summariseDaylightDay(bouts, date), [bouts, date]);
@@ -156,6 +208,20 @@ export default function MoodScreen() {
     [completions, routine, date]
   );
   const evening = eveningNote(daylightDay);
+
+  const mind = useMemo(() => calculateMindScore(moodScoreInput({
+    today: date, sleepSessions, sleepNeedMinutes, scheduleBlocks, checkins, pulses, baseline,
+    practice: day, daylight: daylightDay, zones: zoneDay, habits: habitDay
+  }), new Date().getHours()), [date, sleepSessions, sleepNeedMinutes, scheduleBlocks, checkins, pulses, baseline, day, daylightDay, zoneDay, habitDay]);
+  const rings = useMemo(() => moodRings({ practice: day, daylight: daylightDay, habits: habitDay, zones: zoneDay }), [day, daylightDay, habitDay, zoneDay]);
+  const week = useMemo(() => moodWeek(sessions, date), [sessions, date]);
+  const weekCard = useMemo(() => moodWeekCard({ today: date, practice: sessions, daylight: bouts }), [date, sessions, bouts]);
+
+  /* The suggestion opens the practice it names, ready to start. */
+  function followSuggestion(suggestion: MindSuggestion) {
+    if (suggestion.techniqueId) setTechniqueId(suggestion.techniqueId);
+    setSegment('Practice');
+  }
 
   async function recordBreath(seconds: number) {
     const session: PracticeSession = {
@@ -262,6 +328,33 @@ export default function MoodScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text accessibilityRole="header" style={styles.title}>Mood</Text>
+        </View>
+        <SegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} />
+
+        {segment === 'Today' ? <MoodToday onSuggestion={followSuggestion} rings={rings} score={mind} week={week} /> : null}
+
+        {segment === 'Trends' ? (
+          <View style={styles.panel}>
+            <Text style={styles.eyebrow}>The last seven days</Text>
+            <Text style={styles.readingHeadline}>{weekCard.back.headline}</Text>
+            <Text style={styles.readingDetail}>{weekCard.back.detail}</Text>
+            <View style={styles.row}>
+              <Text style={styles.rowName}>{weekCard.front.label.replace(/^./, (letter) => letter.toUpperCase())}</Text>
+              <Text style={styles.rowValue}>{weekCard.front.value}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.rowName}>Breathing time</Text>
+              <Text style={styles.rowValue}>{weekCard.front.caption}</Text>
+            </View>
+            <Pressable accessibilityRole="link" onPress={() => router.navigate('/progress')} style={({ pressed }) => [styles.trendsLink, pressed && styles.pressed]}>
+              <Text style={styles.trendsLinkText}>Open Trends for every pillar</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {segment === 'Practice' ? (<>
+        <View style={styles.practiceHead}>
           <Text style={styles.subtitle}>Something you can do now</Text>
           <Text style={styles.meta}>{practiceDayLine(day)}</Text>
         </View>
@@ -389,6 +482,8 @@ export default function MoodScreen() {
           </View>
         ) : null}
 
+        </>) : null}
+
         {/*
           Not decoration. Everything above suggests a physical action, and a person having
           a genuinely bad moment should not have to leave the tab to find out this is not
@@ -408,7 +503,10 @@ const styles = StyleSheet.create({
   safe: { backgroundColor: 'transparent', flex: 1 },
   scroll: { gap: 14, paddingBottom: 40, paddingHorizontal: 18, paddingTop: 8 },
 
-  header: { gap: 4, paddingVertical: 6 },
+  header: { gap: 4, paddingTop: 6 },
+  practiceHead: { gap: 4, paddingHorizontal: 4 },
+  trendsLink: { alignItems: 'center', backgroundColor: colors.surfaceInset, borderRadius: 14, justifyContent: 'center', marginTop: 4, minHeight: 48 },
+  trendsLinkText: { ...type.label, color: tabAccent.mood },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   title: { ...type.largeTitle, color: colors.text },
   subtitle: { ...type.body, fontWeight: '600', color: colors.text },
