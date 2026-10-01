@@ -1,7 +1,7 @@
 import { canonicalBarcodeIdentity } from './barcodeUtils';
 import { brandText, leadingBrand } from './brandSearch';
 import { normalizeOpenFoodFactsProduct, type OpenFoodFactsProduct } from './normalizeProduct';
-import { fetchLabelsByCode, type ProductLookupFetch, type ProductSearchResult } from './openFoodFactsClient';
+import { fetchLabelByCode, fetchLabelsByCode, type ProductLookupFetch, type ProductSearchResult } from './openFoodFactsClient';
 import type { HealthiProductSnapshot } from './productLookupTypes';
 import { resolveSearchFoods } from './searchFoodResolution';
 
@@ -112,6 +112,8 @@ function toSnapshot(hit: Hit): HealthiProductSnapshot | null {
 }
 
 const cache = new Map<string, { at: number; result: ProductSearchResult }>();
+/** How many leading matches are read one by one when the bulk label request fails. */
+const LABELLED_LEADERS = 4;
 
 /**
  * Searches the engine: once with the words, and once more inside the brand the query
@@ -155,7 +157,19 @@ export async function searchCatalogueEngine(query: string, options: {
   }).slice(0, 30);
   const labels = await fetchLabelsByCode(unique.map((hit) => String(hit.code)), { fetcher: options.fetcher, signal: options.signal });
   // A full record replaces the index entry whole, never field by field.
-  const products = unique.flatMap((hit) => toSnapshot(labels.get(canonicalBarcodeIdentity(String(hit.code))) ?? hit) ?? []);
+  const snapshots = () => unique.flatMap((hit) => toSnapshot(labels.get(canonicalBarcodeIdentity(String(hit.code))) ?? hit) ?? []);
+  /*
+   * The bulk request goes to a search service and was turned away about half the time
+   * when measured. The few matches most likely to be picked are then read one by one
+   * from the product service, as a scan would be.
+   */
+  const unlabelled = resolveSearchFoods(snapshots(), query).slice(0, LABELLED_LEADERS)
+    .map((product) => product.barcode).filter((code) => code && !labels.has(canonicalBarcodeIdentity(code)));
+  if (unlabelled.length && !options.signal?.aborted) {
+    const read = await Promise.all(unlabelled.map((code) => fetchLabelByCode(code, { fetcher: options.fetcher, signal: options.signal })));
+    read.forEach((label, index) => { if (label) labels.set(canonicalBarcodeIdentity(unlabelled[index]), label); });
+  }
+  const products = snapshots();
   const result: ProductSearchResult = products.length
     ? { status: 'found', products: resolveSearchFoods(products, query) }
     : { status: 'empty', products: [], message: 'No foods matched. Try a simpler name or include the brand. You can also scan or enter the label.' };

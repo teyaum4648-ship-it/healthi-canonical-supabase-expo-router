@@ -314,6 +314,34 @@ const labelScheduler = new ProviderRequestScheduler({ minimumIntervalMs: 6_100 }
  * what it had, which still logs per 100 g.
  * https://openfoodfacts.github.io/openfoodfacts-server/api/ref-cheatsheet/#get-data-for-a-list-of-products
  */
+/**
+ * One product's full label, read the way a scan reads it. The product service answered
+ * every request in the reports where the search services turned most away, so this is
+ * how the matches people are most likely to pick get their servings when the bulk
+ * request fails. A failure returns null.
+ */
+export async function fetchLabelByCode(code: string, options: {
+  fetcher?: ProductLookupFetch; signal?: AbortSignal; timeoutMs?: number; locale?: string;
+} = {}): Promise<Record<string, unknown> | null> {
+  if (!/^\d{8,14}$/.test(code) || options.signal?.aborted) return null;
+  const fetcher = options.fetcher ?? (fetch as unknown as ProductLookupFetch);
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  options.signal?.addEventListener('abort', cancel, { once: true });
+  const timer = setTimeout(cancel, options.timeoutMs ?? 4_000);
+  try {
+    const response = await fetcher(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${productFields(options.locale)}`, { headers: requestHeaders, signal: controller.signal });
+    if (!response.ok) return null;
+    const body = await response.json();
+    return isRecord(body) && isRecord(body.product) ? { code, ...body.product } : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', cancel);
+  }
+}
+
 export async function fetchLabelsByCode(codes: readonly string[], options: {
   fetcher?: ProductLookupFetch; signal?: AbortSignal; budgetMs?: number; locale?: string;
 } = {}): Promise<Map<string, Record<string, unknown>>> {

@@ -29,6 +29,7 @@ function catalogue(route: Route) {
 }
 const isEngine = (url: URL) => url.hostname === 'search.openfoodfacts.org';
 const isLabels = (url: URL) => url.pathname === '/api/v2/search' && url.searchParams.has('code');
+const isProductRead = (url: URL) => url.pathname.startsWith('/api/v2/product/');
 const isKeyword = (url: URL) => url.pathname === '/cgi/search.pl';
 const insideBrand = (url: URL) => isEngine(url) && (url.searchParams.get('q') ?? '').startsWith('brands:');
 
@@ -81,7 +82,7 @@ describe('searching the engine', () => {
     expect(result.products.slice(0, 2).map((p) => p.name).sort()).toEqual(['Butter Pecan Ice Cream', 'Ice Cream, Butter Pecan']);
     expect(result.products[0].brand).toBe('Breyers');
     expect(result.products.map((p) => p.name)).toContain('Premium Ice Cream, Butter Pecan');
-    expect(urls.map((url) => isLabels(url) ? 'labels' : insideBrand(url) ? 'inside brand' : 'words')).toEqual(['words', 'inside brand', 'labels']);
+    expect(urls.filter((url) => !isProductRead(url)).map((url) => isLabels(url) ? 'labels' : insideBrand(url) ? 'inside brand' : 'words')).toEqual(['words', 'inside brand', 'labels']);
     expect(urls[0].searchParams.get('q')).toBe('breyers AND butter AND pecan AND ice AND cream AND countries_tags:"en:united-states"');
   });
 
@@ -93,6 +94,17 @@ describe('searching the engine', () => {
     const bare = await searchCatalogueEngine('breyers butter pecan', { fetcher: catalogue((url) => isLabels(url) ? { status: 503, body: 'busy' } : { body: answer }).fetcher as never });
     expect(bare.status).toBe('found');
     expect(foodLoggingNutrition(bare.products[0]).basis).toBe('per_100g');
+  });
+
+  it('reads the leading matches one by one when the bulk label request is turned away', async () => {
+    const tubLabel = { product: { code: '0077567201096', product_name: 'Ice Cream, Butter Pecan', brands: 'Breyers, Unilever', serving_size: '67 g (0.5 cup)', serving_quantity: 67, nutriments: per100(224, 3, 21, 15) } };
+    const { urls, fetcher } = catalogue((url) => isLabels(url) ? { status: 503, body: 'busy' }
+      : isProductRead(url) ? (url.pathname.includes('0077567201096') ? { body: tubLabel } : { status: 404, body: { status: 0 } })
+        : insideBrand(url) ? { body: { hits: [BREYERS_TUB, BREYERS_CHOCOLATE] } } : { body: { hits: [FRIENDLYS, UNBRANDED, BREYERS_CHOCOLATE, BISCUIT, hit('1', 'Spare', ['X'])] } });
+    const result = await searchCatalogueEngine('breyers butter pecan ice cream', { fetcher: fetcher as never });
+    expect(result.products[0].name).toBe('Ice Cream, Butter Pecan');
+    expect(foodLoggingNutrition(result.products[0]).basis).toBe('serving');
+    expect(urls.filter(isProductRead)).toHaveLength(4);
   });
 
   it('asks every country when nothing is tagged as sold here', async () => {
