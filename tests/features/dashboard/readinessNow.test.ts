@@ -21,11 +21,11 @@ describe('readiness now demo invariants', () => {
     expect(result.contributions?.domains).toHaveLength(4);
     expect(result.score).toBe(Math.min(100, Math.max(0, result.contributions!.baseline + result.contributions!.domains.reduce((n, d) => n + d.contribution, 0))));
   });
-  it('never deducts for absent logs, at 9 AM or 7 PM', () => {
+  it('never deducts for absent logs, at 9 AM or 7 PM, and still shows the foundations\' number', () => {
     for (const hour of [9, 19]) {
       const result = run(hour, []);
       expect(result.calculatedScore).toBe(base().score);
-      expect(result.publicScore).toBeNull();
+      expect(result.publicScore).toBe(base().score);
       expect(result.confidence).toBe('low');
       expect(result.unknown.join(' ')).toContain('does not mean');
     }
@@ -37,15 +37,18 @@ describe('readiness now demo invariants', () => {
     expect(run(19, [check(19, { woke_at: at(18) })]).publicScore).toBe(base().score);
     expect(run().publicScore).toBeLessThan(base().score);
   });
-  it('hides an old morning estimate in the evening instead of inventing intake', () => {
+  it('drops an old morning check-in in the evening instead of inventing intake, and keeps the number', () => {
     const result = run(19, [check(9)]);
     expect(result.state).toBe('update_needed');
-    expect(result.publicScore).toBeNull();
+    expect(result.publicScore).toBe(base().score);
+    expect(result.confidence).toBe('low');
     expect(result.calculatedScore).toBe(base().score);
   });
   it('does not make an all-skipped check-in current', () => {
     const result = run(19, [check(19, { food: 'unknown', water: 'unknown', energy: 'unknown', demand: 'unknown' })]);
-    expect(result.publicScore).toBeNull();
+    expect(result.state).toBe('update_needed');
+    expect(result.confidence).toBe('low');
+    expect(result.publicScore).toBe(base().score);
     expect(result.calculatedScore).toBe(base().score);
   });
   it('does not run time-awake rules without a confirmed wake time', () => {
@@ -72,10 +75,12 @@ describe('readiness now demo invariants', () => {
     const later = run(19, [check()], { now: at(19, 59) });
     expect(first.calculatedScore).toBe(later.calculatedScore);
   });
-  it('expires negative and positive confirmations equally without showing fake recovery', () => {
+  it('expires negative and positive confirmations equally, back to the foundations at low confidence', () => {
     const result = run(22, [check(19)]);
-    expect(result.publicScore).toBeNull();
     expect(result.state).toBe('update_needed');
+    expect(result.publicScore).toBe(base().score);
+    expect(result.confidence).toBe('low');
+    expect(result.reason_codes).not.toContain('confirmed_no_food_after_wake_grace');
   });
   it('new meal and water logs supersede an earlier not-yet answer', () => {
     const result = run(20, [check(19)], { mealTimes: [at(19, 15)], waterTimes: [at(19, 30)] });
@@ -133,7 +138,8 @@ describe('readiness now demo invariants', () => {
     const history = [check(23)];
     const result = run(0, history, { now: at(0, 5, 12), base: { ...base(), date: localDay(at(0, 5, 12)) } });
     expect(result.checkin).toBeNull();
-    expect(result.publicScore).toBeNull();
+    expect(result.state).toBe('update_needed');
+    expect(result.confidence).toBe('low');
     expect(history).toHaveLength(1);
   });
 });

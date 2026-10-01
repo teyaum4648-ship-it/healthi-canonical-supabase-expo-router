@@ -114,8 +114,14 @@ export function evaluateReadinessNow(input: ReadinessNowInput) {
   const attention = ledger.filter(d => d.explanation || (!d.missing && d.contribution < 0)).map(d => ({
     domain: d.domain, text: d.explanation ?? input.base.driver_cards.find(c => c.domain === d.domain)?.detail ?? 'This foundation is limiting today’s estimate.'
   }));
+  /*
+   * The number shows whenever the foundations are enough to support one. A missing or
+   * stale check-in lowers confidence and asks for an update; it does not hide the
+   * estimate, because check-in adjustments only ever apply while fresh, so what shows is
+   * what the logged foundations say. Safety guidance and thin foundations still hide it.
+   */
   return {
-    policyVersion: READINESS_NOW_POLICY.version, state, publicScore: state === 'current' ? score : null,
+    policyVersion: READINESS_NOW_POLICY.version, state, publicScore: state === 'current' || state === 'update_needed' ? score : null,
     calculatedScore: score, confidence: state !== 'current' || unknown.length || input.base.confidence === 'low' ? 'low' as const : 'medium' as const,
     checkin, ageMinutes, awakeHours, ledger, unknown, attention,
     supporting: ledger.filter(d => !d.missing && d.contribution > 0).map(d => ({ domain: d.domain, text: input.base.driver_cards.find(c => c.domain === d.domain)?.detail ?? 'A supportive recorded signal.' })),
