@@ -5,6 +5,11 @@ name: Food sources report
 
 on:
   workflow_dispatch:
+    inputs:
+      query:
+        description: 'One brand-plus-product search to trace (blank runs the full report)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -17,7 +22,71 @@ jobs:
         with:
           node-version: 22
 
+      - name: Trace one search
+        if: ${{ inputs.query != '' }}
+        env:
+          QUERY: ${{ inputs.query }}
+        run: |
+          cat > trace.mjs <<'EOF'
+          const UA = { 'User-Agent': 'Healthi/0.1 (food source report)', Accept: 'application/json' };
+          const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+          const get = async (url) => {
+            for (let attempt = 0; attempt < 4; attempt += 1) {
+              try {
+                const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(30000) });
+                if (r.ok) return await r.json();
+                if (r.status !== 503 && r.status !== 429) return { error: `HTTP ${r.status}` };
+              } catch (e) { if (attempt === 3) return { error: String(e) }; }
+              await sleep(15000);
+            }
+            return { error: 'gave up' };
+          };
+          const norm = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+          const q = norm(process.env.QUERY);
+          const [first, ...restWords] = q.split(' ');
+          const rest = restWords.join(' ');
+          const row = (p) => `${p.code} | ${p.brands || '(no brand)'} | ${p.product_name || p.product_name_en || '(no name)'} | ${(p.countries_tags ?? []).join(' ')}`;
+          const legacy = (terms, extra = '', size = 24) => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(terms)}&search_simple=1&action=process&json=1&fields=code,product_name,product_name_en,brands,countries_tags&page_size=${size}${extra}`;
+          const US = '&tagtype_0=countries&tag_contains_0=contains&tag_0=united-states';
+          const candidates = new Set();
+          const show = (label, data, pick = () => true) => {
+            const rows = data.products ?? data.hits ?? [];
+            console.log(`\n${label}: count=${data.count ?? data.error}`);
+            for (const p of rows.filter(pick).slice(0, 12)) console.log(`   ${row({ ...p, brands: Array.isArray(p.brands) ? p.brands.join(', ') : p.brands })}`);
+          };
+          const mentionsFirst = (p) => norm(`${Array.isArray(p.brands) ? p.brands.join(' ') : p.brands} ${p.product_name ?? ''} ${p.product_name_en ?? ''}`).split(' ').some(w => w.startsWith(first.replace(/s$/, '')));
+          show(`A. "${q}", US only (what the app sends first)`, await get(legacy(q, US))); await sleep(8000);
+          show(`B. "${q}", any country`, await get(legacy(q))); await sleep(8000);
+          const productWords = await get(legacy(rest, US, 100)); await sleep(8000);
+          show(`C. "${rest}", US only, 100 rows — those that mention "${first}" anywhere`, productWords, mentionsFirst);
+          for (const p of (productWords.products ?? []).filter(mentionsFirst)) candidates.add(p.code);
+          const brands = new Map();
+          for (const p of productWords.products ?? []) { const b = p.brands || '(no brand)'; brands.set(b, (brands.get(b) ?? 0) + 1); }
+          console.log(`   brands among those 100: ${[...brands].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([b, n]) => `${b} ${n}`).join(' · ')}`);
+          console.log(`   rows with no brand: ${(productWords.products ?? []).filter(p => !p.brands).map(p => p.product_name).slice(0, 10).join(' / ')}`);
+          for (const page of [1, 2]) {
+            const list = await get(`https://world.openfoodfacts.org/api/v2/search?brands_tags=${encodeURIComponent(first)}&fields=code,product_name,product_name_en,brands,countries_tags&page_size=100&page=${page}`); await sleep(8000);
+            const hits = (list.products ?? []).filter(p => restWords.some(w => w.length > 3 && norm(p.product_name || p.product_name_en).includes(w)));
+            console.log(`\nD${page}. brand tag "${first}" page ${page}: ${list.count ?? list.error} products; named with a typed word:`);
+            for (const p of hits.slice(0, 15)) { console.log(`   ${row(p)}`); candidates.add(p.code); }
+          }
+          show(`E. search-a-licious "${q}"`, await get(`https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&page_size=24&langs=en&fields=code,product_name,brands,countries_tags`));
+          console.log('\nF. the candidate records, as the search index sees them');
+          for (const code of [...candidates].slice(0, 6)) {
+            const d = await get(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=code,product_name,product_name_en,generic_name,brands,brands_tags,countries_tags,categories,_keywords,lang,unique_scans_n,nutriments`);
+            const p = d.product ?? {};
+            const keys = new Set(p._keywords ?? []);
+            console.log(`   ${row(p)} | lang=${p.lang} scans=${p.unique_scans_n ?? 0} kcal100g=${p.nutriments?.['energy-kcal_100g'] ?? '-'}`);
+            console.log(`      brands_tags: ${(p.brands_tags ?? []).join(' ')} | categories: ${String(p.categories ?? '').slice(0, 120)}`);
+            console.log(`      index words: ${[...keys].join(' ')}`);
+            console.log(`      typed words absent (before the index's own singular forms): ${q.split(' ').filter(w => !keys.has(w) && !keys.has(w.replace(/s$/, ''))).join(', ') || 'none'}`);
+            await sleep(1500);
+          }
+          EOF
+          node trace.mjs
+
       - name: Why a branded product is missing from a brand-plus-product search
+        if: ${{ inputs.query == '' }}
         run: |
           cat > report.mjs <<'EOF'
           const UA = { 'User-Agent': 'Healthi/0.1 (food source report)', Accept: 'application/json' };
