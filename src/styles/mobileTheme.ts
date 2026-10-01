@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { colors, glass, ground, motion, zones, type ZoneTone } from './tokens';
+import { glass, ground, motion, zones, type ZoneTone } from './tokens';
 
 const systemFont =
   Platform.select({
