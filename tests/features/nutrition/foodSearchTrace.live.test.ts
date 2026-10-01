@@ -1,5 +1,5 @@
 import { appendFileSync, writeFileSync } from 'node:fs';
-import { describe, it } from 'vitest';
+import { describe, it, vi } from 'vitest';
 
 import { foodLoggingCompleteness, foodLoggingNutrition, partitionFoodSearchResults } from '../../../src/features/nutrition/foodLoggingNutrition';
 import { searchFoods } from '../../../src/features/nutrition/productLookup/foodSearchClient';
@@ -13,15 +13,36 @@ import { buildFoodSearchUrl } from '../../../src/features/nutrition/productLooku
  * re-implementation of it. Off unless HEALTHI_TRACE_SEARCH names a query; needs network.
  */
 const query = process.env.HEALTHI_TRACE_SEARCH?.trim() ?? '';
+const reliability = process.env.HEALTHI_TRACE_RELIABILITY === '1';
 const out = process.env.HEALTHI_TRACE_OUT ?? 'food-search-trace.txt';
 const countryTag = process.env.HEALTHI_TRACE_COUNTRY ?? 'united-states';
 
 const MACROS = ['energy-kcal', 'proteins', 'carbohydrates', 'fat'] as const;
+const log = (line = '') => appendFileSync(out, `${line}\n`);
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Records every request the app makes, without changing how it makes them. */
+function recordRequests() {
+  const seen: string[] = [];
+  const realFetch = globalThis.fetch;
+  const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const started = Date.now();
+    try {
+      const response = await realFetch(input, init);
+      const body = (await response.clone().text()).slice(0, 100).replace(/\s+/g, ' ');
+      seen.push(`${response.status} in ${Date.now() - started} ms · retry-after ${response.headers.get('retry-after') ?? '-'} · ${String(input).replace(/&fields=[^&]*/, '').slice(0, 140)}${response.ok ? '' : ` · body: ${body}`}`);
+      return response;
+    } catch (error) {
+      seen.push(`threw ${String(error)} in ${Date.now() - started} ms · ${String(input).slice(0, 140)}`);
+      throw error;
+    }
+  });
+  return { seen, restore: () => spy.mockRestore() };
+}
 
 describe.skipIf(!query)('live trace of one food search through the app', () => {
   it('shows where each catalogue product ends up', async () => {
     writeFileSync(out, '');
-    const log = (line = '') => appendFileSync(out, `${line}\n`);
 
     const url = buildFoodSearchUrl(query, 'en', { countryTag });
     const response = await fetch(url, { headers: { 'User-Agent': 'Healthi/0.1 (search trace)', Accept: 'application/json' } });
@@ -43,12 +64,63 @@ describe.skipIf(!query)('live trace of one food search through the app', () => {
       log(`   flags: ${snapshot.quality_flags.join(', ') || 'none'} | reasons: ${snapshot.reason_codes.slice(0, 8).join(', ') || 'none'}`);
     }
 
+    await pause(8_000);
+    const requests = recordRequests();
     const result = await searchFoods(query, { countryTag });
+    requests.restore();
     const { ready, incomplete } = partitionFoodSearchResults(result.products);
     log(`\nThe app's search: ${result.status}${'message' in result && result.message ? ` (${result.message})` : ''}${result.notice ? ` — ${result.notice}` : ''}`);
+    log('Requests the app made:');
+    for (const line of requests.seen) log(`   ${line}`);
     log(`Shown as ready to log (${ready.length}):`);
     for (const p of ready) log(`   ${p.brand ?? '(no brand)'} | ${p.name} | ${p.provider}`);
     log(`Folded under "matches needing label details" (${incomplete.length}):`);
     for (const p of incomplete) log(`   ${p.brand ?? '(no brand)'} | ${p.name} | ${p.provider}`);
   }, 180_000);
+});
+
+/*
+ * How often the catalogue answers each way of asking. The same words go out as the app
+ * sends them today and with one thing changed at a time, so a difference in the answer
+ * rate points at the thing that was changed.
+ */
+describe.skipIf(!reliability)('live reliability of the catalogue search', () => {
+  it('compares ways of asking', async () => {
+    writeFileSync(out, '');
+    const queries = [
+      'breyers butter pecan ice cream', 'chobani vanilla greek yogurt', 'daves killer bread good seed', 'tillamook sharp cheddar',
+      'halo top birthday cake', 'annies mac and cheese', 'fairlife chocolate milk', 'kind dark chocolate nuts sea salt',
+      'siete tortilla chips', 'olipop vintage cola'
+    ];
+    const named = { Accept: 'application/json', 'User-Agent': 'Healthi/0.1 (+https://github.com/teyaum4648-ship-it/healthi-canonical-supabase-expo-router)' };
+    const variants: { id: string; url: (q: string) => string; headers: Record<string, string> }[] = [
+      { id: 'app today (US filter, app headers)', url: (q) => buildFoodSearchUrl(q, 'en', { countryTag: 'united-states' }), headers: { Accept: 'application/json', 'X-User-Agent': 'Healthi/0.1' } },
+      { id: 'US filter, named User-Agent', url: (q) => buildFoodSearchUrl(q, 'en', { countryTag: 'united-states' }), headers: named },
+      { id: 'no country filter, named User-Agent', url: (q) => buildFoodSearchUrl(q, 'en'), headers: named },
+      { id: 'no country filter, app headers', url: (q) => buildFoodSearchUrl(q, 'en'), headers: { Accept: 'application/json', 'X-User-Agent': 'Healthi/0.1' } }
+    ];
+    const tally = new Map(variants.map((v) => [v.id, { ok: 0, statuses: [] as string[], ms: 0 }]));
+    for (const [index, q] of queries.entries()) {
+      log(`\n"${q}"`);
+      // Alternate the order, so no way of asking always goes second, onto a warmed cache.
+      for (const variant of index % 2 ? [...variants].reverse() : variants) {
+        const started = Date.now();
+        let status = 'threw';
+        let count = '-';
+        try {
+          const response = await fetch(variant.url(q), { headers: variant.headers, signal: AbortSignal.timeout(20_000) });
+          status = String(response.status);
+          if (response.ok) count = String(((await response.json()) as { count?: number }).count ?? '?');
+        } catch (error) { status = `threw ${String(error).slice(0, 60)}`; }
+        const row = tally.get(variant.id)!;
+        row.statuses.push(status);
+        row.ms += Date.now() - started;
+        if (status === '200') row.ok += 1;
+        log(`   ${variant.id}: ${status} · ${Date.now() - started} ms · count ${count}`);
+        await pause(7_000);
+      }
+    }
+    log('\nAnswered, of each way of asking:');
+    for (const [id, row] of tally) log(`   ${id}: ${row.ok}/${queries.length} · average ${Math.round(row.ms / queries.length)} ms · ${row.statuses.join(' ')}`);
+  }, 900_000);
 });
