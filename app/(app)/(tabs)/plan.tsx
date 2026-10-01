@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
+import { wallClockIso } from '../../../src/utils/localDay';
 import { layoutOverlaps } from '../../../src/features/dayPlan/timelineLayout';
 import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
@@ -398,8 +400,8 @@ function DayTimeline({
 
 export default function PlanScreen() {
   const { user, mode } = useAuth();
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const now = useMemo(() => new Date().toISOString(), []);
+  const today = useLocalToday();
+  const now = useMemo(() => wallClockIso(), []);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const [blocks, setBlocks] = useState<DayScheduleBlockRow[]>([]);

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { localDay, wallClockIso } from '../../../src/utils/localDay';
 import { Alert } from 'react-native';
 
 import {
@@ -65,7 +66,8 @@ function boundedQuality(value: string): number | null {
 export default function RhythmScreen() {
   const { user, mode } = useAuth();
   const [now, setNow] = useState(() => new Date().toISOString());
-  const today = now.slice(0, 10);
+  // The local date: the UTC one is already tomorrow on a US evening.
+  const today = localDay(now);
   const [sleepSessions, setSleepSessions] = useState<SleepSession[]>([]);
   const [sleepNeed, setSleepNeed] = useState<SleepNeedEstimate>(() => createDefaultSleepNeedEstimate(now));
   const [dataMode, setDataMode] = useState<RhythmDataMode>('demo');
@@ -235,7 +237,7 @@ export default function RhythmScreen() {
       recentSleepSessions: briefingSessions,
       sleepNeed,
       preferredBedtime,
-      now,
+      now: wallClockIso(new Date(now)),
       refreshment: boundedQuality(sleepQuality),
       morningLightDates: light.morningDates,
       morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null,

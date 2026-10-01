@@ -26,3 +26,13 @@ export function timestampForLocalDay(day: string, now: string): string {
 export function rolloverDiaryDay(selected: string, previousToday: string, today: string, editing = false) {
   return !editing && selected === previousToday ? today : selected;
 }
+
+/**
+ * The local wall clock on the UTC axis the sleep engines use, where a 7:05 wake is
+ * T07:05Z of its day. 8:24 PM on the 30th becomes 2026-09-30T20:24Z, not the instant
+ * 2026-10-01T03:24Z, which put the evening on tomorrow's date and stretched the day's
+ * curve across 38 hours.
+ */
+export function wallClockIso(date: Date = new Date()): string {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
+}

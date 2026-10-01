@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { wallClockIso } from '../../../src/utils/localDay';
 import { movementReasonLines } from '../../../src/features/movement/movementReasonCopy';
 import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { StepsToday } from '../../../src/features/health/StepsToday';
@@ -299,7 +300,8 @@ export default function MovementScreen() {
   const { moveFixture } = useLocalSearchParams<{ moveFixture?: string | string[] }>();
   /* The local day, not the UTC one: an evening workout in the Americas was being dated tomorrow. */
   const today = useLocalToday();
-  const now = useMemo(() => new Date().toISOString(), []);
+  // The sleep engines read wall-clock times on a UTC axis.
+  const now = useMemo(() => wallClockIso(), []);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const trainingLimited = Boolean(activeProtocol && !activeProtocol.safety.training_allowed);

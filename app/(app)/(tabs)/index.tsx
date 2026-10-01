@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
-import { localDay } from '../../../src/utils/localDay';
+import { localDay, wallClockIso } from '../../../src/utils/localDay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -602,7 +602,7 @@ export default function DashboardScreen() {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         recentSleepSessions: sleepSessions,
         sleepNeed,
-        now: new Date().toISOString()
+        now: wallClockIso()
       }),
     [sleepNeed, sleepSessions, today]
   );

@@ -173,8 +173,14 @@ function parsePreferredBedtime(preferredBedtime: string | null | undefined, date
   return parseDate(preferredBedtime);
 }
 
-function getTargetBedtime(wakeTime: Date, preferredBedtime: string | null | undefined, date: string): Date {
-  const preferred = parsePreferredBedtime(preferredBedtime, date);
+/**
+ * Bedtime closes the day that this wake opened, so a preferred clock time is placed on the
+ * wake's own date (or the next, if it falls before the wake). Placing it on the date being
+ * asked about instead let a wake from yesterday pair with tonight's bedtime: a 38-hour
+ * "day" whose curve flattened between a squeezed morning and evening.
+ */
+function getTargetBedtime(wakeTime: Date, preferredBedtime: string | null | undefined): Date {
+  const preferred = parsePreferredBedtime(preferredBedtime, wakeTime.toISOString().slice(0, 10));
 
   if (!preferred) {
     return addHours(wakeTime, 16);
@@ -460,7 +466,7 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     };
   }
 
-  const targetBedtime = getTargetBedtime(wakeTime, params.preferredBedtime, params.date);
+  const targetBedtime = getTargetBedtime(wakeTime, params.preferredBedtime);
   const restoration = computeRestoration({
     quality: sessionIsStale ? null : session?.sleep_quality ?? null,
     refreshment: params.refreshment ?? null,
