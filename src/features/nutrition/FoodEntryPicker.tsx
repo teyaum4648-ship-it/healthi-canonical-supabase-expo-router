@@ -14,6 +14,7 @@ import { findPersonalFoods, portionValue } from './foodDiaryPresentation';
 import { foodLoggingNutrition, foodSearchPortionDetail, initialFoodLoggingAmount, partitionFoodSearchResults, withFoodPortion } from './foodLoggingNutrition';
 import { ProductThumbnail } from './ProductThumbnail';
 import { ScoreRing } from './NutritionScoreRing';
+import { ScoreBreakdown } from './ScoreBreakdown';
 import { calculateProductQuality } from './productLookup/productQuality';
 import { AllergenNotice } from './AllergenNotice';
 import type { AllergenGroup } from './allergens';
@@ -33,6 +34,8 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
 }) {
   const [tab, setTab] = useState<PickerTab>('Search');
   const [selected, setSelected] = useState<{ product: HealthiProductSnapshot; source: 'search' | 'saved_food' } | null>(null);
+  /** A food whose score breakdown is open, from tapping its score ring. */
+  const [explaining, setExplaining] = useState<{ product: HealthiProductSnapshot; source: 'search' | 'saved_food' } | null>(null);
   const [servings, setServings] = useState('1');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -76,12 +79,19 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
     finally { setBusy(false); }
   }
   return (
-    <EntrySheet title={selected ? 'Choose your portion' : mealLabel ? `Add to ${mealLabel.toLowerCase()}` : 'Add food'} onClose={onClose} busy={busy} footer={selected ? (
+    <EntrySheet title={explaining ? 'Why this score' : selected ? 'Choose your portion' : mealLabel ? `Add to ${mealLabel.toLowerCase()}` : 'Add food'} onClose={onClose} busy={busy} footer={explaining ? (
+      <Pressable accessibilityRole="button" onPress={() => { choose(explaining.product, explaining.source); setExplaining(null); }} style={({ pressed }) => [styles.primary, pressed && styles.dim]}>
+        <Text style={styles.primaryText}>Log this food</Text>
+      </Pressable>
+    ) : selected ? (
       <Pressable accessibilityRole="button" disabled={portion === null || busy} onPress={() => void add()} style={({ pressed }) => [styles.primary, (portion === null || busy || pressed) && styles.dim]}>
         {busy ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.primaryText}>{mealLabel ? `Add to ${mealLabel.toLowerCase()}` : 'Add to meal'}</Text>}
       </Pressable>
     ) : undefined}>
-      {selected ? <>
+      {explaining ? <>
+        <Pressable accessibilityRole="button" onPress={() => setExplaining(null)} style={styles.back}><Ionicons name="chevron-back" size={18} color={tabAccent.food} /><Text style={styles.link}>Back to foods</Text></Pressable>
+        <ScoreBreakdown product={explaining.product} />
+      </> : selected ? <>
         <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><Ionicons name="chevron-back" size={18} color={tabAccent.food} /><Text style={styles.link}>Choose another food</Text></Pressable>
         <View style={styles.productRow}><ProductThumbnail url={selected.product.image_url} name={selected.product.name} size={76} /><View style={styles.libraryCopy}><Text style={styles.title}>{selected.product.name}</Text><Text style={styles.detail}>{selected.product.brand}</Text></View></View>
         <Text style={styles.detail}>Check the name, variety, and pack size—packaging photos may be older.</Text>
@@ -120,7 +130,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           {results.length ? <Text style={styles.label}>{catalog.ready.length} foods ready to log</Text> : null}
           {catalog.ready.map((product) => {
             const key = `${product.provider}-${product.barcode}-${product.name}`;
-            return <View key={key} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={foodSearchPortionDetail(product)} onPress={() => choose(product, 'search')} /></View><ScoreRing score={searchScores.get(key) ?? null} label={`${product.name}: quality ${searchScores.get(key) ?? 'not scored'}`} /></View>;
+            return <View key={key} style={styles.productRow}><ProductThumbnail url={product.image_url} name={product.name} onPress={() => choose(product, 'search')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={foodSearchPortionDetail(product)} onPress={() => choose(product, 'search')} /></View><ScoreRing score={searchScores.get(key) ?? null} label={`${product.name}: quality ${searchScores.get(key) ?? 'not scored'}`} onPress={() => setExplaining({ product, source: 'search' })} /></View>;
           })}
           {catalog.incomplete.length ? <>
             {!catalog.ready.length ? <Text style={styles.detail}>These matches still need label details. Scan the package or enter its nutrition to log it accurately.</Text> : null}
@@ -130,7 +140,7 @@ export function FoodEntryPicker({ query, onQueryChange, onSearch, results, searc
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{searching ? 'Searching the food database…' : message || 'Enter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.'}</Text>
           <Text style={styles.source}>Food data: Open Food Facts{results.some(p => p.provider === 'usda_food_data_central') ? ' · USDA FoodData Central' : ''}{results.some(p => p.food_data_type === MENUSTAT_DATA_TYPE) ? ' · MenuStat, NYC Health' : ''}. Check the variety and package label; catalog records may be incomplete.</Text>
         </> : <>
-          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><ScoreRing score={product.quality_score} size={34} label={`${product.name}: quality ${product.quality_score ?? 'not scored'}`} /><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={tabAccent.food} /></Pressable></View>)}
+          {personal.map((product) => <View key={product.id} style={styles.libraryRow}><ProductThumbnail url={userFoodProductRowToSnapshot(product).image_url} name={product.name} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /><View style={styles.libraryCopy}><ActionRow title={product.name} detail={[product.brand, product.serving_size].filter(Boolean).join(' · ')} onPress={() => choose(userFoodProductRowToSnapshot(product), 'saved_food')} /></View><ScoreRing score={product.quality_score} size={34} label={`${product.name}: quality ${product.quality_score ?? 'not scored'}`} onPress={() => setExplaining({ product: userFoodProductRowToSnapshot(product), source: 'saved_food' })} /><Pressable accessibilityRole="button" disabled={busy} accessibilityLabel={product.is_saved ? `Unsave ${product.name}` : `Save ${product.name} for later`} onPress={() => void toggleSaved(product)} style={[styles.step, busy && styles.dim]}><Ionicons name={product.is_saved ? 'bookmark' : 'bookmark-outline'} size={21} color={tabAccent.food} /></Pressable></View>)}
           {!personal.length ? <Text style={styles.detail}>{query ? 'No matching foods in this list. Try Search for more options.' : tab === 'Saved' ? 'Bookmark foods in Recent to keep them here for next time.' : 'Foods you use will appear here. Search or scan to begin.'}</Text> : null}
         </>}
         {error ? <Text accessibilityRole="alert" style={styles.detail}>{error}</Text> : null}

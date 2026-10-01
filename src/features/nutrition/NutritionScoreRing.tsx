@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { colors, type } from '../../styles/mobileTheme';
@@ -9,15 +9,18 @@ import { hasScore, scoreRingColor } from './scoreRing';
  *
  * The scanner's full verdict answers "what is this and why". This answers the question
  * a person has while scrolling a search result: is it worth looking at. So it is a
- * number and an arc, nothing else — no grade letter, no copy, no tap target of its own.
+ * number and an arc, nothing else — no grade letter, no copy. Given `onPress`, tapping it
+ * opens the full verdict, so a number in a list always leads to its reasons.
  *
  * The colours live in `scoreRing.ts` next to this file, so the band cuts can be tested
  * without rendering anything.
  */
 
-export function ScoreRing({ score, size = 38, label }: {
+export function ScoreRing({ score, size = 38, label, onPress }: {
   score: number | null | undefined;
   size?: number;
+  /** Opens the breakdown of this score. */
+  onPress?: () => void;
   /**
    * What a screen reader says. Defaults to the number and nothing more, because in a
    * list the row already names the food.
@@ -32,10 +35,13 @@ export function ScoreRing({ score, size = 38, label }: {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
 
+  const spoken = label ?? (known ? `Quality score ${value} of 100` : 'Quality score unavailable');
+  const Wrapper = onPress ? Pressable : View;
   return (
-    <View
-      accessibilityLabel={label ?? (known ? `Quality score ${value} of 100` : 'Quality score unavailable')}
-      accessibilityRole="image"
+    <Wrapper
+      accessibilityLabel={onPress ? `${spoken}. Show why` : spoken}
+      accessibilityRole={onPress ? 'button' : 'image'}
+      {...(onPress ? { onPress, hitSlop: 8 } : {})}
       style={[styles.wrap, { height: size, width: size }]}
     >
       <Svg height={size} style={StyleSheet.absoluteFill} width={size}>
@@ -67,7 +73,7 @@ export function ScoreRing({ score, size = 38, label }: {
       <Text style={[styles.value, { color: known ? tint : colors.textFaint, fontSize: Math.round(size * 0.37) }]}>
         {known ? value : '—'}
       </Text>
-    </View>
+    </Wrapper>
   );
 }
 

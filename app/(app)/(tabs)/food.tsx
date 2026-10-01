@@ -151,7 +151,8 @@ import { searchOpenFoodFactsProducts } from '../../../src/features/nutrition/pro
 import { lookupResolvedProduct } from '../../../src/features/nutrition/productLookup/productResolverClient';
 import { calculateProductQuality } from '../../../src/features/nutrition/productLookup/productQuality';
 import { buildProductQualityScorePresentation } from '../../../src/features/nutrition/productLookup/productQualityPresentation';
-import { explainProductScore } from '../../../src/engines/nutrition/productScoring/explain';
+import { explainSnapshotScore } from '../../../src/features/nutrition/productLookup/scoreExplanation';
+import { ScoreBreakdown } from '../../../src/features/nutrition/ScoreBreakdown';
 import { ProductVerdict } from '../../../src/features/nutrition/ProductVerdict';
 import { ScoreRing } from '../../../src/features/nutrition/NutritionScoreRing';
 import { mergeProductSnapshots } from '../../../src/features/nutrition/productLookup/mergeProductEvidence';
@@ -555,6 +556,8 @@ export default function FoodScreen() {
   }, [actualToday, activeSegment]);
   const [foodEntryOpen, setFoodEntryOpen] = useState(false);
   const [mealChooserOpen, setMealChooserOpen] = useState(false);
+  /** The food whose score breakdown is open, from tapping its ring in the meal. */
+  const [scoreBreakdownFor, setScoreBreakdownFor] = useState<HealthiProductSnapshot | null>(null);
   const [mealStartMessage, setMealStartMessage] = useState('');
   const [manualFoodOpen, setManualFoodOpen] = useState(false);
   const [manualFoodError, setManualFoodError] = useState('');
@@ -705,20 +708,10 @@ export default function FoodScreen() {
    * Why the score is the score, read from the same label and the same ledger the score
    * came from. Derived rather than held, so it cannot go stale against the product.
    */
-  const productExplanation = useMemo(() => {
-    if (!scannerProduct || !productQuality) return null;
-    const basis = productQuality.nutrient_basis ?? null;
-    const perHundred = basis?.type === 'per_100g';
-    return explainProductScore({
-      ingredientsText: scannerProduct.ingredients_text ?? null,
-      nutrients: basis?.nutrients ?? null,
-      basisLabel: perHundred
-        ? (scannerProduct.nutriments_per_100ml && !scannerProduct.nutriments_per_100g ? '100 ml' : '100 g')
-        : scannerProduct.serving_size ?? 'serving',
-      dimensions: productQuality.dimensions ?? [],
-      grade: productQuality.letter_grade ?? null
-    });
-  }, [scannerProduct, productQuality]);
+  const productExplanation = useMemo(
+    () => scannerProduct && productQuality ? explainSnapshotScore(scannerProduct, productQuality) : null,
+    [scannerProduct, productQuality]
+  );
   const primaryScannerState = derivePrimaryScannerState({
     lookupState: scannerLookupState,
     hasProduct: Boolean(scannerProduct),
@@ -2220,6 +2213,7 @@ export default function FoodScreen() {
             <View key={item.id} style={styles.builderItemRow}>
               <ScoreRing
                 label={`${item.snapshot.name}: quality ${item.quality.score ?? 'not scored'}`}
+                onPress={() => setScoreBreakdownFor(item.snapshot)}
                 score={item.quality.score}
                 size={34}
               />
@@ -2577,6 +2571,9 @@ export default function FoodScreen() {
           </View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
+      {scoreBreakdownFor ? <EntrySheet title="Why this score" onClose={() => setScoreBreakdownFor(null)}>
+        <ScoreBreakdown product={scoreBreakdownFor} />
+      </EntrySheet> : null}
       {mealChooserOpen ? <EntrySheet title="Add meal" onClose={() => setMealChooserOpen(false)}>
         <Text style={styles.diaryDetail}>Which meal are you logging?</Text>
         {mealStartMessage ? <Text accessibilityRole="alert" style={styles.diaryDetail}>{mealStartMessage}</Text> : null}
