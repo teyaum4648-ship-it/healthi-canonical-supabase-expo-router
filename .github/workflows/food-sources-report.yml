@@ -18,9 +18,26 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        if: ${{ inputs.query != '' }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: ${{ inputs.query != '' && 'npm' || '' }}
+
+      - name: Install the app's dependencies
+        if: ${{ inputs.query != '' }}
+        run: npm ci
+
+      - name: Trace one search through the app's own code
+        if: ${{ inputs.query != '' }}
+        env:
+          HEALTHI_TRACE_SEARCH: ${{ inputs.query }}
+          HEALTHI_TRACE_OUT: ${{ runner.temp }}/food-search-trace.txt
+        run: |
+          npx vitest run tests/features/nutrition/foodSearchTrace.live.test.ts
+          cat "$HEALTHI_TRACE_OUT"
 
       - name: Trace one search
         if: ${{ inputs.query != '' }}
