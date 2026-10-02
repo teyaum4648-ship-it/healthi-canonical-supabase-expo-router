@@ -13,29 +13,32 @@ import soundfile as sf
 
 here = Path(__file__).parent
 CUES = [
-    # 1 · Hook: the card rises and settles, gets flung away; LYING slams and glitches.
+    # 1 · Hook: the card rises and settles, gets flung away; LYING slams and glitches with static.
     (0.22, 'tick', 0.3), (0.7, 'tap', 0.45), (1.28, 'air', 0.65),
-    (1.52, 'thud', 1.0), (1.52, 'knock', 0.7), (1.62, 'tick', 0.5), (1.68, 'tick', 0.45), (1.74, 'tick', 0.4),
+    (1.52, 'thud', 1.0), (1.52, 'knock', 0.7), (1.62, 'static', 0.45), (1.7, 'tick', 0.4), (1.78, 'tick', 0.35),
     (1.9, 'tick', 0.3),
-    # 2 · The orb, the melt, the sigh, the question.
+    # 2 · The orb, the melt (the puddle oozes out), the sigh, a blink, the puddle slurping up into the question.
     (2.6, 'tick', 0.3), (3.42, 'bloop', 0.8), (3.42, 'pop', 0.6), (3.98, 'tick', 0.3),
-    (4.6, 'tick', 0.3), (5.0, 'countlong', 0.5), (5.05, 'bloop', 0.7), (5.2, 'squish', 0.7),
+    (4.6, 'tick', 0.3), (5.0, 'countlong', 0.5), (5.05, 'bloop', 0.7), (5.2, 'squish', 0.7), (5.3, 'ooze', 0.45),
     (5.45, 'bloop', 0.6), (5.7, 'drip', 0.5), (5.85, 'bloop', 0.6), (5.94, 'drip', 0.45), (6.18, 'drip', 0.45),
-    (6.1, 'pop', 0.5), (6.42, 'drip', 0.4), (6.45, 'sigh', 0.8), (6.66, 'drip', 0.4), (6.95, 'tick', 0.35),
-    (7.35, 'tick', 0.3), (7.45, 'pop', 0.35), (7.6, 'scribble', 0.6), (7.65, 'bloop', 0.6), (8.12, 'drop', 0.5),
-    # 3 · The culprits.
+    (6.1, 'pop', 0.5), (6.42, 'drip', 0.4), (6.45, 'sigh', 0.8), (6.66, 'drip', 0.4), (6.95, 'blink', 0.45), (7.04, 'blink', 0.35),
+    (7.35, 'tick', 0.3), (7.45, 'blink', 0.35), (7.6, 'scribble', 0.6), (7.6, 'slurp', 0.5), (8.12, 'drop', 0.5),
+    # 3 · The culprits: the mouth opens wet and chomps on each close; the flame crackles as it flickers;
+    # the orb wobbles back; the glass sloshes as it tips; the badge pulses.
     (8.88, 'bloop', 0.7), (8.88, 'pop', 0.5), (8.95, 'pop', 0.35), (9.0, 'tick', 0.3),
-    (9.15, 'patter', 0.6), (9.62, 'pop', 0.4), (9.88, 'bite', 1.0), (9.95, 'count', 0.55), (10.0, 'pop', 0.4),
-    (10.25, 'munch', 0.6), (10.45, 'munch', 0.55), (10.55, 'patter', 0.55), (10.85, 'tick', 0.3),
+    (9.15, 'patter', 0.6), (9.62, 'smack', 0.5), (9.88, 'bite', 1.0), (9.95, 'count', 0.55), (10.0, 'pop', 0.4),
+    (10.25, 'smack', 0.35), (10.34, 'munch', 0.6), (10.45, 'smack', 0.3), (10.54, 'munch', 0.55), (10.55, 'patter', 0.55), (10.85, 'tick', 0.3),
     (11.43, 'knock', 0.8), (11.63, 'knock', 0.8), (11.83, 'knock', 0.8), (12.0, 'thud', 0.9), (12.03, 'knock', 0.9),
-    (12.1, 'count', 0.55), (12.15, 'pop', 0.4), (12.2, 'squish', 0.6), (12.35, 'air', 0.35),
-    (13.0, 'tick', 0.3), (13.5, 'fire', 0.7), (14.2, 'fire', 0.9), (14.32, 'sizzle', 0.8), (14.35, 'count', 0.5),
+    (12.1, 'count', 0.55), (12.15, 'pop', 0.4), (12.2, 'wobble', 0.55), (12.35, 'air', 0.35),
+    (13.0, 'tick', 0.3), (13.5, 'fire', 0.7),
+    *[(t, 'crackle', v) for t, v in ((13.9, 0.35), (14.02, 0.25), (14.14, 0.3), (14.5, 0.3), (14.62, 0.25), (14.74, 0.3))], (14.2, 'fire', 0.9), (14.32, 'sizzle', 0.8), (14.35, 'count', 0.5),
     (14.4, 'pop', 0.4), (14.85, 'puff', 0.7), (15.2, 'tick', 0.3), (15.7, 'tap', 0.6),
-    (15.98, 'drip', 0.3), (16.38, 'drop', 0.8), (16.4, 'munch', 0.4), (16.42, 'count', 0.45), (16.45, 'pop', 0.4),
-    (16.75, 'pop', 0.6),
-    # 4 · 3 p.m.
+    (15.95, 'slosh', 0.45), (16.38, 'drop', 0.8), (16.4, 'munch', 0.4), (16.42, 'count', 0.45), (16.45, 'pop', 0.4),
+    (16.75, 'pop', 0.6), (16.93, 'thud', 0.3),
+    # 4 · 3 p.m., with a glint as each star twinkles.
     (17.25, 'tick', 0.3), (17.3, 'pop', 0.5), (17.4, 'countlong', 0.6),
     (17.4, 'tick', 0.6), (17.65, 'tick', 0.55), (17.9, 'tick', 0.5), (18.15, 'tick', 0.45), (18.62, 'thud', 0.7),
+    *[(t, 'glint', v) for t, v in ((17.75, 0.25), (18.05, 0.2), (18.35, 0.25), (18.95, 0.2), (19.25, 0.25))],
     # 5 · Six apps open: one rush per group of chips, a small tap as each lands.
     (19.62, 'air', 0.5), (19.66, 'thud', 0.9), (19.9, 'air', 0.45),
     *[(round(t + 0.3, 2), 'tap', 0.3) for t in (19.62, 19.69, 19.76, 19.9, 19.97, 20.04)],
@@ -53,14 +56,15 @@ CUES = [
     # 8 · It taps you on the shoulder; one tap; settled.
     (28.82, 'tick', 0.3), (29.05, 'pop', 0.35), (29.25, 'countlong', 0.45),
     (30.45, 'tick', 0.3), (30.5, 'squish', 0.45), (30.6, 'bloop', 0.5), (30.85, 'tick', 0.3),
-    (30.98, 'knock', 0.9), (31.3, 'knock', 0.9), (31.45, 'drop', 0.7),
-    (32.42, 'tick', 0.3), (32.7, 'pop', 0.35), (32.78, 'knock', 0.7), (32.98, 'pop', 0.4), (33.0, 'breath', 0.8),
+    (30.98, 'knock', 0.9), (31.3, 'knock', 0.9), (31.45, 'drop', 0.7), (32.2, 'squish', 0.3),
+    (32.42, 'tick', 0.3), (32.7, 'pop', 0.35), (32.78, 'knock', 0.7), (32.9, 'drip', 0.35), (32.98, 'pop', 0.4), (33.0, 'breath', 0.8),
     (33.3, 'scribble', 0.5), (33.32, 'drop', 0.6),
     # 9 · Every morning.
     (34.38, 'rise', 0.55), (34.5, 'tick', 0.3), (35.05, 'tap', 0.5), (35.2, 'steam', 0.6),
     (35.3, 'tick', 0.3), (35.95, 'tap', 0.4), (36.1, 'drop', 0.6), (36.2, 'tick', 0.3),
-    # 10 · Fewer apps. Better days.
+    # 10 · Fewer apps. Better days. The stars glint.
     (37.88, 'thud', 0.9), (38.8, 'scribble', 0.4), (39.4, 'rise', 0.6), (39.7, 'drop', 0.8),
+    *[(t, 'glint', v) for t, v in ((38.45, 0.2), (38.69, 0.25), (38.93, 0.2), (39.97, 0.2), (40.21, 0.25), (40.45, 0.2))],
 ]
 
 lengths = {p.stem: round(sf.info(p).duration, 3) for p in (here / 'sfx').glob('*.wav')}

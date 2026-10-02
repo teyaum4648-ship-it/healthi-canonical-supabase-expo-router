@@ -28,6 +28,15 @@ tap    a small ceramic tap, for the cup and the glass landing
 patter little footsteps, for the lunch monster running in and out
 puff   a short, soft breath, for the flame going out
 zip    a quick thread pulled taut, for the threads weaving
+glint  a few tiny grains of sparkle, for the stars twinkling
+smack  a small wet mouth sound, for the monster's mouth opening
+crackle two or three small fire crackles, for the flame flickering
+wobble a jelly wobble, for the orb bouncing back after the press
+slosh  a little water moving in a glass, for the glass tipping
+static a short burst of crackly static, for the "LYING." glitch
+slurp  goo gathering itself up, for the puddle pulling into a question mark
+ooze   a slow, low spread of goo, for the puddle spreading out
+blink  a tiny soft click, for the eyes blinking and glancing up
 """
 from pathlib import Path
 
@@ -231,5 +240,73 @@ t = seconds(0.32)
 grain = (np.sin(2 * np.pi * (40 + 90 * t / t[-1]) * t * 6) > 0.3).astype(float)
 x = band(rng.standard_normal(len(t)), 1500, 7000) * (0.4 + 0.6 * grain) * np.sin(np.pi * t / t[-1]) ** 1.5
 save('zip', x, 0.3)
+
+# Glint: a few tiny grains of high sparkle, like light catching sand. No pitch, so never a chime.
+x = np.zeros(int(RATE * 0.12))
+for at, level in ((0.0, 1.0), (0.024, 0.55), (0.052, 0.3)):
+    s0 = int(at * RATE); n = int(RATE * 0.02)
+    x[s0:s0 + n] += level * band(rng.standard_normal(n), 6000, 12000) * np.exp(-seconds(0.02) / 0.003)
+save('glint', x, 0.25)
+
+# Smack: a mouth opening, a short wet burst with a low bubble in it.
+t = seconds(0.12)
+x = band(rng.standard_normal(len(t)), 300, 2500) * np.exp(-t / 0.012)
+x[int(RATE * 0.008):] += 0.8 * bubble(380, 4, 0.015, 0.112)
+save('smack', x, 0.4)
+
+# Crackle: two or three tiny pops from a small flame, over a breath of its air.
+t = seconds(0.1)
+x = 0.3 * band(rng.standard_normal(len(t)), 200, 900) * np.exp(-t / 0.02)
+for at, level in ((0.0, 1.0), (0.028, 0.5), (0.061, 0.75)):
+    s0 = int(at * RATE); n = int(RATE * 0.004)
+    x[s0:s0 + n] += level * band(rng.standard_normal(n), 800, 9000) * np.exp(-np.arange(n) / (RATE * 0.0008)) * 3
+save('crackle', x, 0.4)
+
+# Wobble: jelly settling, a low bubble on each bounce, each one smaller.
+x = np.zeros(int(RATE * 0.6))
+for k in range(5):
+    s0 = int(k / 9 * RATE)
+    b = 0.85 ** k * bubble(200 + 12 * k, 2, 0.03, 0.12)
+    x[s0:s0 + len(b)] += b[: len(x) - s0]
+x += 0.15 * band(rng.standard_normal(len(x)), 150, 900) * np.exp(-seconds(0.6) / 0.15)
+save('wobble', x, 0.45)
+
+# Slosh: the last of the water moving in a tipping glass.
+t = seconds(0.45)
+x = 0.5 * band(rng.standard_normal(len(t)), 300, 3000) * np.sin(np.pi * t / t[-1]) ** 2 * (0.6 + 0.4 * np.sin(2 * np.pi * 7 * t))
+for at, f0 in ((0.06, 620), (0.14, 780), (0.21, 540), (0.3, 900)):
+    s0 = int(at * RATE)
+    b = 0.5 * bubble(f0, 5, 0.018, 0.08)
+    x[s0:s0 + len(b)] += b[: len(x) - s0]
+save('slosh', x, 0.4)
+
+# Static: a short burst of crackly static, cut on and off at random.
+t = seconds(0.22)
+gate = np.repeat(rng.random(len(t) // int(RATE * 0.006) + 1) > 0.45, int(RATE * 0.006))[: len(t)]
+x = band(rng.standard_normal(len(t)), 1000, 10000) * gate * np.exp(-t / 0.09)
+save('static', x, 0.3)
+
+# Slurp: goo pulling itself together, bubbles climbing as it gathers.
+x = np.zeros(int(RATE * 0.42))
+for k, at in enumerate((0.0, 0.05, 0.1, 0.15, 0.21, 0.27)):
+    s0 = int(at * RATE)
+    b = (0.6 + 0.08 * k) * bubble(250 + 80 * k, 3, 0.025, 0.1)
+    x[s0:s0 + len(b)] += b[: len(x) - s0]
+x += 0.2 * band(rng.standard_normal(len(x)), 200, 1500) * np.sin(np.pi * seconds(0.42) / 0.42) ** 2
+save('slurp', x, 0.4)
+
+# Ooze: a slow, low spread of goo, a few lazy bubbles in it.
+t = seconds(1.0)
+x = 0.35 * band(rng.standard_normal(len(t)), 100, 700) * np.sin(np.pi * t / t[-1]) ** 2
+for at, f0 in ((0.08, 170), (0.3, 210), (0.52, 150), (0.74, 190)):
+    s0 = int(at * RATE)
+    b = 0.7 * bubble(f0, 1.5, 0.06, 0.22)
+    x[s0:s0 + len(b)] += b[: len(x) - s0]
+save('ooze', x, 0.4)
+
+# Blink: a tiny, soft, slightly wet click.
+t = seconds(0.05)
+x = band(rng.standard_normal(len(t)), 600, 3000) * np.exp(-t / 0.002) + 0.4 * bubble(1700, 3, 0.006, 0.05)
+save('blink', x, 0.3)
 
 print('wrote', ', '.join(sorted(p.stem for p in (here / 'sfx').glob('*.wav'))))
