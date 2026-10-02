@@ -1,0 +1,466 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>daywoven — 30s vertical ad</title>
+<style>
+  @font-face { font-family: 'Inter'; src: url('inter.woff2') format('woff2'); font-weight: 100 900; }
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #08090C; }
+  * { box-sizing: border-box; }
+  #stage {
+    position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    font-family: 'Inter', sans-serif; color: #EEF1F4; font-feature-settings: 'cv11', 'ss01';
+    background:
+      radial-gradient(75% 40% at 95% 0%, rgba(96,128,196,.16) 0%, rgba(96,128,196,.099) 22%, rgba(96,128,196,.048) 45%, rgba(96,128,196,.016) 68%, rgba(96,128,196,0) 100%),
+      radial-gradient(85% 40% at 0% 88%, rgba(70,96,160,.08) 0%, rgba(70,96,160,.05) 22%, rgba(70,96,160,.024) 45%, rgba(70,96,160,.008) 68%, rgba(70,96,160,0) 100%),
+      linear-gradient(180deg, #121720 0%, #0C0F14 34%, #08090C 100%);
+  }
+  .abs { position: absolute; }
+  .glow { position: absolute; inset: 0; opacity: 0; }
+  #glowMint { background: radial-gradient(90% 42% at 50% 40%, rgba(143,227,196,.16) 0%, rgba(143,227,196,.1) 22%, rgba(143,227,196,.05) 45%, rgba(143,227,196,.015) 68%, rgba(143,227,196,0) 100%); }
+  #glowIris { background: radial-gradient(90% 42% at 50% 30%, rgba(180,166,246,.17) 0%, rgba(180,166,246,.1) 22%, rgba(180,166,246,.05) 45%, rgba(180,166,246,.015) 68%, rgba(180,166,246,0) 100%); }
+  #glowAmber { background: radial-gradient(80% 36% at 50% 52%, rgba(242,200,126,.13) 0%, rgba(242,200,126,.08) 22%, rgba(242,200,126,.04) 45%, rgba(242,200,126,.012) 68%, rgba(242,200,126,0) 100%); }
+
+  .caption { position: absolute; left: 0; width: 1080px; text-align: center; font-weight: 700; letter-spacing: -2px; line-height: 1.08; }
+  .caption .line { display: block; }
+  .w { display: inline-block; will-change: transform, opacity; }
+  .hook { top: 640px; font-size: 104px; }
+  .top { top: 250px; font-size: 80px; }
+
+  /* Ring scene */
+  #ringCenter { position: absolute; left: 340px; top: 760px; width: 400px; text-align: center; }
+  #ringCenter .label { font-size: 34px; font-weight: 600; color: #A7AFB9; letter-spacing: 0; }
+  #ringCenter .score { font-size: 168px; font-weight: 700; letter-spacing: -6px; line-height: 1; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  #ringCenter .chip { display: inline-block; margin-top: 18px; padding: 12px 26px; border-radius: 999px; background: rgba(143,227,196,.16); color: #8FE3C4; font-size: 30px; font-weight: 600; }
+  #legend { position: absolute; left: 120px; top: 1270px; width: 860px; display: grid; grid-template-columns: 1fr 1fr; row-gap: 30px; column-gap: 40px; }
+  .leg { display: flex; align-items: center; gap: 18px; font-size: 36px; font-weight: 600; white-space: nowrap; }
+  .leg i { width: 22px; height: 22px; border-radius: 11px; display: inline-block; flex: none; }
+
+  /* Phone */
+  #phone { position: absolute; left: 190px; top: 1960px; width: 700px; height: 1460px; border-radius: 100px; background: #05070A;
+    box-shadow: 0 0 0 2px rgba(235,240,255,.10), 0 40px 120px rgba(0,0,0,.65), inset 0 0 0 2px rgba(255,255,255,.04); }
+  #screen { position: absolute; left: 16px; top: 16px; width: 668px; height: 1428px; border-radius: 84px; overflow: hidden;
+    background: radial-gradient(90% 40% at 50% 10%, rgba(96,128,196,.12), rgba(96,128,196,0) 70%), linear-gradient(180deg, #121720 0%, #0C0F14 34%, #08090C 100%); }
+  #island { position: absolute; left: 269px; top: 24px; width: 130px; height: 38px; border-radius: 19px; background: #000; z-index: 20; }
+  #clock { position: absolute; left: 70px; top: 26px; font-size: 28px; font-weight: 600; z-index: 20; }
+  .screenView { position: absolute; inset: 0; }
+  .title { position: absolute; left: 40px; font-size: 56px; font-weight: 700; letter-spacing: -1.5px; }
+  .muted { color: #A7AFB9; }
+  .faint { color: #8C939D; }
+
+  /* Food */
+  #close { position: absolute; right: 40px; top: 112px; width: 62px; height: 62px; border-radius: 31px; background: #1E2126; color: #A7AFB9; font-size: 36px; display: flex; align-items: center; justify-content: center; }
+  #search { position: absolute; left: 40px; top: 214px; width: 424px; height: 96px; border-radius: 28px; background: #1A1D22; box-shadow: inset 0 0 0 2px rgba(235,240,255,.06); font-size: 36px; padding: 0 28px; display: flex; align-items: center; }
+  #caret { display: inline-block; width: 3px; height: 40px; background: #B4A6F6; margin-left: 2px; }
+  #searchBtn { position: absolute; left: 480px; top: 214px; width: 148px; height: 96px; border-radius: 28px; background: #B4A6F6; color: #0A0D10; font-size: 32px; font-weight: 650; display: flex; align-items: center; justify-content: center; }
+  #segments { position: absolute; left: 40px; top: 340px; width: 588px; height: 84px; border-radius: 26px; background: #15181D; display: flex; padding: 6px; gap: 6px; }
+  #segments div { flex: 1; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 600; color: #8C939D; }
+  #segments div.on { background: #262A31; color: #EEF1F4; }
+  #readyLabel { position: absolute; left: 40px; top: 468px; font-size: 30px; font-weight: 650; }
+  .row { position: absolute; left: 40px; width: 588px; height: 150px; display: flex; align-items: center; gap: 26px; }
+  .thumb { width: 104px; height: 104px; border-radius: 26px; flex: none; background: linear-gradient(160deg, #FBFAF6, #E9E4D8); box-shadow: inset 0 -10px 0 rgba(0,0,0,.05); position: relative; overflow: hidden; }
+  .thumb b { position: absolute; left: 22px; right: 22px; bottom: 16px; height: 50px; border-radius: 10px 10px 18px 18px; }
+  .rowText { flex: 1; min-width: 0; }
+  .rowName { font-size: 34px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rowDetail { font-size: 26px; color: #A7AFB9; margin-top: 6px; }
+  .ring { width: 92px; height: 92px; flex: none; position: relative; }
+  .ring span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #sheet { position: absolute; left: 0; top: 1428px; width: 668px; height: 1100px; border-radius: 52px 52px 0 0; background: #14171C; box-shadow: 0 -2px 0 rgba(235,240,255,.08), 0 -30px 80px rgba(0,0,0,.6); }
+  #sheet .handle { position: absolute; left: 294px; top: 18px; width: 80px; height: 10px; border-radius: 5px; background: #3A3F47; }
+  .reason { position: absolute; left: 40px; width: 588px; display: flex; align-items: center; gap: 22px; font-size: 32px; font-weight: 550; }
+  .reason .ic { width: 48px; height: 48px; border-radius: 24px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; }
+  #logBtn { position: absolute; left: 40px; top: 900px; width: 588px; height: 104px; border-radius: 32px; background: #B4A6F6; color: #0A0D10; font-size: 34px; font-weight: 650; display: flex; align-items: center; justify-content: center; }
+
+  /* Sleep */
+  #chip { position: absolute; left: 40px; top: 400px; padding: 14px 28px; border-radius: 999px; background: rgba(143,227,196,.14); color: #8FE3C4; font-size: 30px; font-weight: 600; display: flex; align-items: center; gap: 14px; }
+  #chip i { width: 14px; height: 14px; border-radius: 7px; background: #8FE3C4; display: inline-block; }
+  .card { position: absolute; left: 32px; width: 604px; border-radius: 44px; background: rgba(28,31,37,.72); box-shadow: inset 0 0 0 2px rgba(235,240,255,.06); }
+
+  /* Tap */
+  #tap { position: absolute; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 38px; background: rgba(255,255,255,.9); opacity: 0; z-index: 30; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  #ripple { position: absolute; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 38px; border: 4px solid rgba(255,255,255,.85); opacity: 0; z-index: 29; }
+
+  /* End */
+  #wordmark { position: absolute; left: 0; top: 800px; width: 1080px; text-align: center; font-size: 172px; font-weight: 700; letter-spacing: -7px; line-height: 1; }
+  #wordmark .l { display: inline-block; }
+  #wordmark .woven { background: linear-gradient(90deg, #8FE3C4 0%, #86C8F0 35%, #B4A6F6 68%, #F2C87E 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #tagline { position: absolute; left: 0; top: 1150px; width: 1080px; text-align: center; font-size: 48px; font-weight: 500; color: #C7CBD1; letter-spacing: -0.5px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="glow" id="glowMint"></div>
+  <div class="glow" id="glowIris"></div>
+  <div class="glow" id="glowAmber"></div>
+
+  <svg id="threads" class="abs" width="1080" height="1920" viewBox="0 0 1080 1920" style="left:0;top:0">
+    <g id="tracks"></g>
+    <g id="fills"></g>
+  </svg>
+
+  <div id="hookA" class="caption hook"><span class="line"><span class="w">Your</span> <span class="w">day</span> <span class="w">isn’t</span></span><span class="line"><span class="w">one</span> <span class="w">number.</span></span></div>
+  <div id="hookB" class="caption hook"><span class="line"><span class="w" style="color:#8FE3C4">Sleep.</span> <span class="w" style="color:#B4A6F6">Food.</span></span><span class="line"><span class="w" style="color:#86C8F0">Movement.</span> <span class="w" style="color:#F2C87E">Mind.</span></span></div>
+
+  <div id="capRing" class="caption top"><span class="line"><span class="w">Woven</span> <span class="w">into</span> <span class="w">one</span></span><span class="line"><span class="w">picture</span> <span class="w">of</span> <span class="w">your</span> <span class="w">day.</span></span></div>
+  <div id="ringCenter"><div class="label">Readiness</div><div class="score" id="score">0</div><div class="chip">Ready to build</div></div>
+  <div id="legend">
+    <div class="leg"><i style="background:#F2C87E"></i>Mind + Life Load</div>
+    <div class="leg"><i style="background:#8FE3C4"></i>Recovery + Rhythm</div>
+    <div class="leg"><i style="background:#86C8F0"></i>Movement</div>
+    <div class="leg"><i style="background:#B4A6F6"></i>Nourishment</div>
+  </div>
+
+  <div id="capSearch" class="caption top"><span class="line"><span class="w">Search</span> <span class="w">any</span> <span class="w">food.</span></span></div>
+  <div id="capWhy" class="caption top"><span class="line"><span class="w">Tap</span> <span class="w">the</span> <span class="w">score</span></span><span class="line"><span class="w">to</span> <span class="w">see</span> <span class="w">why.</span></span></div>
+  <div id="capSleep" class="caption top"><span class="line"><span class="w">Know</span> <span class="w">when</span> <span class="w">your</span></span><span class="line"><span class="w">energy</span> <span class="w">peaks.</span></span></div>
+
+  <div id="phone">
+    <div id="screen">
+      <div id="island"></div>
+      <div id="clock">9:41</div>
+
+      <div id="food" class="screenView">
+        <div class="title" style="top:104px">Add to lunch</div>
+        <div id="close">×</div>
+        <div id="search"><span id="typed"></span><span id="caret"></span><span id="placeholder" class="faint">Search foods</span></div>
+        <div id="searchBtn">Search</div>
+        <div id="segments"><div class="on">Search</div><div>Recent</div><div>Saved</div></div>
+        <div id="readyLabel">4 foods ready to log</div>
+        <div id="rows"></div>
+        <div id="sheet">
+          <div class="handle"></div>
+          <div class="abs" style="left:40px;top:62px;font-size:46px;font-weight:700;letter-spacing:-1px">Why this score</div>
+          <div class="abs muted" style="left:40px;top:128px;font-size:30px">Plain Greek Yogurt · nonfat</div>
+          <div id="grade" class="abs" style="left:40px;top:200px;width:150px;height:150px;border-radius:75px;background:rgba(48,209,88,.14);display:flex;align-items:center;justify-content:center;font-size:84px;font-weight:800;color:#30D158">B</div>
+          <div class="abs" style="left:220px;top:214px;font-size:66px;font-weight:700;letter-spacing:-2px;font-variant-numeric:tabular-nums"><span id="sheetScore">86</span><span class="muted" style="font-size:34px;font-weight:600;letter-spacing:0"> / 100</span></div>
+          <div class="abs muted" style="left:222px;top:300px;font-size:28px">Read from the label</div>
+          <div class="reason" id="r1" style="top:410px"><div class="ic" style="background:rgba(48,209,88,.16);color:#30D158">✓</div>High protein for a serving</div>
+          <div class="reason" id="r2" style="top:510px"><div class="ic" style="background:rgba(48,209,88,.16);color:#30D158">✓</div>Two ingredients: milk, cultures</div>
+          <div class="reason" id="r3" style="top:610px"><div class="ic" style="background:rgba(48,209,88,.16);color:#30D158">✓</div>No added sugar</div>
+          <div class="reason" id="r4" style="top:710px"><div class="ic" style="background:rgba(167,175,185,.16);color:#A7AFB9">•</div>Low in fibre: add fruit or oats</div>
+          <div id="logBtn">Log this food</div>
+        </div>
+      </div>
+
+      <div id="sleep" class="screenView">
+        <div class="title" style="top:104px">Sleep</div>
+        <div class="abs muted" style="left:42px;top:178px;font-size:30px">Today</div>
+        <div class="abs muted" style="left:40px;top:262px;font-size:30px;font-weight:600">Your rhythm now</div>
+        <div class="abs" style="left:38px;top:300px;font-size:88px;font-weight:500;letter-spacing:-3px">First peak</div>
+        <div id="chip"><i></i>Energy · High</div>
+        <div class="abs muted" style="left:40px;top:494px;width:590px;font-size:30px;line-height:1.35">A good window for work that needs your full attention.</div>
+        <div class="card" id="curveCard" style="top:600px;height:420px">
+          <div class="abs muted" style="left:36px;top:30px;font-size:28px;font-weight:600">Energy today</div>
+          <svg id="curve" class="abs" style="left:24px;top:84px" width="556" height="270" viewBox="0 0 556 270">
+            <defs><linearGradient id="under" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3C4" stop-opacity=".32"/><stop offset="1" stop-color="#8FE3C4" stop-opacity="0"/></linearGradient>
+              <clipPath id="reveal"><rect id="revealRect" x="0" y="0" width="0" height="270"/></clipPath></defs>
+            <g clip-path="url(#reveal)"><path id="area" fill="url(#under)"/><path id="line" fill="none" stroke="#8FE3C4" stroke-width="6" stroke-linecap="round"/></g>
+            <line id="nowLine" stroke="rgba(238,241,244,.35)" stroke-width="2" stroke-dasharray="6 8"/>
+            <circle id="nowPulse" r="10" fill="none" stroke="#8FE3C4" stroke-width="3"/>
+            <circle id="nowDot" r="11" fill="#8FE3C4"/>
+          </svg>
+          <div class="abs faint" style="left:24px;top:368px;width:556px;display:flex;justify-content:space-between;font-size:24px"><span>6 AM</span><span>Noon</span><span>6 PM</span><span>11 PM</span></div>
+          <div id="nowTag" class="abs" style="font-size:24px;font-weight:700;color:#8FE3C4">Now</div>
+        </div>
+        <div class="card" style="top:1052px;height:300px">
+          <div class="abs muted" style="left:36px;top:32px;font-size:28px">Last night</div>
+          <div class="abs" style="left:36px;top:76px;font-size:50px;font-weight:600;letter-spacing:-1.5px">11:55 PM – 7:05 AM</div>
+          <div class="abs" style="right:36px;top:36px;font-size:30px;font-weight:600;color:#8FE3C4">7h 10m</div>
+          <div class="abs" style="left:36px;top:190px;width:532px;height:30px;border-radius:15px;background:#1E2228"><div id="sleepBar" style="position:absolute;top:0;height:30px;border-radius:15px;background:#8FE3C4"></div></div>
+          <div class="abs faint" style="left:36px;top:236px;width:532px;display:flex;justify-content:space-between;font-size:22px"><span>6 PM</span><span>Midnight</span><span>6 AM</span><span>Noon</span></div>
+        </div>
+      </div>
+
+      <div id="tap"></div><div id="ripple"></div>
+    </div>
+  </div>
+
+  <div id="wordmark"><span class="l">d</span><span class="l">a</span><span class="l">y</span><span class="l woven">w</span><span class="l woven">o</span><span class="l woven">v</span><span class="l woven">e</span><span class="l woven">n</span></div>
+  <div id="tagline"><span class="w">Your</span> <span class="w">whole</span> <span class="w">day,</span> <span class="w">woven</span> <span class="w">together.</span></div>
+</div>
+
+<script>
+/*
+ * Every frame is a pure function of time: render(t) sets the whole scene for second t,
+ * so the video can be rendered frame by frame and comes out the same every time.
+ */
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, p) => a + (b - a) * p;
+const ease = {
+  out: (p) => 1 - Math.pow(1 - p, 3),
+  outQuint: (p) => 1 - Math.pow(1 - p, 5),
+  inOut: (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2),
+  in: (p) => p * p * p,
+  back: (p) => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
+};
+/** In at tin, out at tout: 0 → 1 → 0. */
+const window01 = (t, tin, tout, inDur = 0.5, outDur = 0.4) => ease.out(prog(t, tin, tin + inDur)) * (1 - ease.in(prog(t, tout, tout + outDur)));
+
+const COLORS = ['#8FE3C4', '#B4A6F6', '#86C8F0', '#F2C87E'];
+const FILLS = [0.84, 0.7, 0.62, 0.5];
+const C = { x: 540, y: 900 }, R = 250, N = 90;
+const deg = Math.PI / 180;
+const QUARTERS = [0, 1, 2, 3].map((i) => ({ a0: (-90 + i * 90 + 5) * deg, a1: (-90 + (i + 1) * 90 - 5) * deg }));
+
+const svgNS = 'http://www.w3.org/2000/svg';
+const tracks = [], fills = [];
+for (let i = 0; i < 4; i += 1) {
+  const p = document.createElementNS(svgNS, 'path');
+  p.setAttribute('fill', 'none'); p.setAttribute('stroke', COLORS[i]); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round');
+  $('tracks').appendChild(p); tracks.push(p);
+  const f = document.createElementNS(svgNS, 'path');
+  f.setAttribute('fill', 'none'); f.setAttribute('stroke', COLORS[i]); f.setAttribute('stroke-linecap', 'round'); f.setAttribute('stroke-width', '34');
+  $('fills').appendChild(f); fills.push(f);
+}
+
+function wavePoint(i, k, t, mode) {
+  const x = -120 + (1320 * k) / (N - 1);
+  if (mode === 'end') {
+    // A tight braid under the wordmark.
+    const bx = 250 + (580 * k) / (N - 1);
+    return { x: bx, y: 1080 + 22 * Math.sin(bx * 0.028 + t * 2.2 + (i * Math.PI) / 2) };
+  }
+  const env = 0.62 + 0.38 * Math.sin(x * 0.0021 + i * 1.1);
+  return { x, y: 1210 + 150 * env * Math.sin(x * 0.0058 + t * 1.5 + (i * Math.PI) / 2) };
+}
+function arcPoint(i, k) {
+  const q = QUARTERS[i];
+  const a = lerp(q.a0, q.a1, k / (N - 1));
+  return { x: C.x + R * Math.cos(a), y: C.y + R * Math.sin(a) };
+}
+function pathFrom(points) {
+  return points.map((p, j) => `${j ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+function arcPath(i, fraction) {
+  const q = QUARTERS[i];
+  const a1 = lerp(q.a0, q.a1, fraction);
+  const p0 = { x: C.x + R * Math.cos(q.a0), y: C.y + R * Math.sin(q.a0) };
+  const p1 = { x: C.x + R * Math.cos(a1), y: C.y + R * Math.sin(a1) };
+  return `M${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A${R} ${R} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+}
+
+function words(el, tin, tout, stagger = 0.08, rise = 46) {
+  const ws = el.querySelectorAll('.w');
+  ws.forEach((w, j) => {
+    const p = ease.outQuint(prog(t_, tin + j * stagger, tin + j * stagger + 0.55));
+    const o = ease.in(prog(t_, tout + j * 0.03, tout + j * 0.03 + 0.35));
+    w.style.opacity = (p * (1 - o)).toFixed(3);
+    w.style.transform = `translateY(${((1 - p) * rise - o * 24).toFixed(1)}px)`;
+    w.style.filter = p < 1 ? `blur(${((1 - p) * 10).toFixed(1)}px)` : 'none';
+  });
+  el.style.display = t_ < tin - 0.1 || t_ > tout + 0.8 ? 'none' : 'block';
+}
+
+/* Food results */
+const ROWS = [
+  { name: 'Plain Greek Yogurt', detail: 'Nonfat · 170 g · 90 kcal', score: 86, cup: '#F4F1E8' },
+  { name: 'Strawberry Greek', detail: '150 g · 140 kcal', score: 81, cup: '#F6C9CF' },
+  { name: 'Vanilla Greek', detail: 'Whole milk · 150 g', score: 74, cup: '#F3E3B8' },
+  { name: 'Honey Greek', detail: '150 g · 170 kcal', score: 63, cup: '#F0D08C' }
+];
+const ringColor = (s) => (s >= 80 ? '#30D158' : s >= 60 ? '#FFD60A' : '#FF6961');
+$('rows').innerHTML = ROWS.map((r, j) => {
+  const c = 2 * Math.PI * 38;
+  return `<div class="row" id="row${j}" style="top:${520 + j * 162}px">
+    <div class="thumb"><b style="background:${r.cup}"></b></div>
+    <div class="rowText"><div class="rowName">${r.name}</div><div class="rowDetail">${r.detail}</div></div>
+    <div class="ring"><svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="38" fill="none" stroke="#262A31" stroke-width="8"/>
+      <circle id="ringArc${j}" cx="46" cy="46" r="38" fill="none" stroke="${ringColor(r.score)}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c} ${c}" stroke-dashoffset="${c}" transform="rotate(-90 46 46)"/></svg>
+      <span id="ringNum${j}">${r.score}</span></div></div>`;
+}).join('');
+
+/* Energy curve: a morning rise, an early-afternoon dip, a second peak, then evening. */
+const CW = 556, CH = 270;
+function energy(h) { // h: hours since 6 AM, 0..17
+  const g = (mu, s, a) => a * Math.exp(-((h - mu) ** 2) / (2 * s * s));
+  return 0.14 + g(4, 1.9, 0.72) + g(12, 2.1, 0.5) - g(8.3, 1.2, 0.16) - 0.012 * Math.max(0, h - 13) ** 2;
+}
+const curvePts = Array.from({ length: 120 }, (_, k) => {
+  const h = (17 * k) / 119;
+  return { x: 10 + ((CW - 20) * k) / 119, y: CH - 18 - (CH - 40) * clamp(energy(h), 0, 1) };
+});
+$('line').setAttribute('d', pathFrom(curvePts));
+$('area').setAttribute('d', `${pathFrom(curvePts)} L${curvePts.at(-1).x} ${CH} L${curvePts[0].x} ${CH} Z`);
+const NOW_H = 4; // 10 AM
+const nowX = 10 + ((CW - 20) * NOW_H) / 17;
+const nowY = CH - 18 - (CH - 40) * clamp(energy(NOW_H), 0, 1);
+
+let t_ = 0;
+function render(t) {
+  t_ = t;
+  /* Glows follow the scene. */
+  $('glowMint').style.opacity = (window01(t, 4.4, 10.6, 1.2, 0.8) + window01(t, 19.9, 25.2, 0.8, 0.8)).toFixed(3);
+  $('glowIris').style.opacity = window01(t, 10.8, 19.9, 0.8, 0.8).toFixed(3);
+  $('glowAmber').style.opacity = (0.5 * window01(t, 0.2, 4.2, 1.5, 1) + window01(t, 25.6, 40, 1.4, 1)).toFixed(3);
+
+  /* Threads: drawn in as weaving waves, then gathered into the four-part ring, then braided under the name. */
+  const morph = ease.inOut(prog(t, 4.0, 5.5));
+  const toTrack = ease.out(prog(t, 5.0, 6.0));
+  const ringOut = ease.inOut(prog(t, 10.3, 11.1));
+  const endIn = prog(t, 25.7, 30);
+  for (let i = 0; i < 4; i += 1) {
+    let pts, width, opacity;
+    if (t < 25.6) {
+      const draw = ease.out(prog(t, 0.1 + i * 0.14, 1.5 + i * 0.14));
+      const count = Math.max(2, Math.round(N * draw));
+      pts = Array.from({ length: count }, (_, k) => {
+        const w = wavePoint(i, k, t, 'wave'), a = arcPoint(i, k);
+        return { x: lerp(w.x, a.x, morph), y: lerp(w.y, a.y, morph) };
+      });
+      // In the ring the threads become the dim track the fills run along.
+      width = lerp(6, 34, toTrack);
+      opacity = lerp(0.95, 0.2, toTrack) * (1 - ringOut) * (draw > 0 ? 1 : 0);
+      const pulse = t > 2.4 && t < 4.4 ? 1 + 0.9 * Math.max(0, Math.sin(Math.PI * prog(t, 2.5 + i * 0.3, 3.2 + i * 0.3))) : 1;
+      width *= pulse;
+    } else {
+      const draw = ease.inOut(prog(t, 26.4 + i * 0.12, 27.6 + i * 0.12));
+      const count = Math.max(2, Math.round(N * draw));
+      pts = Array.from({ length: count }, (_, k) => wavePoint(i, k, t, 'end'));
+      width = 7; opacity = draw > 0 ? 0.95 : 0;
+    }
+    tracks[i].setAttribute('d', pathFrom(pts));
+    tracks[i].setAttribute('stroke-width', width.toFixed(2));
+    tracks[i].setAttribute('opacity', opacity.toFixed(3));
+    const f = FILLS[i] * ease.out(prog(t, 5.8 + i * 0.18, 7.4 + i * 0.18));
+    fills[i].setAttribute('d', arcPath(i, Math.max(0.001, f)));
+    fills[i].setAttribute('opacity', (f > 0.002 ? 1 - ringOut : 0).toFixed(3));
+  }
+  const ringScale = lerp(1, 0.82, ringOut), ringShift = lerp(0, -140, ringOut);
+  $('threads').style.transformOrigin = `${C.x}px ${C.y}px`;
+  $('threads').style.transform = t < 25.6 ? `translateY(${ringShift}px) scale(${ringScale})` : 'none';
+
+  /* Hook */
+  words($('hookA'), 0.35, 2.2);
+  words($('hookB'), 2.45, 3.95, 0.3);
+
+  /* Ring scene */
+  words($('capRing'), 5.0, 10.2);
+  const centerIn = ease.out(prog(t, 5.7, 6.4)) * (1 - ringOut);
+  $('ringCenter').style.opacity = centerIn.toFixed(3);
+  $('ringCenter').style.transform = `translateY(${(ringShift + (1 - ease.out(prog(t, 5.7, 6.4))) * 30).toFixed(1)}px) scale(${ringScale})`;
+  $('score').textContent = String(Math.round(82 * ease.out(prog(t, 5.9, 7.9))));
+  [...$('legend').children].forEach((el, j) => {
+    const p = ease.outQuint(prog(t, 7.2 + j * 0.16, 7.8 + j * 0.16));
+    el.style.opacity = (p * (1 - ringOut)).toFixed(3);
+    el.style.transform = `translateY(${((1 - p) * 30 + ringShift).toFixed(1)}px)`;
+  });
+
+  /* Phone in, food, sleep, phone out. */
+  const phoneIn = ease.out(prog(t, 10.9, 12.0));
+  const phoneOut = ease.inOut(prog(t, 25.0, 25.9));
+  $('phone').style.top = `${lerp(1960, 520, phoneIn) + 1500 * phoneOut}px`;
+  $('phone').style.display = t < 10.8 || t > 26 ? 'none' : 'block';
+
+  words($('capSearch'), 11.7, 15.0);
+  words($('capWhy'), 15.4, 19.5);
+  words($('capSleep'), 20.2, 24.8);
+
+  // Typing "greek yogurt"
+  const query = 'greek yogurt';
+  const typed = Math.round(query.length * prog(t, 12.4, 13.6));
+  $('typed').textContent = query.slice(0, typed);
+  $('placeholder').style.display = typed === 0 ? 'inline' : 'none';
+  $('caret').style.opacity = t > 12.1 && t < 14.0 && (Math.floor(t * 2.4) % 2 === 0 || (t > 12.4 && t < 13.6)) ? '1' : '0';
+
+  const resultsIn = (j) => ease.outQuint(prog(t, 14.25 + j * 0.12, 14.85 + j * 0.12));
+  $('readyLabel').style.opacity = resultsIn(0).toFixed(3);
+  ROWS.forEach((r, j) => {
+    const p = resultsIn(j);
+    const row = $(`row${j}`);
+    row.style.opacity = p.toFixed(3);
+    row.style.transform = `translateY(${((1 - p) * 40).toFixed(1)}px)`;
+    const fillP = ease.out(prog(t, 14.5 + j * 0.12, 15.5 + j * 0.12));
+    const c = 2 * Math.PI * 38;
+    $(`ringArc${j}`).setAttribute('stroke-dashoffset', (c * (1 - (r.score / 100) * fillP)).toFixed(1));
+    $(`ringNum${j}`).textContent = String(Math.round(r.score * fillP));
+  });
+  // Search button press
+  const press = 1 - 0.06 * Math.sin(Math.PI * prog(t, 13.95, 14.2));
+  $('searchBtn').style.transform = `scale(${press.toFixed(3)})`;
+  // The first result's score is tapped; the breakdown rises.
+  const ringPress = 1 - 0.1 * Math.sin(Math.PI * prog(t, 16.0, 16.25));
+  document.querySelector('#row0 .ring').style.transform = `scale(${ringPress.toFixed(3)})`;
+  const sheetIn = ease.outQuint(prog(t, 16.25, 17.0));
+  $('sheet').style.top = `${lerp(1428, 360, sheetIn)}px`;
+  ['r1', 'r2', 'r3', 'r4'].forEach((id, j) => {
+    const p = ease.outQuint(prog(t, 16.9 + j * 0.22, 17.5 + j * 0.22));
+    $(id).style.opacity = p.toFixed(3);
+    $(id).style.transform = `translateX(${((1 - p) * 40).toFixed(1)}px)`;
+  });
+  const gradeP = ease.back(prog(t, 16.7, 17.3));
+  $('grade').style.transform = `scale(${(0.6 + 0.4 * gradeP).toFixed(3)})`;
+  $('sheetScore').textContent = String(Math.round(86 * ease.out(prog(t, 16.6, 17.4))));
+
+  // Food out to the left, sleep in from the right.
+  const swap = ease.inOut(prog(t, 19.6, 20.4));
+  $('food').style.transform = `translateX(${(-700 * swap).toFixed(1)}px)`;
+  $('sleep').style.transform = `translateX(${(700 * (1 - swap)).toFixed(1)}px)`;
+  $('sleep').style.display = t < 19.5 ? 'none' : 'block';
+
+  // Energy curve draws, then "now" settles at 10 AM.
+  const draw = ease.inOut(prog(t, 20.6, 22.4));
+  $('revealRect').setAttribute('width', (CW * draw).toFixed(1));
+  const nowP = ease.out(prog(t, 22.2, 22.8));
+  $('nowDot').setAttribute('cx', nowX); $('nowDot').setAttribute('cy', nowY);
+  $('nowDot').setAttribute('opacity', nowP.toFixed(3));
+  $('nowDot').setAttribute('r', (11 * ease.back(nowP)).toFixed(2));
+  const pulse = ((t - 22.4) % 1.2) / 1.2;
+  $('nowPulse').setAttribute('cx', nowX); $('nowPulse').setAttribute('cy', nowY);
+  $('nowPulse').setAttribute('r', t > 22.4 ? (11 + 26 * pulse).toFixed(1) : '0');
+  $('nowPulse').setAttribute('opacity', t > 22.4 ? (0.8 * (1 - pulse)).toFixed(3) : '0');
+  $('nowLine').setAttribute('x1', nowX); $('nowLine').setAttribute('x2', nowX);
+  $('nowLine').setAttribute('y1', '6'); $('nowLine').setAttribute('y2', CH);
+  $('nowLine').setAttribute('opacity', nowP.toFixed(3));
+  $('nowTag').style.left = `${24 + nowX + 26}px`; $('nowTag').style.top = `${84 + nowY - 16}px`;
+  $('nowTag').style.opacity = nowP.toFixed(3);
+  const chipP = ease.back(prog(t, 20.7, 21.3));
+  $('chip').style.transform = `scale(${(0.7 + 0.3 * chipP).toFixed(3)})`;
+  $('chip').style.opacity = clamp(chipP).toFixed(3);
+  // Sleep window: 11:55 PM to 7:05 AM on a 6 PM to noon axis.
+  const barP = ease.out(prog(t, 22.6, 23.6));
+  const start = (5 + 55 / 60) / 18, end = (13 + 5 / 60) / 18, mid = (start + end) / 2;
+  const half = ((end - start) / 2) * barP;
+  $('sleepBar').style.left = `${(532 * (mid - half)).toFixed(1)}px`;
+  $('sleepBar').style.width = `${(532 * half * 2).toFixed(1)}px`;
+
+  // Taps
+  const taps = [{ at: 13.95, x: 554, y: 262 }, { at: 16.0, x: 588, y: 595 }];
+  let tapO = 0, rip = 0, tx = 0, ty = 0, ripO = 0;
+  for (const tap of taps) {
+    const local = t - tap.at;
+    if (local > -0.45 && local < 0.6) {
+      tx = tap.x; ty = tap.y;
+      tapO = local < 0 ? ease.out(prog(local, -0.45, -0.1)) : 1 - ease.in(prog(local, 0.15, 0.5));
+      rip = ease.out(prog(local, 0, 0.55)); ripO = local > 0 ? 1 - rip : 0;
+    }
+  }
+  $('tap').style.left = `${tx}px`; $('tap').style.top = `${ty}px`;
+  $('tap').style.opacity = (tapO * 0.85).toFixed(3);
+  $('tap').style.transform = `scale(${(1 - 0.15 * Math.sin(Math.PI * clamp(rip * 2))).toFixed(3)})`;
+  $('ripple').style.left = `${tx}px`; $('ripple').style.top = `${ty}px`;
+  $('ripple').style.opacity = (ripO * 0.9).toFixed(3);
+  $('ripple').style.transform = `scale(${(1 + rip * 1.8).toFixed(3)})`;
+
+  /* End card */
+  const letters = $('wordmark').querySelectorAll('.l');
+  letters.forEach((el, j) => {
+    const p = ease.outQuint(prog(t, 26.2 + j * 0.07, 27.0 + j * 0.07));
+    el.style.opacity = p.toFixed(3);
+    el.style.transform = `translateY(${((1 - p) * 70).toFixed(1)}px)`;
+    el.style.filter = p < 1 ? `blur(${((1 - p) * 14).toFixed(1)}px)` : 'none';
+  });
+  $('wordmark').style.display = t < 26 ? 'none' : 'block';
+  const woven = [...$('wordmark').querySelectorAll('.woven')];
+  if (woven.length && t >= 26) {
+    const left = woven[0].offsetLeft, width = woven.at(-1).offsetLeft + woven.at(-1).offsetWidth - left;
+    woven.forEach((el) => { el.style.backgroundSize = `${width}px 100%`; el.style.backgroundPosition = `${left - el.offsetLeft}px 0`; });
+  }
+  words($('tagline'), 27.7, 99, 0.09, 30);
+}
+window.render = render;
+render(0);
+</script>
+</body>
+</html>

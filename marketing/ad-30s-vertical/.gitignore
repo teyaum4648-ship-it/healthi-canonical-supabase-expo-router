@@ -1,0 +1,3 @@
+# Rendered output stays out of git; render.mjs recreates it.
+*.mp4
+still-*.png
