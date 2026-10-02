@@ -336,7 +336,7 @@
         <div id="s1-card" class="card" style="left: 140px; top: 600px; width: 800px; height: 620px; padding: 56px 60px">
           <div class="eyebrow">Sleep score · Last night</div>
           <div style="display: flex; align-items: flex-end; gap: 24px; margin-top: 28px">
-            <div id="s1-n" style="font-size: 230px; font-weight: 800; letter-spacing: -0.05em; line-height: 1">92</div>
+            <div id="s1-n" style="font-size: 230px; font-weight: 800; letter-spacing: -0.05em; line-height: 1">0</div>
             <div id="s1-delta" style="font-size: 34px; font-weight: 700; color: var(--mint-deep); padding-bottom: 34px">▲ 6 vs. yesterday</div>
           </div>
           <svg width="680" height="120" viewBox="0 0 680 120" style="display: block; margin: 8px 0 22px">
@@ -840,7 +840,7 @@
       };
       const count = (el, from, to, t, d, ease = "power2.out", fmt = (v) => String(Math.round(v))) => {
         const p = { v: from };
-        tl.fromTo(p, { v: from }, { v: to, duration: d, ease, onUpdate: () => (document.querySelector(el).textContent = fmt(p.v)) }, t);
+        tl.fromTo(p, { v: from }, { v: to, duration: d, ease, immediateRender: false, onUpdate: () => (document.querySelector(el).textContent = fmt(p.v)) }, t);
       };
       const drift = (sel, t, d, dist = 40) =>
         document.querySelectorAll(sel).forEach((el, i) =>

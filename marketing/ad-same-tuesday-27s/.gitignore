@@ -1,0 +1,6 @@
+# Rendered output, voice takes and downloaded models stay out of git; the scripts recreate them.
+renders/
+snapshots/
+*.mp4
+vo/
+voices/

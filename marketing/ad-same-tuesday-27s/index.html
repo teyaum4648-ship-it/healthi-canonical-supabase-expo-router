@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-weight: 400;
+      }
+      :root {
+        --ink: #0b1f19;
+        --muted: #66756e;
+        --mint: #3dd6a3;
+        --mint-deep: #11875f;
+        --grape: #3a3550;
+        --grape-muted: #6c6585;
+        --amber: #e8a73a;
+        --amber-deep: #8a5a08;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #f3fdf8;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #f3fdf8;
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .half {
+        position: absolute;
+        left: 0;
+        width: 1080px;
+        overflow: hidden;
+      }
+      .tophalf {
+        top: 0;
+        height: 900px;
+        background: radial-gradient(100% 90% at 30% 55%, #f4f2fa 0%, #e5e2ef 60%, #d6d2e4 100%);
+      }
+      .bothalf {
+        top: 1000px;
+        height: 920px;
+        background: radial-gradient(100% 90% at 30% 45%, #f6fefa 0%, #e3f7ec 60%, #cfeedd 100%);
+      }
+      .cream {
+        background: radial-gradient(110% 70% at 50% 35%, #f6fefa 0%, #e7f8ef 60%, #d4f0e1 100%);
+      }
+      .mintbg {
+        background: radial-gradient(90% 60% at 50% 40%, #6fe6be 0%, #3dd6a3 55%, #22bb8b 100%);
+      }
+      svg.full {
+        position: absolute;
+        left: 0;
+        top: 0;
+        overflow: visible;
+      }
+      .t {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+      .it {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: -0.005em;
+      }
+      .word {
+        display: inline-block;
+      }
+      .label {
+        position: absolute;
+        font-size: 46px;
+        font-weight: 850;
+        letter-spacing: -0.03em;
+      }
+      .clockpill {
+        position: absolute;
+        right: 64px;
+        padding: 14px 30px;
+        border-radius: 999px;
+        background: #ffffff;
+        font-size: 50px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+        box-shadow: 0 12px 30px rgba(30, 30, 60, 0.12);
+      }
+      .meter {
+        position: absolute;
+        left: 70px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 28px;
+        font-weight: 750;
+      }
+      .meter span.bar {
+        position: relative;
+        display: block;
+        width: 380px;
+        height: 26px;
+        border-radius: 13px;
+        background: rgba(11, 31, 25, 0.1);
+        overflow: hidden;
+      }
+      .meter span.bar i {
+        position: absolute;
+        inset: 0;
+        display: block;
+        border-radius: 13px;
+        transform-origin: 0 50%;
+      }
+      .card {
+        position: absolute;
+        width: 500px;
+        height: 118px;
+        padding: 0 28px 0 20px;
+        border-radius: 34px;
+        background: #ffffff;
+        box-shadow: 0 18px 40px rgba(40, 30, 70, 0.14);
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      .card .ico {
+        width: 78px;
+        height: 78px;
+        border-radius: 24px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card b {
+        display: block;
+        font-size: 44px;
+        font-weight: 850;
+        letter-spacing: -0.03em;
+      }
+      .card small {
+        display: block;
+        font-size: 27px;
+        font-weight: 650;
+        color: var(--muted);
+      }
+      .chip {
+        position: absolute;
+        left: 470px;
+        width: 520px;
+        height: 96px;
+        padding: 0 16px 0 14px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 16px 34px rgba(20, 80, 60, 0.13);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .chip .ico {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .chip svg.ck {
+        margin-left: auto;
+        flex: none;
+      }
+      .capt {
+        position: absolute;
+        left: 50%;
+        top: 950px;
+        transform: translate(-50%, -50%);
+        padding: 26px 50px;
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        font-size: 62px;
+        font-weight: 850;
+        letter-spacing: -0.035em;
+        white-space: nowrap;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      }
+      .notif {
+        position: absolute;
+        width: 920px;
+        padding: 30px 34px;
+        border-radius: 44px;
+        background: #ffffff;
+        box-shadow: 0 30px 70px rgba(20, 70, 50, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 26px;
+      }
+      .notif .who {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .notif .what {
+        font-size: 42px;
+        font-weight: 850;
+        letter-spacing: -0.025em;
+        margin-top: 2px;
+      }
+      .notif .why {
+        font-size: 38px;
+        font-weight: 550;
+        color: #33433d;
+        margin-top: 2px;
+      }
+      .appic {
+        width: 96px;
+        height: 96px;
+        border-radius: 26px;
+        background: #0e1a17;
+        flex: none;
+      }
+      .phone {
+        position: absolute;
+        left: 250px;
+        top: 560px;
+        width: 580px;
+        height: 1230px;
+        border-radius: 86px;
+        background: #0a0f0d;
+        border: 16px solid #1d2622;
+        box-shadow: 0 50px 100px rgba(10, 60, 40, 0.35);
+        overflow: hidden;
+      }
+      .phone img {
+        display: block;
+        width: 548px;
+        height: auto;
+      }
+      .pill {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 30px 64px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 58px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      .sphere {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 34% 30%, #ffffff 0%, #f3fffa 30%, #c3f3df 70%, #95e7c7 100%);
+        box-shadow: 0 30px 60px rgba(10, 70, 50, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="27.5" data-width="1080" data-height="1920">
+      <svg width="0" height="0" style="position: absolute">
+        <defs>
+          <radialGradient id="gOrb" cx="0.36" cy="0.3" r="0.78">
+            <stop offset="0" stop-color="#f2fffa" />
+            <stop offset="0.18" stop-color="#a8f2d8" />
+            <stop offset="0.55" stop-color="#3dd6a3" />
+            <stop offset="1" stop-color="#128c66" />
+          </radialGradient>
+          <radialGradient id="gGrape" cx="0.36" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#f6f4fb" />
+            <stop offset="0.35" stop-color="#c9c2de" />
+            <stop offset="1" stop-color="#7d7499" />
+          </radialGradient>
+          <radialGradient id="gSun" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffd877" stop-opacity="0.95" />
+            <stop offset="0.45" stop-color="#ffd877" stop-opacity="0.45" />
+            <stop offset="1" stop-color="#ffd877" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+      </svg>
+
+      <!-- 1 · 0–19.6  The same Tuesday, twice. Top: no heads-up. Bottom: one heads-up at 7 a.m. -->
+      <div id="d1" class="clip" data-start="0" data-duration="19.6" data-track-index="0">
+        <div id="dt" class="half tophalf">
+          <div class="label" style="left: 70px; top: 150px; color: var(--grape)">Tuesday</div>
+          <div id="dt-clock" class="clockpill" style="top: 136px; color: var(--grape)">6:45 AM</div>
+          <div class="meter" style="top: 228px; color: var(--grape-muted)">energy<span class="bar"><i id="dt-fill" style="background: #8e86ad"></i></span></div>
+          <svg class="full" width="1080" height="900">
+            <ellipse id="dt-shadow" cx="270" cy="735" rx="140" ry="18" fill="#3a3550" opacity="0.14" />
+            <g id="dt-blob">
+              <circle cx="270" cy="565" r="160" fill="url(#gGrape)" />
+              <g id="dt-eyes">
+                <ellipse cx="226" cy="545" rx="26" ry="31" fill="#ffffff" />
+                <ellipse cx="314" cy="545" rx="26" ry="31" fill="#ffffff" />
+                <circle class="dt-pupil" cx="229" cy="552" r="12" fill="#1b1830" />
+                <circle class="dt-pupil" cx="317" cy="552" r="12" fill="#1b1830" />
+              </g>
+              <g id="dt-lids">
+                <path d="M200 545 Q 226 560 252 545" fill="none" stroke="#1b1830" stroke-width="7" stroke-linecap="round" />
+                <path d="M288 545 Q 314 560 340 545" fill="none" stroke="#1b1830" stroke-width="7" stroke-linecap="round" />
+              </g>
+            </g>
+            <text class="dt-z it" x="400" y="420" font-family="Instrument Serif" font-style="italic" font-size="64" fill="#6c6585">z</text>
+            <text class="dt-z it" x="440" y="370" font-family="Instrument Serif" font-style="italic" font-size="50" fill="#6c6585">z</text>
+          </svg>
+          <div id="dt-phone" style="position: absolute; left: 412px; top: 642px; width: 76px; height: 126px; border-radius: 18px; background: #2a2640; border: 4px solid #4a4466"></div>
+          <div id="dt-c1" class="card" style="left: 520px; top: 330px">
+            <div class="ico" style="background: #ece9f6">
+              <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="29" r="21" fill="none" stroke="#6c6585" stroke-width="6" /><path d="M27 18 L27 30 L35 34" fill="none" stroke="#6c6585" stroke-width="6" stroke-linecap="round" /></svg>
+            </div>
+            <div><b>Snooze ×3</b><small>up at 7:25</small></div>
+          </div>
+          <div id="dt-cups" style="position: absolute; left: 540px; top: 478px; display: flex; gap: 26px">
+            <svg class="dt-cup" width="96" height="140" viewBox="0 0 150 220"><rect x="14" y="52" width="122" height="30" rx="12" fill="#3a3550" /><path d="M24 82 L126 82 L114 212 L36 212 Z" fill="#ffffff" /><path d="M30 126 L120 126 L116 170 L34 170 Z" fill="#a69dc6" /></svg>
+            <svg class="dt-cup" width="96" height="140" viewBox="0 0 150 220"><rect x="14" y="52" width="122" height="30" rx="12" fill="#3a3550" /><path d="M24 82 L126 82 L114 212 L36 212 Z" fill="#ffffff" /><path d="M30 126 L120 126 L116 170 L34 170 Z" fill="#a69dc6" /></svg>
+            <svg class="dt-cup" width="96" height="140" viewBox="0 0 150 220"><rect x="14" y="52" width="122" height="30" rx="12" fill="#3a3550" /><path d="M24 82 L126 82 L114 212 L36 212 Z" fill="#ffffff" /><path d="M30 126 L120 126 L116 170 L34 170 Z" fill="#a69dc6" /></svg>
+          </div>
+          <div id="dt-c3" class="card" style="left: 520px; top: 660px">
+            <div class="ico" style="background: #f6efe0">
+              <svg width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="25" fill="#ffffff" stroke="#d9c9a6" stroke-width="5" /><path d="M20 20 L40 40 M40 20 L20 40" stroke="#8a5a08" stroke-width="6" stroke-linecap="round" /></svg>
+            </div>
+            <div><b>No lunch</b><small>worked through</small></div>
+          </div>
+          <div id="dt-sigh" class="it" style="position: absolute; left: 380px; top: 470px; font-size: 64px; color: #6c6585; transform: rotate(-6deg)">(sigh)</div>
+          <div id="dt-dim" style="position: absolute; inset: 0; background: rgba(28, 24, 48, 0.42)"></div>
+        </div>
+
+        <div id="band" style="position: absolute; left: 0; top: 900px; width: 1080px; height: 100px; background: #0b1f19"></div>
+
+        <div id="db" class="half bothalf">
+          <div class="label" style="left: 70px; top: 60px">Tuesday</div>
+          <div id="db-tag" style="position: absolute; left: 290px; top: 64px; padding: 8px 22px; border-radius: 999px; background: var(--mint); font-size: 30px; font-weight: 800">+ one heads-up</div>
+          <div id="db-clock" class="clockpill" style="top: 46px">6:45 AM</div>
+          <div class="meter" style="top: 140px; color: var(--muted)">energy<span class="bar"><i id="db-fill" style="background: var(--mint)"></i></span></div>
+          <svg class="full" width="1080" height="920">
+            <circle id="db-sun" cx="150" cy="300" r="200" fill="url(#gSun)" />
+            <ellipse id="db-shadow" cx="250" cy="655" rx="132" ry="17" fill="#0b3b2c" opacity="0.14" />
+            <g id="db-blob">
+              <circle cx="250" cy="490" r="150" fill="url(#gOrb)" />
+              <g id="db-eyes">
+                <ellipse cx="208" cy="472" rx="25" ry="30" fill="#ffffff" />
+                <ellipse cx="292" cy="472" rx="25" ry="30" fill="#ffffff" />
+                <circle class="db-pupil" cx="211" cy="479" r="12" fill="#06261c" />
+                <circle class="db-pupil" cx="295" cy="479" r="12" fill="#06261c" />
+              </g>
+              <g id="db-lids">
+                <path d="M183 472 Q 208 487 233 472" fill="none" stroke="#06261c" stroke-width="7" stroke-linecap="round" />
+                <path d="M267 472 Q 292 487 317 472" fill="none" stroke="#06261c" stroke-width="7" stroke-linecap="round" />
+              </g>
+              <path id="db-smile" d="M222 535 Q 250 556 278 535" fill="none" stroke="#06261c" stroke-width="7" stroke-linecap="round" />
+            </g>
+            <text class="db-z" x="370" y="350" font-family="Instrument Serif" font-style="italic" font-size="64" fill="#11875f">z</text>
+            <text class="db-z" x="410" y="300" font-family="Instrument Serif" font-style="italic" font-size="50" fill="#11875f">z</text>
+          </svg>
+          <div id="db-phone" style="position: absolute; left: 382px; top: 560px; width: 76px; height: 126px; border-radius: 18px; background: #12332a; border: 4px solid #2c5a4c"></div>
+          <svg id="db-badge" style="position: absolute; left: 330px; top: 318px" width="70" height="70" viewBox="0 0 74 74"><rect x="1" y="1" width="72" height="72" rx="20" fill="#0e1a17" /><path d="M12 46 C 26 22, 44 22, 62 30" fill="none" stroke="#3dd6a3" stroke-width="7" stroke-linecap="round" /><path d="M12 30 C 30 38, 46 52, 62 44" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" /></svg>
+          <div id="db-n" class="notif" style="left: 80px; top: 200px">
+            <svg class="appic" viewBox="0 0 74 74"><rect x="0" y="0" width="74" height="74" rx="20" fill="#0e1a17" /><path d="M12 46 C 26 22, 44 22, 62 30" fill="none" stroke="#3dd6a3" stroke-width="7" stroke-linecap="round" /><path d="M12 30 C 30 38, 46 52, 62 44" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" /></svg>
+            <div>
+              <div class="who">daywoven · 7:00 AM</div>
+              <div class="what">Short night. Heads-up:</div>
+              <div class="why">Your dip will likely hit around 2:30.</div>
+            </div>
+          </div>
+          <div id="db-k1" class="chip" style="top: 220px">
+            <svg class="ico" viewBox="0 0 68 68"><circle cx="34" cy="34" r="34" fill="#fff1c9" /><circle cx="34" cy="34" r="15" fill="#ffb428" /></svg>Daylight before 9
+            <svg class="ck" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#3dd6a3" /><path class="db-ck" d="M19 33 L28 42 L46 23" fill="none" stroke="#0b1f19" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </div>
+          <div id="db-k2" class="chip" style="top: 332px">
+            <svg class="ico" viewBox="0 0 68 68"><circle cx="34" cy="34" r="34" fill="#e3f5d5" /><circle cx="34" cy="34" r="20" fill="#ffffff" /><circle cx="28" cy="31" r="7" fill="#5cbf5a" /><circle cx="39" cy="37" r="6" fill="#f0a64a" /></svg>Lunch before 1
+            <svg class="ck" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#3dd6a3" /><path class="db-ck" d="M19 33 L28 42 L46 23" fill="none" stroke="#0b1f19" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </div>
+          <div id="db-k3" class="chip" style="top: 444px">
+            <svg class="ico" viewBox="0 0 68 68"><circle cx="34" cy="34" r="34" fill="#efe6da" /><path d="M22 24 L46 24 L42 52 L26 52 Z" fill="#ffffff" stroke="#8a6d4a" stroke-width="4" /><rect x="20" y="18" width="28" height="8" rx="3" fill="#3a2e22" /></svg>Last coffee by 2
+            <svg class="ck" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#3dd6a3" /><path class="db-ck" d="M19 33 L28 42 L46 23" fill="none" stroke="#0b1f19" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </div>
+          <div id="db-dim" style="position: absolute; inset: 0; background: rgba(8, 40, 30, 0.38)"></div>
+        </div>
+
+        <div id="k1" class="capt">Same person.</div>
+        <div id="k2" class="capt">Same Tuesday.</div>
+        <div id="k3" class="capt">Watch what happens at <span style="display: inline-block; color: var(--amber-deep)">3 p.m.</span></div>
+        <div id="k4" class="capt" style="font-size: 84px; padding: 22px 60px; background: var(--ink); color: #ffffff">3:00 PM</div>
+        <div id="k5" class="capt">Same job.</div>
+        <div id="k6" class="capt">Same sleep.</div>
+        <div id="k7" class="capt">Completely <span class="it" style="font-size: 84px; color: var(--mint-deep)">different</span> day.</div>
+      </div>
+
+      <!-- 2 · 19.6–25  The heads-up is daywoven, and it learns your rhythm. -->
+      <div id="d2" class="clip cream" data-start="19.6" data-duration="5.4" data-track-index="0">
+        <div id="d2-c1" class="t" style="top: 150px; font-size: 76px">That heads-up is</div>
+        <div id="d2-c2" class="t" style="top: 236px; font-size: 150px; font-weight: 900; letter-spacing: -0.055em">day<span style="color: var(--mint-deep)">woven.</span></div>
+        <div id="d2-n" class="notif" style="left: 80px; top: 520px">
+          <svg class="appic" viewBox="0 0 74 74"><rect x="0" y="0" width="74" height="74" rx="20" fill="#0e1a17" /><path d="M12 46 C 26 22, 44 22, 62 30" fill="none" stroke="#3dd6a3" stroke-width="7" stroke-linecap="round" /><path d="M12 30 C 30 38, 46 52, 62 44" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" /></svg>
+          <div>
+            <div class="who">daywoven · 7:00 AM</div>
+            <div class="what">Short night. Heads-up:</div>
+            <div class="why">Your dip will likely hit around 2:30.</div>
+          </div>
+        </div>
+        <svg class="full" width="1080" height="1920">
+          <g id="d2-blob">
+            <circle cx="540" cy="1560" r="230" fill="url(#gOrb)" />
+            <g id="d2-eyes">
+              <ellipse cx="478" cy="1520" rx="34" ry="40" fill="#ffffff" />
+              <ellipse cx="602" cy="1520" rx="34" ry="40" fill="#ffffff" />
+              <circle cx="484" cy="1508" r="16" fill="#06261c" />
+              <circle cx="608" cy="1508" r="16" fill="#06261c" />
+            </g>
+            <path d="M500 1600 Q 540 1632 580 1600" fill="none" stroke="#06261c" stroke-width="9" stroke-linecap="round" />
+            <svg x="660" y="1330" width="96" height="96" viewBox="0 0 74 74"><rect x="1" y="1" width="72" height="72" rx="20" fill="#0e1a17" /><path d="M12 46 C 26 22, 44 22, 62 30" fill="none" stroke="#3dd6a3" stroke-width="7" stroke-linecap="round" /><path d="M12 30 C 30 38, 46 52, 62 44" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" /></svg>
+          </g>
+        </svg>
+        <div id="d2-c3" class="t" style="top: 150px; font-size: 76px">It learns your rhythm,</div>
+        <div id="d2-c4" class="t it" style="top: 236px; font-size: 92px; padding: 0 40px; color: var(--mint-deep)">so it fits you better every week.</div>
+        <div id="d2-phone" class="phone"><img id="d2-img" src="assets/rhythm.png" alt="" /></div>
+        <div id="d2-curve" style="position: absolute; left: 100px; top: 1230px; width: 880px; height: 380px; border-radius: 46px; background: #ffffff; box-shadow: 0 30px 70px rgba(10, 60, 40, 0.25); padding: 32px 40px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <span style="font-size: 32px; font-weight: 700; color: var(--muted)">Your energy, today</span>
+            <span style="position: relative; display: block; width: 200px; height: 50px">
+              <b id="d2-w1" style="position: absolute; right: 0; font-size: 42px; font-weight: 850">Week 1</b>
+              <b id="d2-w4" style="position: absolute; right: 0; font-size: 42px; font-weight: 850; color: var(--mint-deep); opacity: 0">Week 4</b>
+            </span>
+          </div>
+          <svg width="800" height="250" viewBox="0 0 800 250" style="display: block; margin-top: 10px">
+            <path id="d2-guess" d="M10 170 C 90 120, 170 70, 260 80 S 400 170, 470 160 S 620 70, 700 100 S 780 170, 790 180" fill="none" stroke="#9fb3aa" stroke-width="7" stroke-dasharray="14 14" stroke-linecap="round" />
+            <path id="d2-fit" d="M10 190 C 80 120, 150 50, 240 55 S 370 190, 450 185 S 580 90, 660 90 S 770 170, 790 200" fill="none" stroke="#3dd6a3" stroke-width="9" stroke-linecap="round" />
+            <circle class="d2-dot" cx="60" cy="140" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="160" cy="70" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="250" cy="57" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="350" cy="130" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="440" cy="185" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="560" cy="120" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="660" cy="90" r="11" fill="#0b1f19" />
+            <circle class="d2-dot" cx="760" cy="170" r="11" fill="#0b1f19" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- 3 · 25–27.5  The name, and one thing to do. -->
+      <div id="d3" class="clip mintbg" data-start="25" data-duration="2.5" data-track-index="0">
+        <div class="sphere d3-sp" style="left: -80px; top: 180px; width: 240px; height: 240px"></div>
+        <div class="sphere d3-sp" style="left: 860px; top: 420px; width: 170px; height: 170px"></div>
+        <div class="sphere d3-sp" style="left: 800px; top: 1440px; width: 260px; height: 260px"></div>
+        <div class="sphere d3-sp" style="left: 70px; top: 1500px; width: 120px; height: 120px"></div>
+        <div id="d3-tag" class="t" style="top: 500px; font-size: 64px; font-weight: 750; letter-spacing: -0.025em; line-height: 1.12">One heads-up.<br />A whole different day.</div>
+        <div id="d3-mark" class="t" style="top: 700px; font-size: 190px; font-weight: 900; letter-spacing: -0.055em">
+          <span class="word d3-l">d</span><span class="word d3-l">a</span><span class="word d3-l">y</span><span class="word d3-l" style="color: #ffffff">w</span><span class="word d3-l" style="color: #ffffff">o</span><span class="word d3-l" style="color: #ffffff">v</span><span class="word d3-l" style="color: #ffffff">e</span><span class="word d3-l" style="color: #ffffff">n</span>
+        </div>
+        <svg class="full" width="1080" height="1920">
+          <path id="d3-t1" d="M250 970 C 370 920, 450 1020, 540 970 S 710 920, 830 970" fill="none" stroke="#0b1f19" stroke-width="10" stroke-linecap="round" />
+          <path id="d3-t2" d="M250 970 C 370 1020, 450 920, 540 970 S 710 1020, 830 970" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
+        </svg>
+        <div id="d3-pill" class="pill" style="top: 1090px">Link in bio ↗</div>
+        <div id="d3-tap" style="position: absolute; left: 700px; top: 1110px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255, 255, 255, 0.6)"></div>
+      </div>
+
+      <!-- sfx:start -->
+      <audio id="fx000" src="sfx/breath.wav" data-start="0.0" data-duration="1.1" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx001" src="sfx/buzz.wav" data-start="0.1" data-duration="0.62" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx002" src="sfx/pop.wav" data-start="0.24" data-duration="0.09" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx003" src="sfx/pop2.wav" data-start="1.28" data-duration="0.08" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx004" src="sfx/bloop.wav" data-start="1.33" data-duration="0.35" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx005" src="sfx/blink.wav" data-start="1.35" data-duration="0.05" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx006" src="sfx/bloop2.wav" data-start="1.36" data-duration="0.3" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx007" src="sfx/pop.wav" data-start="2.4" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx008" src="sfx/glint.wav" data-start="3.3" data-duration="0.12" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx009" src="sfx/tick.wav" data-start="3.3" data-duration="0.05" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx010" src="sfx/whump.wav" data-start="4.85" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx011" src="sfx/dart.wav" data-start="5.55" data-duration="0.18" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx012" src="sfx/count.wav" data-start="5.6" data-duration="0.42" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx013" src="sfx/squish.wav" data-start="5.62" data-duration="0.45" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx014" src="sfx/knock.wav" data-start="5.75" data-duration="0.18" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx015" src="sfx/count.wav" data-start="6.15" data-duration="0.42" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx016" src="sfx/tap.wav" data-start="6.15" data-duration="0.1" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx017" src="sfx/tick.wav" data-start="6.25" data-duration="0.05" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx018" src="sfx/tap.wav" data-start="6.35" data-duration="0.1" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx019" src="sfx/tap.wav" data-start="6.55" data-duration="0.1" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx020" src="sfx/tick.wav" data-start="6.65" data-duration="0.05" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx021" src="sfx/dart.wav" data-start="6.86" data-duration="0.18" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx022" src="sfx/count.wav" data-start="6.88" data-duration="0.42" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx023" src="sfx/drain.wav" data-start="7.0" data-duration="0.4" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx024" src="sfx/knock.wav" data-start="7.05" data-duration="0.18" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx025" src="sfx/tap.wav" data-start="7.08" data-duration="0.1" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx026" src="sfx/whump.wav" data-start="7.72" data-duration="0.3" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx027" src="sfx/pop.wav" data-start="8.4" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx028" src="sfx/count.wav" data-start="9.05" data-duration="0.42" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx029" src="sfx/buzz.wav" data-start="9.12" data-duration="0.62" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx030" src="sfx/drop.wav" data-start="9.2" data-duration="0.9" data-volume="0.6" data-track-index="12"></audio>
+      <audio id="fx031" src="sfx/blink.wav" data-start="9.55" data-duration="0.05" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx032" src="sfx/puff.wav" data-start="10.32" data-duration="0.3" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx033" src="sfx/pop2.wav" data-start="10.4" data-duration="0.08" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx034" src="sfx/dart.wav" data-start="10.48" data-duration="0.18" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx035" src="sfx/count.wav" data-start="10.5" data-duration="0.42" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx036" src="sfx/rise.wav" data-start="10.5" data-duration="1.4" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx037" src="sfx/tap.wav" data-start="10.65" data-duration="0.1" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx038" src="sfx/scribble.wav" data-start="10.85" data-duration="0.55" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx039" src="sfx/bloop2.wav" data-start="10.9" data-duration="0.3" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx040" src="sfx/pop.wav" data-start="11.1" data-duration="0.09" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx041" src="sfx/dart.wav" data-start="11.74" data-duration="0.18" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx042" src="sfx/count.wav" data-start="11.76" data-duration="0.42" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx043" src="sfx/tap.wav" data-start="11.9" data-duration="0.1" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx044" src="sfx/scribble.wav" data-start="12.15" data-duration="0.55" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx045" src="sfx/pop.wav" data-start="12.4" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx046" src="sfx/dart.wav" data-start="12.94" data-duration="0.18" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx047" src="sfx/count.wav" data-start="12.96" data-duration="0.42" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx048" src="sfx/tap.wav" data-start="13.1" data-duration="0.1" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx049" src="sfx/scribble.wav" data-start="13.4" data-duration="0.55" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx050" src="sfx/pop.wav" data-start="13.65" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx051" src="sfx/whump.wav" data-start="14.6" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx052" src="sfx/count.wav" data-start="14.62" data-duration="0.42" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx053" src="sfx/knock.wav" data-start="14.64" data-duration="0.18" data-volume="0.6" data-track-index="12"></audio>
+      <audio id="fx054" src="sfx/thud.wav" data-start="14.64" data-duration="0.32" data-volume="0.9" data-track-index="13"></audio>
+      <audio id="fx055" src="sfx/pop.wav" data-start="14.92" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx056" src="sfx/squish.wav" data-start="14.95" data-duration="0.45" data-volume="0.6" data-track-index="12"></audio>
+      <audio id="fx057" src="sfx/bloop.wav" data-start="15.0" data-duration="0.35" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx058" src="sfx/drain.wav" data-start="15.0" data-duration="0.4" data-volume="0.5" data-track-index="14"></audio>
+      <audio id="fx059" src="sfx/ooze.wav" data-start="15.05" data-duration="1.0" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx060" src="sfx/glint.wav" data-start="15.2" data-duration="0.12" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx061" src="sfx/sigh.wav" data-start="15.55" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx062" src="sfx/pop.wav" data-start="16.24" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx063" src="sfx/pop2.wav" data-start="17.2" data-duration="0.08" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx064" src="sfx/pop.wav" data-start="18.16" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx065" src="sfx/thud.wav" data-start="18.16" data-duration="0.32" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx066" src="sfx/whump.wav" data-start="18.2" data-duration="0.3" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx067" src="sfx/wobble.wav" data-start="18.75" data-duration="0.6" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx068" src="sfx/whump.wav" data-start="19.6" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx069" src="sfx/dart.wav" data-start="19.65" data-duration="0.18" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx070" src="sfx/tick.wav" data-start="19.7" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx071" src="sfx/squish.wav" data-start="19.78" data-duration="0.45" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx072" src="sfx/tap.wav" data-start="19.95" data-duration="0.1" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx073" src="sfx/bloop.wav" data-start="20.0" data-duration="0.35" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx074" src="sfx/knock.wav" data-start="20.62" data-duration="0.18" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx075" src="sfx/thud.wav" data-start="20.62" data-duration="0.32" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx076" src="sfx/blink.wav" data-start="20.95" data-duration="0.05" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx077" src="sfx/dart.wav" data-start="21.42" data-duration="0.18" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx078" src="sfx/puff.wav" data-start="21.5" data-duration="0.3" data-volume="0.15" data-track-index="11"></audio>
+      <audio id="fx079" src="sfx/whump.wav" data-start="21.6" data-duration="0.3" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx080" src="sfx/tick.wav" data-start="21.68" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx081" src="sfx/tap.wav" data-start="21.95" data-duration="0.1" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx082" src="sfx/rise.wav" data-start="22.0" data-duration="1.4" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx083" src="sfx/dart.wav" data-start="22.05" data-duration="0.18" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx084" src="sfx/zip.wav" data-start="22.3" data-duration="0.32" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx085" src="sfx/tap.wav" data-start="22.35" data-duration="0.1" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx086" src="sfx/pop.wav" data-start="22.4" data-duration="0.09" data-volume="0.25" data-track-index="13"></audio>
+      <audio id="fx087" src="sfx/pop2.wav" data-start="22.47" data-duration="0.08" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx088" src="sfx/pop.wav" data-start="22.54" data-duration="0.09" data-volume="0.25" data-track-index="13"></audio>
+      <audio id="fx089" src="sfx/pop2.wav" data-start="22.61" data-duration="0.08" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx090" src="sfx/pop.wav" data-start="22.68" data-duration="0.09" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx091" src="sfx/pop2.wav" data-start="22.75" data-duration="0.08" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx092" src="sfx/pop.wav" data-start="22.82" data-duration="0.09" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx093" src="sfx/knock.wav" data-start="22.88" data-duration="0.18" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx094" src="sfx/thud.wav" data-start="22.88" data-duration="0.32" data-volume="0.6" data-track-index="13"></audio>
+      <audio id="fx095" src="sfx/pop2.wav" data-start="22.89" data-duration="0.08" data-volume="0.25" data-track-index="14"></audio>
+      <audio id="fx096" src="sfx/scribble.wav" data-start="23.25" data-duration="0.55" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx097" src="sfx/zip.wav" data-start="23.25" data-duration="0.32" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx098" src="sfx/blink.wav" data-start="23.3" data-duration="0.05" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx099" src="sfx/bloop.wav" data-start="25.02" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx100" src="sfx/tick.wav" data-start="25.05" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx101" src="sfx/bloop2.wav" data-start="25.09" data-duration="0.3" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx102" src="sfx/bloop.wav" data-start="25.16" data-duration="0.35" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx103" src="sfx/pop2.wav" data-start="25.23" data-duration="0.08" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx104" src="sfx/pop.wav" data-start="25.42" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx105" src="sfx/pop2.wav" data-start="25.455" data-duration="0.08" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx106" src="sfx/pop.wav" data-start="25.49" data-duration="0.09" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx107" src="sfx/pop2.wav" data-start="25.525" data-duration="0.08" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx108" src="sfx/pop.wav" data-start="25.56" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx109" src="sfx/pop2.wav" data-start="25.595" data-duration="0.08" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx110" src="sfx/zip.wav" data-start="25.6" data-duration="0.32" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx111" src="sfx/pop.wav" data-start="25.63" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx112" src="sfx/pop2.wav" data-start="25.665" data-duration="0.08" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx113" src="sfx/pop.wav" data-start="25.95" data-duration="0.09" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx114" src="sfx/knock.wav" data-start="26.0" data-duration="0.18" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx115" src="sfx/pop.wav" data-start="26.7" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx116" src="sfx/knock.wav" data-start="26.75" data-duration="0.18" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx117" src="sfx/drip.wav" data-start="26.85" data-duration="0.14" data-volume="0.35" data-track-index="10"></audio>
+      <!-- sfx:end -->
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+
+      const fadeUp = (sel, t, d = 0.45, y = 40) => tl.fromTo(sel, { y, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: d, ease: E }, t);
+      const pop = (sel, t, d = 0.45, from = 0, origin = "50% 50%") => tl.fromTo(sel, { scale: from, autoAlpha: 0, transformOrigin: origin }, { scale: 1, autoAlpha: 1, duration: d, ease: "back.out(1.8)", transformOrigin: origin }, t);
+      const draw = (sel, t, d = 0.5, ease = "power2.inOut") => {
+        document.querySelectorAll(sel).forEach((el, i) => {
+          const len = el.getTotalLength();
+          tl.fromTo(el, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: d, ease }, t + i * 0.08);
+        });
+      };
+      const count = (el, from, to, t, d, ease = "power2.out") => {
+        const p = { v: from };
+        const fmt = (v) => {
+          const m = Math.round(v);
+          const h24 = Math.floor(m / 60);
+          return `${((h24 + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${h24 < 12 ? "AM" : "PM"}`;
+        };
+        tl.fromTo(p, { v: from }, { v: to, duration: d, ease, immediateRender: false, onUpdate: () => (document.querySelector(el).textContent = fmt(p.v)) }, t);
+      };
+      // Captions sit on the seam between the two days; each one swaps in with a small pop.
+      const caption = (sel, t, until) => {
+        tl.fromTo(sel, { scale: 0.7, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(2)" }, t);
+        tl.to(sel, { scale: 0.9, autoAlpha: 0, duration: 0.14, ease: "power2.in" }, until);
+      };
+
+      // 1 · Both asleep at 6:45, both phones buzz, both wake.
+      tl.set(["#dt-dim", "#db-dim"], { opacity: 0 }, 0);
+      tl.set(["#dt-c1", "#dt-c3", "#dt-sigh", "#db-tag", "#db-n", "#db-badge", "#db-k1", "#db-k2", "#db-k3", ".dt-cup"], { autoAlpha: 0 }, 0);
+      tl.set(["#dt-eyes", "#db-eyes", "#db-smile"], { opacity: 0 }, 0);
+      tl.set("#db-sun", { opacity: 0 }, 0);
+      tl.set(["#dt-fill", "#db-fill"], { scaleX: 0.7 }, 0);
+      document.querySelectorAll(".dt-z, .db-z").forEach((el, i) =>
+        tl.fromTo(el, { y: 0, opacity: 0.9 }, { y: -60, opacity: 0, duration: 1.2, ease: "sine.out" }, (i % 2) * 0.25),
+      );
+      [0.1, 0.45].forEach((t) => {
+        [-6, 6, -5, 5, 0].forEach((x, k) => tl.to(["#dt-phone", "#db-phone"], { x, duration: 0.035, ease: "none" }, t + k * 0.035));
+      });
+      caption("#k1", 0.24, 1.2);
+      caption("#k2", 1.28, 2.32);
+      tl.to(["#dt-lids", "#db-lids"], { opacity: 0, duration: 0.06 }, 1.35);
+      tl.fromTo("#dt-eyes", { opacity: 0, scaleY: 0.1, svgOrigin: "270 545" }, { opacity: 1, scaleY: 1, duration: 0.2, ease: "back.out(2)", svgOrigin: "270 545" }, 1.35);
+      tl.fromTo("#db-eyes", { opacity: 0, scaleY: 0.1, svgOrigin: "250 472" }, { opacity: 1, scaleY: 1, duration: 0.2, ease: "back.out(2)", svgOrigin: "250 472" }, 1.35);
+      tl.fromTo(["#dt-blob", "#db-blob"], { y: 0 }, { y: -26, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 1 }, 1.33);
+      caption("#k3", 2.4, 4.45);
+      tl.fromTo("#k3 span", { scale: 1 }, { scale: 1.12, duration: 0.15, yoyo: true, repeat: 1, ease: "sine.inOut" }, 3.3);
+
+      // Up top: snooze, three coffees, no lunch. The bottom dims while the top plays.
+      tl.to("#db-dim", { opacity: 1, duration: 0.3 }, 4.85);
+      tl.fromTo("#dt-c1", { x: 260, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.5)" }, 5.55);
+      tl.to("#dt-eyes", { scaleY: 0.45, svgOrigin: "270 545", duration: 0.16 }, 5.6);
+      tl.fromTo("#dt-blob", { scaleY: 1, scaleX: 1, svgOrigin: "270 725" }, { scaleY: 0.86, scaleX: 1.08, svgOrigin: "270 725", duration: 0.14, ease: "power2.in", yoyo: true, repeat: 1 }, 5.62);
+      count("#dt-clock", 405, 445, 5.6, 0.35);
+      document.querySelectorAll(".dt-cup").forEach((el, i) => pop(el, 6.12 + i * 0.2, 0.4, 0.3, "50% 100%"));
+      count("#dt-clock", 445, 610, 6.15, 0.6);
+      tl.to("#dt-fill", { scaleX: 0.86, duration: 0.25, ease: "power2.out" }, 6.25);
+      tl.to("#dt-fill", { scaleX: 0.78, duration: 0.15, ease: "power2.in" }, 6.5);
+      tl.to("#dt-fill", { scaleX: 0.88, duration: 0.15, ease: "power2.out" }, 6.65);
+      tl.fromTo("#dt-c3", { x: 260, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.5)" }, 6.86);
+      count("#dt-clock", 610, 780, 6.88, 0.45);
+      tl.to("#dt-fill", { scaleX: 0.42, duration: 0.5, ease: "power2.inOut" }, 7.0);
+
+      // Down here: the same morning, but a heads-up at 7:00.
+      tl.to("#dt-dim", { opacity: 1, duration: 0.3 }, 7.72);
+      tl.to("#db-dim", { opacity: 0, duration: 0.3 }, 7.72);
+      pop("#db-tag", 8.4, 0.4, 0.4, "0% 50%");
+      count("#db-clock", 405, 420, 9.05, 0.3);
+      [9.12, 9.42].forEach((t) => {
+        [-6, 6, -5, 5, 0].forEach((x, k) => tl.to("#db-phone", { x, duration: 0.035, ease: "none" }, t + k * 0.035));
+      });
+      tl.fromTo("#db-n", { y: -140, autoAlpha: 0, scale: 0.94 }, { y: 0, autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.5)" }, 9.2);
+      tl.to(".db-pupil", { y: -10, x: 6, duration: 0.2, ease: E }, 9.55);
+      tl.to("#db-n", { y: -60, scale: 0.8, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 10.32);
+      pop("#db-badge", 10.4, 0.4, 0.2);
+      tl.to(".db-pupil", { y: 0, x: 0, duration: 0.2, ease: E }, 10.4);
+
+      // Daylight, lunch, last coffee: each one checked off, and the energy holds.
+      tl.fromTo("#db-k1", { x: 240, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.5)" }, 10.48);
+      tl.to("#db-sun", { opacity: 1, duration: 0.5 }, 10.5);
+      tl.fromTo("#db-sun", { scale: 0.6, svgOrigin: "150 300" }, { scale: 1, svgOrigin: "150 300", duration: 0.8, ease: E }, 10.5);
+      count("#db-clock", 420, 510, 10.5, 0.45);
+      tl.to("#db-smile", { opacity: 1, duration: 0.2 }, 10.9);
+      tl.to("#db-fill", { scaleX: 0.78, duration: 0.4, ease: E }, 10.9);
+      tl.fromTo("#db-k2", { x: 240, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.5)" }, 11.74);
+      count("#db-clock", 510, 750, 11.76, 0.5);
+      tl.fromTo("#db-k3", { x: 240, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.5)" }, 12.94);
+      count("#db-clock", 750, 825, 12.96, 0.4);
+      draw("#db-k1 .db-ck", 10.85, 0.28, "power2.out");
+      draw("#db-k2 .db-ck", 12.15, 0.28, "power2.out");
+      draw("#db-k3 .db-ck", 13.4, 0.28, "power2.out");
+
+      // 3 p.m.: both clocks land on 3:00 together. One melts, one doesn't.
+      tl.to("#dt-dim", { opacity: 0, duration: 0.2 }, 14.6);
+      count("#dt-clock", 780, 900, 14.62, 0.3);
+      count("#db-clock", 825, 900, 14.62, 0.3);
+      tl.fromTo(["#dt-clock", "#db-clock"], { scale: 1 }, { scale: 1.18, duration: 0.14, ease: "power2.out", yoyo: true, repeat: 1 }, 14.92);
+      caption("#k4", 14.64, 16.1);
+      tl.to("#dt-blob", { scaleY: 0.52, scaleX: 1.3, svgOrigin: "270 725", duration: 0.9, ease: "power2.inOut" }, 14.95);
+      tl.to("#dt-shadow", { attr: { rx: 200 }, duration: 0.9, ease: "power2.inOut" }, 14.95);
+      tl.to("#dt-eyes", { scaleY: 0.2, svgOrigin: "270 545", duration: 0.5 }, 15.0);
+      tl.to("#dt-fill", { scaleX: 0.08, backgroundColor: "#e8a73a", duration: 0.7, ease: "power2.in" }, 14.95);
+      tl.fromTo("#dt-sigh", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: E }, 15.55);
+      tl.fromTo("#db-blob", { y: 0 }, { y: -34, duration: 0.2, ease: "power2.out", yoyo: true, repeat: 1 }, 15.0);
+      tl.to("#db-fill", { scaleX: 0.72, duration: 0.4 }, 15.0);
+
+      // Same job. Same sleep. Completely different day: the top day goes grey.
+      caption("#k5", 16.24, 17.15);
+      caption("#k6", 17.2, 18.1);
+      caption("#k7", 18.16, 19.45);
+      tl.to("#dt", { filter: "grayscale(1) brightness(0.86)", duration: 0.6, ease: "power2.inOut" }, 18.2);
+      tl.fromTo("#db-blob", { scale: 1, svgOrigin: "250 640" }, { scale: 1.08, svgOrigin: "250 640", duration: 0.25, ease: "back.out(2)", yoyo: true, repeat: 1 }, 18.75);
+
+      // 2 · That heads-up is daywoven: the notification rises, then the real app, then the curve fits.
+      tl.set(["#d2-c3", "#d2-c4", "#d2-phone", "#d2-curve", "#d2-w4"], { autoAlpha: 0 }, 0);
+      fadeUp("#d2-c1", 19.7, 0.35, 24);
+      // The bottom-half blob rises in to own its heads-up, blinks, and ducks out for the app.
+      tl.set("#d2-blob", { y: 700 }, 0);
+      tl.to("#d2-blob", { y: 0, duration: 0.5, ease: "back.out(1.4)" }, 19.75);
+      tl.to("#d2-eyes", { scaleY: 0.1, svgOrigin: "540 1520", duration: 0.07, ease: "none" }, 20.95);
+      tl.to("#d2-eyes", { scaleY: 1, svgOrigin: "540 1520", duration: 0.09, ease: "none" }, 21.03);
+      tl.to("#d2-blob", { y: 760, duration: 0.35, ease: "power2.in" }, 21.42);
+      tl.fromTo("#d2-n", { y: 500, autoAlpha: 0, scale: 0.9 }, { y: 0, autoAlpha: 1, scale: 1.08, duration: 0.5, ease: E }, 19.65);
+      tl.fromTo("#d2-c2", { scale: 1.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 20.62);
+      tl.to(["#d2-c1", "#d2-c2"], { autoAlpha: 0, y: -30, duration: 0.2, ease: "power2.in" }, 21.5);
+      tl.to("#d2-n", { y: -120, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 21.5);
+      fadeUp("#d2-c3", 21.68, 0.35, 24);
+      tl.fromTo("#d2-phone", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, ease: E }, 21.6);
+      tl.fromTo("#d2-img", { scale: 1, transformOrigin: "4% 16%" }, { scale: 1.15, transformOrigin: "4% 16%", duration: 2.6, ease: "sine.inOut" }, 22.0);
+      fadeUp("#d2-curve", 22.05, 0.4, 80);
+      draw("#d2-guess", 22.3, 0.5, "power1.inOut");
+      tl.set("#d2-fit", { autoAlpha: 0 }, 0);
+      tl.fromTo(".d2-dot", { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.25, ease: "back.out(2.5)", stagger: 0.07 }, 22.4);
+      tl.fromTo("#d2-c4", { scale: 1.3, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 22.88);
+      tl.to("#d2-guess", { opacity: 0.25, duration: 0.3 }, 23.25);
+      tl.to("#d2-fit", { autoAlpha: 1, duration: 0.01 }, 23.25);
+      draw("#d2-fit", 23.25, 0.7, "power2.inOut");
+      tl.to("#d2-w1", { opacity: 0, duration: 0.1 }, 23.25);
+      tl.to("#d2-w4", { autoAlpha: 1, duration: 0.15 }, 23.3);
+
+      // 3 · The name, the threads, one thing to do.
+      document.querySelectorAll(".d3-sp").forEach((el, i) => pop(el, 25.02 + i * 0.07, 0.45));
+      fadeUp("#d3-tag", 25.05, 0.35, 24);
+      tl.fromTo(".d3-l", { yPercent: -120, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.36, ease: "back.out(1.6)", stagger: 0.035 }, 25.2);
+      draw("#d3-t1, #d3-t2", 25.6, 0.5);
+      pop("#d3-pill", 25.95, 0.42, 0.6);
+      tl.fromTo("#d3-tap", { scale: 0.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.15, ease: E }, 26.7);
+      tl.to("#d3-tap", { scale: 1.8, autoAlpha: 0, duration: 0.32, ease: "power2.out" }, 26.85);
+      tl.to("#d3-pill", { scale: 0.94, duration: 0.08, ease: "power2.out" }, 26.75);
+      tl.to("#d3-pill", { scale: 1, duration: 0.2, ease: "back.out(2)" }, 26.83);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

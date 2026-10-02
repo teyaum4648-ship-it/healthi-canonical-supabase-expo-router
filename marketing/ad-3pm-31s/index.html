@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-weight: 400;
+      }
+      :root {
+        --ink: #0b1f19;
+        --muted: #66756e;
+        --paper: #f6efe4;
+        --mint: #3dd6a3;
+        --mint-deep: #11875f;
+        --lav: #7457dd;
+        --lav-pale: #ece6ff;
+        --amber: #b8760a;
+        --amber-pale: #fff0d2;
+        --blue-pale: #e2eeff;
+        --blue: #3f7fd6;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+      }
+      .paper {
+        background: radial-gradient(110% 70% at 50% 30%, #fdf9f2 0%, #f6efe4 60%, #eee3d2 100%);
+      }
+      .nightbg {
+        background: radial-gradient(100% 70% at 50% 35%, #2a2f72 0%, #181c4a 60%, #10132f 100%);
+      }
+      .dawnbg {
+        background: radial-gradient(110% 70% at 50% 25%, #fff7ea 0%, #fbe9d2 55%, #f3d9bb 100%);
+      }
+      .lock {
+        background: radial-gradient(90% 55% at 50% 30%, #1d4a3c 0%, #0f2a22 55%, #07160f 100%);
+      }
+      .ink {
+        background: radial-gradient(90% 60% at 50% 45%, #15302a 0%, #0b1714 65%, #070e0c 100%);
+      }
+      .mintbg {
+        background: radial-gradient(90% 60% at 50% 40%, #6fe6be 0%, #3dd6a3 55%, #22bb8b 100%);
+      }
+      svg.full {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
+      }
+      .t {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+      .it {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: -0.005em;
+      }
+      .word {
+        display: inline-block;
+      }
+      /* A phone's status bar and a chat header, drawn large so they read on a phone. */
+      .status {
+        position: absolute;
+        left: 70px;
+        right: 70px;
+        top: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 38px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .batt {
+        position: relative;
+        width: 74px;
+        height: 36px;
+        border: 4px solid var(--ink);
+        border-radius: 10px;
+        opacity: 0.85;
+      }
+      .batt::after {
+        content: "";
+        position: absolute;
+        right: -10px;
+        top: 9px;
+        width: 5px;
+        height: 12px;
+        border-radius: 0 3px 3px 0;
+        background: var(--ink);
+      }
+      .batt i {
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        bottom: 4px;
+        width: 12px;
+        border-radius: 4px;
+        background: var(--amber);
+        display: block;
+      }
+      .chathead {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 120px;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        padding: 0 70px;
+        border-bottom: 2px solid rgba(11, 31, 25, 0.08);
+      }
+      .chathead .back {
+        font-size: 80px;
+        font-weight: 300;
+        color: var(--mint-deep);
+        margin-top: -10px;
+      }
+      .av {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        background: linear-gradient(160deg, #c8b8ff, #8a6ff0);
+        color: #ffffff;
+        font-size: 46px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nm {
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .sub {
+        font-size: 28px;
+        font-weight: 500;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .datestamp {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 318px;
+        text-align: center;
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .row {
+        position: absolute;
+        left: 70px;
+        right: 70px;
+        display: flex;
+      }
+      .row.out {
+        justify-content: flex-end;
+      }
+      .row.in {
+        justify-content: flex-start;
+      }
+      .bub {
+        max-width: 840px;
+        padding: 28px 44px;
+        border-radius: 52px 52px 16px 52px;
+        background: var(--mint);
+        color: var(--ink);
+        font-size: 58px;
+        font-weight: 650;
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+        box-shadow: 0 14px 30px rgba(18, 90, 66, 0.14);
+      }
+      .bub.grey {
+        border-radius: 52px 52px 52px 16px;
+        background: #e8e1d5;
+        box-shadow: none;
+      }
+      .bub.typing {
+        display: flex;
+        gap: 16px;
+        padding: 38px 44px;
+      }
+      .bub.typing i {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #7c8a84;
+        display: block;
+      }
+      .cap {
+        position: absolute;
+        left: 60px;
+        right: 60px;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.05;
+      }
+      /* Day cards */
+      .card {
+        position: absolute;
+        left: 90px;
+        width: 900px;
+        height: 200px;
+        padding: 0 40px 0 30px;
+        border-radius: 48px;
+        background: #ffffff;
+        box-shadow: 0 24px 50px rgba(60, 40, 20, 0.14);
+        display: flex;
+        align-items: center;
+        gap: 34px;
+      }
+      .card .ico {
+        width: 140px;
+        height: 140px;
+        border-radius: 38px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card b {
+        display: block;
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+      .card small {
+        display: block;
+        font-size: 33px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .mini {
+        position: absolute;
+        width: 46px;
+        height: 96px;
+        border-radius: 12px;
+        background: var(--blue);
+        display: block;
+      }
+      /* Lock screen notification */
+      .nt {
+        position: absolute;
+        left: 50px;
+        width: 980px;
+        border-radius: 56px;
+        background: rgba(232, 255, 246, 0.16);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+        color: #ffffff;
+        padding: 36px 40px 38px;
+        overflow: hidden;
+      }
+      .nt .top {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-size: 31px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.82);
+      }
+      .nt .top span:last-child {
+        margin-left: auto;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .nt h3 {
+        font-size: 46px;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        margin-top: 22px;
+      }
+      .nt p {
+        font-size: 42px;
+        font-weight: 500;
+        letter-spacing: -0.015em;
+        line-height: 1.22;
+        margin-top: 6px;
+        color: rgba(255, 255, 255, 0.92);
+      }
+      .nt .more {
+        height: 0;
+        overflow: hidden;
+      }
+      .nt .rule {
+        height: 2px;
+        background: rgba(255, 255, 255, 0.18);
+        margin: 30px 0 28px;
+      }
+      .nt .one {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+      }
+      .nt .one .sun {
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        background: #ffd36e;
+        flex: none;
+      }
+      .nt .one em {
+        display: block;
+        font-style: normal;
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--mint);
+        letter-spacing: 0.02em;
+      }
+      .nt .one strong {
+        display: block;
+        font-size: 42px;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .nt .go {
+        position: relative;
+        margin-left: auto;
+        flex: none;
+        width: 196px;
+        height: 92px;
+        border-radius: 999px;
+        background: var(--mint);
+        color: var(--ink);
+        font-size: 36px;
+        font-weight: 800;
+      }
+      .nt .go span {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .appic {
+        width: 74px;
+        height: 74px;
+        border-radius: 20px;
+        background: #0e1a17;
+        border: 2px solid rgba(255, 255, 255, 0.16);
+        flex: none;
+      }
+      /* Phone with the real app screen */
+      .phone {
+        position: absolute;
+        left: 214px;
+        top: 330px;
+        width: 652px;
+        height: 1380px;
+        border-radius: 92px;
+        background: #0a0f0d;
+        border: 16px solid #1d2622;
+        box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+      .phone img {
+        display: block;
+        width: 620px;
+        height: auto;
+      }
+      .conf {
+        position: absolute;
+        left: 110px;
+        width: 860px;
+        top: 1360px;
+        padding: 34px 40px 30px;
+        border-radius: 44px;
+        background: #ffffff;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+      }
+      .conf .hd {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .conf .hd span {
+        font-size: 32px;
+        font-weight: 650;
+        color: var(--muted);
+      }
+      .conf .val {
+        position: relative;
+        width: 280px;
+        height: 54px;
+      }
+      .conf .val b {
+        position: absolute;
+        right: 0;
+        top: 0;
+        font-size: 46px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .conf .bars {
+        display: flex;
+        gap: 18px;
+        margin-top: 22px;
+      }
+      .conf .bar {
+        flex: 1;
+        height: 24px;
+        border-radius: 12px;
+        background: #e6ebe8;
+        overflow: hidden;
+      }
+      .conf .bar i {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: var(--mint);
+        transform-origin: 0 50%;
+      }
+      .conf .wk {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+      }
+      .conf .wk span {
+        flex: 1;
+        font-size: 27px;
+        font-weight: 650;
+        color: var(--muted);
+      }
+      .pill {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 30px 64px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 58px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      .sphere {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 34% 30%, #ffffff 0%, #f3fffa 30%, #c3f3df 70%, #95e7c7 100%);
+        box-shadow: 0 30px 60px rgba(10, 70, 50, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="31" data-width="1080" data-height="1920">
+      <!-- 1 · 0–5.75  The text you send at 3:07 p.m., and the coffee you tried. -->
+      <div id="a1" class="clip paper" data-start="0" data-duration="5.75" data-track-index="0">
+        <div id="a1-ui" style="position: absolute; inset: 0">
+          <div class="status"><span>3:07</span><span class="batt"><i></i></span></div>
+          <div class="chathead">
+            <div class="back">‹</div>
+            <div class="av">J</div>
+            <div><div class="nm">Jordan</div><div class="sub">active now</div></div>
+          </div>
+          <div id="a1-date" class="datestamp">Today 3:07 PM</div>
+          <div class="row out" style="top: 396px"><div id="a1-b1" class="bub">why am i SO tired rn</div></div>
+          <div class="row out" style="top: 548px"><div id="a1-b2" class="bub">every. single. day. 🫠</div></div>
+          <div class="row out" style="top: 716px; gap: 26px">
+            <svg id="a1-cup1" class="cup" width="150" height="230" viewBox="0 0 150 230">
+              <path class="steam" d="M58 52 C 46 36, 70 26, 58 8" fill="none" stroke="#b9a991" stroke-width="7" stroke-linecap="round" />
+              <path class="steam" d="M92 52 C 80 36, 104 26, 92 8" fill="none" stroke="#b9a991" stroke-width="7" stroke-linecap="round" />
+              <rect x="14" y="62" width="122" height="30" rx="12" fill="#0b1f19" />
+              <path d="M24 92 L126 92 L114 222 L36 222 Z" fill="#ffffff" />
+              <path d="M30 136 L120 136 L116 180 L34 180 Z" fill="#3dd6a3" />
+            </svg>
+            <svg id="a1-cup2" class="cup" width="150" height="230" viewBox="0 0 150 230">
+              <path class="steam" d="M58 52 C 46 36, 70 26, 58 8" fill="none" stroke="#b9a991" stroke-width="7" stroke-linecap="round" />
+              <path class="steam" d="M92 52 C 80 36, 104 26, 92 8" fill="none" stroke="#b9a991" stroke-width="7" stroke-linecap="round" />
+              <rect x="14" y="62" width="122" height="30" rx="12" fill="#0b1f19" />
+              <path d="M24 92 L126 92 L114 222 L36 222 Z" fill="#ffffff" />
+              <path d="M30 136 L120 136 L116 180 L34 180 Z" fill="#3dd6a3" />
+            </svg>
+            <svg id="a1-cup3" class="cup" width="150" height="230" viewBox="0 0 150 230">
+              <path class="steam" d="M58 52 C 46 36, 70 26, 58 8" fill="none" stroke="#b9a991" stroke-width="7" stroke-linecap="round" />
+              <path class="steam" d="M92 52 C 80 36, 104 26, 92 8" fill="none" stroke="#b9a991" stroke-width="7" stroke-linecap="round" />
+              <rect x="14" y="62" width="122" height="30" rx="12" fill="#0b1f19" />
+              <path d="M24 92 L126 92 L114 222 L36 222 Z" fill="#ffffff" />
+              <path d="M30 136 L120 136 L116 180 L34 180 Z" fill="#3dd6a3" />
+            </svg>
+          </div>
+          <div class="row in" style="top: 990px"><div id="a1-typing" class="bub grey typing"><i></i><i></i><i></i></div></div>
+          <div class="row in" style="top: 990px"><div id="a1-r1" class="bub grey">that's coffee #3 💀</div></div>
+        </div>
+        <div id="a1-c1" class="cap" style="top: 1250px; font-size: 84px">Your 3 p.m. crash is</div>
+        <div id="a1-c2" class="cap it" style="top: 1338px; font-size: 186px; color: var(--mint-deep)">predictable.</div>
+        <div id="a1-c3" class="cap" style="top: 1250px; font-size: 84px">I thought I just needed</div>
+        <div id="a1-c4" class="cap it" style="top: 1338px; font-size: 186px; color: var(--mint-deep)">more coffee.</div>
+      </div>
+
+      <!-- 2 · 5.75–14.4  Rewind: the night, the morning, the meetings, and a crash already booked. -->
+      <div id="a2" class="clip paper" data-start="5.75" data-duration="8.65" data-track-index="0">
+        <div id="a2-night" class="layer nightbg"></div>
+        <div id="a2-dawn" class="layer dawnbg"></div>
+        <svg class="full" id="a2-stars">
+          <circle class="a2-star" cx="150" cy="300" r="5" fill="#ffffff" />
+          <circle class="a2-star" cx="880" cy="250" r="4" fill="#ffffff" />
+          <circle class="a2-star" cx="760" cy="980" r="5" fill="#ffffff" />
+          <circle class="a2-star" cx="230" cy="1150" r="4" fill="#ffffff" />
+          <circle class="a2-star" cx="960" cy="1500" r="6" fill="#ffffff" />
+          <circle class="a2-star" cx="110" cy="1650" r="4" fill="#ffffff" />
+          <circle class="a2-star" cx="560" cy="1760" r="5" fill="#ffffff" />
+        </svg>
+        <div id="a2-rw" style="position: absolute; left: 70px; top: 70px; display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 800; letter-spacing: 0.14em; color: #ffffff">
+          <svg width="76" height="44" viewBox="0 0 76 44"><path d="M38 2 L38 42 L4 22 Z M74 2 L74 42 L40 22 Z" fill="#ffffff" /></svg>REWIND
+        </div>
+        <div id="a2-batt" style="position: absolute; right: 70px; top: 66px; display: flex; align-items: center; gap: 18px">
+          <span style="font-size: 30px; font-weight: 700; color: var(--muted)">today's battery</span>
+          <span style="position: relative; display: block; width: 132px; height: 62px; border: 5px solid var(--ink); border-radius: 16px">
+            <i id="a2-fill" style="position: absolute; left: 5px; top: 5px; bottom: 5px; width: 112px; border-radius: 8px; background: var(--mint); display: block; transform-origin: 0 50%"></i>
+          </span>
+        </div>
+        <div id="a2-clock" class="t" style="top: 560px; font-size: 210px; font-weight: 800; letter-spacing: -0.05em; font-variant-numeric: tabular-nums">3:07 PM</div>
+        <div id="a2-k1" class="card" style="top: 520px">
+          <div class="ico" style="background: var(--lav-pale)">
+            <svg width="86" height="86" viewBox="0 0 86 86"><path d="M60 10 A36 36 0 1 0 76 58 A30 30 0 1 1 60 10 Z" fill="#7457dd" /></svg>
+          </div>
+          <div><b>6h sleep</b><small>1:04 AM – 7:02 AM</small></div>
+        </div>
+        <div id="a2-k2" class="card" style="top: 760px">
+          <div class="ico" style="background: var(--amber-pale)">
+            <svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#ffffff" stroke="#e0c99c" stroke-width="5" /><circle cx="50" cy="50" r="25" fill="none" stroke="#efe1c2" stroke-width="4" /></svg>
+          </div>
+          <div><b>No breakfast</b><small>7:30 AM</small></div>
+        </div>
+        <div id="a2-k3" class="card" style="top: 1000px">
+          <div class="ico" style="background: var(--blue-pale)">
+            <svg width="86" height="86" viewBox="0 0 86 86"><rect x="8" y="14" width="70" height="62" rx="12" fill="none" stroke="#3f7fd6" stroke-width="7" /><rect x="8" y="14" width="70" height="18" rx="9" fill="#3f7fd6" /></svg>
+          </div>
+          <div><b>4 meetings</b><small>back to back from 9</small></div>
+          <div style="position: relative; margin-left: auto; width: 230px; height: 96px">
+            <i class="mini a2-m" style="left: 0px"></i><i class="mini a2-m" style="left: 58px"></i><i class="mini a2-m" style="left: 116px"></i><i class="mini a2-m" style="left: 174px"></i>
+          </div>
+        </div>
+        <div id="a2-cal" style="position: absolute; left: 90px; top: 470px; width: 900px; height: 700px; border-radius: 52px; background: #ffffff; box-shadow: 0 30px 70px rgba(60, 40, 20, 0.16); padding: 44px 50px">
+          <div style="font-size: 40px; font-weight: 800; letter-spacing: -0.02em">Tuesday</div>
+          <div style="position: relative; margin-top: 26px">
+            <div style="height: 118px; border-top: 2px solid #ece6dc; font-size: 30px; font-weight: 650; color: var(--muted); padding-top: 10px">12 PM</div>
+            <div style="height: 118px; border-top: 2px solid #ece6dc; font-size: 30px; font-weight: 650; color: var(--muted); padding-top: 10px">1 PM</div>
+            <div style="height: 118px; border-top: 2px solid #ece6dc; font-size: 30px; font-weight: 650; color: var(--muted); padding-top: 10px">2 PM</div>
+            <div style="height: 118px; border-top: 2px solid #ece6dc; font-size: 30px; font-weight: 650; color: var(--muted); padding-top: 10px">3 PM</div>
+            <div id="a2-ev" style="position: absolute; left: 140px; right: 0; top: 362px; height: 108px; border-radius: 26px; background: #ffe7b8; border: 4px solid #e8a73a; display: flex; align-items: center; padding: 0 30px; font-size: 44px; font-weight: 800; letter-spacing: -0.02em; color: #5c3b06; transform-origin: 50% 0">Energy crash</div>
+          </div>
+        </div>
+        <div id="a2-stamp" style="position: absolute; left: 560px; top: 975px; padding: 12px 34px; border: 9px solid #4b34c4; border-radius: 20px; color: #4b34c4; font-size: 92px; font-weight: 900; letter-spacing: 0.04em; transform: rotate(-12deg)">BOOKED</div>
+        <div id="a2-c1" class="cap" style="top: 1290px; font-size: 74px">By 9 a.m., the crash</div>
+        <div id="a2-c2" class="cap" style="top: 1376px; font-size: 74px">was already <span class="it" style="font-size: 120px; color: #4b34c4">booked.</span></div>
+      </div>
+
+      <!-- 3 · 14.4–19.45  7:02 a.m.: the heads-up, and one thing to do about it. -->
+      <div id="a3" class="clip lock" data-start="14.4" data-duration="5.05" data-track-index="0">
+        <div class="sphere" id="a3-g1" style="left: -160px; top: 1600px; width: 420px; height: 420px; opacity: 0.12"></div>
+        <div class="sphere" id="a3-g2" style="left: 860px; top: 1700px; width: 300px; height: 300px; opacity: 0.1"></div>
+        <div id="a3-date" class="t" style="top: 190px; font-size: 44px; font-weight: 650; letter-spacing: -0.01em; color: rgba(234, 255, 247, 0.85)">Tuesday, October 6</div>
+        <div id="a3-time" class="t" style="top: 250px; font-size: 300px; font-weight: 650; letter-spacing: -0.04em; color: #eafff7">7:02</div>
+        <div id="a3-n" class="nt" style="top: 700px">
+          <div class="top">
+            <svg class="appic" viewBox="0 0 74 74"><path d="M12 46 C 26 22, 44 22, 62 30" fill="none" stroke="#3dd6a3" stroke-width="7" stroke-linecap="round" /><path d="M12 30 C 30 38, 46 52, 62 44" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" /></svg>
+            <span>daywoven</span><span>now</span>
+          </div>
+          <h3>Short night. Heads-up:</h3>
+          <p>Your energy will likely dip around 2:30 PM.</p>
+          <div id="a3-more" class="more">
+            <div class="rule"></div>
+            <div class="one">
+              <svg class="sun" viewBox="0 0 84 84"><circle cx="42" cy="42" r="42" fill="#ffd36e" /><circle cx="42" cy="42" r="20" fill="#ffb428" /></svg>
+              <div><em>ONE THING</em><strong>30 min of daylight before 8.</strong></div>
+              <div id="a3-go" class="go"><span id="a3-go1">Got it</span><span id="a3-go2" style="opacity: 0">✓ Done</span></div>
+            </div>
+          </div>
+        </div>
+        <div id="a3-tap" style="position: absolute; left: 834px; top: 1060px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, 0.55)"></div>
+        <div id="a3-c1" class="cap" style="top: 1300px; font-size: 70px; color: #ffffff">So I built an app that</div>
+        <div id="a3-c2" class="cap it" style="top: 1382px; font-size: 140px; color: var(--mint)">sees it coming.</div>
+        <div id="a3-c3" class="cap" style="top: 1300px; font-size: 70px; color: #ffffff">And gives you</div>
+        <div id="a3-c4" class="cap it" style="top: 1382px; font-size: 128px; color: var(--mint)">one thing to do.</div>
+      </div>
+
+      <!-- 4 · 19.45–23.95  "Then I added this": the real app, learning your rhythm week by week. -->
+      <div id="a4" class="clip ink" data-start="19.45" data-duration="4.5" data-track-index="0">
+        <div id="a4-then" class="t" style="top: 760px; font-size: 104px; color: #ffffff">
+          <span class="word">Then</span> <span class="word">I</span> <span class="word">added</span><br /><span class="word it" style="font-size: 190px; color: var(--mint)">this…</span>
+        </div>
+        <div id="a4-cap" class="t" style="top: 120px; font-size: 76px; color: #ffffff">It learns your rhythm.</div>
+        <div id="a4-phone" class="phone"><img id="a4-img" src="assets/rhythm.png" alt="" /></div>
+        <div id="a4-conf" class="conf">
+          <div class="hd">
+            <span>Confidence</span>
+            <div class="val"><b id="a4-v1">Low</b><b id="a4-v2" style="opacity: 0">Medium</b><b id="a4-v3" style="opacity: 0; color: var(--mint-deep)">High</b></div>
+          </div>
+          <div class="bars">
+            <div class="bar"><i id="a4-w1"></i></div>
+            <div class="bar"><i id="a4-w2"></i></div>
+            <div class="bar"><i id="a4-w3"></i></div>
+          </div>
+          <div class="wk"><span>Week 1</span><span>Week 2</span><span>Week 3</span></div>
+        </div>
+        <div id="a4-cap2" class="t it" style="top: 210px; font-size: 104px; color: var(--mint)">sharper every week.</div>
+      </div>
+
+      <!-- 5 · 23.95–27.0  Send it to them. -->
+      <div id="a5" class="clip paper" data-start="23.95" data-duration="3.05" data-track-index="0">
+        <div class="status"><span>3:09</span><span class="batt"><i></i></span></div>
+        <div class="chathead">
+          <div class="back">‹</div>
+          <div class="av">J</div>
+          <div><div class="nm">Jordan</div><div class="sub">active now</div></div>
+        </div>
+        <div class="row out" style="top: 300px"><div class="bub">why am i SO tired rn</div></div>
+        <div class="row out" style="top: 460px">
+          <div id="a5-vid" class="bub" style="position: relative; padding: 18px">
+            <div style="width: 520px; height: 300px; border-radius: 36px; background: radial-gradient(110% 80% at 40% 30%, #fdf9f2, #eee3d2); display: flex; flex-direction: column; justify-content: center; padding: 0 40px">
+              <div style="font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Your 3 p.m. crash is</div>
+              <div class="it" style="font-size: 76px; color: var(--mint-deep); line-height: 1">predictable.</div>
+            </div>
+            <svg style="position: absolute; left: 432px; top: 222px" width="96" height="96" viewBox="0 0 104 104"><circle cx="52" cy="52" r="52" fill="rgba(11,31,25,0.72)" /><path d="M42 32 L74 52 L42 72 Z" fill="#ffffff" /></svg>
+            <div id="a5-react" style="position: absolute; left: -38px; top: -34px; width: 92px; height: 92px; border-radius: 50%; background: #ffffff; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); display: flex; align-items: center; justify-content: center; font-size: 52px">😂</div>
+          </div>
+        </div>
+        <div class="row in" style="top: 860px"><div id="a5-typing" class="bub grey typing"><i></i><i></i><i></i></div></div>
+        <div class="row in" style="top: 860px"><div id="a5-r1" class="bub grey">WAIT this is literally me 😭</div></div>
+        <div id="a5-c1" class="cap" style="top: 1230px; font-size: 76px">Send this to the friend</div>
+        <div id="a5-c2" class="cap it" style="top: 1318px; font-size: 128px; color: var(--mint-deep)">who's always tired at 3.</div>
+      </div>
+
+      <!-- 6 · 27–31  The name, and one thing to do. -->
+      <div id="a6" class="clip mintbg" data-start="27" data-duration="4" data-track-index="0">
+        <div class="sphere a6-sp" style="left: -80px; top: 180px; width: 240px; height: 240px"></div>
+        <div class="sphere a6-sp" style="left: 860px; top: 420px; width: 170px; height: 170px"></div>
+        <div class="sphere a6-sp" style="left: 800px; top: 1440px; width: 260px; height: 260px"></div>
+        <div class="sphere a6-sp" style="left: 70px; top: 1500px; width: 120px; height: 120px"></div>
+        <div id="a6-tag" class="t" style="top: 620px; font-size: 60px; font-weight: 750; letter-spacing: -0.025em">Know your 3 p.m. at 7 a.m.</div>
+        <div id="a6-mark" class="t" style="top: 720px; font-size: 190px; font-weight: 900; letter-spacing: -0.055em">
+          <span class="word a6-l">d</span><span class="word a6-l">a</span><span class="word a6-l">y</span><span class="word a6-l" style="color: #ffffff">w</span><span class="word a6-l" style="color: #ffffff">o</span><span class="word a6-l" style="color: #ffffff">v</span><span class="word a6-l" style="color: #ffffff">e</span><span class="word a6-l" style="color: #ffffff">n</span>
+        </div>
+        <svg class="full">
+          <path id="a6-t1" d="M250 990 C 370 940, 450 1040, 540 990 S 710 940, 830 990" fill="none" stroke="#0b1f19" stroke-width="10" stroke-linecap="round" />
+          <path id="a6-t2" d="M250 990 C 370 1040, 450 940, 540 990 S 710 1040, 830 990" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
+        </svg>
+        <div id="a6-pill" class="pill" style="top: 1110px">Link in bio ↗</div>
+        <div id="a6-tap" style="position: absolute; left: 700px; top: 1130px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255, 255, 255, 0.6)"></div>
+      </div>
+
+      <!-- sfx:start -->
+      <audio id="fx000" src="sfx/tick.wav" data-start="0.08" data-duration="0.05" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx001" src="sfx/bloop2.wav" data-start="0.1" data-duration="0.3" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx002" src="sfx/pop.wav" data-start="0.1" data-duration="0.09" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx003" src="sfx/tick.wav" data-start="0.3" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx004" src="sfx/bloop.wav" data-start="0.8" data-duration="0.35" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx005" src="sfx/pop2.wav" data-start="0.8" data-duration="0.08" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx006" src="sfx/knock.wav" data-start="2.08" data-duration="0.18" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx007" src="sfx/thud.wav" data-start="2.08" data-duration="0.32" data-volume="0.9" data-track-index="11"></audio>
+      <audio id="fx008" src="sfx/puff.wav" data-start="2.95" data-duration="0.3" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx009" src="sfx/tick.wav" data-start="3.15" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx010" src="sfx/pop.wav" data-start="3.7" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx011" src="sfx/tap.wav" data-start="3.8" data-duration="0.1" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx012" src="sfx/steam.wav" data-start="3.9" data-duration="1.2" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx013" src="sfx/pop2.wav" data-start="4.3" data-duration="0.08" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx014" src="sfx/tap.wav" data-start="4.4" data-duration="0.1" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx015" src="sfx/blink.wav" data-start="4.42" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx016" src="sfx/tick.wav" data-start="4.55" data-duration="0.05" data-volume="0.15" data-track-index="11"></audio>
+      <audio id="fx017" src="sfx/tick.wav" data-start="4.65" data-duration="0.05" data-volume="0.15" data-track-index="11"></audio>
+      <audio id="fx018" src="sfx/tick.wav" data-start="4.75" data-duration="0.05" data-volume="0.15" data-track-index="11"></audio>
+      <audio id="fx019" src="sfx/pop.wav" data-start="4.95" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx020" src="sfx/knock.wav" data-start="4.98" data-duration="0.18" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx021" src="sfx/thud.wav" data-start="4.98" data-duration="0.32" data-volume="0.7" data-track-index="13"></audio>
+      <audio id="fx022" src="sfx/tap.wav" data-start="5.05" data-duration="0.1" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx023" src="sfx/bloop2.wav" data-start="5.12" data-duration="0.3" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx024" src="sfx/pop.wav" data-start="5.12" data-duration="0.09" data-volume="0.45" data-track-index="14"></audio>
+      <audio id="fx025" src="sfx/whump.wav" data-start="5.55" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx026" src="sfx/pop.wav" data-start="5.75" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx027" src="sfx/glitch.wav" data-start="5.95" data-duration="0.22" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx028" src="sfx/countlong.wav" data-start="6.05" data-duration="1.0" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx029" src="sfx/rewind.wav" data-start="6.05" data-duration="1.3" data-volume="0.7" data-track-index="12"></audio>
+      <audio id="fx030" src="sfx/tick.wav" data-start="6.15" data-duration="0.05" data-volume="0.2" data-track-index="13"></audio>
+      <audio id="fx031" src="sfx/glint.wav" data-start="6.45" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx032" src="sfx/tick.wav" data-start="6.45" data-duration="0.05" data-volume="0.2" data-track-index="13"></audio>
+      <audio id="fx033" src="sfx/glint.wav" data-start="6.7" data-duration="0.12" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx034" src="sfx/tick.wav" data-start="6.75" data-duration="0.05" data-volume="0.2" data-track-index="13"></audio>
+      <audio id="fx035" src="sfx/glint.wav" data-start="6.95" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx036" src="sfx/tick.wav" data-start="7.0" data-duration="0.05" data-volume="0.2" data-track-index="13"></audio>
+      <audio id="fx037" src="sfx/whump.wav" data-start="7.35" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx038" src="sfx/count.wav" data-start="7.42" data-duration="0.42" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx039" src="sfx/rise.wav" data-start="7.45" data-duration="1.4" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx040" src="sfx/pop2.wav" data-start="7.55" data-duration="0.08" data-volume="0.25" data-track-index="13"></audio>
+      <audio id="fx041" src="sfx/dart.wav" data-start="7.62" data-duration="0.18" data-volume="0.3" data-track-index="14"></audio>
+      <audio id="fx042" src="sfx/tap.wav" data-start="7.85" data-duration="0.1" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx043" src="sfx/drain.wav" data-start="7.95" data-duration="0.4" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx044" src="sfx/count.wav" data-start="8.6" data-duration="0.42" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx045" src="sfx/dart.wav" data-start="8.66" data-duration="0.18" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx046" src="sfx/tap.wav" data-start="8.75" data-duration="0.1" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx047" src="sfx/drain.wav" data-start="8.95" data-duration="0.4" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx048" src="sfx/tap.wav" data-start="8.95" data-duration="0.1" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx049" src="sfx/count.wav" data-start="9.55" data-duration="0.42" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx050" src="sfx/dart.wav" data-start="9.58" data-duration="0.18" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx051" src="sfx/tap.wav" data-start="9.8" data-duration="0.1" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx052" src="sfx/knock.wav" data-start="9.84" data-duration="0.18" data-volume="0.6" data-track-index="12"></audio>
+      <audio id="fx053" src="sfx/knock.wav" data-start="10.04" data-duration="0.18" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx054" src="sfx/knock.wav" data-start="10.24" data-duration="0.18" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx055" src="sfx/knock.wav" data-start="10.44" data-duration="0.18" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx056" src="sfx/drain.wav" data-start="10.6" data-duration="0.4" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx057" src="sfx/thud.wav" data-start="10.6" data-duration="0.32" data-volume="0.6" data-track-index="12"></audio>
+      <audio id="fx058" src="sfx/squish.wav" data-start="10.62" data-duration="0.45" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx059" src="sfx/puff.wav" data-start="11.38" data-duration="0.3" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx060" src="sfx/tick.wav" data-start="11.6" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx061" src="sfx/whump.wav" data-start="11.6" data-duration="0.3" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx062" src="sfx/tap.wav" data-start="11.95" data-duration="0.1" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx063" src="sfx/pop.wav" data-start="12.82" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx064" src="sfx/zip.wav" data-start="12.84" data-duration="0.32" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx065" src="sfx/tick.wav" data-start="13.4" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx066" src="sfx/flick.wav" data-start="13.86" data-duration="0.08" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx067" src="sfx/knock.wav" data-start="13.86" data-duration="0.18" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx068" src="sfx/thud.wav" data-start="13.86" data-duration="0.32" data-volume="1.0" data-track-index="12"></audio>
+      <audio id="fx069" src="sfx/whump.wav" data-start="14.4" data-duration="0.3" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx070" src="sfx/tick.wav" data-start="14.42" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx071" src="sfx/pop.wav" data-start="14.45" data-duration="0.09" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx072" src="sfx/tick.wav" data-start="14.7" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx073" src="sfx/knock.wav" data-start="15.76" data-duration="0.18" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx074" src="sfx/thud.wav" data-start="15.76" data-duration="0.32" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx075" src="sfx/buzz.wav" data-start="16.5" data-duration="0.62" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx076" src="sfx/drop.wav" data-start="16.55" data-duration="0.9" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx077" src="sfx/tap.wav" data-start="16.8" data-duration="0.1" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx078" src="sfx/puff.wav" data-start="17.15" data-duration="0.3" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx079" src="sfx/tick.wav" data-start="17.25" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx080" src="sfx/zip.wav" data-start="17.7" data-duration="0.32" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx081" src="sfx/knock.wav" data-start="17.84" data-duration="0.18" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx082" src="sfx/thud.wav" data-start="17.84" data-duration="0.32" data-volume="0.7" data-track-index="12"></audio>
+      <audio id="fx083" src="sfx/pop.wav" data-start="17.95" data-duration="0.09" data-volume="0.35" data-track-index="13"></audio>
+      <audio id="fx084" src="sfx/pop.wav" data-start="18.55" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx085" src="sfx/knock.wav" data-start="18.62" data-duration="0.18" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx086" src="sfx/blink.wav" data-start="18.74" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx087" src="sfx/drip.wav" data-start="18.74" data-duration="0.14" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx088" src="sfx/pop.wav" data-start="19.5" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx089" src="sfx/pop2.wav" data-start="19.62" data-duration="0.08" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx090" src="sfx/pop.wav" data-start="19.74" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx091" src="sfx/bloop.wav" data-start="19.86" data-duration="0.35" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx092" src="sfx/dart.wav" data-start="20.65" data-duration="0.18" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx093" src="sfx/whump.wav" data-start="20.7" data-duration="0.3" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx094" src="sfx/tick.wav" data-start="20.9" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx095" src="sfx/tap.wav" data-start="21.05" data-duration="0.1" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx096" src="sfx/rise.wav" data-start="21.2" data-duration="1.4" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx097" src="sfx/dart.wav" data-start="21.3" data-duration="0.18" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx098" src="sfx/tap.wav" data-start="21.55" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx099" src="sfx/zip.wav" data-start="21.6" data-duration="0.32" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx100" src="sfx/zip.wav" data-start="22.42" data-duration="0.32" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx101" src="sfx/blink.wav" data-start="22.44" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx102" src="sfx/tick.wav" data-start="22.45" data-duration="0.05" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx103" src="sfx/zip.wav" data-start="22.98" data-duration="0.32" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx104" src="sfx/pop.wav" data-start="23.02" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx105" src="sfx/whump.wav" data-start="23.95" data-duration="0.3" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx106" src="sfx/tick.wav" data-start="24.05" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx107" src="sfx/dart.wav" data-start="24.15" data-duration="0.18" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx108" src="sfx/pop.wav" data-start="24.35" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx109" src="sfx/blink.wav" data-start="24.85" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx110" src="sfx/tick.wav" data-start="24.98" data-duration="0.05" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx111" src="sfx/tick.wav" data-start="25.08" data-duration="0.05" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx112" src="sfx/tick.wav" data-start="25.18" data-duration="0.05" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx113" src="sfx/knock.wav" data-start="25.3" data-duration="0.18" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx114" src="sfx/thud.wav" data-start="25.3" data-duration="0.32" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx115" src="sfx/bloop2.wav" data-start="25.58" data-duration="0.3" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx116" src="sfx/pop.wav" data-start="25.58" data-duration="0.09" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx117" src="sfx/bloop.wav" data-start="26.15" data-duration="0.35" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx118" src="sfx/pop2.wav" data-start="26.15" data-duration="0.08" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx119" src="sfx/bloop.wav" data-start="27.04" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx120" src="sfx/tick.wav" data-start="27.1" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx121" src="sfx/bloop2.wav" data-start="27.12" data-duration="0.3" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx122" src="sfx/bloop.wav" data-start="27.2" data-duration="0.35" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx123" src="sfx/pop2.wav" data-start="27.28" data-duration="0.08" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx124" src="sfx/pop.wav" data-start="27.62" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx125" src="sfx/pop2.wav" data-start="27.66" data-duration="0.08" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx126" src="sfx/pop.wav" data-start="27.7" data-duration="0.09" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx127" src="sfx/pop2.wav" data-start="27.74" data-duration="0.08" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx128" src="sfx/pop.wav" data-start="27.78" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx129" src="sfx/pop2.wav" data-start="27.82" data-duration="0.08" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx130" src="sfx/pop.wav" data-start="27.86" data-duration="0.09" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx131" src="sfx/pop2.wav" data-start="27.9" data-duration="0.08" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx132" src="sfx/zip.wav" data-start="27.95" data-duration="0.32" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx133" src="sfx/pop.wav" data-start="28.45" data-duration="0.09" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx134" src="sfx/knock.wav" data-start="28.5" data-duration="0.18" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx135" src="sfx/pop.wav" data-start="29.35" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx136" src="sfx/knock.wav" data-start="29.4" data-duration="0.18" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx137" src="sfx/drip.wav" data-start="29.52" data-duration="0.14" data-volume="0.35" data-track-index="10"></audio>
+      <!-- sfx:end -->
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+
+      // Small helpers. Every tween is placed at an absolute second, so the timeline is deterministic.
+      const fadeUp = (sel, t, d = 0.45, y = 40) => tl.fromTo(sel, { y, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: d, ease: E }, t);
+      const out = (sel, t, d = 0.25) => tl.to(sel, { autoAlpha: 0, y: -24, duration: d, ease: "power2.in" }, t);
+      const pop = (sel, t, d = 0.45, from = 0, origin = "50% 50%") => tl.fromTo(sel, { scale: from, autoAlpha: 0, transformOrigin: origin }, { scale: 1, autoAlpha: 1, duration: d, ease: "back.out(1.8)", transformOrigin: origin }, t);
+      const slam = (sel, t, from = 1.6) => tl.fromTo(sel, { scale: from, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "power4.out" }, t);
+      const draw = (sel, t, d = 0.5, ease = "power2.inOut") => {
+        document.querySelectorAll(sel).forEach((el, i) => {
+          const len = el.getTotalLength();
+          tl.fromTo(el, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: d, ease }, t + i * 0.08);
+        });
+      };
+      const count = (el, from, to, t, d, ease, fmt) => {
+        const p = { v: from };
+        tl.fromTo(p, { v: from }, { v: to, duration: d, ease, immediateRender: false, onUpdate: () => (document.querySelector(el).textContent = fmt(p.v)) }, t);
+      };
+      const clock = (v) => {
+        const m = ((Math.round(v) % 1440) + 1440) % 1440;
+        const h24 = Math.floor(m / 60);
+        return `${((h24 + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${h24 < 12 ? "AM" : "PM"}`;
+      };
+
+      // 1 · The text. A bubble pops for every message; the caption carries the line for silent viewers.
+      fadeUp("#a1-date", 0.08, 0.3, 12);
+      pop("#a1-b1", 0.1, 0.42, 0.4, "100% 100%");
+      pop("#a1-b2", 0.8, 0.42, 0.4, "100% 100%");
+      tl.fromTo("#a1-c1", { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.35, ease: E }, 0.3);
+      tl.fromTo("#a1-ui", { scale: 1 }, { scale: 1.035, duration: 5.4, ease: "sine.inOut" }, 0.05);
+      slam("#a1-c2", 2.08, 1.7);
+      out(["#a1-c1", "#a1-c2"], 2.95, 0.2);
+      fadeUp("#a1-c3", 3.15, 0.35, 30);
+      ["#a1-cup1", "#a1-cup2", "#a1-cup3"].forEach((s, i) => pop(s, [3.7, 4.3, 4.95][i], 0.45, 0.3, "50% 100%"));
+      document.querySelectorAll("#a1-ui .steam").forEach((el, i) =>
+        tl.fromTo(el, { y: 8, opacity: 0 }, { y: -10, opacity: 0.9, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.9 + (i >> 1) * 0.62 + (i % 2) * 0.15),
+      );
+      slam("#a1-c4", 4.98, 1.5);
+      pop("#a1-typing", 4.42, 0.3, 0.5, "0% 100%");
+      document.querySelectorAll("#a1-typing i").forEach((el, i) =>
+        tl.fromTo(el, { y: 0 }, { y: -12, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.55 + i * 0.1),
+      );
+      tl.to("#a1-typing", { autoAlpha: 0, duration: 0.05 }, 5.1);
+      pop("#a1-r1", 5.12, 0.4, 0.5, "0% 100%");
+      tl.to("#a1-ui", { scale: 0.94, opacity: 0.4, filter: "blur(6px)", duration: 0.2, ease: "power2.in" }, 5.55);
+
+      // 2 · Rewind. The clock runs backwards into last night, then forward through the morning.
+      tl.set(["#a2-k1", "#a2-k2", "#a2-k3", "#a2-cal", "#a2-stamp", "#a2-ev", "#a2-c1", "#a2-c2", "#a2-rw", "#a2-batt"], { autoAlpha: 0 }, 0);
+      tl.set(["#a2-night", "#a2-dawn", "#a2-stars"], { opacity: 0 }, 0);
+      pop("#a2-clock", 5.75, 0.3, 0.7);
+      tl.fromTo("#a2-rw", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08 }, 5.95);
+      tl.to("#a2-rw", { opacity: 0.35, duration: 0.12, yoyo: true, repeat: 7, ease: "none" }, 6.1);
+      count("#a2-clock", 907, 64, 6.05, 1.25, "power2.inOut", clock);
+      tl.to("#a2-night", { opacity: 1, duration: 0.4, ease: "power2.out" }, 6.08);
+      tl.to("#a2-stars", { opacity: 1, duration: 0.4 }, 6.4);
+      tl.to("#a2-clock", { color: "#ffffff", duration: 0.2 }, 6.1);
+      [6.15, 6.45, 6.75, 7.0].forEach((t, i) => tl.to("#a2-clock", { x: [12, -10, 8, 0][i], duration: 0.05, ease: "none" }, t));
+      tl.to("#a2-rw", { autoAlpha: 0, duration: 0.15 }, 7.35);
+      // Forward again: the clock moves up to become the time of day, and the night turns to morning.
+      tl.to("#a2-clock", { y: -400, scale: 0.5, duration: 0.45, ease: "power3.inOut" }, 7.35);
+      count("#a2-clock", 64, 422, 7.42, 0.45, "power2.out", clock);
+      tl.to("#a2-dawn", { opacity: 1, duration: 0.6, ease: "sine.inOut" }, 7.45);
+      tl.to("#a2-stars", { opacity: 0, duration: 0.4 }, 7.5);
+      tl.to("#a2-clock", { color: "#0b1f19", duration: 0.4 }, 7.55);
+      fadeUp("#a2-batt", 7.55, 0.35, -20);
+      tl.fromTo("#a2-k1", { x: 260, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.5)" }, 7.62);
+      tl.fromTo("#a2-fill", { scaleX: 1 }, { scaleX: 0.7, duration: 0.35, ease: "power2.out" }, 7.95);
+      count("#a2-clock", 422, 450, 8.6, 0.25, "power1.out", clock);
+      tl.fromTo("#a2-k2", { x: 260, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.5)" }, 8.66);
+      tl.fromTo("#a2-k2 .ico svg", { rotation: -120 }, { rotation: 0, duration: 0.5, ease: "back.out(1.4)" }, 8.7);
+      tl.to("#a2-fill", { scaleX: 0.52, duration: 0.35, ease: "power2.out" }, 8.95);
+      count("#a2-clock", 450, 540, 9.55, 0.3, "power1.out", clock);
+      tl.fromTo("#a2-k3", { x: 260, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.5)" }, 9.58);
+      document.querySelectorAll(".a2-m").forEach((el, i) => tl.fromTo(el, { y: -120, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power2.in" }, 9.66 + i * 0.2));
+      document.querySelectorAll(".a2-m").forEach((el, i) => tl.to(el, { x: -i * 12, duration: 0.16, ease: "power3.in" }, 10.5));
+      tl.to("#a2-fill", { scaleX: 0.26, backgroundColor: "#e8a73a", duration: 0.45, ease: "power2.out" }, 10.55);
+      // The crash, already in the calendar.
+      tl.to(["#a2-k1", "#a2-k2", "#a2-k3"], { y: -160, autoAlpha: 0, duration: 0.3, ease: "power2.in", stagger: 0.04 }, 11.38);
+      fadeUp("#a2-cal", 11.6, 0.45, 80);
+      fadeUp("#a2-c1", 11.6, 0.35, 24);
+      tl.fromTo("#a2-ev", { scaleY: 0, autoAlpha: 0 }, { scaleY: 1, autoAlpha: 1, duration: 0.35, ease: "back.out(1.6)" }, 12.82);
+      fadeUp("#a2-c2", 13.4, 0.35, 24);
+      tl.fromTo("#a2-stamp", { scale: 2.4, autoAlpha: 0, rotation: -4 }, { scale: 1, autoAlpha: 1, rotation: -12, duration: 0.14, ease: "power4.in" }, 13.74);
+      tl.fromTo("#a2-cal", { x: 0 }, { x: 10, duration: 0.04, yoyo: true, repeat: 3, ease: "none" }, 13.88);
+
+      // 3 · 7:02 a.m. The heads-up drops in, then opens to one thing to do.
+      tl.set(["#a3-n", "#a3-tap", "#a3-c1", "#a3-c2", "#a3-c3", "#a3-c4"], { autoAlpha: 0 }, 0);
+      fadeUp("#a3-date", 14.42, 0.35, 16);
+      pop("#a3-time", 14.45, 0.45, 0.85);
+      tl.fromTo(["#a3-g1", "#a3-g2"], { y: 0 }, { y: -40, duration: 5, ease: "sine.inOut" }, 14.4);
+      fadeUp("#a3-c1", 14.7, 0.35, 24);
+      slam("#a3-c2", 15.76, 1.5);
+      tl.fromTo("#a3-n", { y: -260, autoAlpha: 0, scale: 0.94 }, { y: 0, autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, 16.5);
+      tl.to("#a3-time", { y: -30, opacity: 0.55, duration: 0.5, ease: E }, 16.5);
+      out(["#a3-c1", "#a3-c2"], 17.15, 0.2);
+      tl.fromTo("#a3-more", { height: 0 }, { height: 214, duration: 0.45, ease: "power3.inOut" }, 17.7);
+      fadeUp("#a3-c3", 17.25, 0.35, 24);
+      slam("#a3-c4", 17.84, 1.4);
+      tl.fromTo("#a3-tap", { scale: 0.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.16, ease: E }, 18.55);
+      tl.to("#a3-tap", { scale: 1.7, autoAlpha: 0, duration: 0.32, ease: "power2.out" }, 18.73);
+      tl.to("#a3-go", { scale: 0.9, duration: 0.08, ease: "power2.out" }, 18.62);
+      tl.to("#a3-go", { scale: 1, duration: 0.14, ease: "back.out(2)" }, 18.7);
+      tl.to("#a3-go1", { opacity: 0, duration: 0.08 }, 18.7);
+      tl.to("#a3-go2", { opacity: 1, duration: 0.12 }, 18.74);
+
+      // 4 · "Then I added this…": the words, then the real app with its confidence filling week by week.
+      tl.set(["#a4-cap", "#a4-cap2", "#a4-conf"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#a4-then .word", { y: 60, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.32, ease: "back.out(1.7)", stagger: 0.12 }, 19.5);
+      tl.to("#a4-then", { scale: 1.25, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 20.65);
+      tl.fromTo("#a4-phone", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, ease: E }, 20.7);
+      fadeUp("#a4-cap", 20.9, 0.35, 24);
+      tl.fromTo("#a4-img", { scale: 1, transformOrigin: "4% 16%" }, { scale: 1.2, transformOrigin: "4% 16%", duration: 1.4, ease: "power2.inOut" }, 21.2);
+      fadeUp("#a4-conf", 21.3, 0.4, 60);
+      tl.fromTo("#a4-w1", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: E }, 21.6);
+      tl.fromTo("#a4-w2", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: E }, 22.42);
+      tl.to("#a4-v1", { opacity: 0, duration: 0.1 }, 22.42);
+      tl.to("#a4-v2", { opacity: 1, duration: 0.12 }, 22.46);
+      tl.fromTo("#a4-w3", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: E }, 22.98);
+      tl.to("#a4-v2", { opacity: 0, duration: 0.1 }, 22.98);
+      tl.to("#a4-v3", { opacity: 1, duration: 0.12 }, 23.02);
+      tl.to("#a4-cap", { y: -70, duration: 0.3, ease: E }, 22.4);
+      fadeUp("#a4-cap2", 22.45, 0.35, 30);
+
+      // 5 · The chat again: you send this, and they see themselves in it.
+      tl.set(["#a5-vid", "#a5-react", "#a5-typing", "#a5-r1", "#a5-c1", "#a5-c2"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#a5-vid", { x: 300, autoAlpha: 0, scale: 0.9 }, { x: 0, autoAlpha: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)" }, 24.15);
+      fadeUp("#a5-c1", 24.05, 0.35, 24);
+      pop("#a5-typing", 24.85, 0.3, 0.5, "0% 100%");
+      document.querySelectorAll("#a5-typing i").forEach((el, i) =>
+        tl.fromTo(el, { y: 0 }, { y: -12, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: 1 }, 24.98 + i * 0.1),
+      );
+      slam("#a5-c2", 25.3, 1.4);
+      tl.to("#a5-typing", { autoAlpha: 0, duration: 0.05 }, 25.55);
+      pop("#a5-r1", 25.58, 0.42, 0.5, "0% 100%");
+      pop("#a5-react", 26.15, 0.4, 0.2);
+
+      // 6 · The name drops in letter by letter, threads weave under it, and the one thing to do.
+      document.querySelectorAll(".a6-sp").forEach((el, i) => pop(el, 27.02 + i * 0.08, 0.5));
+      document.querySelectorAll(".a6-sp").forEach((el, i) =>
+        tl.fromTo(el, { y: 0 }, { y: (i % 2 ? -1 : 1) * 40, duration: 3.9, ease: "sine.inOut" }, 27.1),
+      );
+      fadeUp("#a6-tag", 27.1, 0.4, 24);
+      tl.fromTo(".a6-l", { yPercent: -120, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.6)", stagger: 0.04 }, 27.4);
+      draw("#a6-t1, #a6-t2", 27.95, 0.6);
+      pop("#a6-pill", 28.45, 0.45, 0.6);
+      tl.fromTo("#a6-tap", { scale: 0.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.16, ease: E }, 29.35);
+      tl.to("#a6-tap", { scale: 1.8, autoAlpha: 0, duration: 0.35, ease: "power2.out" }, 29.52);
+      tl.to("#a6-pill", { scale: 0.94, duration: 0.08, ease: "power2.out" }, 29.4);
+      tl.to("#a6-pill", { scale: 1, duration: 0.2, ease: "back.out(2)" }, 29.48);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
