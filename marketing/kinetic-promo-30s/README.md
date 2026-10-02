@@ -100,7 +100,8 @@ ends. It flags any line that runs into the next one.
 - The stream is thousands of tiny water bubbles, each a short sine whose pitch rises as it
   closes, the way bubbles in moving water sound, over a soft rush of filtered noise.
 - The bubbles are weighted so the water's 1–3 kHz sparkle comes through and doesn't muddy into
-  a rumble.
+  a rumble. They play 4 dB under how they were first balanced (`BED_BUBBLES=1 python bed.py`
+  restores them); the rush and breeze are unaffected.
 - A low breeze drifts and swells gently on each scene cut.
 - A short, soft room keeps it behind the voice.
 - No samples and nothing downloaded.

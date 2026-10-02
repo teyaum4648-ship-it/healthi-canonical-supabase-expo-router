@@ -11,6 +11,7 @@ No instruments, no musical notes and nothing downloaded:
   cuts still feel marked.
 - A fixed random seed means the same file every time.
 """
+import os
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,9 @@ import soundfile as sf
 RATE = 48000
 LENGTH = 30.0
 CUTS = [4.4, 9.0, 16.6, 21.6, 26.45]  # where the picture changes scene
+# How loud the stream's bubbles are against its rush and the breeze: 1 is as first made, and
+# they now play 4 dB (about a quarter) quieter. BED_BUBBLES=1 python bed.py restores them.
+BUBBLES = float(os.environ.get('BED_BUBBLES', 10 ** (-4 / 20)))
 here = Path(__file__).parent
 rng = np.random.default_rng(11)
 n = int(RATE * LENGTH)
@@ -79,14 +83,16 @@ def highpass(x, cutoff):
 
 
 # Stream: a shared centre so it sounds like one stream, with independent detail each side.
+# The bubbles and the rush are kept apart so the bubbles' level can be set on its own.
 centre_babble = bubbles(260)
-stream = []
+bubbly, rushing = [], []
 for side in range(2):
     babble = 0.6 * centre_babble + 0.8 * bubbles(200)
     rush = shaped_noise(np.full(n, 2200.0), 1.3, np.full(n, 1.0))
-    water = lowpass(highpass(babble / np.std(babble) + 0.25 * rush / np.std(rush), 350), 6500)
-    stream.append(water)
-stream = np.stack(stream, axis=1)
+    bubbly.append(lowpass(highpass(babble / np.std(babble), 350), 6500))
+    rushing.append(lowpass(highpass(0.25 * rush / np.std(rush), 350), 6500))
+bubbly, rushing = np.stack(bubbly, axis=1), np.stack(rushing, axis=1)
+stream_level = np.std(bubbly + rushing)  # the stream as first balanced, bubbles at full
 
 # Breeze: low and airy, drifting in pitch, swelling softly around each cut.
 swell = np.full(n, 0.35)
@@ -103,19 +109,28 @@ breeze = np.stack(breeze, axis=1)
 breeze /= np.std(breeze)
 
 # Air: a short, soft room around the water so it sits behind the voice, not in front of it.
-mix = stream / np.std(stream) + 0.5 * breeze
 tail = np.arange(int(RATE * 0.9)) / RATE
-wet = np.empty_like(mix)
+impulses = []
 for side in range(2):
     impulse = rng.standard_normal(len(tail)) * np.exp(-tail / 0.18)
-    impulse /= np.sqrt(np.sum(impulse ** 2))
-    size = 1 << int(np.ceil(np.log2(n + len(impulse))))
-    wet[:, side] = np.fft.irfft(np.fft.rfft(mix[:, side], size) * np.fft.rfft(impulse, size), size)[:n]
-mix = 0.8 * mix + 0.35 * wet
+    impulses.append(impulse / np.sqrt(np.sum(impulse ** 2)))
 
-# Fade in from the first frame and out over the last two seconds.
-mix *= (np.clip(t / 0.4, 0, 1) * np.clip((LENGTH - t) / 2.0, 0, 1))[:, None]
-mix -= mix.mean(axis=0)
-mix *= 0.5 / np.max(np.abs(mix))
+
+def finish(stream):
+    """Breeze and room added, faded in and out."""
+    mix = stream / stream_level + 0.5 * breeze
+    wet = np.empty_like(mix)
+    for side in range(2):
+        size = 1 << int(np.ceil(np.log2(n + len(tail))))
+        wet[:, side] = np.fft.irfft(np.fft.rfft(mix[:, side], size) * np.fft.rfft(impulses[side], size), size)[:n]
+    mix = 0.8 * mix + 0.35 * wet
+    mix *= (np.clip(t / 0.4, 0, 1) * np.clip((LENGTH - t) / 2.0, 0, 1))[:, None]
+    return mix - mix.mean(axis=0)
+
+
+# The overall level is set with the bubbles at full, so turning the bubbles down leaves the
+# rush and the breeze exactly where they were.
+scale = 0.5 / np.max(np.abs(finish(bubbly + rushing)))
+mix = finish(BUBBLES * bubbly + rushing) * scale
 sf.write(here / 'sfx' / 'bed.wav', mix.astype(np.float32), RATE, subtype='PCM_24')
 print('wrote sfx/bed.wav')
