@@ -33,7 +33,7 @@ python sfx.py                       # → sfx/*.wav, the sound effects (numpy, s
 python cues.py                      # writes the effect cues into index.html
 python voiceover.py                 # → vo/line*.wav and vo/plan.json (kokoro-onnx; see the file)
 npm run check                       # lint, layout, motion and contrast checks
-npm run render                      # → renders/daywoven-story-41s-9x16.mp4 (picture + effects)
+npm run render                      # → renders/daywoven-story-41s-9x16.mp4 (picture + effects, near-lossless)
 ./mix.sh                            # → renders/daywoven-story-41s-9x16-vo.mp4 (the finished ad)
 python ../kinetic-promo-30s/listen.py renders/daywoven-story-41s-9x16-vo.mp4
 ```
