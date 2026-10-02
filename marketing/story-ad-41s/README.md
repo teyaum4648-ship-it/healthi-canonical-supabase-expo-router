@@ -50,27 +50,32 @@ off HyperFrames' anonymous usage telemetry. `mix.sh` needs an ffmpeg built with 
 ## Sound
 
 There's no music and no background bed: just the voice and lots of small natural sound
-effects, about 160 of them, one on nearly every action. `sfx.py` synthesises them all from noise
+effects, about 150 of them, one on nearly every action. `sfx.py` synthesises them all from noise
 and simple physics. `cues.py` is the cue sheet (second, sound, volume). It writes the
 `<audio>` tags into `index.html`, so adding or moving an effect is a one-line change:
 `python sfx.py && python cues.py`.
 
 | Sound | Where |
 | --- | --- |
-| swish, air | cards, text and app chips sliding; things flying in and away |
+| tick | text snapping on, the glitch, the blink, the clock running, each ring arc |
+| pop, bloop | the orb appearing, the eyes, each daywoven letter landing, the pillar chips, the number labels |
 | thud | "LYING.", the blocks pressing down, "6 APPS", "3 p.m.", "Fewer apps." |
 | knock | "LYING.", the calendar blocks landing, "tap tap", tapping Start |
-| tick | text appearing, the glitch, the blink, the clock running, each ring arc |
-| pop, bloop | the orb appearing, the eyes, each daywoven letter landing, the pillar chips |
-| squish, drip | the melt and the puddle; the orb springing back |
+| tap | the card, the glass, each app chip, the cup and the phone settling into place |
+| squish, drip | the melt and the puddle; the orb springing back; the mint blob sliding in |
 | sigh | "(sigh)" |
-| scribble | the question mark, the hand-drawn loop, the check |
-| bite, munch | the lunch monster biting and chewing; the last nibble |
-| fire, sizzle | the flame lighting, flaring and singeing |
-| tap | the glass landing, the coffee cup |
-| count, countlong | a rattle of clicks under every number that counts |
+| scribble | the question mark, the hand-drawn loop, the check, "Better days." being written |
+| patter | the lunch monster running in and out |
+| bite, munch | the monster biting and chewing; the last nibble |
+| fire, sizzle, puff | the flame lighting and flaring, singeing, and going out |
+| zip | the threads weaving under the name and into the ring |
+| count, countlong | a rattle of clicks under every number that counts and the load bar filling |
+| air | only on fast movement: the card flung away, the blocks flying off, the app chips |
 | drop | the question mark's dot, the glass's last drop, notifications, the name |
 | breath, steam, rise | the reset ring, the coffee, the sunrise and the dawn |
+
+Each sound is chosen to match what moves on screen. Text that leaves makes no sound, and
+neither do scene cuts.
 
 `mix.sh` cleans and levels the voice, ducks the effects about 6 dB under it, and masters the
 result to −14 LUFS with a −1.5 dB safety limiter. Between lines you hear only the effects.

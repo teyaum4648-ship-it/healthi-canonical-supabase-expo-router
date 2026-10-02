@@ -25,6 +25,9 @@ swish  a quick, light air movement, for cards and text sliding
 count  a short rattle of clicks slowing down, for numbers counting
 countlong  the same, longer, for the clock and the ring
 tap    a small ceramic tap, for the cup and the glass landing
+patter little footsteps, for the lunch monster running in and out
+puff   a short, soft breath, for the flame going out
+zip    a quick thread pulled taut, for the threads weaving
 """
 from pathlib import Path
 
@@ -208,5 +211,25 @@ t = seconds(0.1)
 x = sum(a * np.sin(2 * np.pi * f * t) * np.exp(-t / d) for f, a, d in ((1450, 1.0, 0.012), (2900, 0.4, 0.007), (4100, 0.25, 0.004)))
 x += 0.3 * band(rng.standard_normal(len(t)), 3000, 9000) * np.exp(-t / 0.002)
 save('tap', x, 0.35)
+
+# Patter: four quick, soft footfalls, like something small scurrying.
+x = np.zeros(int(RATE * 0.36))
+foot = seconds(0.05)
+step = np.sin(2 * np.pi * 180 * foot) * np.exp(-foot / 0.012) + 0.4 * band(rng.standard_normal(len(foot)), 400, 2500) * np.exp(-foot / 0.006)
+for k, at in enumerate((0.0, 0.085, 0.17, 0.25)):
+    s0 = int(at * RATE)
+    x[s0:s0 + len(step)] += step * (1 - 0.12 * k)
+save('patter', x, 0.4)
+
+# Puff: a short, soft breath of air that stops, like a small flame blown out.
+t = seconds(0.3)
+x = band(rng.standard_normal(len(t)), 150, 1800) * np.minimum(1, t / 0.02) * np.exp(-t / 0.07)
+save('puff', x, 0.45)
+
+# Zip: a thread pulled quickly taut, a short grainy rasp that rises.
+t = seconds(0.32)
+grain = (np.sin(2 * np.pi * (40 + 90 * t / t[-1]) * t * 6) > 0.3).astype(float)
+x = band(rng.standard_normal(len(t)), 1500, 7000) * (0.4 + 0.6 * grain) * np.sin(np.pi * t / t[-1]) ** 1.5
+save('zip', x, 0.3)
 
 print('wrote', ', '.join(sorted(p.stem for p in (here / 'sfx').glob('*.wav'))))
