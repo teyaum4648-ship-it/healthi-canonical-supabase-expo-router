@@ -2,3 +2,6 @@
 renders/
 snapshots/
 *.mp4
+# Voice-over takes and the Kokoro model files are made or downloaded by voiceover.py's steps.
+vo-*/
+voices/
