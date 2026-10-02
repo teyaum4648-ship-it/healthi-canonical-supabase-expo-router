@@ -15,5 +15,5 @@ timeout 120 "$F" -hide_banner -loglevel error -y "${args[@]}" -filter_complex \
   "${filters}${mix}amix=inputs=$i:normalize=0:duration=longest,highpass=f=80,acompressor=threshold=-18dB:ratio=2.5:attack=8:release=120,loudnorm=I=-14:TP=-1.5:LRA=9,aresample=48000,aformat=channel_layouts=stereo" \
   -t 30 "vo-$voice/voiceover.wav"
 timeout 120 "$F" -hide_banner -loglevel error -y -i daywoven-ad-30s-9x16.mp4 -i "vo-$voice/voiceover.wav" \
-  -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -t 30 -movflags +faststart "daywoven-ad-30s-9x16-vo-$voice.mp4"
+  -map 0:v -map 1:a -c:v copy -c:a aac -profile:a aac_low -ar 44100 -ac 2 -b:a 160k -disposition:a default -t 30 -movflags +faststart "daywoven-ad-30s-9x16-vo-$voice.mp4"
 echo "made daywoven-ad-30s-9x16-vo-$voice.mp4"
