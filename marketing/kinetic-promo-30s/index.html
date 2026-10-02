@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Archivo Black";
+        src: url("fonts/ArchivoBlack-400.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      :root {
+        --bg: #000000;
+        --ink: #f5f7f8;
+        --mint: #8fe3c4;
+        --muted: #9aa3ad;
+        --card: #0b0d10;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: "Archivo Black", sans-serif;
+        color: var(--ink);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* Kinetic type: every line is a mask, every word sits inside it. */
+      .stack {
+        position: absolute;
+        left: 80px;
+        right: 80px;
+        display: flex;
+        flex-direction: column;
+      }
+      .center {
+        top: 0;
+        bottom: 0;
+        justify-content: center;
+      }
+      .ln {
+        overflow: hidden;
+        line-height: 0.9;
+        padding-top: 0.04em;
+      }
+      .ln.open {
+        overflow: visible;
+      }
+      .w {
+        display: block;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+        line-height: 0.9;
+        will-change: transform;
+      }
+      .w > span {
+        display: inline-block;
+      }
+      .acc {
+        color: var(--mint);
+      }
+      .stretch {
+        transform-origin: 50% 100%;
+      }
+
+      /* Captions above the phone screen, sitting on the screen's top edge. */
+      .cap {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        top: 120px;
+        height: 420px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+
+      /* The real app screen, shown as a rounded window that zooms and pans. */
+      .glow {
+        position: absolute;
+        left: 40px;
+        top: 700px;
+        width: 1000px;
+        height: 1000px;
+        background: radial-gradient(closest-side, rgba(143, 227, 196, 0.16), rgba(143, 227, 196, 0));
+      }
+      .card {
+        position: absolute;
+        left: 90px;
+        top: 570px;
+        width: 900px;
+        height: 1290px;
+        border-radius: 56px;
+        overflow: hidden;
+        background: var(--card);
+        box-shadow:
+          0 0 0 2px rgba(255, 255, 255, 0.12),
+          0 40px 120px rgba(0, 0, 0, 0.6);
+      }
+      .card img {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 900px;
+        height: 1948px;
+        transform-origin: 0 0;
+      }
+      .tap {
+        position: absolute;
+        left: 807px;
+        top: 1098px;
+        width: 0;
+        height: 0;
+      }
+      .tap i {
+        position: absolute;
+        left: -62px;
+        top: -62px;
+        width: 124px;
+        height: 124px;
+        border-radius: 50%;
+      }
+      .tap .dot {
+        background: rgba(255, 255, 255, 0.28);
+        box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.9);
+      }
+      .tap .ring {
+        box-shadow: 0 0 0 6px var(--mint);
+      }
+
+      /* Full-frame word cards between the screens. */
+      .flash {
+        background: var(--mint);
+        color: #050607;
+      }
+      .flash .stack {
+        align-items: center;
+      }
+
+      /* End card. */
+      .logo {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 760px;
+        text-align: center;
+        font-size: 158px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      .logo span {
+        display: inline-block;
+      }
+      .thread {
+        position: absolute;
+        left: 110px;
+        top: 950px;
+        width: 860px;
+        height: 80px;
+      }
+      .tagline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 1080px;
+        text-align: center;
+        font-family: "Inter", sans-serif;
+        font-weight: 700;
+        font-size: 40px;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="30"
+      data-width="1080"
+      data-height="1920"
+    >
+      <!-- 0 – 1.9  The four parts of a day, each filling the width. -->
+      <div id="s1a" class="clip" data-start="0" data-duration="1.9" data-track-index="0">
+        <div class="stack center">
+          <div class="ln"><span id="h1" class="w" style="font-size: 249px">Sleep.</span></div>
+          <div class="ln open"><span id="h2" class="w" style="font-size: 268px">Food.</span></div>
+          <div class="ln"><span id="h3" class="w" style="font-size: 139px">Movement.</span></div>
+          <div class="ln"><span id="h4" class="w stretch" style="font-size: 282px">Mind.</span></div>
+        </div>
+      </div>
+
+      <!-- 1.9 – 3.1 -->
+      <div id="s1b" class="clip" data-start="1.9" data-duration="1.2" data-track-index="0">
+        <div class="stack center">
+          <div class="ln"><span id="c1" class="w" style="font-size: 202px">It’s all</span></div>
+          <div class="ln">
+            <span id="c2" class="w acc" style="font-size: 126px"
+              ><span>C</span><span>O</span><span>N</span><span>N</span><span>E</span><span>C</span><span>T</span><span>E</span><span>D</span><span>.</span></span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.1 – 4.4 -->
+      <div id="s1c" class="clip" data-start="3.1" data-duration="1.3" data-track-index="0">
+        <div class="stack center">
+          <div class="ln"><span id="o1" class="w" style="font-size: 128px">Woven into</span></div>
+          <div class="ln open"><span id="o2" class="w acc" style="font-size: 385px">One</span></div>
+          <div class="ln"><span id="o3" class="w acc stretch" style="font-size: 388px">Day.</span></div>
+        </div>
+      </div>
+
+      <!-- 4.4 – 9.0  Home: the readiness ring. -->
+      <div id="s2" class="clip" data-start="4.4" data-duration="4.6" data-track-index="0">
+        <div class="glow"></div>
+        <div id="card-home" class="card"><img id="img-home" src="assets/home.png" alt="" /></div>
+        <div id="cap-2a" class="cap">
+          <div class="ln"><span class="w" style="font-size: 137px">One score</span></div>
+          <div class="ln open"><span class="w acc" style="font-size: 137px">Every</span></div>
+          <div class="ln"><span class="w acc" style="font-size: 137px">morning.</span></div>
+        </div>
+        <div id="cap-2b" class="cap">
+          <div class="ln"><span class="w" style="font-size: 133px">See what’s</span></div>
+          <div class="ln"><span class="w acc" style="font-size: 133px">behind it.</span></div>
+        </div>
+      </div>
+
+      <!-- 9.0 – 9.7 -->
+      <div id="f1" class="clip flash" data-start="9" data-duration="0.7" data-track-index="0">
+        <div class="stack center">
+          <div class="ln open"><span id="f1w" class="w" style="font-size: 268px">Food.</span></div>
+        </div>
+      </div>
+
+      <!-- 9.7 – 16.6  Food: search, tap a score, see why. -->
+      <div id="s3" class="clip" data-start="9.7" data-duration="6.9" data-track-index="0">
+        <div class="glow"></div>
+        <div id="card-food" class="card">
+          <img id="img-results" src="assets/food-results.png" alt="" />
+          <img id="img-why" src="assets/food-why.png" alt="" />
+          <div id="tap" class="tap"><i class="ring"></i><i class="dot"></i></div>
+        </div>
+        <div id="cap-3a" class="cap">
+          <div class="ln"><span class="w" style="font-size: 146px">Search</span></div>
+          <div class="ln open"><span class="w acc" style="font-size: 146px">any food.</span></div>
+        </div>
+        <div id="cap-3b" class="cap">
+          <div class="ln"><span class="w" style="font-size: 132px">Tap</span></div>
+          <div class="ln"><span class="w acc" style="font-size: 132px">the score.</span></div>
+        </div>
+        <div id="cap-3c" class="cap">
+          <div class="ln"><span class="w" style="font-size: 200px">See</span></div>
+          <div class="ln open"><span class="w acc" style="font-size: 200px">why.</span></div>
+        </div>
+        <div id="cap-3d" class="cap">
+          <div class="ln"><span class="w" style="font-size: 150px">What it’s</span></div>
+          <div class="ln"><span class="w acc" style="font-size: 150px">made of.</span></div>
+        </div>
+      </div>
+
+      <!-- 16.6 – 17.3 -->
+      <div id="f2" class="clip flash" data-start="16.6" data-duration="0.7" data-track-index="0">
+        <div class="stack center">
+          <div class="ln open"><span id="f2w" class="w" style="font-size: 249px">Sleep.</span></div>
+        </div>
+      </div>
+
+      <!-- 17.3 – 21.6  Sleep: the energy rhythm. -->
+      <div id="s4" class="clip" data-start="17.3" data-duration="4.3" data-track-index="0">
+        <div class="glow"></div>
+        <div id="card-sleep" class="card"><img id="img-sleep" src="assets/rhythm.png" alt="" /></div>
+        <div id="cap-4a" class="cap">
+          <div class="ln"><span class="w" style="font-size: 130px">Know</span></div>
+          <div class="ln open"><span class="w acc" style="font-size: 130px">your peak.</span></div>
+        </div>
+        <div id="cap-4b" class="cap">
+          <div class="ln"><span class="w" style="font-size: 139px">Plan</span></div>
+          <div class="ln"><span class="w acc" style="font-size: 139px">around it.</span></div>
+        </div>
+      </div>
+
+      <!-- 21.6 – 22.3 -->
+      <div id="f3" class="clip flash" data-start="21.6" data-duration="0.7" data-track-index="0">
+        <div class="stack center">
+          <div class="ln open"><span id="f3w" class="w" style="font-size: 282px">Mind.</span></div>
+        </div>
+      </div>
+
+      <!-- 22.3 – 25.6  Mood: today's load and one reset. -->
+      <div id="s5" class="clip" data-start="22.3" data-duration="3.3" data-track-index="0">
+        <div class="glow"></div>
+        <div id="card-mood" class="card"><img id="img-mood" src="assets/mood.png" alt="" /></div>
+        <div id="cap-5a" class="cap">
+          <div class="ln"><span class="w" style="font-size: 140px">One reset</span></div>
+          <div class="ln open"><span class="w acc" style="font-size: 140px">that fits.</span></div>
+        </div>
+        <div id="cap-5b" class="cap">
+          <div class="ln"><span class="w" style="font-size: 137px">Small</span></div>
+          <div class="ln"><span class="w" style="font-size: 137px">resets</span></div>
+          <div class="ln open"><span class="w acc" style="font-size: 137px">add up.</span></div>
+        </div>
+      </div>
+
+      <!-- 25.6 – 26.45  The four parts again, one beat each. -->
+      <div id="r1" class="clip" data-start="25.6" data-duration="0.2" data-track-index="0">
+        <div class="stack center"><div class="ln open"><span class="w" style="font-size: 249px">Sleep.</span></div></div>
+      </div>
+      <div id="r2" class="clip flash" data-start="25.8" data-duration="0.2" data-track-index="0">
+        <div class="stack center"><div class="ln open"><span class="w" style="font-size: 268px">Food.</span></div></div>
+      </div>
+      <div id="r3" class="clip" data-start="26" data-duration="0.2" data-track-index="0">
+        <div class="stack center"><div class="ln open"><span class="w" style="font-size: 139px">Movement.</span></div></div>
+      </div>
+      <div id="r4" class="clip flash" data-start="26.2" data-duration="0.25" data-track-index="0">
+        <div class="stack center"><div class="ln open"><span class="w" style="font-size: 282px">Mind.</span></div></div>
+      </div>
+
+      <!-- 26.45 – 30  daywoven. -->
+      <div id="s6" class="clip" data-start="26.45" data-duration="3.55" data-track-index="0">
+        <div id="logo" class="logo">
+          <span>d</span><span>a</span><span>y</span><span class="acc">w</span><span class="acc">o</span><span class="acc">v</span><span class="acc">e</span><span class="acc">n</span>
+        </div>
+        <svg class="thread" viewBox="0 0 860 80" fill="none" stroke-linecap="round">
+          <path id="th1" d="M10 40 C 120 0, 200 80, 310 40 S 500 0, 610 40 S 760 80, 850 40" stroke="#8fe3c4" stroke-width="7" />
+          <path id="th2" d="M10 40 C 120 80, 200 0, 310 40 S 500 80, 610 40 S 760 0, 850 40" stroke="#f5f7f8" stroke-width="7" />
+        </svg>
+        <div id="tagline" class="tagline">YOUR WHOLE DAY, WOVEN TOGETHER.</div>
+      </div>
+
+      <!-- Sound: quiet ticks on word slams and cuts, one pop on the tap, one chime on the name. -->
+      <audio id="t01" src="sfx/tick.wav" data-start="0.15" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t02" src="sfx/tick.wav" data-start="0.5" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t03" src="sfx/tick.wav" data-start="0.85" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t04" src="sfx/tick.wav" data-start="1.2" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t05" src="sfx/tick.wav" data-start="1.95" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t06" src="sfx/tick.wav" data-start="2.25" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t07" src="sfx/tick.wav" data-start="3.15" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t08" src="sfx/tick.wav" data-start="3.45" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t09" src="sfx/tick.wav" data-start="3.75" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t10" src="sfx/tick.wav" data-start="4.6" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t11" src="sfx/tick.wav" data-start="4.9" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t12" src="sfx/tick.wav" data-start="6.4" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t13" src="sfx/tick.wav" data-start="6.7" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t14" src="sfx/tick.wav" data-start="9" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t15" src="sfx/tick.wav" data-start="9.85" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t16" src="sfx/tick.wav" data-start="10.15" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t17" src="sfx/tick.wav" data-start="11.85" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t18" src="sfx/tick.wav" data-start="12.15" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t19" src="sfx/tick.wav" data-start="13.05" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t20" src="sfx/tick.wav" data-start="13.35" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t21" src="sfx/tick.wav" data-start="15.05" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t22" src="sfx/tick.wav" data-start="15.35" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t23" src="sfx/tick.wav" data-start="16.6" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t24" src="sfx/tick.wav" data-start="17.45" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t25" src="sfx/tick.wav" data-start="17.75" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t26" src="sfx/tick.wav" data-start="19.65" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t27" src="sfx/tick.wav" data-start="19.95" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t28" src="sfx/tick.wav" data-start="21.6" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t29" src="sfx/tick.wav" data-start="22.45" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t30" src="sfx/tick.wav" data-start="22.75" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t31" src="sfx/tick.wav" data-start="24.55" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t32" src="sfx/tick.wav" data-start="24.8" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t33" src="sfx/tick.wav" data-start="25.05" data-duration="0.05" data-volume="0.79" data-track-index="10"></audio>
+      <audio id="t34" src="sfx/tick.wav" data-start="25.6" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t35" src="sfx/tick.wav" data-start="25.8" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t36" src="sfx/tick.wav" data-start="26" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="t37" src="sfx/tick.wav" data-start="26.2" data-duration="0.05" data-volume="0.87" data-track-index="10"></audio>
+      <audio id="pop" src="sfx/pop.wav" data-start="12.6" data-duration="0.11" data-volume="1.27" data-track-index="11"></audio>
+      <audio id="chime" src="sfx/chime.wav" data-start="26.5" data-duration="2.4" data-volume="1.11" data-track-index="12"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Word entrances, each a fast power4 move that lands on the beat.
+      const up = (sel, t) =>
+        tl.fromTo(sel, { yPercent: 110, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.36, ease: "power4.out" }, t);
+      const slam = (sel, t) =>
+        tl.fromTo(sel, { scale: 1.5, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, t);
+      const fromRight = (sel, t) =>
+        tl.fromTo(sel, { xPercent: 70, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.34, ease: "power4.out" }, t);
+      const stretch = (sel, t) =>
+        tl.fromTo(sel, { scaleY: 0.04, autoAlpha: 0 }, { scaleY: 1, autoAlpha: 1, duration: 0.34, ease: "power4.out" }, t);
+      const letters = (sel, t) =>
+        tl.fromTo(
+          `${sel} > span`,
+          { yPercent: -120, autoAlpha: 0 },
+          { yPercent: 0, autoAlpha: 1, duration: 0.4, ease: "power4.out", stagger: 0.035 },
+          t,
+        );
+      const leave = (sel, t) =>
+        tl.to(`${sel} .w`, { yPercent: -110, autoAlpha: 0, duration: 0.18, ease: "power2.in", stagger: 0.03 }, t);
+
+      // A screen arriving, and a screen leaving (motion only, never a sound).
+      const cardIn = (sel, t) =>
+        tl.fromTo(sel, { y: 300, scale: 0.94, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: "power4.out" }, t);
+      const cardOut = (sel, t) => tl.to(sel, { scale: 0.94, autoAlpha: 0, duration: 0.15, ease: "power2.in" }, t);
+
+      // Zoom so a point of the screen (in window pixels) sits in the middle, without showing past its edges.
+      const focus = (px, py, s) => {
+        const x = Math.min(0, Math.max(900 - 900 * s, 450 - px * s));
+        const y = Math.min(0, Math.max(1290 - 1948 * s, 645 - py * s));
+        return { x, y, scale: s };
+      };
+      const move = (sel, t, px, py, s, d = 0.6) => tl.to(sel, { ...focus(px, py, s), duration: d, ease: "power3.inOut" }, t);
+
+      // 0 – 4.4  Hook.
+      up("#h1", 0.15);
+      slam("#h2", 0.5);
+      fromRight("#h3", 0.85);
+      stretch("#h4", 1.2);
+      up("#c1", 1.95);
+      letters("#c2", 2.25);
+      up("#o1", 3.15);
+      slam("#o2", 3.45);
+      stretch("#o3", 3.75);
+
+      // 4.4 – 9  Home.
+      tl.set("#img-home", { x: 0, y: 0, scale: 1, transformOrigin: "0 0" }, 0);
+      cardIn("#card-home", 4.4);
+      up("#cap-2a .ln:nth-child(1) .w", 4.6);
+      slam("#cap-2a .ln:nth-child(2) .w", 4.9);
+      up("#cap-2a .ln:nth-child(3) .w", 4.95);
+      move("#img-home", 5.5, 450, 611, 1.55, 0.7);
+      leave("#cap-2a", 6.15);
+      up("#cap-2b .ln:nth-child(1) .w", 6.4);
+      up("#cap-2b .ln:nth-child(2) .w", 6.7);
+      move("#img-home", 6.9, 450, 993, 1.12, 0.8);
+      cardOut("#card-home", 8.85);
+
+      // 9 – 9.7
+      tl.fromTo("#f1w", { scaleY: 0.04, autoAlpha: 0 }, { scaleY: 2.4, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 9);
+      tl.to("#f1w", { scaleY: 0.04, autoAlpha: 0, duration: 0.15, ease: "power2.in" }, 9.52);
+
+      // 9.7 – 16.6  Food.
+      tl.set("#img-results", { x: 0, y: 0, scale: 1, transformOrigin: "0 0" }, 0);
+      tl.set("#img-why", { x: 0, y: 0, scale: 1, transformOrigin: "0 0", autoAlpha: 0 }, 0);
+      tl.set("#tap", { autoAlpha: 0 }, 0);
+      cardIn("#card-food", 9.7);
+      up("#cap-3a .ln:nth-child(1) .w", 9.85);
+      slam("#cap-3a .ln:nth-child(2) .w", 10.15);
+      move("#img-results", 10.8, 450, 1300, 1, 0.8);
+      leave("#cap-3a", 11.6);
+      up("#cap-3b .ln:nth-child(1) .w", 11.85);
+      up("#cap-3b .ln:nth-child(2) .w", 12.15);
+      tl.fromTo("#tap", { autoAlpha: 0, scale: 1.5 }, { autoAlpha: 1, scale: 1, duration: 0.18, ease: "power3.out" }, 12.42);
+      tl.to("#tap .dot", { scale: 0.82, duration: 0.08, ease: "power2.in" }, 12.6);
+      tl.to("#tap .dot", { scale: 1, duration: 0.14, ease: "power2.out" }, 12.68);
+      tl.fromTo("#tap .ring", { scale: 1, autoAlpha: 0.9 }, { scale: 2.4, autoAlpha: 0, duration: 0.45, ease: "power2.out" }, 12.6);
+      leave("#cap-3b", 12.84);
+      tl.set("#tap", { autoAlpha: 0 }, 13);
+      tl.set("#img-results", { autoAlpha: 0 }, 13);
+      tl.set("#img-why", { autoAlpha: 1 }, 13);
+      up("#cap-3c .ln:nth-child(1) .w", 13.05);
+      slam("#cap-3c .ln:nth-child(2) .w", 13.35);
+      move("#img-why", 13.6, 449, 760, 1.1, 0.6);
+      leave("#cap-3c", 14.8);
+      up("#cap-3d .ln:nth-child(1) .w", 15.05);
+      up("#cap-3d .ln:nth-child(2) .w", 15.35);
+      move("#img-why", 14.95, 450, 1139, 1, 0.8);
+      cardOut("#card-food", 16.45);
+
+      // 16.6 – 17.3
+      tl.fromTo("#f2w", { scaleY: 0.04, autoAlpha: 0 }, { scaleY: 2.4, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 16.6);
+      tl.to("#f2w", { scaleY: 0.04, autoAlpha: 0, duration: 0.15, ease: "power2.in" }, 17.12);
+
+      // 17.3 – 21.6  Sleep.
+      tl.set("#img-sleep", { x: 0, y: 0, scale: 1, transformOrigin: "0 0" }, 0);
+      cardIn("#card-sleep", 17.3);
+      up("#cap-4a .ln:nth-child(1) .w", 17.45);
+      slam("#cap-4a .ln:nth-child(2) .w", 17.75);
+      move("#img-sleep", 18.2, 421, 458, 1.12, 0.7);
+      leave("#cap-4a", 19.4);
+      up("#cap-4b .ln:nth-child(1) .w", 19.65);
+      up("#cap-4b .ln:nth-child(2) .w", 19.95);
+      move("#img-sleep", 19.5, 450, 1295, 1, 0.8);
+      cardOut("#card-sleep", 21.45);
+
+      // 21.6 – 22.3
+      tl.fromTo("#f3w", { scaleY: 0.04, autoAlpha: 0 }, { scaleY: 2.4, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 21.6);
+      tl.to("#f3w", { scaleY: 0.04, autoAlpha: 0, duration: 0.15, ease: "power2.in" }, 22.12);
+
+      // 22.3 – 25.6  Mood.
+      tl.set("#img-mood", { x: 0, y: 0, scale: 1, transformOrigin: "0 0" }, 0);
+      cardIn("#card-mood", 22.3);
+      up("#cap-5a .ln:nth-child(1) .w", 22.45);
+      slam("#cap-5a .ln:nth-child(2) .w", 22.75);
+      move("#img-mood", 23.2, 450, 571, 1.06, 0.6);
+      leave("#cap-5a", 24.3);
+      up("#cap-5b .ln:nth-child(1) .w", 24.55);
+      up("#cap-5b .ln:nth-child(2) .w", 24.8);
+      slam("#cap-5b .ln:nth-child(3) .w", 25.05);
+      move("#img-mood", 24.35, 450, 1071, 1, 0.7);
+      cardOut("#card-mood", 25.45);
+
+      // 25.6 – 26.45  One beat per part: the cuts are the motion.
+
+      // 26.45 – 30  daywoven.
+      letters("#logo", 26.5);
+      tl.fromTo(["#th1", "#th2"], { strokeDasharray: 1000, strokeDashoffset: 1000 }, { strokeDashoffset: 0, duration: 0.9, ease: "power3.inOut", stagger: 0.12 }, 26.9);
+      tl.fromTo("#tagline", { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.6, ease: "power3.out" }, 27.5);
+      tl.fromTo("#logo", { scale: 1 }, { scale: 1.04, duration: 3.4, ease: "sine.inOut" }, 26.55);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

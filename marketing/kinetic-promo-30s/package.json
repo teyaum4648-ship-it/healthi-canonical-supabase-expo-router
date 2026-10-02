@@ -1,0 +1,10 @@
+{
+  "name": "daywoven-kinetic-promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npx --yes hyperframes@0.8.109 check",
+    "render": "npx --yes hyperframes@0.8.109 render . -q high -o renders/daywoven-kinetic-30s-9x16.mp4",
+    "preview": "npx --yes hyperframes@0.8.109 preview"
+  }
+}

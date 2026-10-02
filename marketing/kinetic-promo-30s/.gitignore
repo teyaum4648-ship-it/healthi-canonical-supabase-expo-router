@@ -1,0 +1,4 @@
+# Rendered output stays out of git; npm run render recreates it.
+renders/
+snapshots/
+*.mp4
