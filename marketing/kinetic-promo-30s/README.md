@@ -4,8 +4,8 @@
 words land on a half-second beat between real app screens, which zoom and pan. The sound
 is quiet ticks on each word, one pop on the tap and a chime on the name. There are no
 whooshes and no music, so add a track in the platform's editor or CapCut if you want one.
-It comes with or without a voice-over, in a female (`af_heart`) or male (`am_michael`)
-voice.
+It comes with or without a voice-over, in two scripts, Calm & premium and Real talk, both read
+by the female voice.
 
 | Seconds | Scene | On screen |
 | --- | --- | --- |
@@ -55,51 +55,62 @@ a UI change, run `npm run build:demo` at the repo root, then
 
 ## Voice-over
 
+Two scripts, both read by the female voice (`af_heart`).
+
+**Calm & premium** uses few words and leaves room to breathe:
+
 | Starts | Line |
 | --- | --- |
-| 0.12 s | Sleep. |
-| 0.6 s | Food. |
-| 1.08 s | Movement. |
-| 1.58 s | Mind. |
-| 2.2 s | It's all connected. |
-| 3.3 s | Woven into one day. |
-| 4.6 s | One score, every morning. |
-| 6.45 s | And what's behind it. |
-| 9.05 s | Food. |
-| 9.9 s | Search any food. |
-| 11.9 s | Tap the score, |
-| 13.05 s | and see why. |
-| 15.05 s | Down to what it's made of. |
-| 16.65 s | Sleep. |
-| 17.5 s | Know when your energy peaks, |
-| 19.65 s | and plan around it. |
-| 21.65 s | Mind. |
-| 22.5 s | One reset that fits your day. |
-| 24.55 s | Small resets add up. |
+| 0.4 s | Everything in your day is connected. |
+| 4.65 s | Daywoven brings it together, in one score each morning. |
+| 10 s | Every food, scored. |
+| 12.75 s | And every score, explained. |
+| 17.4 s | There's a rhythm to your energy. Now, you can see it. |
+| 22.45 s | And when the day runs heavy, one small reset. |
 | 26.6 s | Daywoven. |
-| 27.55 s | Your whole day, woven together. |
+| 27.65 s | Your whole day, woven together. |
 
-Each line starts on the beat its words land on screen. The opening four words are about
-half a second apart because that's how long the voice takes to say each one, and the
-slams in `index.html` are timed to match.
+**Real talk** opens with a relatable problem, then shows what the app does about it:
+
+| Starts | Line |
+| --- | --- |
+| 0.3 s | Tired, wired, or ready to go? Your body's been telling you all along. |
+| 4.65 s | Daywoven reads your sleep, food and movement, and sums up your day in one score. |
+| 9.95 s | Search any food, tap its score, and see exactly why, right down to the ingredients. |
+| 17.4 s | Learn when your energy tends to peak, and plan around it. |
+| 22.45 s | Is today feeling heavy? It suggests one small reset that fits. |
+| 26.6 s | Daywoven. |
+| 27.65 s | Your whole day, woven together. |
+
+Lines are whole sentences, placed so their key words fall near what's on screen.
 
 ```bash
 npm run render
-python voiceover.py af_heart        # or: python voiceover.py am_michael 1.1
-./mix.sh af_heart                   # → renders/daywoven-kinetic-30s-9x16-vo-af_heart.mp4
+python voiceover.py calm            # or: python voiceover.py real
+./mix.sh calm-af_heart              # → renders/daywoven-kinetic-30s-9x16-vo-calm-af_heart.mp4
+python listen.py renders/daywoven-kinetic-30s-9x16-vo-calm-af_heart.mp4
 ```
 
-`voiceover.py` voices every line with Kokoro, an open-weight Apache-2.0 model, using the
+`voiceover.py` voices each line with Kokoro, an open-weight Apache-2.0 model, using the
 full-precision `kokoro-v1.0.onnx` rather than the int8 file. It trims each line's
-silence and saves 24-bit WAVs, and it flags any line that runs into the next beat.
+silence, saves 24-bit WAVs and flags any line that runs into the next beat.
 
 `mix.sh` does the rest:
 - Upsamples the voice to 48 kHz with soxr.
 - Cleans the voice: a low cut, slightly less 220 Hz mud, a little 3.2 kHz presence, de-essing and light compression.
-- Levels every voice to the same loudness, so the clicks sit the same way under either one.
-- Ducks the clicks about 6 dB while the voice speaks.
+- Levels every voice to the same loudness.
+- Ducks the clicks under the voice.
 - Masters in two loudness passes to −14 LUFS with true peaks at −1 dBTP.
 - Encodes the result as AAC-LC at 44.1 kHz and 192 kbps.
+
+`listen.py` checks the result by ear, so to speak. It transcribes the mix offline with
+Parakeet and prints each word with the second it lands. Both scripts' final mixes come back
+word for word.
+
+That check is also why two lines read the way they do:
+- Kokoro wouldn't lift a bare "Heavy day?" into a question, so it became "Is today feeling heavy?"
+- "Your energy has a rhythm", said straight after a pause, was misheard as "Yergy has a
+  rhythm". "There's a rhythm to your energy" isn't.
 
 ## Sounds
 

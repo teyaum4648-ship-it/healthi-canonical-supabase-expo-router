@@ -2,6 +2,7 @@
 renders/
 snapshots/
 *.mp4
-# Voice-over takes and the Kokoro model files are made or downloaded by voiceover.py's steps.
+# Voice-over takes and the downloaded Kokoro and Parakeet model files.
 vo-*/
 voices/
+sherpa-onnx-*/
