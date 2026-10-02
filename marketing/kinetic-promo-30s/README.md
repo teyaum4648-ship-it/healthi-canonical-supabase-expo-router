@@ -112,7 +112,7 @@ ends. It flags any line that runs into the next one.
   - softens the synthetic voice's bright 8–12 kHz hiss on "s" sounds, plus de-essing;
   - soft-knee compression, and a gentle limiter on its peaks.
 - Levels every voice to the same loudness.
-- Ducks the clicks under the voice. The nature bed sits about 10 dB under the voice
+- Ducks the clicks under the voice. The nature bed sits about 14 dB under the voice
   between lines and eases down further while the voice speaks.
 - Masters in two loudness passes to −14 LUFS with a −1.5 dB safety limiter.
 - Encodes the result as AAC-LC at 44.1 kHz and 192 kbps.
