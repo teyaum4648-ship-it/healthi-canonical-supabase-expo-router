@@ -11,6 +11,20 @@ air    a short rush of air, for the app chips flying in
 tick   a quiet clock tick, for 3 p.m.
 drop   two water drops, for notifications and the name
 breath a slow breath of air, for the reset
+thud   a low, soft body thump, for slams and the blocks pressing down
+pop    a tiny bubble pop, for things appearing and letters landing
+drip   a single small drip, for the melt
+squish a wet, gooey squelch, for the puddle and the orb springing back
+munch  a softer bite, for chewing
+sizzle a short hiss with crackle, for the flame's singe
+sigh   a soft exhale, for "(sigh)"
+scribble a pencil scratching, for the question mark, the loop and the check
+steam  a faint hiss, for the coffee
+rise   a slow swell of air, for the sunrise and the dawn
+swish  a quick, light air movement, for cards and text sliding
+count  a short rattle of clicks slowing down, for numbers counting
+countlong  the same, longer, for the clock and the ring
+tap    a small ceramic tap, for the cup and the glass landing
 """
 from pathlib import Path
 
@@ -110,4 +124,89 @@ save('drop', x)
 t = seconds(1.1)
 x = band(rng.standard_normal(len(t)), 250, 2600) * np.sin(np.pi * t / t[-1]) ** 2
 save('breath', x, 0.35)
+# Thud: a low, soft body thump with a little texture, felt more than heard.
+t = seconds(0.32)
+x = np.sin(2 * np.pi * (70 + 60 * np.exp(-t / 0.03)) * t) * np.exp(-t / 0.08)
+x += 0.25 * band(rng.standard_normal(len(t)), 150, 1200) * np.exp(-t / 0.02)
+save('thud', x, 0.55)
+
+# Pop: a tiny bubble popping, bright and short.
+save('pop', bubble(900, 6, 0.018, 0.09) + 0.3 * band(rng.standard_normal(int(RATE * 0.09)), 2000, 7000) * np.exp(-seconds(0.09) / 0.004), 0.45)
+
+# Drip: one small drop landing.
+save('drip', bubble(1300, 8, 0.02, 0.14), 0.4)
+
+# Squish: wet goo, a cluster of low bubbles over a soft smear of noise.
+t = seconds(0.45)
+x = 0.4 * band(rng.standard_normal(len(t)), 200, 1600) * np.sin(np.pi * t / t[-1]) ** 2
+for at, f0 in ((0.02, 240), (0.09, 310), (0.15, 200), (0.24, 380), (0.3, 260)):
+    s0 = int(at * RATE)
+    b = 0.6 * bubble(f0, 3, 0.04, 0.12)
+    x[s0:s0 + len(b)] += b[: len(x) - s0]
+save('squish', x, 0.45)
+
+# Munch: a softer, shorter bite for chewing.
+t = seconds(0.14)
+x = band(rng.standard_normal(len(t)), 700, 4000) * np.exp(-t / 0.014) + 0.3 * np.sin(2 * np.pi * 120 * t) * np.exp(-t / 0.025)
+save('munch', x, 0.4)
+
+# Sizzle: a hiss that dies away, with a few crackles.
+t = seconds(0.6)
+x = band(rng.standard_normal(len(t)), 2500, 9000) * np.exp(-t / 0.18) * 0.6
+for at in (0.04, 0.11, 0.2, 0.27, 0.38):
+    s0 = int(at * RATE); n = int(RATE * 0.004)
+    x[s0:s0 + n] += rng.standard_normal(n) * np.exp(-np.arange(n) / (RATE * 0.001)) * 1.5
+save('sizzle', x, 0.35)
+
+# Sigh: a soft exhale, falling away.
+t = seconds(0.9)
+env = np.minimum(1, t / 0.12) * np.exp(-np.maximum(0, t - 0.12) / 0.28)
+noise = rng.standard_normal(len(t))
+f = np.fft.rfftfreq(len(t), 1 / RATE)
+shape = np.exp(-0.5 * (np.log2(np.maximum(f, 1) / 900) / 1.1) ** 2)
+x = np.fft.irfft(np.fft.rfft(noise) * shape, len(t)) * env
+save('sigh', x, 0.4)
+
+# Scribble: a pencil scratching, short strokes of grainy noise.
+t = seconds(0.55)
+strokes = (np.sin(2 * np.pi * 9 * t) > -0.2).astype(float) * (0.6 + 0.4 * np.abs(np.sin(2 * np.pi * 23 * t)))
+x = band(rng.standard_normal(len(t)), 1800, 7500) * strokes * np.sin(np.pi * t / t[-1]) ** 0.5
+save('scribble', x, 0.3)
+
+# Steam: a faint, airy hiss.
+t = seconds(1.2)
+x = band(rng.standard_normal(len(t)), 3000, 10000) * np.sin(np.pi * t / t[-1]) ** 2
+save('steam', x, 0.2)
+
+# Rise: a slow swell of air that builds and settles.
+t = seconds(1.4)
+x = band(rng.standard_normal(len(t)), 200, 2500) * np.sin(np.pi * np.minimum(1, t / 1.0) / 2) ** 2 * np.minimum(1, (t[-1] - t) / 0.35)
+save('rise', x, 0.35)
+
+# Swish: a quick, light movement of air.
+t = seconds(0.28)
+x = band(rng.standard_normal(len(t)), 900, 6000) * np.sin(np.pi * t / t[-1]) ** 3
+save('swish', x, 0.3)
+
+
+def rattle(length, clicks):
+    """Clicks that start quick and slow down, the way a counter settles on its number."""
+    x = np.zeros(int(RATE * length))
+    click = band(rng.standard_normal(int(RATE * 0.012)), 2500, 8000) * np.exp(-seconds(0.012) / 0.0015)
+    for k in range(clicks):
+        at = length * 0.9 * (1 - (1 - k / clicks) ** 0.5)
+        s0 = int(at * RATE)
+        x[s0:s0 + len(click)] += click[: len(x) - s0] * (0.6 + 0.4 * (k == clicks - 1))
+    return x
+
+
+save('count', rattle(0.42, 9), 0.35)
+save('countlong', rattle(1.0, 14), 0.35)
+
+# Tap: a small ceramic tap, short and dry.
+t = seconds(0.1)
+x = sum(a * np.sin(2 * np.pi * f * t) * np.exp(-t / d) for f, a, d in ((1450, 1.0, 0.012), (2900, 0.4, 0.007), (4100, 0.25, 0.004)))
+x += 0.3 * band(rng.standard_normal(len(t)), 3000, 9000) * np.exp(-t / 0.002)
+save('tap', x, 0.35)
+
 print('wrote', ', '.join(sorted(p.stem for p in (here / 'sfx').glob('*.wav'))))

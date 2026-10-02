@@ -4,7 +4,7 @@
 It tells a short story, following the structure of a reference ad the team liked: a hook,
 the gap between the number you're shown and how you actually feel, a cartoon culprit for
 each part of the gap, the pain, then daywoven. It's voiced throughout by the female voice
-(`af_heart`). The only other sound is a set of small natural sound effects. There is no
+(`af_heart`), with lots of small natural sound effects on nearly every action. There is no
 background bed, and no music or musical instrument anywhere in it.
 
 | Seconds | Voice | On screen |
@@ -30,6 +30,7 @@ measurement.
 ```bash
 cd marketing/story-ad-41s
 python sfx.py                       # → sfx/*.wav, the sound effects (numpy, soundfile)
+python cues.py                      # writes the effect cues into index.html
 python voiceover.py                 # → vo/line*.wav and vo/plan.json (kokoro-onnx; see the file)
 npm run check                       # lint, layout, motion and contrast checks
 npm run render                      # → renders/daywoven-story-41s-9x16.mp4 (picture + effects)
@@ -48,28 +49,38 @@ off HyperFrames' anonymous usage telemetry. `mix.sh` needs an ffmpeg built with 
 
 ## Sound
 
-There's no music, and every sound is synthesised by `sfx.py` from noise and simple physics:
+There's no music and no background bed: just the voice and lots of small natural sound
+effects, about 160 of them, one on nearly every action. `sfx.py` synthesises them all from noise
+and simple physics. `cues.py` is the cue sheet (second, sound, volume). It writes the
+`<audio>` tags into `index.html`, so adding or moving an effect is a one-line change:
+`python sfx.py && python cues.py`.
 
 | Sound | Where |
 | --- | --- |
-| A low goo bloop | the orb appearing, melting, the question mark, the pillar chips |
-| A crunchy bite | the lunch monster |
-| A soft knock on wood | "LYING.", the calendar blocks landing, "tap tap", tapping Start |
-| A soft fwoomp with crackles | the flame |
-| A short rush of air | the app chips flying in and away, the threads |
-| A clock tick | 3 p.m. |
-| Two water drops | the question mark's dot, the glass, the notifications, the name |
-| A slow breath of air | the breathing ring |
+| swish, air | cards, text and app chips sliding; things flying in and away |
+| thud | "LYING.", the blocks pressing down, "6 APPS", "3 p.m.", "Fewer apps." |
+| knock | "LYING.", the calendar blocks landing, "tap tap", tapping Start |
+| tick | text appearing, the glitch, the blink, the clock running, each ring arc |
+| pop, bloop | the orb appearing, the eyes, each daywoven letter landing, the pillar chips |
+| squish, drip | the melt and the puddle; the orb springing back |
+| sigh | "(sigh)" |
+| scribble | the question mark, the hand-drawn loop, the check |
+| bite, munch | the lunch monster biting and chewing; the last nibble |
+| fire, sizzle | the flame lighting, flaring and singeing |
+| tap | the glass landing, the coffee cup |
+| count, countlong | a rattle of clicks under every number that counts |
+| drop | the question mark's dot, the glass's last drop, notifications, the name |
+| breath, steam, rise | the reset ring, the coffee, the sunrise and the dawn |
 
-`mix.sh` cleans and levels the voice, ducks the effects under it, and masters the result to
-−14 LUFS with a −1.5 dB safety limiter. Between lines there is silence apart from the
-effects. If you want a background back, `python bed.py && BED=1 ./mix.sh` lays the
-stream-and-breeze bed from the kinetic promo underneath. It's cut to 41 seconds, with breezes
-that swell on this ad's scene changes and bubbles 12 dB under how they were first balanced.
+`mix.sh` cleans and levels the voice, ducks the effects about 6 dB under it, and masters the
+result to −14 LUFS with a −1.5 dB safety limiter. Between lines you hear only the effects.
+If you want a background back, `python bed.py && BED=1 ./mix.sh` lays the stream-and-breeze
+bed from the kinetic promo underneath, cut to 41 seconds.
 
-The final mix was transcribed back word for word with `listen.py`. Two script choices came
-from that check: "Skipped lunch **cost** twelve" (not "ate", which was heard as "at 12"), and
-numbers written out as words in `voiceover.py` so they're read as numbers.
+The final mix was transcribed back with `listen.py`, and every line comes through over the
+effects. Two script choices came from that check: "Skipped lunch **cost** twelve" (not
+"ate", which was heard as "at 12"), and numbers written out as words in `voiceover.py` so
+they're read as numbers.
 
 ## Content rules followed
 
