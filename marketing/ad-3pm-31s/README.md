@@ -56,7 +56,8 @@ chat come from the system's Noto Color Emoji font.
 
 ## Sound
 
-About 140 effects, one on every movement. They're the story ad's natural sounds (pops,
+About 145 effects. As in the story ad, every movement in the hook (the first ten seconds) has
+its own sound, matched to what moves, and after that nearly every action does. They're the story ad's natural sounds (pops,
 bloops, taps, knocks, ticks, zips, drops), plus three new ones from `sfx.py`:
 
 | Sound | Where |

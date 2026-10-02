@@ -49,7 +49,8 @@ start times it prints, and move that scene's timings and its cues to match.
 
 ## Sound
 
-About 120 effects, one on every movement: the story ad's natural sounds plus `buzz` (the
+About 130 effects. As in the story ad, every movement in the hook (the first ten seconds) has
+its own sound, matched to what moves, and after that nearly every action does: the story ad's natural sounds plus `buzz` (the
 phones) and `drain` (the top half's energy dropping), all from `sfx.py`. `mix.sh`
 levels the voice, ducks the effects under it, and masters to −14 LUFS. The final mix was
 transcribed back with `listen.py`; every line comes through.

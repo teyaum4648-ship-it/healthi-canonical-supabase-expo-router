@@ -13,23 +13,24 @@ import soundfile as sf
 
 here = Path(__file__).parent
 CUES = [
-    # 1 · Both asleep: the phones buzz, a soft snore, the captions pop on the seam, both wake with a hop.
-    (0.0, 'breath', 0.2), (0.1, 'buzz', 0.6), (0.24, 'pop', 0.4), (1.28, 'pop2', 0.4),
-    (1.33, 'bloop', 0.4), (1.36, 'bloop2', 0.35), (1.35, 'blink', 0.45), (2.4, 'pop', 0.4), (3.3, 'glint', 0.3), (3.3, 'tick', 0.25),
+    # 1 · The hook: every movement has its own sound. Both asleep: a soft snore, the phones buzz (the
+    # clocks pulse with them), the energy bars fill, the captions pop on and whisk off, both wake with a hop.
+    (0.0, 'breath', 0.2), (0.1, 'buzz', 0.6), (0.15, 'count', 0.25), (0.24, 'pop', 0.4), (0.25, 'pop2', 0.15), (1.2, 'puff', 0.15), (1.28, 'pop2', 0.4), (2.32, 'puff', 0.15),
+    (1.33, 'bloop', 0.4), (1.36, 'bloop2', 0.35), (1.35, 'blink', 0.45), (2.4, 'pop', 0.4), (3.3, 'glint', 0.3), (3.3, 'tick', 0.25), (4.45, 'puff', 0.15),
     # Up top: snooze (the card lands, the blob flops), three coffees, no lunch, the battery draining.
-    (4.85, 'whump', 0.3), (5.55, 'dart', 0.3), (5.75, 'knock', 0.45), (5.62, 'squish', 0.45), (5.6, 'count', 0.35),
-    (6.15, 'tap', 0.45), (6.35, 'tap', 0.45), (6.55, 'tap', 0.5), (6.15, 'count', 0.3), (6.25, 'tick', 0.2), (6.65, 'tick', 0.2),
+    (4.85, 'whump', 0.3), (5.55, 'dart', 0.3), (5.75, 'knock', 0.45), (5.62, 'squish', 0.45), (5.6, 'count', 0.35), (5.6, 'blink', 0.25),
+    (6.12, 'pop2', 0.2), (6.32, 'pop', 0.2), (6.52, 'pop2', 0.2), (6.15, 'tap', 0.45), (6.35, 'tap', 0.45), (6.55, 'tap', 0.5), (6.15, 'count', 0.3), (6.25, 'tick', 0.2), (6.5, 'tick', 0.15), (6.65, 'tick', 0.2),
     (6.86, 'dart', 0.3), (7.05, 'knock', 0.4), (7.08, 'tap', 0.3), (6.88, 'count', 0.3), (7.0, 'drain', 0.45),
     # Down here: the heads-up at 7:00 (buzz, drop), a glance, it tucks away as a badge.
     (7.72, 'whump', 0.35), (8.4, 'pop', 0.4), (9.05, 'count', 0.3), (9.12, 'buzz', 0.6), (9.2, 'drop', 0.6), (9.55, 'blink', 0.35),
-    (10.32, 'puff', 0.15), (10.4, 'pop2', 0.4),
+    (10.32, 'puff', 0.15), (10.4, 'pop2', 0.4), (10.42, 'blink', 0.2),
     # Daylight, lunch, last coffee: each chip slides in and lands, the sun comes up, each gets checked.
-    (10.48, 'dart', 0.25), (10.65, 'tap', 0.35), (10.5, 'rise', 0.4), (10.5, 'count', 0.3), (10.85, 'scribble', 0.35), (11.1, 'pop', 0.3), (10.9, 'bloop2', 0.3),
+    (10.48, 'dart', 0.25), (10.65, 'tap', 0.35), (10.5, 'rise', 0.4), (10.5, 'count', 0.3), (10.85, 'scribble', 0.35), (11.1, 'pop', 0.3), (10.9, 'bloop2', 0.3), (10.95, 'tick', 0.2),
     (11.74, 'dart', 0.25), (11.9, 'tap', 0.35), (11.76, 'count', 0.3), (12.15, 'scribble', 0.35), (12.4, 'pop', 0.3),
     (12.94, 'dart', 0.25), (13.1, 'tap', 0.35), (12.96, 'count', 0.3), (13.4, 'scribble', 0.35), (13.65, 'pop', 0.3),
     # 3 p.m.: both clocks land together. Top melts and sighs, bottom hops.
     (14.6, 'whump', 0.4), (14.62, 'count', 0.45), (14.64, 'thud', 0.9), (14.64, 'knock', 0.6), (14.92, 'pop', 0.4),
-    (14.95, 'squish', 0.6), (15.05, 'ooze', 0.5), (15.0, 'drain', 0.5), (15.0, 'bloop', 0.5), (15.2, 'glint', 0.25), (15.55, 'sigh', 0.8),
+    (14.95, 'squish', 0.6), (15.05, 'ooze', 0.5), (15.0, 'drain', 0.5), (15.0, 'bloop', 0.5), (15.0, 'blink', 0.25), (15.2, 'glint', 0.25), (15.55, 'sigh', 0.8),
     # Same job. Same sleep. Completely different day: the top goes grey, the bottom bounces.
     (16.24, 'pop', 0.4), (17.2, 'pop2', 0.4), (18.16, 'pop', 0.45), (18.16, 'thud', 0.6), (18.2, 'whump', 0.3), (18.75, 'wobble', 0.35),
     # 2 · The heads-up rises with its blob, the name slams, a blink, the real app, then the dots and the curve fitting them.

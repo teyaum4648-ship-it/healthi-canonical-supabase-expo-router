@@ -13,22 +13,24 @@ import soundfile as sf
 
 here = Path(__file__).parent
 CUES = [
-    # 1 · The text: each message pops, the captions tick on and slam, three coffees land and steam,
+    # 1 · The hook: every movement has its own sound. Each message pops, the captions tick on and slam, three coffees pop in, land and steam,
     # Jordan types and replies, and the chat falls back as the rewind starts.
     (0.08, 'tick', 0.25), (0.1, 'bloop2', 0.5), (0.1, 'pop', 0.4), (0.3, 'tick', 0.3), (0.8, 'pop2', 0.45), (0.8, 'bloop', 0.35), (2.08, 'thud', 0.9), (2.08, 'knock', 0.6), (2.95, 'puff', 0.15), (3.15, 'tick', 0.3),
-    (3.7, 'pop', 0.3), (3.8, 'tap', 0.45), (3.9, 'steam', 0.3), (4.3, 'pop2', 0.3), (4.4, 'tap', 0.45),
+    (3.7, 'pop', 0.3), (3.8, 'tap', 0.45), (3.9, 'steam', 0.3), (4.3, 'pop2', 0.3), (4.4, 'tap', 0.45), (4.52, 'steam', 0.22), (5.14, 'steam', 0.15),
     (4.42, 'blink', 0.3), (4.55, 'tick', 0.15), (4.65, 'tick', 0.15), (4.75, 'tick', 0.15),
     (4.95, 'pop', 0.3), (4.98, 'thud', 0.7), (4.98, 'knock', 0.5), (5.05, 'tap', 0.5),
     (5.12, 'pop', 0.45), (5.12, 'bloop2', 0.35), (5.55, 'whump', 0.4),
-    # 2 · Rewind into last night (whirr, the clock rattling back, the stars), then forward: each card
-    # slides in and lands, the battery drains, the plate spins, the meetings drop and squeeze, the
+    # 2 · Rewind into last night (whirr, the night falling, REWIND flickering, the clock glitching and
+    # rattling back, the stars), then forward: each card
+    # slides in and lands, the battery drains, the plate spins and rattles to a stop, the meetings drop and squeeze, the
     # calendar lands, the crash appears, and the stamp comes down.
     (5.75, 'pop', 0.4), (5.95, 'glitch', 0.35), (6.05, 'rewind', 0.7), (6.05, 'countlong', 0.45),
-    (6.15, 'tick', 0.2), (6.45, 'tick', 0.2), (6.75, 'tick', 0.2), (7.0, 'tick', 0.2),
+    (6.08, 'whump', 0.3), (6.15, 'static', 0.22), (6.45, 'static', 0.22), (6.75, 'static', 0.22), (7.0, 'static', 0.2),
+    (6.1, 'blink', 0.12), (6.34, 'blink', 0.12), (6.58, 'blink', 0.12), (6.82, 'blink', 0.12),
     (6.45, 'glint', 0.2), (6.7, 'glint', 0.25), (6.95, 'glint', 0.2),
     (7.35, 'whump', 0.4), (7.42, 'count', 0.45), (7.45, 'rise', 0.35), (7.55, 'pop2', 0.25),
     (7.62, 'dart', 0.3), (7.85, 'tap', 0.4), (7.95, 'drain', 0.4),
-    (8.6, 'count', 0.35), (8.66, 'dart', 0.3), (8.75, 'tap', 0.5), (8.95, 'tap', 0.3), (8.95, 'drain', 0.4),
+    (8.6, 'count', 0.35), (8.66, 'dart', 0.3), (8.72, 'count', 0.25), (8.75, 'tap', 0.5), (8.95, 'tap', 0.3), (8.95, 'drain', 0.4),
     (9.55, 'count', 0.35), (9.58, 'dart', 0.3), (9.8, 'tap', 0.35),
     (9.84, 'knock', 0.6), (10.04, 'knock', 0.6), (10.24, 'knock', 0.6), (10.44, 'knock', 0.6),
     (10.6, 'thud', 0.6), (10.62, 'squish', 0.3), (10.6, 'drain', 0.5),
