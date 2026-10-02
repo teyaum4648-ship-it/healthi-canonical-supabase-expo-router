@@ -13,24 +13,31 @@ import soundfile as sf
 
 here = Path(__file__).parent
 CUES = [
-    # 1 · Hook: the spheres bubble up; the card rises, counts up, draws its chart, and its tags land;
-    # it gets flung away; LYING slams and glitches with static.
-    (0.04, 'bloop', 0.45), (0.13, 'bloop', 0.35), (0.22, 'bloop', 0.5), (0.31, 'pop', 0.4),
-    (0.22, 'tick', 0.3), (0.34, 'count', 0.45), (0.5, 'zip', 0.35), (0.7, 'tap', 0.45),
-    (0.82, 'pop', 0.35), (0.92, 'tap', 0.3), (1.0, 'tap', 0.28), (1.28, 'air', 0.65),
-    (1.52, 'thud', 1.0), (1.52, 'knock', 0.7), (1.62, 'static', 0.45), (1.7, 'tick', 0.4), (1.78, 'tick', 0.35),
-    (1.9, 'tick', 0.3),
-    # 2 · The small spheres pop up; the orb, the melt (the puddle oozes out), the sigh, a blink, the puddle slurping up into the question.
-    *[(round(2.52 + i * 0.08, 2), 'pop', v) for i, v in enumerate((0.3, 0.25, 0.3, 0.25))],
-    (2.6, 'tick', 0.3), (3.42, 'bloop', 0.8), (3.42, 'pop', 0.6), (3.98, 'tick', 0.3),
-    (4.6, 'tick', 0.3), (5.0, 'countlong', 0.5), (5.05, 'bloop', 0.7), (5.2, 'squish', 0.7), (5.3, 'ooze', 0.45),
-    (5.45, 'bloop', 0.6), (5.7, 'drip', 0.5), (5.85, 'bloop', 0.6), (5.94, 'drip', 0.45), (6.18, 'drip', 0.45),
-    (6.1, 'pop', 0.5), (6.42, 'drip', 0.4), (6.45, 'sigh', 0.8), (6.66, 'drip', 0.4), (6.95, 'blink', 0.45), (7.04, 'blink', 0.35),
-    (7.35, 'tick', 0.3), (7.45, 'blink', 0.35), (7.6, 'scribble', 0.6), (7.6, 'slurp', 0.5), (8.12, 'drop', 0.5),
+    # 1 · Hook. Every movement in the first ten seconds has its own sound. The spheres bubble up; the
+    # card lifts in, counts up, draws its chart and its tags land; it is flicked away; LYING slams (the
+    # spheres flinch and wobble back), glitches and settles, and glitches once more before the cut.
+    (0.04, 'bloop', 0.5), (0.13, 'bloop2', 0.42), (0.22, 'bloop', 0.55), (0.31, 'pop2', 0.45),
+    (0.22, 'tick', 0.35), (0.32, 'whump', 0.55), (0.34, 'count', 0.5), (0.5, 'zip', 0.4), (0.7, 'tap', 0.45),
+    (0.82, 'pop', 0.4), (0.92, 'tap', 0.35), (1.0, 'tap', 0.32),
+    (1.27, 'flick', 0.6), (1.28, 'air', 0.6),
+    (1.52, 'thud', 1.0), (1.52, 'knock', 0.7), (1.58, 'wobble', 0.3),
+    (1.62, 'glitch', 0.55), (1.62, 'static', 0.3), (1.88, 'tick', 0.3), (2.18, 'glitch', 0.4),
+    # 2 · The small spheres pop up; the orb lands and wobbles; text whisks off with a breath; the melt
+    # (goo bubbles, each drip landing, the puddle oozing out, the number rattling down); the eyes open;
+    # the sigh; a blink; a glance up; the puddle slurps up into the question and its dot plops on.
+    (2.52, 'pop', 0.35), (2.6, 'pop2', 0.3), (2.68, 'pop', 0.35), (2.76, 'pop2', 0.3),
+    (2.6, 'tick', 0.3), (3.4, 'whump', 0.45), (3.42, 'bloop', 0.85), (3.42, 'pop', 0.6), (3.6, 'wobble', 0.35),
+    (3.98, 'tick', 0.3), (4.45, 'puff', 0.2), (4.6, 'tick', 0.3),
+    (4.95, 'squish', 0.4), (5.0, 'countlong', 0.55), (5.05, 'bloop', 0.7), (5.2, 'squish', 0.7), (5.25, 'bloop2', 0.4),
+    (5.3, 'ooze', 0.5), (5.45, 'bloop', 0.6), (5.65, 'bloop2', 0.35), (5.85, 'bloop', 0.55),
+    (5.7, 'drip', 0.5), (5.94, 'drip', 0.45), (6.18, 'drip', 0.45), (6.42, 'drip', 0.4), (6.66, 'drip', 0.4),
+    (6.1, 'pop', 0.5), (6.1, 'blink', 0.35), (6.45, 'sigh', 0.8), (6.95, 'blink', 0.45), (7.04, 'blink', 0.35),
+    (7.2, 'puff', 0.2), (7.35, 'tick', 0.3), (7.45, 'blink', 0.35), (7.6, 'scribble', 0.6), (7.6, 'slurp', 0.5),
+    (8.1, 'bloop2', 0.45), (8.12, 'drop', 0.5),
     # 3 · The culprits: the mouth opens wet and chomps on each close; the flame crackles as it flickers;
     # the orb wobbles back; the glass sloshes as it tips; the badge pulses.
-    (8.88, 'bloop', 0.7), (8.88, 'pop', 0.5), (8.95, 'pop', 0.35), (9.0, 'tick', 0.3),
-    (9.15, 'patter', 0.6), (9.62, 'smack', 0.5), (9.88, 'bite', 1.0), (9.95, 'count', 0.55), (10.0, 'pop', 0.4),
+    (8.86, 'whump', 0.4), (8.88, 'bloop', 0.7), (8.88, 'pop', 0.5), (8.95, 'pop', 0.35), (9.0, 'tick', 0.3),
+    (9.15, 'patter', 0.6), (9.62, 'smack', 0.5), (9.7, 'dart', 0.4), (9.88, 'bite', 1.0), (9.95, 'count', 0.55), (10.0, 'pop', 0.4),
     (10.25, 'smack', 0.35), (10.34, 'munch', 0.6), (10.45, 'smack', 0.3), (10.54, 'munch', 0.55), (10.55, 'patter', 0.55), (10.85, 'tick', 0.3),
     (11.43, 'knock', 0.8), (11.63, 'knock', 0.8), (11.83, 'knock', 0.8), (12.0, 'thud', 0.9), (12.03, 'knock', 0.9),
     (12.1, 'count', 0.55), (12.15, 'pop', 0.4), (12.2, 'wobble', 0.55), (12.35, 'air', 0.35),

@@ -37,6 +37,11 @@ static a short burst of crackly static, for the "LYING." glitch
 slurp  goo gathering itself up, for the puddle pulling into a question mark
 ooze   a slow, low spread of goo, for the puddle spreading out
 blink  a tiny soft click, for the eyes blinking and glancing up
+pop2, bloop2  the same a little higher, so runs of them don't sound copied
+glitch a crushed little burst for each jump of the "LYING." letters, and a click as they settle
+flick  a crisp hit on the card's edge, the knock that sends it flying
+whump  a soft, low push of air, for the card and the orb arriving
+dart   a very short push of air, for the monster's lunge
 """
 from pathlib import Path
 
@@ -308,5 +313,35 @@ save('ooze', x, 0.4)
 t = seconds(0.05)
 x = band(rng.standard_normal(len(t)), 600, 3000) * np.exp(-t / 0.002) + 0.4 * bubble(1700, 3, 0.006, 0.05)
 save('blink', x, 0.3)
+
+# Pop2 and bloop2: the same, a little higher, so runs of them don't sound copied.
+save('pop2', bubble(1150, 6, 0.015, 0.08) + 0.3 * band(rng.standard_normal(int(RATE * 0.08)), 2500, 8000) * np.exp(-seconds(0.08) / 0.0035), 0.45)
+x = bubble(260, 2.4, 0.055, 0.3)
+x[int(RATE * 0.04):] += 0.35 * bubble(420, 2.5, 0.03, 0.26)[: len(x) - int(RATE * 0.04)]
+save('bloop2', x)
+
+# Glitch: one crushed little burst per jump of the "LYING." letters (at the same offsets as the
+# animation), then a click as they settle. Holding each sample a few times gives it a digital grit.
+x = np.zeros(int(RATE * 0.22))
+for at, lo, hi, level in ((0, 900, 3000, 1.0), (0.02, 3000, 8000, 0.7), (0.04, 500, 1800, 0.8), (0.08, 2000, 6000, 0.9), (0.1, 700, 2500, 0.6), (0.16, 2500, 9000, 0.5)):
+    n = int(RATE * 0.016); s0 = int(at * RATE)
+    burst = band(rng.standard_normal(n), lo, hi) * np.exp(-seconds(0.016) / 0.006)
+    x[s0:s0 + n] += level * np.repeat(burst[::6], 6)[:n]
+save('glitch', x, 0.4)
+
+# Flick: a crisp hit on the edge of the card, the knock that sends it flying.
+t = seconds(0.08)
+x = band(rng.standard_normal(len(t)), 1200, 7000) * np.exp(-t / 0.004) + 0.5 * np.sin(2 * np.pi * 160 * t) * np.exp(-t / 0.012)
+save('flick', x, 0.45)
+
+# Whump: a soft, low push of air as something arrives. Felt more than heard.
+t = seconds(0.3)
+x = band(rng.standard_normal(len(t)), 60, 450) * np.minimum(1, t / 0.03) * np.exp(-t / 0.08)
+save('whump', x, 0.5)
+
+# Dart: a very short push of air for a sudden lunge, lower and quicker than a rush.
+t = seconds(0.18)
+x = band(rng.standard_normal(len(t)), 300, 2500) * np.sin(np.pi * t / t[-1]) ** 2 * np.exp(-t / 0.08)
+save('dart', x, 0.35)
 
 print('wrote', ', '.join(sorted(p.stem for p in (here / 'sfx').glob('*.wav'))))
