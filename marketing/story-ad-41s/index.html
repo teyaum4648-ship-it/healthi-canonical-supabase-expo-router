@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-weight: 400;
+      }
+      :root {
+        --ink: #0b1f19;
+        --muted: #6b7a73;
+        --canvas: #f2efe9;
+        --mint: #3dd6a3;
+        --mint-deep: #129a71;
+        --mint-pale: #c9f5e4;
+        --lav: #9b80ee;
+        --amber: #f0ad32;
+        --blue: #4f97ee;
+        --cyan: #2fb8d9;
+        --night: #0d1222;
+        --indigo: #262a7c;
+        --gold: #f7c873;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--canvas);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--canvas);
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .light {
+        background: radial-gradient(110% 70% at 50% 38%, #fbfaf7 0%, #f2efe9 62%, #e8e3da 100%);
+      }
+      .flat {
+        background: var(--canvas);
+      }
+      .mintbg {
+        background: radial-gradient(90% 60% at 50% 40%, #6fe6be 0%, #3dd6a3 55%, #22bb8b 100%);
+      }
+      .dark {
+        background: radial-gradient(90% 60% at 50% 42%, #1c2440 0%, #0d1222 70%, #080b16 100%);
+      }
+      .morning {
+        background: radial-gradient(100% 70% at 30% 28%, #fffaf0 0%, #fbf0dc 55%, #f2e1c2 100%);
+      }
+      .night {
+        background: linear-gradient(180deg, #2a2e86 0%, #22266f 55%, #171a4f 100%);
+      }
+      svg.full {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
+      }
+      .t {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+      .it {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: -0.005em;
+      }
+      .sphere {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 34% 30%, #ffffff 0%, #d9f8ec 22%, #8be8c6 58%, #3cc89a 100%);
+        box-shadow: 0 26px 50px rgba(18, 90, 66, 0.16);
+      }
+      .sphere.white {
+        background: radial-gradient(circle at 34% 30%, #ffffff 0%, #f3fffa 30%, #c3f3df 70%, #95e7c7 100%);
+        box-shadow: 0 30px 60px rgba(10, 70, 50, 0.2);
+      }
+      /* Scene 1 */
+      .card {
+        position: absolute;
+        background: #ffffff;
+        border-radius: 48px;
+        box-shadow:
+          0 40px 90px rgba(8, 60, 44, 0.28),
+          0 2px 0 rgba(255, 255, 255, 0.9) inset;
+      }
+      .eyebrow {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: -0.01em;
+      }
+      .chip {
+        display: inline-block;
+        padding: 12px 24px;
+        border-radius: 999px;
+        background: #eef6f2;
+        color: #2e5a4c;
+        font-size: 28px;
+        font-weight: 600;
+        margin-right: 12px;
+      }
+      #s1-lying span {
+        display: inline-block;
+      }
+      /* App chips on dark */
+      .app {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 28px 18px 18px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.14);
+        color: #eef2f8;
+        font-size: 32px;
+        font-weight: 600;
+        white-space: nowrap;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      }
+      .app i {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: block;
+      }
+      /* Pillar chips */
+      .pillar {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 34px 20px 26px;
+        border-radius: 999px;
+        background: #ffffff;
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        box-shadow: 0 18px 40px rgba(30, 40, 30, 0.12);
+        white-space: nowrap;
+      }
+      .pillar i {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: block;
+      }
+      .pill {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 22px 40px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      .notif {
+        position: absolute;
+        left: 90px;
+        width: 900px;
+        padding: 34px 36px;
+        border-radius: 40px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 30px 70px rgba(20, 40, 30, 0.18);
+        display: flex;
+        align-items: center;
+        gap: 28px;
+      }
+      .notif .ic {
+        width: 92px;
+        height: 92px;
+        border-radius: 24px;
+        background: #0e1a17;
+        flex: none;
+      }
+      .notif .who {
+        font-size: 27px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .notif .what {
+        font-size: 38px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-top: 4px;
+      }
+      .notif .why {
+        font-size: 34px;
+        font-weight: 500;
+        color: #43524c;
+        margin-top: 2px;
+      }
+      .notif .go {
+        margin-left: auto;
+        padding: 18px 34px;
+        border-radius: 999px;
+        background: var(--mint);
+        color: var(--ink);
+        font-size: 34px;
+        font-weight: 800;
+      }
+      .phone {
+        position: absolute;
+        left: 230px;
+        top: 1120px;
+        width: 620px;
+        height: 1000px;
+        border-radius: 86px;
+        background: #121829;
+        border: 14px solid #1f2638;
+        box-shadow: 0 50px 90px rgba(60, 40, 10, 0.25);
+        overflow: hidden;
+      }
+      .word {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="41" data-width="1080" data-height="1920">
+      <!-- Shared gradients and filters, referenced by every scene's SVG. -->
+      <svg width="0" height="0" style="position: absolute">
+        <defs>
+          <radialGradient id="gOrb" cx="0.36" cy="0.3" r="0.78">
+            <stop offset="0" stop-color="#f2fffa" />
+            <stop offset="0.18" stop-color="#a8f2d8" />
+            <stop offset="0.55" stop-color="#3dd6a3" />
+            <stop offset="1" stop-color="#128c66" />
+          </radialGradient>
+          <radialGradient id="gShine" cx="0.34" cy="0.26" r="0.62">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.85" />
+            <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.18" />
+            <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="gUnder" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0.45" stop-color="#003a28" stop-opacity="0" />
+            <stop offset="1" stop-color="#003a28" stop-opacity="0.28" />
+          </linearGradient>
+          <radialGradient id="gLav" cx="0.36" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#f3eeff" />
+            <stop offset="0.4" stop-color="#b9a4f6" />
+            <stop offset="1" stop-color="#7457dd" />
+          </radialGradient>
+          <linearGradient id="gAmb" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffd877" />
+            <stop offset="1" stop-color="#eb9f1e" />
+          </linearGradient>
+          <linearGradient id="gFlameOut" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#9cc9ff" />
+            <stop offset="1" stop-color="#2f6fe0" />
+          </linearGradient>
+          <linearGradient id="gFlameIn" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f4faff" />
+            <stop offset="1" stop-color="#8ec2ff" />
+          </linearGradient>
+          <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#9ae7f7" />
+            <stop offset="1" stop-color="#2fb8d9" />
+          </linearGradient>
+          <radialGradient id="gClock" cx="0.38" cy="0.32" r="0.8">
+            <stop offset="0" stop-color="#ffffff" />
+            <stop offset="0.7" stop-color="#eef1f7" />
+            <stop offset="1" stop-color="#c9d0de" />
+          </radialGradient>
+          <radialGradient id="gSun" cx="0.36" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#fff7d6" />
+            <stop offset="0.4" stop-color="#ffd25e" />
+            <stop offset="1" stop-color="#ef9d2e" />
+          </radialGradient>
+          <radialGradient id="gMoon" cx="0.36" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#fff6d2" />
+            <stop offset="0.5" stop-color="#f7cf72" />
+            <stop offset="1" stop-color="#e2a23e" />
+          </radialGradient>
+          <radialGradient id="gDawn" cx="0.5" cy="1" r="0.9">
+            <stop offset="0" stop-color="#ffb27a" stop-opacity="0.95" />
+            <stop offset="0.45" stop-color="#ee7f8a" stop-opacity="0.35" />
+            <stop offset="1" stop-color="#5a4bb0" stop-opacity="0" />
+          </radialGradient>
+          <filter id="goo" x="-20%" y="-20%" width="140%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="b" />
+            <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10" />
+          </filter>
+          <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+            <feDropShadow dx="0" dy="26" stdDeviation="22" flood-color="#0b3b2c" flood-opacity="0.2" />
+          </filter>
+          <filter id="blur10"><feGaussianBlur stdDeviation="10" /></filter>
+        </defs>
+      </svg>
+
+      <!-- 1 · 0–2.45  "Your sleep score is LYING to you." -->
+      <div id="s1" class="clip mintbg" data-start="0" data-duration="2.45" data-track-index="0">
+        <div class="sphere white s1-sp" style="left: -80px; top: 150px; width: 230px; height: 230px"></div>
+        <div class="sphere white s1-sp" style="left: 860px; top: 470px; width: 170px; height: 170px"></div>
+        <div class="sphere white s1-sp" style="left: 790px; top: 1420px; width: 260px; height: 260px"></div>
+        <div class="sphere white s1-sp" style="left: 70px; top: 1500px; width: 120px; height: 120px"></div>
+        <div id="s1-title" class="t" style="top: 400px; font-size: 92px">Your sleep score</div>
+        <div id="s1-card" class="card" style="left: 140px; top: 600px; width: 800px; height: 620px; padding: 56px 60px">
+          <div class="eyebrow">Sleep score · Last night</div>
+          <div style="display: flex; align-items: flex-end; gap: 24px; margin-top: 28px">
+            <div style="font-size: 230px; font-weight: 800; letter-spacing: -0.05em; line-height: 1">92</div>
+            <div style="font-size: 34px; font-weight: 700; color: var(--mint-deep); padding-bottom: 34px">▲ 6 vs. yesterday</div>
+          </div>
+          <svg width="680" height="120" viewBox="0 0 680 120" style="display: block; margin: 8px 0 22px">
+            <path d="M0 96 C 80 92, 120 70, 190 76 S 300 40, 380 52 S 520 18, 680 14" fill="none" stroke="#3dd6a3" stroke-width="8" stroke-linecap="round" />
+          </svg>
+          <span class="chip">7h 48m asleep</span><span class="chip">Great night</span>
+        </div>
+        <div id="s1-lying" class="t" style="top: 760px; font-size: 220px; font-weight: 900; letter-spacing: -0.05em">
+          <span>L</span><span>Y</span><span>I</span><span>N</span><span>G</span><span>.</span>
+        </div>
+        <div id="s1-toyou" class="t it" style="top: 1010px; font-size: 130px">to you</div>
+      </div>
+
+      <!-- 2 · 2.45–8.85  The 92 orb, the melt to 54, the sigh, and "where'd the rest go?" -->
+      <div id="s2" class="clip light" data-start="2.45" data-duration="6.4" data-track-index="0">
+        <div class="sphere s2-sp" style="left: 80px; top: 560px; width: 70px; height: 70px"></div>
+        <div class="sphere s2-sp" style="left: 930px; top: 700px; width: 52px; height: 52px"></div>
+        <div class="sphere s2-sp" style="left: 900px; top: 1500px; width: 90px; height: 90px"></div>
+        <div class="sphere s2-sp" style="left: 120px; top: 1380px; width: 46px; height: 46px"></div>
+        <div id="s2-h1" class="t" style="top: 400px; font-size: 80px">It says you’re a</div>
+        <div id="s2-h2" class="t" style="top: 380px; font-size: 80px">You <span class="it" style="font-size: 112px; color: var(--mint-deep)">actually</span> feel like a</div>
+        <div id="s2-h3" class="t" style="top: 400px; font-size: 80px">So where’d the <span class="it" style="font-size: 112px; color: var(--mint-deep)">rest</span> go?</div>
+        <svg class="full" viewBox="0 0 1080 1920">
+          <ellipse id="s2-shadow" cx="540" cy="1262" rx="200" ry="26" fill="#0b3b2c" opacity="0.12" filter="url(#blur10)" />
+          <g filter="url(#goo)">
+            <circle id="s2-body" cx="540" cy="980" r="230" fill="#3dd6a3" />
+            <ellipse id="s2-puddle" cx="540" cy="1238" rx="0" ry="0" fill="#3dd6a3" />
+            <circle class="s2-drip" cx="430" cy="1150" r="38" fill="#3dd6a3" />
+            <circle class="s2-drip" cx="520" cy="1185" r="46" fill="#3dd6a3" />
+            <circle class="s2-drip" cx="620" cy="1165" r="34" fill="#3dd6a3" />
+            <circle class="s2-drip" cx="700" cy="1110" r="28" fill="#3dd6a3" />
+            <circle class="s2-drip" cx="370" cy="1090" r="26" fill="#3dd6a3" />
+            <circle id="s2-qdot" cx="540" cy="860" r="0" fill="#3dd6a3" />
+          </g>
+          <circle id="s2-shine" cx="540" cy="980" r="230" fill="url(#gShine)" />
+          <circle id="s2-under" cx="540" cy="980" r="230" fill="url(#gUnder)" />
+          <path id="s2-q" d="M 468 650 C 468 566, 612 560, 612 646 C 612 706, 540 714, 540 790" fill="none" stroke="#3dd6a3" stroke-width="46" stroke-linecap="round" />
+          <text id="s2-num" x="540" y="1032" text-anchor="middle" font-family="Inter" font-weight="800" font-size="160" letter-spacing="-6" fill="#063a2a">92</text>
+          <g id="s2-eyes">
+            <ellipse cx="490" cy="1046" rx="30" ry="34" fill="#ffffff" />
+            <ellipse cx="590" cy="1046" rx="30" ry="34" fill="#ffffff" />
+            <circle class="s2-pupil" cx="494" cy="1054" r="14" fill="#06261c" />
+            <circle class="s2-pupil" cx="594" cy="1054" r="14" fill="#06261c" />
+          </g>
+        </svg>
+        <div id="s2-today" class="t it" style="top: 1310px; font-size: 130px; color: var(--mint-deep)">today.</div>
+        <div id="s2-sigh" class="it" style="position: absolute; left: 760px; top: 905px; font-size: 76px; color: #8d9a94; transform: rotate(-6deg)">(sigh)</div>
+      </div>
+
+      <!-- 3 · 8.85–17.15  The culprits, each taking a bite out of 92 until it reads 54. -->
+      <div id="s3" class="clip flat" data-start="8.85" data-duration="8.3" data-track-index="0">
+        <div id="s3-hud" style="position: absolute; left: 70px; top: 150px; display: flex; align-items: center; gap: 22px">
+          <svg width="124" height="124" viewBox="0 0 124 124">
+            <circle cx="62" cy="62" r="56" fill="url(#gOrb)" />
+            <circle cx="62" cy="62" r="56" fill="url(#gShine)" />
+            <text x="62" y="78" text-anchor="middle" font-family="Inter" font-weight="800" font-size="46" fill="#063a2a">54</text>
+          </svg>
+          <div style="font-size: 34px; font-weight: 600; color: var(--muted)">how you feel</div>
+        </div>
+        <div id="s3-l1" class="t" style="top: 350px; font-size: 84px">Skipped <span class="it" style="font-size: 112px; color: var(--lav)">lunch</span></div>
+        <div id="s3-l2" class="t" style="top: 362px; font-size: 72px">Back-to-back <span class="it" style="font-size: 100px; color: #b8760a">meetings</span></div>
+        <div id="s3-l3" class="t" style="top: 350px; font-size: 84px">Yesterday’s <span class="it" style="font-size: 112px; color: var(--blue)">workout</span></div>
+        <div id="s3-l4" class="t" style="top: 350px; font-size: 84px">And <span class="it" style="font-size: 112px; color: var(--cyan)">water?</span></div>
+        <svg class="full" viewBox="0 0 1080 1920">
+          <g id="s3-orb">
+            <ellipse cx="540" cy="1272" rx="210" ry="28" fill="#0b3b2c" opacity="0.12" filter="url(#blur10)" />
+            <circle cx="540" cy="1010" r="250" fill="url(#gOrb)" />
+            <circle cx="540" cy="1010" r="250" fill="url(#gShine)" />
+            <circle cx="540" cy="1010" r="250" fill="url(#gUnder)" />
+            <!-- Bites are canvas-coloured circles laid over the orb's edge. -->
+            <circle id="s3-b1" cx="790" cy="860" r="92" fill="#f2efe9" />
+            <circle id="s3-b2a" cx="500" cy="752" r="70" fill="#f2efe9" />
+            <circle id="s3-b2b" cx="598" cy="764" r="56" fill="#f2efe9" />
+            <circle id="s3-b3" cx="286" cy="1060" r="84" fill="#f2efe9" />
+            <circle id="s3-b4" cx="775" cy="1150" r="56" fill="#f2efe9" />
+            <text id="s3-num" x="540" y="1068" text-anchor="middle" font-family="Inter" font-weight="800" font-size="170" letter-spacing="-6" fill="#063a2a">92</text>
+          </g>
+          <!-- Lunch monster -->
+          <g id="s3-mon">
+            <path d="M 860 1000 C 860 870, 1080 860, 1090 980 C 1100 1100, 1010 1160, 960 1150 C 900 1140, 860 1110, 860 1000 Z" fill="url(#gLav)" />
+            <ellipse cx="930" cy="950" rx="24" ry="28" fill="#fff" />
+            <ellipse cx="1000" cy="944" rx="24" ry="28" fill="#fff" />
+            <circle cx="926" cy="956" r="11" fill="#1d1240" />
+            <circle cx="996" cy="950" r="11" fill="#1d1240" />
+            <ellipse id="s3-mouth" cx="900" cy="1060" rx="44" ry="34" fill="#2b1660" />
+          </g>
+          <!-- Meeting blocks -->
+          <g id="s3-blocks">
+            <g class="s3-blk"><rect x="380" y="690" width="320" height="76" rx="22" fill="url(#gAmb)" /><text x="540" y="742" text-anchor="middle" font-family="Inter" font-weight="700" font-size="38" fill="#5a3900">9:00</text></g>
+            <g class="s3-blk"><rect x="380" y="606" width="320" height="76" rx="22" fill="url(#gAmb)" /><text x="540" y="658" text-anchor="middle" font-family="Inter" font-weight="700" font-size="38" fill="#5a3900">10:30</text></g>
+            <g class="s3-blk"><rect x="380" y="522" width="320" height="76" rx="22" fill="url(#gAmb)" /><text x="540" y="574" text-anchor="middle" font-family="Inter" font-weight="700" font-size="38" fill="#5a3900">12:00</text></g>
+          </g>
+          <!-- Flame -->
+          <g id="s3-flame">
+            <path class="s3-fl" d="M 170 1200 C 90 1190, 70 1100, 110 1040 C 140 1000, 150 960, 140 900 C 200 950, 230 1010, 220 1070 C 250 1040, 260 1010, 256 980 C 300 1040, 300 1120, 270 1160 C 250 1190, 220 1204, 170 1200 Z" fill="url(#gFlameOut)" />
+            <path class="s3-fl" d="M 182 1190 C 140 1186, 128 1140, 150 1100 C 170 1070, 178 1050, 176 1010 C 210 1050, 230 1090, 224 1130 C 240 1110, 246 1094, 244 1080 C 266 1120, 262 1160, 244 1176 C 230 1188, 210 1192, 182 1190 Z" fill="url(#gFlameIn)" />
+          </g>
+          <!-- Water glass -->
+          <g id="s3-glass">
+            <path d="M 870 1040 L 1000 1040 L 982 1250 Q 980 1268, 962 1268 L 908 1268 Q 890 1268, 888 1250 Z" fill="#ffffff" fill-opacity="0.65" stroke="#9fb7c2" stroke-width="8" stroke-linejoin="round" />
+            <path d="M 886 1228 L 984 1228 L 982 1250 Q 980 1262, 962 1262 L 908 1262 Q 892 1262, 888 1250 Z" fill="url(#gWater)" />
+          </g>
+          <circle id="s3-drop" cx="792" cy="1076" r="16" fill="url(#gWater)" />
+          <text id="s3-d1" x="900" y="760" text-anchor="middle" font-family="Inter" font-weight="800" font-size="96" fill="#7d5ee6">−12</text>
+          <text id="s3-d2" x="860" y="660" text-anchor="middle" font-family="Inter" font-weight="800" font-size="96" fill="#d58c0e">−14</text>
+          <text id="s3-d3" x="200" y="860" text-anchor="middle" font-family="Inter" font-weight="800" font-size="96" fill="#3a80dc">−8</text>
+          <text id="s3-d4" x="880" y="1380" text-anchor="middle" font-family="Inter" font-weight="800" font-size="96" fill="#1ea4c6">−4</text>
+        </svg>
+      </div>
+
+      <!-- 4 · 17.15–19.6  "And you only find out at 3 p.m." -->
+      <div id="s4" class="clip dark" data-start="17.15" data-duration="2.45" data-track-index="0">
+        <div class="s4-star" style="position: absolute; left: 180px; top: 420px; width: 8px; height: 8px; border-radius: 50%; background: #dfe6ff"></div>
+        <div class="s4-star" style="position: absolute; left: 860px; top: 520px; width: 6px; height: 6px; border-radius: 50%; background: #dfe6ff"></div>
+        <div class="s4-star" style="position: absolute; left: 930px; top: 1180px; width: 8px; height: 8px; border-radius: 50%; background: #dfe6ff"></div>
+        <div class="s4-star" style="position: absolute; left: 120px; top: 1260px; width: 6px; height: 6px; border-radius: 50%; background: #dfe6ff"></div>
+        <div class="s4-star" style="position: absolute; left: 300px; top: 1500px; width: 5px; height: 5px; border-radius: 50%; background: #dfe6ff"></div>
+        <div id="s4-top" class="t" style="top: 470px; font-size: 56px; font-weight: 600; color: #c9d1e6; letter-spacing: -0.02em">And you only find out at</div>
+        <svg class="full" viewBox="0 0 1080 1920">
+          <g id="s4-clock">
+            <circle cx="540" cy="900" r="230" fill="url(#gClock)" />
+            <g id="s4-ticks" stroke="#9aa4ba" stroke-width="8" stroke-linecap="round">
+              <line x1="540" y1="694" x2="540" y2="722" /><line x1="540" y1="1078" x2="540" y2="1106" />
+              <line x1="334" y1="900" x2="362" y2="900" /><line x1="718" y1="900" x2="746" y2="900" />
+              <line x1="643" y1="722" x2="636" y2="734" /><line x1="718" y1="797" x2="706" y2="804" />
+              <line x1="718" y1="1003" x2="706" y2="996" /><line x1="643" y1="1078" x2="636" y2="1066" />
+              <line x1="437" y1="1078" x2="444" y2="1066" /><line x1="362" y1="1003" x2="374" y2="996" />
+              <line x1="362" y1="797" x2="374" y2="804" /><line x1="437" y1="722" x2="444" y2="734" />
+            </g>
+            <text id="s4-time" x="540" y="945" text-anchor="middle" font-family="Inter" font-weight="800" font-size="128" letter-spacing="-4" fill="#1b2240">12:00</text>
+          </g>
+        </svg>
+        <div id="s4-pm" class="t it" style="top: 1180px; font-size: 150px; color: #ffffff">3 p.m.</div>
+      </div>
+
+      <!-- 5 · 19.6–21.75  "Six apps open." -->
+      <div id="s5" class="clip dark" data-start="19.6" data-duration="2.15" data-track-index="0">
+        <div class="app s5-app" style="left: 90px; top: 560px"><i style="background: #3dd6a3"></i>Sleep tracker</div>
+        <div class="app s5-app" style="left: 600px; top: 640px"><i style="background: #4f97ee"></i>Step counter</div>
+        <div class="app s5-app" style="left: 150px; top: 1270px"><i style="background: #9b80ee"></i>Food log</div>
+        <div class="app s5-app" style="left: 640px; top: 1180px"><i style="background: #f0ad32"></i>Calendar</div>
+        <div class="app s5-app" style="left: 520px; top: 1400px"><i style="background: #2fb8d9"></i>Water reminder</div>
+        <div class="app s5-app" style="left: 300px; top: 440px"><i style="background: #ef8fb8"></i>Breathing app</div>
+        <div id="s5-text" class="t" style="top: 830px; font-size: 168px; font-weight: 900; color: #ffffff; letter-spacing: -0.05em">
+          <span id="s5-n" class="word" style="color: var(--mint)">3</span> APPS<br /><span id="s5-open" class="it" style="font-size: 190px; color: var(--mint-pale); font-weight: 400; letter-spacing: -0.01em">open.</span>
+        </div>
+      </div>
+
+      <!-- 6 · 21.6–23.2  "So we built daywoven." -->
+      <div id="s6" class="clip" data-start="21.6" data-duration="1.6" data-track-index="1">
+        <div id="s6-wipe" style="position: absolute; left: 540px; top: 960px; width: 2400px; height: 2400px; margin: -1200px 0 0 -1200px; border-radius: 50%; background: var(--canvas)"></div>
+        <div id="s6-built" class="t" style="top: 760px; font-size: 64px; font-weight: 600; color: var(--muted); letter-spacing: -0.02em">So we built</div>
+        <div id="s6-mark" class="t" style="top: 850px; font-size: 200px; letter-spacing: -0.055em">
+          <span class="s6-l word">d</span><span class="s6-l word">a</span><span class="s6-l word">y</span><span class="s6-l word" style="color: var(--mint-deep)">w</span><span class="s6-l word" style="color: var(--mint-deep)">o</span><span class="s6-l word" style="color: var(--mint-deep)">v</span><span class="s6-l word" style="color: var(--mint-deep)">e</span><span class="s6-l word" style="color: var(--mint-deep)">n</span>
+        </div>
+        <svg class="full" viewBox="0 0 1080 1920">
+          <path id="s6-t1" d="M 220 1130 C 330 1080, 420 1180, 540 1130 S 750 1080, 860 1130" fill="none" stroke="#3dd6a3" stroke-width="12" stroke-linecap="round" />
+          <path id="s6-t2" d="M 220 1130 C 330 1180, 420 1080, 540 1130 S 750 1180, 860 1130" fill="none" stroke="#9b80ee" stroke-width="12" stroke-linecap="round" />
+        </svg>
+      </div>
+
+      <!-- 7 · 23.2–28.7  "…woven into one number. The real one." -->
+      <div id="s7" class="clip light" data-start="23.2" data-duration="5.5" data-track-index="0">
+        <svg class="full" viewBox="0 0 1080 1920">
+          <circle cx="540" cy="1000" r="270" fill="none" stroke="#e5e0d6" stroke-width="46" />
+          <path id="s7-th1" d="M 230 560 C 260 700, 320 760, 470 742" fill="none" stroke="#3dd6a3" stroke-width="12" stroke-linecap="round" />
+          <path id="s7-th2" d="M 850 560 C 880 720, 860 820, 800 880" fill="none" stroke="#9b80ee" stroke-width="12" stroke-linecap="round" />
+          <path id="s7-th3" d="M 230 1500 C 260 1380, 330 1300, 420 1250" fill="none" stroke="#4f97ee" stroke-width="12" stroke-linecap="round" />
+          <path id="s7-th4" d="M 850 1500 C 870 1380, 820 1290, 700 1255" fill="none" stroke="#f0ad32" stroke-width="12" stroke-linecap="round" />
+          <!-- Four pillar arcs, a gap between each, starting at 12 o'clock and going clockwise. -->
+          <path id="s7-a1" d="M 563.5 731 A 270 270 0 0 1 808.9 976.5" fill="none" stroke="#3dd6a3" stroke-width="46" stroke-linecap="round" />
+          <path id="s7-a2" d="M 808.9 1023.5 A 270 270 0 0 1 563.5 1269" fill="none" stroke="#9b80ee" stroke-width="46" stroke-linecap="round" />
+          <path id="s7-a3" d="M 516.5 1269 A 270 270 0 0 1 271.1 1023.5" fill="none" stroke="#4f97ee" stroke-width="46" stroke-linecap="round" />
+          <path id="s7-a4" d="M 271.1 976.5 A 270 270 0 0 1 516.5 731" fill="none" stroke="#f0ad32" stroke-width="46" stroke-linecap="round" />
+          <text x="540" y="884" text-anchor="middle" font-family="Inter" font-weight="700" font-size="34" letter-spacing="6" fill="#7d8a84">READINESS</text>
+          <text id="s7-num" x="540" y="1082" text-anchor="middle" font-family="Inter" font-weight="800" font-size="186" letter-spacing="-8" fill="#0b1f19">0</text>
+          <path id="s7-circle" d="M 412 1012 C 406 946, 476 918, 546 918 C 626 918, 684 948, 688 1012 C 692 1080, 624 1114, 542 1114 C 460 1114, 402 1084, 404 1022 C 406 978, 444 950, 502 938" fill="none" stroke="#0b1f19" stroke-width="7" stroke-linecap="round" />
+        </svg>
+        <div class="pillar s7-p" style="left: 110px; top: 480px"><i style="background: #3dd6a3"></i>Sleep</div>
+        <div class="pillar s7-p" style="left: 730px; top: 480px"><i style="background: #9b80ee"></i>Meals</div>
+        <div class="pillar s7-p" style="left: 60px; top: 1500px"><i style="background: #4f97ee"></i>Movement</div>
+        <div class="pillar s7-p" style="left: 780px; top: 1500px"><i style="background: #f0ad32"></i>Mind</div>
+        <div id="s7-pill1" class="pill" style="top: 1360px"><span class="it" style="font-size: 58px; color: var(--mint)">woven</span> into one number.</div>
+        <div id="s7-pill2" class="pill" style="top: 1360px">The <span class="it" style="font-size: 58px; color: var(--mint)">real</span> one.</div>
+      </div>
+
+      <!-- 8 · 28.7–34.35  "When your day starts running heavy, it taps you on the shoulder. One tap. Settled." -->
+      <div id="s8" class="clip light" data-start="28.7" data-duration="5.65" data-track-index="0">
+        <div id="s8-h1" class="t" style="top: 400px; font-size: 80px">When your day starts<br />running <span class="it" style="font-size: 112px; color: #b8760a">heavy,</span></div>
+        <div id="s8-h2" class="t" style="top: 400px; font-size: 80px">it taps you on<br />the <span class="it" style="font-size: 112px; color: var(--mint-deep)">shoulder.</span></div>
+        <div id="s8-h3" class="t" style="top: 430px; font-size: 104px">One tap.</div>
+        <div id="s8-load" style="position: absolute; left: 190px; top: 860px; width: 700px">
+          <div style="font-size: 36px; font-weight: 700; color: var(--muted); margin-bottom: 18px">Today’s load</div>
+          <div style="height: 54px; border-radius: 27px; background: #e5e0d6; overflow: hidden">
+            <div id="s8-fill" style="height: 100%; width: 100%; border-radius: 27px; background: linear-gradient(90deg, #ffd877, #f0ad32 60%, #e28a12); transform-origin: 0 50%"></div>
+          </div>
+        </div>
+        <svg class="full" viewBox="0 0 1080 1920">
+          <g id="s8-blob">
+            <ellipse cx="1000" cy="900" rx="130" ry="118" fill="url(#gOrb)" />
+            <ellipse cx="1000" cy="900" rx="130" ry="118" fill="url(#gShine)" />
+            <ellipse cx="950" cy="880" rx="24" ry="28" fill="#fff" /><ellipse cx="1010" cy="880" rx="24" ry="28" fill="#fff" />
+            <circle cx="942" cy="886" r="11" fill="#06261c" /><circle cx="1002" cy="886" r="11" fill="#06261c" />
+          </g>
+          <circle id="s8-breath" cx="540" cy="1120" r="150" fill="none" stroke="#3dd6a3" stroke-width="22" />
+          <path id="s8-check" d="M 470 1122 L 525 1176 L 625 1062" fill="none" stroke="#0b1f19" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div id="s8-taptap" class="it" style="position: absolute; left: 640px; top: 720px; font-size: 76px; color: var(--muted)">tap tap</div>
+        <div id="s8-notif" class="notif" style="top: 1060px">
+          <div class="ic">
+            <svg width="92" height="92" viewBox="0 0 92 92">
+              <circle cx="46" cy="46" r="26" fill="none" stroke="#2a3a35" stroke-width="9" />
+              <path d="M 46 20 A 26 26 0 0 1 72 46" fill="none" stroke="#3dd6a3" stroke-width="9" stroke-linecap="round" />
+              <path d="M 72 46 A 26 26 0 0 1 46 72" fill="none" stroke="#9b80ee" stroke-width="9" stroke-linecap="round" />
+              <path d="M 46 72 A 26 26 0 0 1 20 46" fill="none" stroke="#4f97ee" stroke-width="9" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <div class="who">daywoven · now</div>
+            <div class="what">Your load is building.</div>
+            <div class="why">Two-minute reset?</div>
+          </div>
+          <div id="s8-go" class="go">Start</div>
+        </div>
+        <div id="s8-tapdot" style="position: absolute; left: 805px; top: 1150px; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%; background: rgba(11, 31, 25, 0.16); border: 4px solid rgba(11, 31, 25, 0.25)"></div>
+        <div id="s8-settled" class="t it" style="top: 1350px; font-size: 170px; color: var(--mint-deep)">Settled.</div>
+      </div>
+
+      <!-- 9 · 34.35–37.75  "Every morning, before coffee, you'll know where you stand." -->
+      <div id="s9" class="clip morning" data-start="34.35" data-duration="3.4" data-track-index="0">
+        <svg class="full" viewBox="0 0 1080 1920">
+          <g id="s9-sun">
+            <g id="s9-rays" stroke="#f2b23c" stroke-width="12" stroke-linecap="round">
+              <line x1="250" y1="350" x2="250" y2="310" /><line x1="250" y1="650" x2="250" y2="690" />
+              <line x1="100" y1="500" x2="60" y2="500" /><line x1="400" y1="500" x2="440" y2="500" />
+              <line x1="144" y1="394" x2="116" y2="366" /><line x1="356" y1="606" x2="384" y2="634" />
+              <line x1="144" y1="606" x2="116" y2="634" /><line x1="356" y1="394" x2="384" y2="366" />
+            </g>
+            <circle cx="250" cy="500" r="120" fill="url(#gSun)" />
+            <circle cx="250" cy="500" r="120" fill="url(#gShine)" />
+          </g>
+          <g id="s9-cup" stroke="#3a2d1f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <path d="M 700 470 L 720 640 Q 724 668, 752 668 L 868 668 Q 896 668, 900 640 L 920 470 Z" fill="#ffffff" />
+            <path d="M 712 520 L 908 520" stroke="#e0703a" />
+            <path d="M 918 510 Q 990 512, 980 570 Q 972 618, 906 616" />
+            <path class="s9-steam" d="M 760 430 C 740 400, 780 380, 760 340" />
+            <path class="s9-steam" d="M 810 430 C 790 396, 830 372, 810 326" />
+            <path class="s9-steam" d="M 860 430 C 840 400, 880 380, 860 340" />
+          </g>
+        </svg>
+        <div id="s9-l1" class="t" style="top: 790px; font-size: 84px">Every morning,</div>
+        <div id="s9-l2" class="t it" style="top: 880px; font-size: 112px; color: #b5651d">before coffee,</div>
+        <div id="s9-l3" class="t" style="top: 1010px; font-size: 64px; font-weight: 700; letter-spacing: -0.025em">you’ll know where you stand.</div>
+        <div id="s9-phone" class="phone">
+          <div style="text-align: center; color: #fff; font-size: 150px; font-weight: 700; letter-spacing: -0.04em; margin-top: 60px">7:02</div>
+          <div style="text-align: center; color: #aab3c8; font-size: 32px; font-weight: 600; margin-top: -6px">Tuesday</div>
+          <div id="s9-note" style="margin: 46px 28px 0; padding: 26px 28px; border-radius: 34px; background: rgba(255, 255, 255, 0.92)">
+            <div style="font-size: 25px; font-weight: 600; color: #6b7a73">daywoven · Morning briefing</div>
+            <div style="font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px">Restore day</div>
+            <div style="font-size: 29px; font-weight: 500; color: #43524c; margin-top: 4px">Ease in, and hydrate early.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10 · 37.75–41  "Fewer apps. Better days." -->
+      <div id="s10" class="clip night" data-start="37.75" data-duration="3.25" data-track-index="0">
+        <div class="s10-star" style="position: absolute; left: 150px; top: 300px; width: 8px; height: 8px; border-radius: 50%; background: #fff"></div>
+        <div class="s10-star" style="position: absolute; left: 880px; top: 380px; width: 6px; height: 6px; border-radius: 50%; background: #fff"></div>
+        <div class="s10-star" style="position: absolute; left: 760px; top: 720px; width: 5px; height: 5px; border-radius: 50%; background: #fff"></div>
+        <div class="s10-star" style="position: absolute; left: 230px; top: 1260px; width: 7px; height: 7px; border-radius: 50%; background: #fff"></div>
+        <div class="s10-star" style="position: absolute; left: 930px; top: 1120px; width: 6px; height: 6px; border-radius: 50%; background: #fff"></div>
+        <div class="s10-star" style="position: absolute; left: 90px; top: 820px; width: 5px; height: 5px; border-radius: 50%; background: #fff"></div>
+        <svg class="full" viewBox="0 0 1080 1920">
+          <rect id="s10-dawn" x="0" y="900" width="1080" height="1020" fill="url(#gDawn)" />
+          <mask id="s10-crescent"><rect x="380" y="400" width="320" height="320" fill="#fff" /><circle cx="598" cy="520" r="112" fill="#000" /></mask>
+          <g id="s10-moon"><circle cx="540" cy="560" r="120" fill="url(#gMoon)" mask="url(#s10-crescent)" /></g>
+        </svg>
+        <div id="s10-l1" class="t" style="top: 820px; font-size: 136px; color: #ffffff; letter-spacing: -0.05em">Fewer apps.</div>
+        <div id="s10-l2" class="t it" style="top: 960px; font-size: 168px; color: var(--gold)">Better days.</div>
+        <div id="s10-mark" class="t" style="top: 1540px; font-size: 96px; color: #ffffff; letter-spacing: -0.05em">day<span style="color: var(--mint)">woven</span></div>
+      </div>
+
+      <!-- Sound effects: natural sounds only, no music or instruments. -->
+      <audio id="fx00" src="sfx/knock.wav" data-start="1.52" data-duration="0.18" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx01" src="sfx/bloop.wav" data-start="3.42" data-duration="0.35" data-volume="0.8" data-track-index="10"></audio>
+      <audio id="fx02" src="sfx/bloop.wav" data-start="5.05" data-duration="0.35" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx03" src="sfx/bloop.wav" data-start="5.45" data-duration="0.35" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx04" src="sfx/bloop.wav" data-start="5.85" data-duration="0.35" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx05" src="sfx/bloop.wav" data-start="7.65" data-duration="0.35" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx06" src="sfx/drop.wav" data-start="8.12" data-duration="0.9" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx07" src="sfx/bloop.wav" data-start="8.9" data-duration="0.35" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx08" src="sfx/bite.wav" data-start="9.88" data-duration="0.22" data-volume="1.0" data-track-index="13"></audio>
+      <audio id="fx09" src="sfx/knock.wav" data-start="11.43" data-duration="0.18" data-volume="0.8" data-track-index="12"></audio>
+      <audio id="fx10" src="sfx/knock.wav" data-start="11.63" data-duration="0.18" data-volume="0.8" data-track-index="12"></audio>
+      <audio id="fx11" src="sfx/knock.wav" data-start="11.83" data-duration="0.18" data-volume="0.8" data-track-index="12"></audio>
+      <audio id="fx12" src="sfx/knock.wav" data-start="12.03" data-duration="0.18" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx13" src="sfx/fire.wav" data-start="13.95" data-duration="0.9" data-volume="0.9" data-track-index="14"></audio>
+      <audio id="fx14" src="sfx/drop.wav" data-start="16.38" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx15" src="sfx/tick.wav" data-start="17.4" data-duration="0.05" data-volume="0.6" data-track-index="15"></audio>
+      <audio id="fx16" src="sfx/tick.wav" data-start="17.65" data-duration="0.05" data-volume="0.55" data-track-index="15"></audio>
+      <audio id="fx17" src="sfx/tick.wav" data-start="17.9" data-duration="0.05" data-volume="0.5" data-track-index="15"></audio>
+      <audio id="fx18" src="sfx/tick.wav" data-start="18.15" data-duration="0.05" data-volume="0.45" data-track-index="15"></audio>
+      <audio id="fx19" src="sfx/air.wav" data-start="19.62" data-duration="0.55" data-volume="0.7" data-track-index="16"></audio>
+      <audio id="fx20" src="sfx/air.wav" data-start="19.9" data-duration="0.55" data-volume="0.5" data-track-index="17"></audio>
+      <audio id="fx21" src="sfx/air.wav" data-start="21.38" data-duration="0.55" data-volume="0.6" data-track-index="16"></audio>
+      <audio id="fx22" src="sfx/bloop.wav" data-start="22.0" data-duration="0.35" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx23" src="sfx/bloop.wav" data-start="23.68" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx24" src="sfx/bloop.wav" data-start="24.3" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx25" src="sfx/bloop.wav" data-start="24.78" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx26" src="sfx/bloop.wav" data-start="25.42" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx27" src="sfx/air.wav" data-start="25.95" data-duration="0.55" data-volume="0.4" data-track-index="16"></audio>
+      <audio id="fx28" src="sfx/knock.wav" data-start="30.98" data-duration="0.18" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx29" src="sfx/knock.wav" data-start="31.3" data-duration="0.18" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx30" src="sfx/drop.wav" data-start="31.45" data-duration="0.9" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx31" src="sfx/knock.wav" data-start="32.78" data-duration="0.18" data-volume="0.7" data-track-index="12"></audio>
+      <audio id="fx32" src="sfx/breath.wav" data-start="33.0" data-duration="1.1" data-volume="0.8" data-track-index="18"></audio>
+      <audio id="fx33" src="sfx/drop.wav" data-start="33.32" data-duration="0.9" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx34" src="sfx/drop.wav" data-start="36.1" data-duration="0.9" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx35" src="sfx/air.wav" data-start="37.86" data-duration="0.55" data-volume="0.35" data-track-index="16"></audio>
+      <audio id="fx36" src="sfx/drop.wav" data-start="39.7" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+
+      // Small helpers. Every tween is placed at an absolute second, so the timeline is deterministic.
+      const fadeUp = (sel, t, d = 0.45, y = 40) => tl.fromTo(sel, { y, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: d, ease: E }, t);
+      const out = (sel, t, d = 0.25) => tl.to(sel, { autoAlpha: 0, y: -24, duration: d, ease: "power2.in" }, t);
+      const pop = (sel, t, d = 0.5, from = 0) => tl.fromTo(sel, { scale: from, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: d, ease: "back.out(1.8)" }, t);
+      const draw = (sel, t, d = 0.5, ease = "power2.inOut") => {
+        document.querySelectorAll(sel).forEach((el, i) => {
+          const len = el.getTotalLength();
+          tl.fromTo(el, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: d, ease }, t + i * 0.08);
+        });
+      };
+      const count = (el, from, to, t, d, ease = "power2.out", fmt = (v) => String(Math.round(v))) => {
+        const p = { v: from };
+        tl.fromTo(p, { v: from }, { v: to, duration: d, ease, onUpdate: () => (document.querySelector(el).textContent = fmt(p.v)) }, t);
+      };
+      const drift = (sel, t, d, dist = 40) =>
+        document.querySelectorAll(sel).forEach((el, i) =>
+          tl.fromTo(el, { y: 0, x: 0 }, { y: (i % 2 ? -1 : 1) * dist, x: (i % 3 - 1) * dist * 0.5, duration: d, ease: "sine.inOut" }, t),
+        );
+
+      // 1 · Hook on mint
+      drift(".s1-sp", 0, 2.45, 50);
+      fadeUp("#s1-title", 0.25, 0.45);
+      tl.fromTo("#s1-card", { y: 140, scale: 0.94, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: E }, 0.32);
+      tl.to("#s1-card", { x: -1000, rotation: -14, duration: 0.24, ease: "power3.in" }, 1.28);
+      tl.to("#s1-title", { autoAlpha: 0, y: -60, duration: 0.2, ease: "power2.in" }, 1.28);
+      tl.fromTo("#s1-lying", { scale: 1.7, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 1.52);
+      // A short glitch: each letter jumps to a set offset and back.
+      const jitter = [[-18, 10], [22, -14], [-10, -20], [16, 12], [-24, 6], [12, -8]];
+      document.querySelectorAll("#s1-lying span").forEach((el, i) => {
+        tl.to(el, { x: jitter[i][0], y: jitter[i][1], duration: 0.04, ease: "none" }, 1.62 + (i % 3) * 0.02);
+        tl.to(el, { x: -jitter[i][0] * 0.5, y: jitter[i][1] * 0.6, duration: 0.04, ease: "none" }, 1.7 + (i % 2) * 0.02);
+        tl.to(el, { x: 0, y: 0, duration: 0.08, ease: "power2.out" }, 1.78);
+      });
+      fadeUp("#s1-toyou", 1.86, 0.4, 30);
+
+      // 2 · The orb, the melt, the sigh, the question
+      drift(".s2-sp", 2.45, 6.4, 36);
+      fadeUp("#s2-h1", 2.6);
+      const orb2 = ["#s2-body", "#s2-shine", "#s2-under"];
+      tl.fromTo([...orb2, "#s2-num"], { scale: 0, autoAlpha: 0, svgOrigin: "540 980" }, { scale: 1, autoAlpha: 1, duration: 0.55, ease: "back.out(1.7)", svgOrigin: "540 980" }, 3.4);
+      tl.fromTo("#s2-shadow", { scale: 0, autoAlpha: 0, svgOrigin: "540 1262" }, { scale: 1, autoAlpha: 0.12, duration: 0.5, ease: E, svgOrigin: "540 1262" }, 3.45);
+      fadeUp("#s2-today", 3.95, 0.4, 30);
+      out(["#s2-h1", "#s2-today"], 4.45);
+      fadeUp("#s2-h2", 4.6);
+      // Melt: the orb slumps into a puddle while drips run down, and the number falls to 54.
+      tl.to(orb2, { scaleY: 0.5, scaleX: 1.2, svgOrigin: "540 1210", duration: 1.3, ease: "power2.inOut" }, 4.95);
+      tl.to(["#s2-shine", "#s2-under"], { autoAlpha: 0, duration: 0.6 }, 5.0);
+      tl.to("#s2-puddle", { attr: { rx: 330, ry: 36 }, duration: 1.1, ease: "power2.out" }, 5.2);
+      document.querySelectorAll(".s2-drip").forEach((el, i) => {
+        tl.fromTo(el, { y: -120, autoAlpha: 0 }, { y: 70 + i * 6, autoAlpha: 1, duration: 0.7 + i * 0.12, ease: "power2.in" }, 5.0 + i * 0.12);
+      });
+      tl.to("#s2-num", { y: 165, scale: 0.55, svgOrigin: "540 1000", duration: 1.2, ease: "power2.inOut" }, 4.95);
+      count("#s2-num", 92, 54, 5.0, 1.0, "power2.inOut");
+      tl.to("#s2-shadow", { attr: { rx: 340 }, duration: 1.0 }, 5.2);
+      tl.fromTo("#s2-eyes", { scaleY: 0, autoAlpha: 0, svgOrigin: "540 1046" }, { scaleY: 1, autoAlpha: 1, duration: 0.25, ease: "back.out(2)", svgOrigin: "540 1046" }, 6.1);
+      fadeUp("#s2-sigh", 6.45, 0.4, 20);
+      tl.to("#s2-eyes", { scaleY: 0.1, svgOrigin: "540 1046", duration: 0.07, ease: "none" }, 6.95);
+      tl.to("#s2-eyes", { scaleY: 1, svgOrigin: "540 1046", duration: 0.09, ease: "none" }, 7.03);
+      out(["#s2-h2", "#s2-sigh"], 7.2);
+      fadeUp("#s2-h3", 7.35);
+      // The puddle gathers up into a question mark.
+      tl.to(".s2-pupil", { y: -12, x: 6, duration: 0.25, ease: E }, 7.45);
+      tl.fromTo("#s2-q", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, 7.6);
+      draw("#s2-q", 7.6, 0.55, "power2.out");
+      tl.to("#s2-qdot", { attr: { r: 28, cy: 858 }, duration: 0.35, ease: "back.out(2.5)" }, 8.1);
+      tl.to("#s2-puddle", { attr: { rx: 250 }, duration: 0.5, ease: E }, 7.6);
+
+      // 3 · The culprits
+      fadeUp("#s3-hud", 8.95, 0.4, -20);
+      tl.fromTo("#s3-orb", { scale: 0.6, autoAlpha: 0, svgOrigin: "540 1010" }, { scale: 1, autoAlpha: 1, duration: 0.5, ease: "back.out(1.6)", svgOrigin: "540 1010" }, 8.88);
+      tl.set(["#s3-b1", "#s3-b2a", "#s3-b2b", "#s3-b3", "#s3-b4"], { scale: 0, transformOrigin: "50% 50%" }, 0);
+      tl.set(["#s3-d1", "#s3-d2", "#s3-d3", "#s3-d4", "#s3-drop"], { autoAlpha: 0 }, 0);
+      // Skipped lunch: the monster comes in, bites, and chews.
+      fadeUp("#s3-l1", 9.0);
+      tl.fromTo("#s3-mon", { x: 320 }, { x: 0, duration: 0.5, ease: E }, 9.15);
+      tl.to("#s3-mon", { x: -70, rotation: -10, svgOrigin: "960 1000", duration: 0.18, ease: "power2.in" }, 9.7);
+      tl.fromTo("#s3-mouth", { scaleY: 0.3, svgOrigin: "900 1060" }, { scaleY: 1.25, svgOrigin: "900 1060", duration: 0.12 }, 9.62);
+      tl.to("#s3-mouth", { scaleY: 0.25, svgOrigin: "900 1060", duration: 0.08 }, 9.86);
+      tl.to("#s3-b1", { scale: 1, duration: 0.14, ease: "power3.out" }, 9.88);
+      tl.to("#s3-mon", { x: 30, rotation: 0, svgOrigin: "960 1000", duration: 0.3, ease: E }, 9.95);
+      [10.25, 10.45].forEach((t) => {
+        tl.to("#s3-mouth", { scaleY: 0.7, svgOrigin: "900 1060", duration: 0.09 }, t);
+        tl.to("#s3-mouth", { scaleY: 0.25, svgOrigin: "900 1060", duration: 0.09 }, t + 0.1);
+      });
+      count("#s3-num", 92, 80, 9.95, 0.4);
+      tl.fromTo("#s3-d1", { y: 30, autoAlpha: 0 }, { y: -30, autoAlpha: 1, duration: 0.4, ease: E }, 10.0);
+      tl.to("#s3-d1", { autoAlpha: 0, duration: 0.25 }, 10.55);
+      tl.to("#s3-mon", { x: 420, duration: 0.35, ease: "power2.in" }, 10.55);
+      out("#s3-l1", 10.65);
+      // Back-to-back meetings: blocks stack up and press down.
+      fadeUp("#s3-l2", 10.85);
+      document.querySelectorAll(".s3-blk").forEach((el, i) => {
+        tl.fromTo(el, { y: -900, autoAlpha: 1 }, { y: 0, duration: 0.28, ease: "power2.in" }, 11.15 + i * 0.2);
+      });
+      tl.to("#s3-blocks", { y: 70, duration: 0.14, ease: "power3.in" }, 12.0);
+      tl.to("#s3-orb", { scaleY: 0.86, scaleX: 1.06, svgOrigin: "540 1260", duration: 0.14, ease: "power3.in" }, 12.0);
+      tl.to(["#s3-b2a", "#s3-b2b"], { scale: 1, duration: 0.12 }, 12.08);
+      tl.to("#s3-orb", { scaleY: 1, scaleX: 1, svgOrigin: "540 1260", duration: 0.5, ease: "elastic.out(1, 0.45)" }, 12.2);
+      tl.to("#s3-blocks", { x: 900, y: 70, duration: 0.4, ease: "power2.in" }, 12.35);
+      count("#s3-num", 80, 66, 12.1, 0.4);
+      tl.fromTo("#s3-d2", { y: 30, autoAlpha: 0 }, { y: -30, autoAlpha: 1, duration: 0.4, ease: E }, 12.15);
+      tl.to("#s3-d2", { autoAlpha: 0, duration: 0.25 }, 12.7);
+      out("#s3-l2", 12.8);
+      // Yesterday's workout: a blue flame flickers up and singes the edge.
+      fadeUp("#s3-l3", 13.0);
+      tl.fromTo("#s3-flame", { scale: 0, autoAlpha: 0, svgOrigin: "180 1200" }, { scale: 1, autoAlpha: 1, duration: 0.4, ease: "back.out(1.6)", svgOrigin: "180 1200" }, 13.5);
+      for (let k = 0; k < 9; k++) {
+        tl.to(".s3-fl", { scaleY: k % 2 ? 1.08 : 0.94, scaleX: k % 2 ? 0.96 : 1.04, svgOrigin: "180 1200", duration: 0.12, ease: "sine.inOut" }, 13.9 + k * 0.12);
+      }
+      tl.to("#s3-flame", { x: 70, scale: 1.25, svgOrigin: "180 1200", duration: 0.2, ease: "power2.out" }, 14.2);
+      tl.to("#s3-b3", { scale: 1, duration: 0.16, ease: E }, 14.32);
+      tl.to("#s3-flame", { scale: 0, autoAlpha: 0, x: 0, svgOrigin: "180 1200", duration: 0.3, ease: "power2.in" }, 14.85);
+      count("#s3-num", 66, 58, 14.35, 0.4);
+      tl.fromTo("#s3-d3", { y: 30, autoAlpha: 0 }, { y: -30, autoAlpha: 1, duration: 0.4, ease: E }, 14.4);
+      tl.to("#s3-d3", { autoAlpha: 0, duration: 0.25 }, 14.95);
+      out("#s3-l3", 15.0);
+      // And water: a nearly empty glass tips out its last drop.
+      fadeUp("#s3-l4", 15.2);
+      tl.fromTo("#s3-glass", { y: 80, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: E }, 15.45);
+      tl.to("#s3-glass", { rotation: -22, svgOrigin: "888 1268", duration: 0.35, ease: "power2.inOut" }, 15.95);
+      tl.fromTo("#s3-drop", { autoAlpha: 0, x: 0, y: -6 }, { autoAlpha: 1, x: -14, y: 70, duration: 0.28, ease: "power2.in" }, 16.14);
+      tl.to("#s3-drop", { autoAlpha: 0, duration: 0.05 }, 16.42);
+      tl.to("#s3-b4", { scale: 1, duration: 0.14, ease: E }, 16.4);
+      count("#s3-num", 58, 54, 16.42, 0.35);
+      tl.fromTo("#s3-d4", { y: 30, autoAlpha: 0 }, { y: -30, autoAlpha: 1, duration: 0.4, ease: E }, 16.45);
+      tl.to("#s3-hud", { scale: 1.15, transformOrigin: "62px 62px", duration: 0.18, ease: "power2.out" }, 16.75);
+      tl.to("#s3-hud", { scale: 1, transformOrigin: "62px 62px", duration: 0.3, ease: "back.out(2)" }, 16.93);
+
+      // 4 · 3 p.m.
+      document.querySelectorAll(".s4-star").forEach((el, i) => tl.fromTo(el, { autoAlpha: 0.2 }, { autoAlpha: 1, duration: 0.6, yoyo: true, repeat: 2, ease: "sine.inOut" }, 17.15 + i * 0.15));
+      fadeUp("#s4-top", 17.25, 0.4, 24);
+      tl.fromTo("#s4-clock", { scale: 0.7, autoAlpha: 0, svgOrigin: "540 900" }, { scale: 1, autoAlpha: 1, duration: 0.5, ease: "back.out(1.6)", svgOrigin: "540 900" }, 17.3);
+      tl.fromTo("#s4-ticks", { rotation: -60, svgOrigin: "540 900" }, { rotation: 0, svgOrigin: "540 900", duration: 1.2, ease: "power3.out" }, 17.35);
+      count("#s4-time", 0, 187, 17.4, 1.05, "power2.out", (v) => {
+        const m = Math.round(v);
+        const h = ((11 + Math.floor(m / 60)) % 12) + 1;
+        return `${h}:${String(m % 60).padStart(2, "0")}`;
+      });
+      fadeUp("#s4-pm", 18.62, 0.4, 30);
+
+      // 5 · Six apps open
+      const fromDir = [[-500, -200], [500, -260], [-520, 220], [520, 180], [400, 400], [-300, -400]];
+      const rot = [-7, 6, 5, -6, 4, -5];
+      document.querySelectorAll(".s5-app").forEach((el, i) => {
+        const t = i < 3 ? 19.62 + i * 0.07 : 19.9 + (i - 3) * 0.07;
+        tl.fromTo(el, { x: fromDir[i][0], y: fromDir[i][1], rotation: rot[i] * 3, autoAlpha: 0 }, { x: 0, y: 0, rotation: rot[i], autoAlpha: 1, duration: 0.45, ease: E }, t);
+        tl.to(el, { y: (i % 2 ? -1 : 1) * 26, rotation: rot[i] * 0.6, duration: 1.2, ease: "sine.inOut" }, t + 0.45);
+        tl.to(el, { x: 540 - 200 - el.offsetLeft, y: 960 - el.offsetTop, scale: 0, autoAlpha: 0, duration: 0.3, ease: "power3.in" }, 21.38 + i * 0.02);
+      });
+      tl.fromTo("#s5-text", { scale: 1.3, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 19.66);
+      count("#s5-n", 3, 6, 19.86, 0.12, "none");
+      tl.fromTo("#s5-n", { scale: 1.6 }, { scale: 1, duration: 0.3, ease: "back.out(2)" }, 19.88);
+      tl.fromTo("#s5-open", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: E }, 20.45);
+      tl.to("#s5-text", { scale: 0.6, autoAlpha: 0, duration: 0.3, ease: "power3.in" }, 21.38);
+
+      // 6 · So we built daywoven
+      tl.fromTo("#s6-wipe", { scale: 0 }, { scale: 1, duration: 0.45, ease: "power3.inOut" }, 21.6);
+      fadeUp("#s6-built", 21.75, 0.35, 24);
+      tl.fromTo(".s6-l", { yPercent: -120, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.6)", stagger: 0.035 }, 21.98);
+      draw("#s6-t1, #s6-t2", 22.4, 0.6);
+
+      // 7 · Woven into one number
+      tl.set(["#s7-th1", "#s7-th2", "#s7-th3", "#s7-th4", "#s7-a1", "#s7-a2", "#s7-a3", "#s7-a4", "#s7-circle"], { autoAlpha: 0 }, 0);
+      [23.68, 24.3, 24.78, 25.42].forEach((t, i) => pop(document.querySelectorAll(".s7-p")[i], t, 0.4, 0.4));
+      ["#s7-th1", "#s7-th2", "#s7-th3", "#s7-th4"].forEach((s, i) => {
+        tl.set(s, { autoAlpha: 1 }, 25.95 + i * 0.06);
+        draw(s, 25.95 + i * 0.06, 0.4);
+      });
+      ["#s7-a1", "#s7-a2", "#s7-a3", "#s7-a4"].forEach((s, i) => {
+        tl.set(s, { autoAlpha: 1 }, 26.2 + i * 0.1);
+        draw(s, 26.2 + i * 0.1, 0.45, "power2.out");
+      });
+      tl.to(".s7-p", { scale: 0.85, autoAlpha: 0.0, duration: 0.4, ease: "power2.in", stagger: 0.05 }, 26.35);
+      tl.to(["#s7-th1", "#s7-th2", "#s7-th3", "#s7-th4"], { autoAlpha: 0, duration: 0.4 }, 26.75);
+      count("#s7-num", 0, 54, 26.25, 0.75);
+      tl.fromTo("#s7-pill1", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: E }, 26.15);
+      tl.to("#s7-pill1", { autoAlpha: 0, duration: 0.2 }, 27.3);
+      tl.fromTo("#s7-pill2", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.3, ease: E }, 27.4);
+      tl.set("#s7-circle", { autoAlpha: 1 }, 27.45);
+      draw("#s7-circle", 27.45, 0.55, "power2.inOut");
+
+      // 8 · It taps you on the shoulder; one tap; settled
+      fadeUp("#s8-h1", 28.82);
+      tl.fromTo("#s8-load", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: E }, 29.05);
+      tl.fromTo("#s8-fill", { scaleX: 0.08 }, { scaleX: 0.88, duration: 1.2, ease: "power1.inOut" }, 29.25);
+      out(["#s8-h1", "#s8-load"], 30.3);
+      fadeUp("#s8-h2", 30.45);
+      tl.fromTo("#s8-blob", { x: 320 }, { x: 0, duration: 0.45, ease: E }, 30.5);
+      fadeUp("#s8-taptap", 30.85, 0.3, 16);
+      [30.98, 31.3].forEach((t) => {
+        tl.to("#s8-blob", { x: -40, rotation: -6, svgOrigin: "1000 900", duration: 0.09, ease: "power2.out" }, t);
+        tl.to("#s8-blob", { x: 0, rotation: 0, svgOrigin: "1000 900", duration: 0.16, ease: "power2.in" }, t + 0.09);
+      });
+      tl.fromTo("#s8-notif", { y: -90, autoAlpha: 0, scale: 0.96 }, { y: 0, autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, 31.45);
+      out(["#s8-h2", "#s8-taptap"], 32.2);
+      tl.to("#s8-blob", { x: 320, duration: 0.35, ease: "power2.in" }, 32.2);
+      fadeUp("#s8-h3", 32.42, 0.35, 30);
+      tl.fromTo("#s8-tapdot", { scale: 0.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.18, ease: E }, 32.7);
+      tl.to("#s8-tapdot", { scale: 1.5, autoAlpha: 0, duration: 0.3, ease: "power2.out" }, 32.9);
+      tl.to("#s8-go", { scale: 0.9, duration: 0.08, ease: "power2.out" }, 32.78);
+      tl.to("#s8-go", { scale: 1, duration: 0.12, ease: "power2.out" }, 32.86);
+      tl.to("#s8-notif", { scale: 0.3, autoAlpha: 0, duration: 0.3, ease: "power3.in" }, 32.98);
+      tl.fromTo("#s8-breath", { scale: 0.3, autoAlpha: 0, svgOrigin: "540 1120" }, { scale: 1.35, autoAlpha: 1, svgOrigin: "540 1120", duration: 0.55, ease: "sine.inOut" }, 33.05);
+      tl.to("#s8-breath", { scale: 1.12, svgOrigin: "540 1120", duration: 0.45, ease: "sine.inOut" }, 33.6);
+      tl.set("#s8-check", { autoAlpha: 0 }, 0);
+      tl.set("#s8-check", { autoAlpha: 1 }, 33.3);
+      draw("#s8-check", 33.3, 0.3, "power2.out");
+      tl.fromTo("#s8-settled", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: E }, 33.32);
+
+      // 9 · Every morning
+      tl.fromTo("#s9-sun", { y: 320, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: E }, 34.38);
+      tl.fromTo("#s9-rays", { rotation: 0, svgOrigin: "250 500" }, { rotation: 30, svgOrigin: "250 500", duration: 3.3, ease: "none" }, 34.38);
+      fadeUp("#s9-l1", 34.5);
+      tl.fromTo("#s9-cup", { y: 60, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.45, ease: E }, 35.05);
+      document.querySelectorAll(".s9-steam").forEach((el, i) => tl.fromTo(el, { autoAlpha: 0, y: 20 }, { autoAlpha: 0.8, y: -20, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 35.2 + i * 0.18));
+      fadeUp("#s9-l2", 35.3, 0.4, 30);
+      tl.fromTo("#s9-phone", { y: 700 }, { y: 0, duration: 0.6, ease: E }, 35.55);
+      tl.fromTo("#s9-note", { y: -40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(1.6)" }, 36.1);
+      fadeUp("#s9-l3", 36.2, 0.4, 24);
+
+      // 10 · Fewer apps. Better days.
+      document.querySelectorAll(".s10-star").forEach((el, i) => tl.fromTo(el, { autoAlpha: 0.15 }, { autoAlpha: 1, duration: 0.7, yoyo: true, repeat: 3, ease: "sine.inOut" }, 37.75 + i * 0.12));
+      tl.fromTo("#s10-moon", { y: -80, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.6, ease: E }, 37.78);
+      tl.fromTo("#s10-l1", { scale: 1.35, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.35, ease: "power4.out" }, 37.88);
+      tl.fromTo("#s10-l2", { clipPath: "inset(0 100% 0 0)", autoAlpha: 1 }, { clipPath: "inset(0 0% 0 0)", duration: 0.6, ease: "power2.out" }, 38.8);
+      tl.fromTo("#s10-dawn", { y: 400, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1.4, ease: "sine.out" }, 39.4);
+      tl.to("#s10-moon", { y: 60, autoAlpha: 0.6, duration: 1.4, ease: "sine.inOut" }, 39.4);
+      fadeUp("#s10-mark", 39.7, 0.5, 30);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

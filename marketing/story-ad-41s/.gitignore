@@ -1,0 +1,8 @@
+# Rendered output, voice takes and downloaded models stay out of git; the scripts recreate them.
+renders/
+snapshots/
+*.mp4
+vo/
+voices/
+# bed.py makes the background bed on demand (about 12 MB as WAV).
+sfx/bed.wav
