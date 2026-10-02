@@ -21,8 +21,9 @@ RATE = 48000
 LENGTH = 30.0
 CUTS = [4.4, 9.0, 16.6, 21.6, 26.45]  # where the picture changes scene
 # How loud the stream's bubbles are against its rush and the breeze: 1 is as first made, and
-# they now play 4 dB (about a quarter) quieter. BED_BUBBLES=1 python bed.py restores them.
-BUBBLES = float(os.environ.get('BED_BUBBLES', 10 ** (-4 / 20)))
+# they now play 12 dB quieter, so they stay a faint texture. BED_BUBBLES=1 python bed.py
+# restores them.
+BUBBLES = float(os.environ.get('BED_BUBBLES', 10 ** (-12 / 20)))
 here = Path(__file__).parent
 rng = np.random.default_rng(11)
 n = int(RATE * LENGTH)
