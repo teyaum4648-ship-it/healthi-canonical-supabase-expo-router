@@ -13,11 +13,15 @@ import soundfile as sf
 
 here = Path(__file__).parent
 CUES = [
-    # 1 · Hook: the card rises and settles, gets flung away; LYING slams and glitches with static.
-    (0.22, 'tick', 0.3), (0.7, 'tap', 0.45), (1.28, 'air', 0.65),
+    # 1 · Hook: the spheres bubble up; the card rises, counts up, draws its chart, and its tags land;
+    # it gets flung away; LYING slams and glitches with static.
+    (0.04, 'bloop', 0.45), (0.13, 'bloop', 0.35), (0.22, 'bloop', 0.5), (0.31, 'pop', 0.4),
+    (0.22, 'tick', 0.3), (0.34, 'count', 0.45), (0.5, 'zip', 0.35), (0.7, 'tap', 0.45),
+    (0.82, 'pop', 0.35), (0.92, 'tap', 0.3), (1.0, 'tap', 0.28), (1.28, 'air', 0.65),
     (1.52, 'thud', 1.0), (1.52, 'knock', 0.7), (1.62, 'static', 0.45), (1.7, 'tick', 0.4), (1.78, 'tick', 0.35),
     (1.9, 'tick', 0.3),
-    # 2 · The orb, the melt (the puddle oozes out), the sigh, a blink, the puddle slurping up into the question.
+    # 2 · The small spheres pop up; the orb, the melt (the puddle oozes out), the sigh, a blink, the puddle slurping up into the question.
+    *[(round(2.52 + i * 0.08, 2), 'pop', v) for i, v in enumerate((0.3, 0.25, 0.3, 0.25))],
     (2.6, 'tick', 0.3), (3.42, 'bloop', 0.8), (3.42, 'pop', 0.6), (3.98, 'tick', 0.3),
     (4.6, 'tick', 0.3), (5.0, 'countlong', 0.5), (5.05, 'bloop', 0.7), (5.2, 'squish', 0.7), (5.3, 'ooze', 0.45),
     (5.45, 'bloop', 0.6), (5.7, 'drip', 0.5), (5.85, 'bloop', 0.6), (5.94, 'drip', 0.45), (6.18, 'drip', 0.45),

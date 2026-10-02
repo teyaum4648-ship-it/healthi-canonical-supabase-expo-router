@@ -9,7 +9,7 @@ background bed, and no music or musical instrument anywhere in it.
 
 | Seconds | Voice | On screen |
 | --- | --- | --- |
-| 0–2.45 | Your sleep score is lying to you. | A sleep-score card (92, "Great night") on mint is knocked away; **LYING.** slams in and glitches; *to you*. |
+| 0–2.45 | Your sleep score is lying to you. | Spheres bubble up on mint and a sleep-score card rises, counting up to 92 as its chart draws and its tags pop on. It is knocked away; **LYING.** slams in and glitches; *to you*. |
 | 2.45–7.25 | It says you're a ninety-two today. You actually feel like a fifty-four. | A glossy mint orb pops in with 92. The orb melts into a puddle as the number drops to 54. Eyes, then *(sigh)*. |
 | 7.25–8.85 | So where'd the rest go? | The puddle looks up as a mint question mark draws itself. |
 | 8.85–17.15 | Skipped lunch cost twelve. Back-to-back meetings took fourteen. Yesterday's workout burned eight. And water? Another four. | The orb is back at 92, with a "54 how you feel" badge in the corner. A lavender monster bites (80). Calendar blocks stack and press down (66). A blue flame singes it (58). A nearly empty glass tips out its last drop (54). The four culprits are the four pillars, in their app colours. |
@@ -50,7 +50,7 @@ off HyperFrames' anonymous usage telemetry. `mix.sh` needs an ffmpeg built with 
 ## Sound
 
 There's no music and no background bed: just the voice and lots of small natural sound
-effects, about 170 of them, one on nearly every action, down to the small ones: a blink, a
+effects, about 185 of them, one on nearly every action, down to the small ones: a blink, a
 flicker, a twinkle. `sfx.py` synthesises them all from noise and simple physics. `cues.py` is the cue sheet (second, sound, volume). It writes the
 `<audio>` tags into `index.html`, so adding or moving an effect is a one-line change:
 `python sfx.py && python cues.py`.
@@ -58,12 +58,12 @@ flicker, a twinkle. `sfx.py` synthesises them all from noise and simple physics.
 | Sound | Where |
 | --- | --- |
 | tick | text snapping on, the glitch settling, the clock running, each ring arc |
-| pop, bloop | the orb appearing, the eyes, each daywoven letter landing, the pillar chips, the number labels |
+| pop, bloop | the spheres bubbling up at the start, the orb appearing, the eyes, each daywoven letter landing, the pillar chips, the number labels |
 | static | the "LYING." letters glitching |
 | blink | the eyes blinking, then glancing up |
 | thud | "LYING.", the blocks pressing down, the badge's pulse settling, "6 APPS", "3 p.m.", "Fewer apps." |
 | knock | "LYING.", the calendar blocks landing, "tap tap", tapping Start |
-| tap | the card, the glass, each app chip, the cup and the phone settling into place |
+| tap | the card and its tags, the glass, each app chip, the cup and the phone settling into place |
 | squish, drip, ooze | the melt and the puddle spreading out; the mint blob sliding in and out; the tap's ripple |
 | slurp | the puddle gathering itself up into the question mark |
 | wobble | the orb bouncing back like jelly after the blocks press it |
@@ -73,8 +73,8 @@ flicker, a twinkle. `sfx.py` synthesises them all from noise and simple physics.
 | smack, bite, munch | the monster's mouth opening; biting; a chomp each time its jaw closes; the last nibble |
 | fire, crackle, sizzle, puff | the flame lighting, crackling as it flickers, flaring, singeing, and going out |
 | slosh | the last of the water moving as the glass tips |
-| zip | the threads weaving under the name and into the ring |
-| count, countlong | a rattle of clicks under every number that counts and the load bar filling |
+| zip | the opening card's chart drawing; the threads weaving under the name and into the ring |
+| count, countlong | a rattle of clicks under every number that counts (the opening 92 too) and the load bar filling |
 | air | only on fast movement: the card flung away, the blocks flying off, the app chips |
 | drop | the question mark's dot, the glass's last drop, notifications, the name |
 | breath, steam, rise | the reset ring, the coffee, the sunrise and the dawn |

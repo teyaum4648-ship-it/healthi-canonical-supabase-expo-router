@@ -336,13 +336,13 @@
         <div id="s1-card" class="card" style="left: 140px; top: 600px; width: 800px; height: 620px; padding: 56px 60px">
           <div class="eyebrow">Sleep score · Last night</div>
           <div style="display: flex; align-items: flex-end; gap: 24px; margin-top: 28px">
-            <div style="font-size: 230px; font-weight: 800; letter-spacing: -0.05em; line-height: 1">92</div>
-            <div style="font-size: 34px; font-weight: 700; color: var(--mint-deep); padding-bottom: 34px">▲ 6 vs. yesterday</div>
+            <div id="s1-n" style="font-size: 230px; font-weight: 800; letter-spacing: -0.05em; line-height: 1">92</div>
+            <div id="s1-delta" style="font-size: 34px; font-weight: 700; color: var(--mint-deep); padding-bottom: 34px">▲ 6 vs. yesterday</div>
           </div>
           <svg width="680" height="120" viewBox="0 0 680 120" style="display: block; margin: 8px 0 22px">
-            <path d="M0 96 C 80 92, 120 70, 190 76 S 300 40, 380 52 S 520 18, 680 14" fill="none" stroke="#3dd6a3" stroke-width="8" stroke-linecap="round" />
+            <path id="s1-spark" d="M0 96 C 80 92, 120 70, 190 76 S 300 40, 380 52 S 520 18, 680 14" fill="none" stroke="#3dd6a3" stroke-width="8" stroke-linecap="round" />
           </svg>
-          <span class="chip">7h 48m asleep</span><span class="chip">Great night</span>
+          <span id="s1-c1" class="chip">7h 48m asleep</span><span id="s1-c2" class="chip">Great night</span>
         </div>
         <div id="s1-lying" class="t" style="top: 760px; font-size: 220px; font-weight: 900; letter-spacing: -0.05em">
           <span>L</span><span>Y</span><span>I</span><span>N</span><span>G</span><span>.</span>
@@ -621,178 +621,191 @@
 
       <!-- Sound effects: natural sounds only, no music or instruments. Written by cues.py. -->
       <!-- sfx:start -->
-      <audio id="fx000" src="sfx/tick.wav" data-start="0.22" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx001" src="sfx/tap.wav" data-start="0.7" data-duration="0.1" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx002" src="sfx/air.wav" data-start="1.28" data-duration="0.55" data-volume="0.65" data-track-index="10"></audio>
-      <audio id="fx003" src="sfx/knock.wav" data-start="1.52" data-duration="0.18" data-volume="0.7" data-track-index="11"></audio>
-      <audio id="fx004" src="sfx/thud.wav" data-start="1.52" data-duration="0.32" data-volume="1.0" data-track-index="12"></audio>
-      <audio id="fx005" src="sfx/static.wav" data-start="1.62" data-duration="0.22" data-volume="0.45" data-track-index="13"></audio>
-      <audio id="fx006" src="sfx/tick.wav" data-start="1.7" data-duration="0.05" data-volume="0.4" data-track-index="11"></audio>
-      <audio id="fx007" src="sfx/tick.wav" data-start="1.78" data-duration="0.05" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx008" src="sfx/tick.wav" data-start="1.9" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx009" src="sfx/tick.wav" data-start="2.6" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx010" src="sfx/bloop.wav" data-start="3.42" data-duration="0.35" data-volume="0.8" data-track-index="10"></audio>
-      <audio id="fx011" src="sfx/pop.wav" data-start="3.42" data-duration="0.09" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx012" src="sfx/tick.wav" data-start="3.98" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx013" src="sfx/tick.wav" data-start="4.6" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx014" src="sfx/countlong.wav" data-start="5.0" data-duration="1.0" data-volume="0.5" data-track-index="10"></audio>
-      <audio id="fx015" src="sfx/bloop.wav" data-start="5.05" data-duration="0.35" data-volume="0.7" data-track-index="11"></audio>
-      <audio id="fx016" src="sfx/squish.wav" data-start="5.2" data-duration="0.45" data-volume="0.7" data-track-index="12"></audio>
-      <audio id="fx017" src="sfx/ooze.wav" data-start="5.3" data-duration="1.0" data-volume="0.45" data-track-index="13"></audio>
-      <audio id="fx018" src="sfx/bloop.wav" data-start="5.45" data-duration="0.35" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx019" src="sfx/drip.wav" data-start="5.7" data-duration="0.14" data-volume="0.5" data-track-index="12"></audio>
-      <audio id="fx020" src="sfx/bloop.wav" data-start="5.85" data-duration="0.35" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx021" src="sfx/drip.wav" data-start="5.94" data-duration="0.14" data-volume="0.45" data-track-index="12"></audio>
-      <audio id="fx022" src="sfx/pop.wav" data-start="6.1" data-duration="0.09" data-volume="0.5" data-track-index="10"></audio>
-      <audio id="fx023" src="sfx/drip.wav" data-start="6.18" data-duration="0.14" data-volume="0.45" data-track-index="12"></audio>
-      <audio id="fx024" src="sfx/drip.wav" data-start="6.42" data-duration="0.14" data-volume="0.4" data-track-index="10"></audio>
-      <audio id="fx025" src="sfx/sigh.wav" data-start="6.45" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
-      <audio id="fx026" src="sfx/drip.wav" data-start="6.66" data-duration="0.14" data-volume="0.4" data-track-index="10"></audio>
-      <audio id="fx027" src="sfx/blink.wav" data-start="6.95" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx028" src="sfx/blink.wav" data-start="7.04" data-duration="0.05" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx029" src="sfx/tick.wav" data-start="7.35" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx030" src="sfx/blink.wav" data-start="7.45" data-duration="0.05" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx031" src="sfx/scribble.wav" data-start="7.6" data-duration="0.55" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx032" src="sfx/slurp.wav" data-start="7.6" data-duration="0.42" data-volume="0.5" data-track-index="11"></audio>
-      <audio id="fx033" src="sfx/drop.wav" data-start="8.12" data-duration="0.9" data-volume="0.5" data-track-index="11"></audio>
-      <audio id="fx034" src="sfx/bloop.wav" data-start="8.88" data-duration="0.35" data-volume="0.7" data-track-index="10"></audio>
-      <audio id="fx035" src="sfx/pop.wav" data-start="8.88" data-duration="0.09" data-volume="0.5" data-track-index="12"></audio>
-      <audio id="fx036" src="sfx/pop.wav" data-start="8.95" data-duration="0.09" data-volume="0.35" data-track-index="13"></audio>
-      <audio id="fx037" src="sfx/tick.wav" data-start="9.0" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
-      <audio id="fx038" src="sfx/patter.wav" data-start="9.15" data-duration="0.36" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx039" src="sfx/smack.wav" data-start="9.62" data-duration="0.12" data-volume="0.5" data-track-index="10"></audio>
-      <audio id="fx040" src="sfx/bite.wav" data-start="9.88" data-duration="0.22" data-volume="1.0" data-track-index="10"></audio>
-      <audio id="fx041" src="sfx/count.wav" data-start="9.95" data-duration="0.42" data-volume="0.55" data-track-index="11"></audio>
-      <audio id="fx042" src="sfx/pop.wav" data-start="10.0" data-duration="0.09" data-volume="0.4" data-track-index="12"></audio>
-      <audio id="fx043" src="sfx/smack.wav" data-start="10.25" data-duration="0.12" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx044" src="sfx/munch.wav" data-start="10.34" data-duration="0.14" data-volume="0.6" data-track-index="12"></audio>
-      <audio id="fx045" src="sfx/smack.wav" data-start="10.45" data-duration="0.12" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx046" src="sfx/munch.wav" data-start="10.54" data-duration="0.14" data-volume="0.55" data-track-index="11"></audio>
-      <audio id="fx047" src="sfx/patter.wav" data-start="10.55" data-duration="0.36" data-volume="0.55" data-track-index="12"></audio>
-      <audio id="fx048" src="sfx/tick.wav" data-start="10.85" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx049" src="sfx/knock.wav" data-start="11.43" data-duration="0.18" data-volume="0.8" data-track-index="10"></audio>
-      <audio id="fx050" src="sfx/knock.wav" data-start="11.63" data-duration="0.18" data-volume="0.8" data-track-index="10"></audio>
-      <audio id="fx051" src="sfx/knock.wav" data-start="11.83" data-duration="0.18" data-volume="0.8" data-track-index="10"></audio>
-      <audio id="fx052" src="sfx/thud.wav" data-start="12.0" data-duration="0.32" data-volume="0.9" data-track-index="11"></audio>
-      <audio id="fx053" src="sfx/knock.wav" data-start="12.03" data-duration="0.18" data-volume="0.9" data-track-index="10"></audio>
-      <audio id="fx054" src="sfx/count.wav" data-start="12.1" data-duration="0.42" data-volume="0.55" data-track-index="12"></audio>
-      <audio id="fx055" src="sfx/pop.wav" data-start="12.15" data-duration="0.09" data-volume="0.4" data-track-index="13"></audio>
-      <audio id="fx056" src="sfx/wobble.wav" data-start="12.2" data-duration="0.6" data-volume="0.55" data-track-index="14"></audio>
-      <audio id="fx057" src="sfx/air.wav" data-start="12.35" data-duration="0.55" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx058" src="sfx/tick.wav" data-start="13.0" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx059" src="sfx/fire.wav" data-start="13.5" data-duration="0.9" data-volume="0.7" data-track-index="10"></audio>
-      <audio id="fx060" src="sfx/crackle.wav" data-start="13.9" data-duration="0.1" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx061" src="sfx/crackle.wav" data-start="14.02" data-duration="0.1" data-volume="0.25" data-track-index="11"></audio>
-      <audio id="fx062" src="sfx/crackle.wav" data-start="14.14" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
-      <audio id="fx063" src="sfx/fire.wav" data-start="14.2" data-duration="0.9" data-volume="0.9" data-track-index="12"></audio>
-      <audio id="fx064" src="sfx/sizzle.wav" data-start="14.32" data-duration="0.6" data-volume="0.8" data-track-index="11"></audio>
-      <audio id="fx065" src="sfx/count.wav" data-start="14.35" data-duration="0.42" data-volume="0.5" data-track-index="13"></audio>
-      <audio id="fx066" src="sfx/pop.wav" data-start="14.4" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
-      <audio id="fx067" src="sfx/crackle.wav" data-start="14.5" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx068" src="sfx/crackle.wav" data-start="14.62" data-duration="0.1" data-volume="0.25" data-track-index="10"></audio>
-      <audio id="fx069" src="sfx/crackle.wav" data-start="14.74" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx070" src="sfx/puff.wav" data-start="14.85" data-duration="0.3" data-volume="0.7" data-track-index="10"></audio>
-      <audio id="fx071" src="sfx/tick.wav" data-start="15.2" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx072" src="sfx/tap.wav" data-start="15.7" data-duration="0.1" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx073" src="sfx/slosh.wav" data-start="15.95" data-duration="0.45" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx074" src="sfx/drop.wav" data-start="16.38" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
-      <audio id="fx075" src="sfx/munch.wav" data-start="16.4" data-duration="0.14" data-volume="0.4" data-track-index="10"></audio>
-      <audio id="fx076" src="sfx/count.wav" data-start="16.42" data-duration="0.42" data-volume="0.45" data-track-index="12"></audio>
-      <audio id="fx077" src="sfx/pop.wav" data-start="16.45" data-duration="0.09" data-volume="0.4" data-track-index="13"></audio>
-      <audio id="fx078" src="sfx/pop.wav" data-start="16.75" data-duration="0.09" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx079" src="sfx/thud.wav" data-start="16.93" data-duration="0.32" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx080" src="sfx/tick.wav" data-start="17.25" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx081" src="sfx/pop.wav" data-start="17.3" data-duration="0.09" data-volume="0.5" data-track-index="10"></audio>
-      <audio id="fx082" src="sfx/countlong.wav" data-start="17.4" data-duration="1.0" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx083" src="sfx/tick.wav" data-start="17.4" data-duration="0.05" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx084" src="sfx/tick.wav" data-start="17.65" data-duration="0.05" data-volume="0.55" data-track-index="11"></audio>
-      <audio id="fx085" src="sfx/glint.wav" data-start="17.75" data-duration="0.12" data-volume="0.25" data-track-index="11"></audio>
-      <audio id="fx086" src="sfx/tick.wav" data-start="17.9" data-duration="0.05" data-volume="0.5" data-track-index="11"></audio>
-      <audio id="fx087" src="sfx/glint.wav" data-start="18.05" data-duration="0.12" data-volume="0.2" data-track-index="11"></audio>
-      <audio id="fx088" src="sfx/tick.wav" data-start="18.15" data-duration="0.05" data-volume="0.45" data-track-index="12"></audio>
-      <audio id="fx089" src="sfx/glint.wav" data-start="18.35" data-duration="0.12" data-volume="0.25" data-track-index="11"></audio>
-      <audio id="fx090" src="sfx/thud.wav" data-start="18.62" data-duration="0.32" data-volume="0.7" data-track-index="10"></audio>
-      <audio id="fx091" src="sfx/glint.wav" data-start="18.95" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
-      <audio id="fx092" src="sfx/glint.wav" data-start="19.25" data-duration="0.12" data-volume="0.25" data-track-index="10"></audio>
-      <audio id="fx093" src="sfx/air.wav" data-start="19.62" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
-      <audio id="fx094" src="sfx/thud.wav" data-start="19.66" data-duration="0.32" data-volume="0.9" data-track-index="11"></audio>
-      <audio id="fx095" src="sfx/pop.wav" data-start="19.86" data-duration="0.09" data-volume="0.4" data-track-index="12"></audio>
-      <audio id="fx096" src="sfx/air.wav" data-start="19.9" data-duration="0.55" data-volume="0.45" data-track-index="13"></audio>
-      <audio id="fx097" src="sfx/pop.wav" data-start="19.9" data-duration="0.09" data-volume="0.4" data-track-index="14"></audio>
-      <audio id="fx098" src="sfx/tap.wav" data-start="19.92" data-duration="0.1" data-volume="0.3" data-track-index="15"></audio>
-      <audio id="fx099" src="sfx/pop.wav" data-start="19.94" data-duration="0.09" data-volume="0.45" data-track-index="16"></audio>
-      <audio id="fx100" src="sfx/tap.wav" data-start="19.99" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
-      <audio id="fx101" src="sfx/tap.wav" data-start="20.06" data-duration="0.1" data-volume="0.3" data-track-index="12"></audio>
-      <audio id="fx102" src="sfx/tap.wav" data-start="20.2" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx103" src="sfx/tap.wav" data-start="20.27" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
-      <audio id="fx104" src="sfx/tap.wav" data-start="20.34" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx105" src="sfx/pop.wav" data-start="20.47" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
-      <audio id="fx106" src="sfx/air.wav" data-start="21.38" data-duration="0.55" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx107" src="sfx/pop.wav" data-start="21.45" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
-      <audio id="fx108" src="sfx/tick.wav" data-start="21.75" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
-      <audio id="fx109" src="sfx/pop.wav" data-start="22.23" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx110" src="sfx/pop.wav" data-start="22.265" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx111" src="sfx/pop.wav" data-start="22.3" data-duration="0.09" data-volume="0.35" data-track-index="12"></audio>
-      <audio id="fx112" src="sfx/pop.wav" data-start="22.335" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx113" src="sfx/pop.wav" data-start="22.37" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx114" src="sfx/zip.wav" data-start="22.4" data-duration="0.32" data-volume="0.55" data-track-index="12"></audio>
-      <audio id="fx115" src="sfx/pop.wav" data-start="22.405" data-duration="0.09" data-volume="0.35" data-track-index="13"></audio>
-      <audio id="fx116" src="sfx/pop.wav" data-start="22.44" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx117" src="sfx/pop.wav" data-start="22.475" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx118" src="sfx/bloop.wav" data-start="23.68" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx119" src="sfx/pop.wav" data-start="23.68" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx120" src="sfx/bloop.wav" data-start="24.3" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx121" src="sfx/pop.wav" data-start="24.3" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx122" src="sfx/bloop.wav" data-start="24.78" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx123" src="sfx/pop.wav" data-start="24.78" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx124" src="sfx/bloop.wav" data-start="25.42" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx125" src="sfx/pop.wav" data-start="25.42" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
-      <audio id="fx126" src="sfx/zip.wav" data-start="25.95" data-duration="0.32" data-volume="0.55" data-track-index="10"></audio>
-      <audio id="fx127" src="sfx/pop.wav" data-start="26.15" data-duration="0.09" data-volume="0.45" data-track-index="11"></audio>
-      <audio id="fx128" src="sfx/tick.wav" data-start="26.2" data-duration="0.05" data-volume="0.45" data-track-index="12"></audio>
-      <audio id="fx129" src="sfx/countlong.wav" data-start="26.25" data-duration="1.0" data-volume="0.5" data-track-index="11"></audio>
-      <audio id="fx130" src="sfx/tick.wav" data-start="26.3" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx131" src="sfx/tick.wav" data-start="26.4" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx132" src="sfx/tick.wav" data-start="26.5" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx133" src="sfx/pop.wav" data-start="27.4" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx134" src="sfx/scribble.wav" data-start="27.45" data-duration="0.55" data-volume="0.7" data-track-index="11"></audio>
-      <audio id="fx135" src="sfx/tick.wav" data-start="28.82" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx136" src="sfx/pop.wav" data-start="29.05" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx137" src="sfx/countlong.wav" data-start="29.25" data-duration="1.0" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx138" src="sfx/tick.wav" data-start="30.45" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx139" src="sfx/squish.wav" data-start="30.5" data-duration="0.45" data-volume="0.45" data-track-index="10"></audio>
-      <audio id="fx140" src="sfx/bloop.wav" data-start="30.6" data-duration="0.35" data-volume="0.5" data-track-index="11"></audio>
-      <audio id="fx141" src="sfx/tick.wav" data-start="30.85" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
-      <audio id="fx142" src="sfx/knock.wav" data-start="30.98" data-duration="0.18" data-volume="0.9" data-track-index="10"></audio>
-      <audio id="fx143" src="sfx/knock.wav" data-start="31.3" data-duration="0.18" data-volume="0.9" data-track-index="10"></audio>
-      <audio id="fx144" src="sfx/drop.wav" data-start="31.45" data-duration="0.9" data-volume="0.7" data-track-index="11"></audio>
-      <audio id="fx145" src="sfx/squish.wav" data-start="32.2" data-duration="0.45" data-volume="0.3" data-track-index="10"></audio>
-      <audio id="fx146" src="sfx/tick.wav" data-start="32.42" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
-      <audio id="fx147" src="sfx/pop.wav" data-start="32.7" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx148" src="sfx/knock.wav" data-start="32.78" data-duration="0.18" data-volume="0.7" data-track-index="11"></audio>
-      <audio id="fx149" src="sfx/drip.wav" data-start="32.9" data-duration="0.14" data-volume="0.35" data-track-index="10"></audio>
-      <audio id="fx150" src="sfx/pop.wav" data-start="32.98" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
-      <audio id="fx151" src="sfx/breath.wav" data-start="33.0" data-duration="1.1" data-volume="0.8" data-track-index="12"></audio>
-      <audio id="fx152" src="sfx/scribble.wav" data-start="33.3" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
-      <audio id="fx153" src="sfx/drop.wav" data-start="33.32" data-duration="0.9" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx154" src="sfx/rise.wav" data-start="34.38" data-duration="1.4" data-volume="0.55" data-track-index="10"></audio>
-      <audio id="fx155" src="sfx/tick.wav" data-start="34.5" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
-      <audio id="fx156" src="sfx/tap.wav" data-start="35.05" data-duration="0.1" data-volume="0.5" data-track-index="11"></audio>
-      <audio id="fx157" src="sfx/steam.wav" data-start="35.2" data-duration="1.2" data-volume="0.6" data-track-index="11"></audio>
-      <audio id="fx158" src="sfx/tick.wav" data-start="35.3" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
-      <audio id="fx159" src="sfx/tap.wav" data-start="35.95" data-duration="0.1" data-volume="0.4" data-track-index="10"></audio>
-      <audio id="fx160" src="sfx/drop.wav" data-start="36.1" data-duration="0.9" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx161" src="sfx/tick.wav" data-start="36.2" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
-      <audio id="fx162" src="sfx/thud.wav" data-start="37.88" data-duration="0.32" data-volume="0.9" data-track-index="10"></audio>
-      <audio id="fx163" src="sfx/glint.wav" data-start="38.45" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
-      <audio id="fx164" src="sfx/glint.wav" data-start="38.69" data-duration="0.12" data-volume="0.25" data-track-index="10"></audio>
-      <audio id="fx165" src="sfx/scribble.wav" data-start="38.8" data-duration="0.55" data-volume="0.4" data-track-index="11"></audio>
-      <audio id="fx166" src="sfx/glint.wav" data-start="38.93" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
-      <audio id="fx167" src="sfx/rise.wav" data-start="39.4" data-duration="1.4" data-volume="0.6" data-track-index="10"></audio>
-      <audio id="fx168" src="sfx/drop.wav" data-start="39.7" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
-      <audio id="fx169" src="sfx/glint.wav" data-start="39.97" data-duration="0.12" data-volume="0.2" data-track-index="12"></audio>
-      <audio id="fx170" src="sfx/glint.wav" data-start="40.21" data-duration="0.12" data-volume="0.25" data-track-index="12"></audio>
-      <audio id="fx171" src="sfx/glint.wav" data-start="40.45" data-duration="0.12" data-volume="0.2" data-track-index="12"></audio>
+      <audio id="fx000" src="sfx/bloop.wav" data-start="0.04" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx001" src="sfx/bloop.wav" data-start="0.13" data-duration="0.35" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx002" src="sfx/bloop.wav" data-start="0.22" data-duration="0.35" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx003" src="sfx/tick.wav" data-start="0.22" data-duration="0.05" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx004" src="sfx/pop.wav" data-start="0.31" data-duration="0.09" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx005" src="sfx/count.wav" data-start="0.34" data-duration="0.42" data-volume="0.45" data-track-index="14"></audio>
+      <audio id="fx006" src="sfx/zip.wav" data-start="0.5" data-duration="0.32" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx007" src="sfx/tap.wav" data-start="0.7" data-duration="0.1" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx008" src="sfx/pop.wav" data-start="0.82" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx009" src="sfx/tap.wav" data-start="0.92" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx010" src="sfx/tap.wav" data-start="1.0" data-duration="0.1" data-volume="0.28" data-track-index="11"></audio>
+      <audio id="fx011" src="sfx/air.wav" data-start="1.28" data-duration="0.55" data-volume="0.65" data-track-index="10"></audio>
+      <audio id="fx012" src="sfx/knock.wav" data-start="1.52" data-duration="0.18" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx013" src="sfx/thud.wav" data-start="1.52" data-duration="0.32" data-volume="1.0" data-track-index="12"></audio>
+      <audio id="fx014" src="sfx/static.wav" data-start="1.62" data-duration="0.22" data-volume="0.45" data-track-index="13"></audio>
+      <audio id="fx015" src="sfx/tick.wav" data-start="1.7" data-duration="0.05" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx016" src="sfx/tick.wav" data-start="1.78" data-duration="0.05" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx017" src="sfx/tick.wav" data-start="1.9" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx018" src="sfx/pop.wav" data-start="2.52" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx019" src="sfx/pop.wav" data-start="2.6" data-duration="0.09" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx020" src="sfx/tick.wav" data-start="2.6" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx021" src="sfx/pop.wav" data-start="2.68" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx022" src="sfx/pop.wav" data-start="2.76" data-duration="0.09" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx023" src="sfx/bloop.wav" data-start="3.42" data-duration="0.35" data-volume="0.8" data-track-index="10"></audio>
+      <audio id="fx024" src="sfx/pop.wav" data-start="3.42" data-duration="0.09" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx025" src="sfx/tick.wav" data-start="3.98" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx026" src="sfx/tick.wav" data-start="4.6" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx027" src="sfx/countlong.wav" data-start="5.0" data-duration="1.0" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx028" src="sfx/bloop.wav" data-start="5.05" data-duration="0.35" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx029" src="sfx/squish.wav" data-start="5.2" data-duration="0.45" data-volume="0.7" data-track-index="12"></audio>
+      <audio id="fx030" src="sfx/ooze.wav" data-start="5.3" data-duration="1.0" data-volume="0.45" data-track-index="13"></audio>
+      <audio id="fx031" src="sfx/bloop.wav" data-start="5.45" data-duration="0.35" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx032" src="sfx/drip.wav" data-start="5.7" data-duration="0.14" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx033" src="sfx/bloop.wav" data-start="5.85" data-duration="0.35" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx034" src="sfx/drip.wav" data-start="5.94" data-duration="0.14" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx035" src="sfx/pop.wav" data-start="6.1" data-duration="0.09" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx036" src="sfx/drip.wav" data-start="6.18" data-duration="0.14" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx037" src="sfx/drip.wav" data-start="6.42" data-duration="0.14" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx038" src="sfx/sigh.wav" data-start="6.45" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx039" src="sfx/drip.wav" data-start="6.66" data-duration="0.14" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx040" src="sfx/blink.wav" data-start="6.95" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx041" src="sfx/blink.wav" data-start="7.04" data-duration="0.05" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx042" src="sfx/tick.wav" data-start="7.35" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx043" src="sfx/blink.wav" data-start="7.45" data-duration="0.05" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx044" src="sfx/scribble.wav" data-start="7.6" data-duration="0.55" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx045" src="sfx/slurp.wav" data-start="7.6" data-duration="0.42" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx046" src="sfx/drop.wav" data-start="8.12" data-duration="0.9" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx047" src="sfx/bloop.wav" data-start="8.88" data-duration="0.35" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx048" src="sfx/pop.wav" data-start="8.88" data-duration="0.09" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx049" src="sfx/pop.wav" data-start="8.95" data-duration="0.09" data-volume="0.35" data-track-index="13"></audio>
+      <audio id="fx050" src="sfx/tick.wav" data-start="9.0" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx051" src="sfx/patter.wav" data-start="9.15" data-duration="0.36" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx052" src="sfx/smack.wav" data-start="9.62" data-duration="0.12" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx053" src="sfx/bite.wav" data-start="9.88" data-duration="0.22" data-volume="1.0" data-track-index="10"></audio>
+      <audio id="fx054" src="sfx/count.wav" data-start="9.95" data-duration="0.42" data-volume="0.55" data-track-index="11"></audio>
+      <audio id="fx055" src="sfx/pop.wav" data-start="10.0" data-duration="0.09" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx056" src="sfx/smack.wav" data-start="10.25" data-duration="0.12" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx057" src="sfx/munch.wav" data-start="10.34" data-duration="0.14" data-volume="0.6" data-track-index="12"></audio>
+      <audio id="fx058" src="sfx/smack.wav" data-start="10.45" data-duration="0.12" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx059" src="sfx/munch.wav" data-start="10.54" data-duration="0.14" data-volume="0.55" data-track-index="11"></audio>
+      <audio id="fx060" src="sfx/patter.wav" data-start="10.55" data-duration="0.36" data-volume="0.55" data-track-index="12"></audio>
+      <audio id="fx061" src="sfx/tick.wav" data-start="10.85" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx062" src="sfx/knock.wav" data-start="11.43" data-duration="0.18" data-volume="0.8" data-track-index="10"></audio>
+      <audio id="fx063" src="sfx/knock.wav" data-start="11.63" data-duration="0.18" data-volume="0.8" data-track-index="10"></audio>
+      <audio id="fx064" src="sfx/knock.wav" data-start="11.83" data-duration="0.18" data-volume="0.8" data-track-index="10"></audio>
+      <audio id="fx065" src="sfx/thud.wav" data-start="12.0" data-duration="0.32" data-volume="0.9" data-track-index="11"></audio>
+      <audio id="fx066" src="sfx/knock.wav" data-start="12.03" data-duration="0.18" data-volume="0.9" data-track-index="10"></audio>
+      <audio id="fx067" src="sfx/count.wav" data-start="12.1" data-duration="0.42" data-volume="0.55" data-track-index="12"></audio>
+      <audio id="fx068" src="sfx/pop.wav" data-start="12.15" data-duration="0.09" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx069" src="sfx/wobble.wav" data-start="12.2" data-duration="0.6" data-volume="0.55" data-track-index="14"></audio>
+      <audio id="fx070" src="sfx/air.wav" data-start="12.35" data-duration="0.55" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx071" src="sfx/tick.wav" data-start="13.0" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx072" src="sfx/fire.wav" data-start="13.5" data-duration="0.9" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx073" src="sfx/crackle.wav" data-start="13.9" data-duration="0.1" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx074" src="sfx/crackle.wav" data-start="14.02" data-duration="0.1" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx075" src="sfx/crackle.wav" data-start="14.14" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx076" src="sfx/fire.wav" data-start="14.2" data-duration="0.9" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx077" src="sfx/sizzle.wav" data-start="14.32" data-duration="0.6" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx078" src="sfx/count.wav" data-start="14.35" data-duration="0.42" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx079" src="sfx/pop.wav" data-start="14.4" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx080" src="sfx/crackle.wav" data-start="14.5" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx081" src="sfx/crackle.wav" data-start="14.62" data-duration="0.1" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx082" src="sfx/crackle.wav" data-start="14.74" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx083" src="sfx/puff.wav" data-start="14.85" data-duration="0.3" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx084" src="sfx/tick.wav" data-start="15.2" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx085" src="sfx/tap.wav" data-start="15.7" data-duration="0.1" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx086" src="sfx/slosh.wav" data-start="15.95" data-duration="0.45" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx087" src="sfx/drop.wav" data-start="16.38" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx088" src="sfx/munch.wav" data-start="16.4" data-duration="0.14" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx089" src="sfx/count.wav" data-start="16.42" data-duration="0.42" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx090" src="sfx/pop.wav" data-start="16.45" data-duration="0.09" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx091" src="sfx/pop.wav" data-start="16.75" data-duration="0.09" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx092" src="sfx/thud.wav" data-start="16.93" data-duration="0.32" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx093" src="sfx/tick.wav" data-start="17.25" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx094" src="sfx/pop.wav" data-start="17.3" data-duration="0.09" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx095" src="sfx/countlong.wav" data-start="17.4" data-duration="1.0" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx096" src="sfx/tick.wav" data-start="17.4" data-duration="0.05" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx097" src="sfx/tick.wav" data-start="17.65" data-duration="0.05" data-volume="0.55" data-track-index="11"></audio>
+      <audio id="fx098" src="sfx/glint.wav" data-start="17.75" data-duration="0.12" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx099" src="sfx/tick.wav" data-start="17.9" data-duration="0.05" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx100" src="sfx/glint.wav" data-start="18.05" data-duration="0.12" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx101" src="sfx/tick.wav" data-start="18.15" data-duration="0.05" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx102" src="sfx/glint.wav" data-start="18.35" data-duration="0.12" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx103" src="sfx/thud.wav" data-start="18.62" data-duration="0.32" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx104" src="sfx/glint.wav" data-start="18.95" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx105" src="sfx/glint.wav" data-start="19.25" data-duration="0.12" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx106" src="sfx/air.wav" data-start="19.62" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx107" src="sfx/thud.wav" data-start="19.66" data-duration="0.32" data-volume="0.9" data-track-index="11"></audio>
+      <audio id="fx108" src="sfx/pop.wav" data-start="19.86" data-duration="0.09" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx109" src="sfx/air.wav" data-start="19.9" data-duration="0.55" data-volume="0.45" data-track-index="13"></audio>
+      <audio id="fx110" src="sfx/pop.wav" data-start="19.9" data-duration="0.09" data-volume="0.4" data-track-index="14"></audio>
+      <audio id="fx111" src="sfx/tap.wav" data-start="19.92" data-duration="0.1" data-volume="0.3" data-track-index="15"></audio>
+      <audio id="fx112" src="sfx/pop.wav" data-start="19.94" data-duration="0.09" data-volume="0.45" data-track-index="16"></audio>
+      <audio id="fx113" src="sfx/tap.wav" data-start="19.99" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx114" src="sfx/tap.wav" data-start="20.06" data-duration="0.1" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx115" src="sfx/tap.wav" data-start="20.2" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx116" src="sfx/tap.wav" data-start="20.27" data-duration="0.1" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx117" src="sfx/tap.wav" data-start="20.34" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx118" src="sfx/pop.wav" data-start="20.47" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx119" src="sfx/air.wav" data-start="21.38" data-duration="0.55" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx120" src="sfx/pop.wav" data-start="21.45" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx121" src="sfx/tick.wav" data-start="21.75" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx122" src="sfx/pop.wav" data-start="22.23" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx123" src="sfx/pop.wav" data-start="22.265" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx124" src="sfx/pop.wav" data-start="22.3" data-duration="0.09" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx125" src="sfx/pop.wav" data-start="22.335" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx126" src="sfx/pop.wav" data-start="22.37" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx127" src="sfx/zip.wav" data-start="22.4" data-duration="0.32" data-volume="0.55" data-track-index="12"></audio>
+      <audio id="fx128" src="sfx/pop.wav" data-start="22.405" data-duration="0.09" data-volume="0.35" data-track-index="13"></audio>
+      <audio id="fx129" src="sfx/pop.wav" data-start="22.44" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx130" src="sfx/pop.wav" data-start="22.475" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx131" src="sfx/bloop.wav" data-start="23.68" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx132" src="sfx/pop.wav" data-start="23.68" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx133" src="sfx/bloop.wav" data-start="24.3" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx134" src="sfx/pop.wav" data-start="24.3" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx135" src="sfx/bloop.wav" data-start="24.78" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx136" src="sfx/pop.wav" data-start="24.78" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx137" src="sfx/bloop.wav" data-start="25.42" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx138" src="sfx/pop.wav" data-start="25.42" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx139" src="sfx/zip.wav" data-start="25.95" data-duration="0.32" data-volume="0.55" data-track-index="10"></audio>
+      <audio id="fx140" src="sfx/pop.wav" data-start="26.15" data-duration="0.09" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx141" src="sfx/tick.wav" data-start="26.2" data-duration="0.05" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx142" src="sfx/countlong.wav" data-start="26.25" data-duration="1.0" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx143" src="sfx/tick.wav" data-start="26.3" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx144" src="sfx/tick.wav" data-start="26.4" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx145" src="sfx/tick.wav" data-start="26.5" data-duration="0.05" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx146" src="sfx/pop.wav" data-start="27.4" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx147" src="sfx/scribble.wav" data-start="27.45" data-duration="0.55" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx148" src="sfx/tick.wav" data-start="28.82" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx149" src="sfx/pop.wav" data-start="29.05" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx150" src="sfx/countlong.wav" data-start="29.25" data-duration="1.0" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx151" src="sfx/tick.wav" data-start="30.45" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx152" src="sfx/squish.wav" data-start="30.5" data-duration="0.45" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx153" src="sfx/bloop.wav" data-start="30.6" data-duration="0.35" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx154" src="sfx/tick.wav" data-start="30.85" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx155" src="sfx/knock.wav" data-start="30.98" data-duration="0.18" data-volume="0.9" data-track-index="10"></audio>
+      <audio id="fx156" src="sfx/knock.wav" data-start="31.3" data-duration="0.18" data-volume="0.9" data-track-index="10"></audio>
+      <audio id="fx157" src="sfx/drop.wav" data-start="31.45" data-duration="0.9" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx158" src="sfx/squish.wav" data-start="32.2" data-duration="0.45" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx159" src="sfx/tick.wav" data-start="32.42" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx160" src="sfx/pop.wav" data-start="32.7" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx161" src="sfx/knock.wav" data-start="32.78" data-duration="0.18" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx162" src="sfx/drip.wav" data-start="32.9" data-duration="0.14" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx163" src="sfx/pop.wav" data-start="32.98" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx164" src="sfx/breath.wav" data-start="33.0" data-duration="1.1" data-volume="0.8" data-track-index="12"></audio>
+      <audio id="fx165" src="sfx/scribble.wav" data-start="33.3" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx166" src="sfx/drop.wav" data-start="33.32" data-duration="0.9" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx167" src="sfx/rise.wav" data-start="34.38" data-duration="1.4" data-volume="0.55" data-track-index="10"></audio>
+      <audio id="fx168" src="sfx/tick.wav" data-start="34.5" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx169" src="sfx/tap.wav" data-start="35.05" data-duration="0.1" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx170" src="sfx/steam.wav" data-start="35.2" data-duration="1.2" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="fx171" src="sfx/tick.wav" data-start="35.3" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx172" src="sfx/tap.wav" data-start="35.95" data-duration="0.1" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx173" src="sfx/drop.wav" data-start="36.1" data-duration="0.9" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx174" src="sfx/tick.wav" data-start="36.2" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx175" src="sfx/thud.wav" data-start="37.88" data-duration="0.32" data-volume="0.9" data-track-index="10"></audio>
+      <audio id="fx176" src="sfx/glint.wav" data-start="38.45" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx177" src="sfx/glint.wav" data-start="38.69" data-duration="0.12" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx178" src="sfx/scribble.wav" data-start="38.8" data-duration="0.55" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx179" src="sfx/glint.wav" data-start="38.93" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx180" src="sfx/rise.wav" data-start="39.4" data-duration="1.4" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx181" src="sfx/drop.wav" data-start="39.7" data-duration="0.9" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx182" src="sfx/glint.wav" data-start="39.97" data-duration="0.12" data-volume="0.2" data-track-index="12"></audio>
+      <audio id="fx183" src="sfx/glint.wav" data-start="40.21" data-duration="0.12" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx184" src="sfx/glint.wav" data-start="40.45" data-duration="0.12" data-volume="0.2" data-track-index="12"></audio>
       <!-- sfx:end -->
     </div>
 
@@ -822,8 +835,15 @@
 
       // 1 · Hook on mint
       drift(".s1-sp", 0, 2.45, 50);
+      document.querySelectorAll(".s1-sp").forEach((el, i) => pop(el, 0.02 + i * 0.09, 0.5));
       fadeUp("#s1-title", 0.25, 0.45);
       tl.fromTo("#s1-card", { y: 140, scale: 0.94, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: E }, 0.32);
+      // The card fills in as it rises: the score counts up, the chart draws, the delta and tags pop on.
+      count("#s1-n", 0, 92, 0.34, 0.5);
+      draw("#s1-spark", 0.5, 0.45, "power2.out");
+      pop("#s1-delta", 0.82, 0.3, 0.6);
+      pop("#s1-c1", 0.92, 0.3, 0.6);
+      pop("#s1-c2", 1.0, 0.3, 0.6);
       tl.to("#s1-card", { x: -1000, rotation: -14, duration: 0.24, ease: "power3.in" }, 1.28);
       tl.to("#s1-title", { autoAlpha: 0, y: -60, duration: 0.2, ease: "power2.in" }, 1.28);
       tl.fromTo("#s1-lying", { scale: 1.7, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 1.52);
@@ -838,6 +858,7 @@
 
       // 2 · The orb, the melt, the sigh, the question
       drift(".s2-sp", 2.45, 6.4, 36);
+      document.querySelectorAll(".s2-sp").forEach((el, i) => pop(el, 2.5 + i * 0.08, 0.4));
       fadeUp("#s2-h1", 2.6);
       const orb2 = ["#s2-body", "#s2-shine", "#s2-under"];
       tl.fromTo([...orb2, "#s2-num"], { scale: 0, autoAlpha: 0, svgOrigin: "540 980" }, { scale: 1, autoAlpha: 1, duration: 0.55, ease: "back.out(1.7)", svgOrigin: "540 980" }, 3.4);
