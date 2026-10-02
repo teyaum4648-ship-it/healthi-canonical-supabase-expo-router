@@ -14,34 +14,33 @@ import os
 import sys
 from pathlib import Path
 
+import numpy as np
 import soundfile as sf
 from kokoro_onnx import Kokoro
 
 here = Path(__file__).parent
 models = Path(os.environ.get('KOKORO_DIR', here / 'voices'))
 
-# Each line: (start second, text, the second the next sound must be clear by).
+# Each line: (start second, text, the second the next sound must be clear by). A line is a
+# scene's whole thought, read in one take so it flows; the music bed carries the space between.
 SCRIPTS = {
     # Calm & premium: few words and room to breathe, read a touch slower.
-    'calm': (0.97, [
-        (0.4, 'Everything in your day is connected.', 4.6),
-        (4.65, 'Day woven brings it together, in one score each morning.', 9.6),
-        (10.0, 'Every food, scored.', 12.7),
-        (12.75, 'And every score, explained.', 16.9),
-        (17.4, "There's a rhythm to your energy. Now, you can see it.", 22.3),
-        (22.45, 'And when the day runs heavy, one small reset.', 26.5),
-        (26.6, 'Day woven.', 27.6),
-        (27.65, 'Your whole day, woven together.', 30.0),
+    'calm': (0.95, [
+        (0.6, 'Everything in your day is connected.', 4.6),
+        (4.6, 'Day woven brings it together, in one score each morning.', 10.4),
+        (10.6, 'Every food, scored. And every score, explained.', 17.2),
+        (17.4, "There's a rhythm to your energy. Now, you can see it.", 22.2),
+        (22.4, 'And when the day runs heavy, one small reset.', 26.4),
+        (26.55, 'Day woven. Your whole day, woven together.', 30.0),
     ]),
     # Real talk: a relatable problem, then what the app does about it.
     'real': (1.05, [
         (0.3, "Tired, wired, or ready to go? Your body's been telling you all along.", 4.6),
-        (4.65, 'Day woven reads your sleep, food and movement, and sums up your day in one score.', 9.6),
-        (9.95, 'Search any food, tap its score, and see exactly why, right down to the ingredients.', 16.9),
-        (17.4, 'Learn when your energy tends to peak, and plan around it.', 22.3),
-        (22.45, 'Is today feeling heavy? It suggests one small reset that fits.', 26.5),
-        (26.6, 'Day woven.', 27.6),
-        (27.65, 'Your whole day, woven together.', 30.0),
+        (4.6, 'Day woven reads your sleep, food and movement, and sums up your day in one score.', 9.9),
+        (10.0, 'Search any food, tap its score, and see exactly why, right down to the ingredients.', 16.6),
+        (16.75, 'Learn when your energy tends to peak, and plan around it.', 21.6),
+        (21.75, 'Is today feeling heavy? It suggests one small reset that fits.', 26.4),
+        (26.55, 'Day woven. Your whole day, woven together.', 30.0),
     ]),
 }
 
@@ -54,15 +53,16 @@ out = here / f'vo-{script}-{voice}'
 out.mkdir(exist_ok=True)
 
 
-def trimmed(samples, rate, head=0.004, tail=0.012):
-    """Cuts the model's near-silence: 15 ms of air before the first sound, and the quiet release
-    after the last one faded over 30 ms, so a word ends cleanly before the next one lands."""
-    start = next((i for i, s in enumerate(samples) if abs(s) > head), 0)
-    end = next((i for i in range(len(samples) - 1, -1, -1) if abs(samples[i]) > tail), len(samples) - 1)
-    pad, fade = int(rate * 0.015), int(rate * 0.03)
-    out = samples[max(0, start - pad): min(len(samples), end + fade)].copy()
-    for i in range(min(fade, len(out))):
-        out[len(out) - 1 - i] *= i / fade
+def trimmed(samples, rate):
+    """Trims only true silence. Keeps the breath before the first word and lets the last one
+    decay naturally, with soft raised-cosine edges, so no line starts or stops abruptly."""
+    start = next((i for i, x in enumerate(samples) if abs(x) > 0.004), 0)
+    end = next((i for i in range(len(samples) - 1, -1, -1) if abs(samples[i]) > 0.002), len(samples) - 1)
+    out = samples[max(0, start - int(rate * 0.08)): min(len(samples), end + int(rate * 0.06))].copy()
+    for edge, ms in ((slice(None), 30), (slice(None, None, -1), 80)):
+        n = min(int(rate * ms / 1000), len(out))
+        view = out[edge]
+        view[:n] *= (1 - np.cos(np.linspace(0, np.pi, n))) / 2
     return out
 
 

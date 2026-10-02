@@ -6,3 +6,5 @@ snapshots/
 vo-*/
 voices/
 sherpa-onnx-*/
+# bed.py makes the music bed on demand (about 9 MB as WAV).
+sfx/bed.wav
