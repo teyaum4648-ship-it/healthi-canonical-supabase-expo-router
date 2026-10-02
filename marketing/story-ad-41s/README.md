@@ -4,8 +4,8 @@
 It tells a short story, following the structure of a reference ad the team liked: a hook,
 the gap between the number you're shown and how you actually feel, a cartoon culprit for
 each part of the gap, the pain, then daywoven. It's voiced throughout by the female voice
-(`af_heart`). Under the voice are natural sound effects and a soft stream-and-breeze bed;
-there is no music or musical instrument anywhere in it.
+(`af_heart`). The only other sound is a set of small natural sound effects. There is no
+background bed, and no music or musical instrument anywhere in it.
 
 | Seconds | Voice | On screen |
 | --- | --- | --- |
@@ -30,7 +30,6 @@ measurement.
 ```bash
 cd marketing/story-ad-41s
 python sfx.py                       # → sfx/*.wav, the sound effects (numpy, soundfile)
-python bed.py                       # → sfx/bed.wav, the stream and breeze (numpy, soundfile)
 python voiceover.py                 # → vo/line*.wav and vo/plan.json (kokoro-onnx; see the file)
 npm run check                       # lint, layout, motion and contrast checks
 npm run render                      # → renders/daywoven-story-41s-9x16.mp4 (picture + effects)
@@ -62,10 +61,11 @@ There's no music, and every sound is synthesised by `sfx.py` from noise and simp
 | Two water drops | the question mark's dot, the glass, the notifications, the name |
 | A slow breath of air | the breathing ring |
 
-`bed.py` is the stream-and-breeze bed from the kinetic promo, cut to 41 seconds. The breezes
-swell on this ad's scene changes, and the bubbles sit 12 dB under how they were first
-balanced. `mix.sh` cleans and levels the voice, ducks the effects and the bed under it, and
-masters the result to −14 LUFS with a −1.5 dB safety limiter.
+`mix.sh` cleans and levels the voice, ducks the effects under it, and masters the result to
+−14 LUFS with a −1.5 dB safety limiter. Between lines there is silence apart from the
+effects. If you want a background back, `python bed.py && BED=1 ./mix.sh` lays the
+stream-and-breeze bed from the kinetic promo underneath. It's cut to 41 seconds, with breezes
+that swell on this ad's scene changes and bubbles 12 dB under how they were first balanced.
 
 The final mix was transcribed back word for word with `listen.py`. Two script choices came
 from that check: "Skipped lunch **cost** twelve" (not "ate", which was heard as "at 12"), and
