@@ -2,10 +2,10 @@
 
 1080×1920, 30 fps, H.264 + AAC. For Reels, TikTok, Stories and Shorts. Big, all-caps
 words land on a half-second beat between real app screens, which zoom and pan. The sound
-is quiet ticks on each word, one pop on the tap and a chime on the name. There are no
-whooshes.
-It comes with or without a voice-over and music bed. There are two scripts, Calm & premium and
-Real talk, both read by the female voice.
+is quiet ticks on each word, one pop on the tap and a water drop on the name. There is no
+music and no musical instrument anywhere in it. It comes with or without a voice-over over a
+nature bed of a gentle stream and soft breezes. There are two scripts, Calm & premium and Real
+talk, both read by the female voice.
 
 | Seconds | Scene | On screen |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ a UI change, run `npm run build:demo` at the repo root, then
 
 ## Voice-over
 
-Two scripts, both read by the female voice (`af_heart`), over a soft music bed.
+Two scripts, both read by the female voice (`af_heart`), over a nature bed.
 
 **Calm & premium** uses few words and leaves room to breathe:
 
@@ -80,8 +80,8 @@ Two scripts, both read by the female voice (`af_heart`), over a soft music bed.
 | 26.55 s | Daywoven. Your whole day, woven together. |
 
 Each line is one scene's whole thought, read in a single take so it flows rather than
-starting and stopping. The scenes run longer than their lines, so the music bed carries
-the space between.
+starting and stopping. The scenes run longer than their lines, so the stream and breeze
+carry the space between.
 
 ```bash
 npm run render
@@ -96,10 +96,13 @@ full-precision `kokoro-v1.0.onnx` rather than the int8 file. It trims only true 
 it keeps the breath before a line and lets the last word decay, with soft edges at both
 ends. It flags any line that runs into the next one.
 
-`bed.py` synthesises the bed with numpy:
-- Warm pad chords in D major that change on the scene cuts and resolve on the logo.
-- Detuned soft-saw voices through a gentle low-pass, spread in stereo, with a synthetic
-  room reverb.
+`bed.py` synthesises the nature bed with numpy. It has no instruments and no musical notes:
+- The stream is thousands of tiny water bubbles, each a short sine whose pitch rises as it
+  closes, the way bubbles in moving water sound, over a soft rush of filtered noise.
+- The bubbles are weighted so the water's 1–3 kHz sparkle comes through and doesn't muddy into
+  a rumble.
+- A low breeze drifts and swells gently on each scene cut.
+- A short, soft room keeps it behind the voice.
 - No samples and nothing downloaded.
 
 `mix.sh` does the rest:
@@ -109,7 +112,8 @@ ends. It flags any line that runs into the next one.
   - softens the synthetic voice's bright 8–12 kHz hiss on "s" sounds, plus de-essing;
   - soft-knee compression, and a gentle limiter on its peaks.
 - Levels every voice to the same loudness.
-- Ducks the clicks under the voice, and eases the bed down a few dB while the voice speaks.
+- Ducks the clicks under the voice. The nature bed sits about 10 dB under the voice
+  between lines and eases down further while the voice speaks.
 - Masters in two loudness passes to −14 LUFS with a −1.5 dB safety limiter.
 - Encodes the result as AAC-LC at 44.1 kHz and 192 kbps.
 
@@ -124,8 +128,9 @@ That check is also why two lines read the way they do:
 
 ## Sounds
 
-`sfx.py` synthesises `sfx/tick.wav`, `pop.wav` and `chime.wav` with the Python standard
-library, so nothing is licensed or downloaded. Each `<audio>` tag in `index.html` sets
+`sfx.py` synthesises `sfx/tick.wav`, `pop.wav` and `drop.wav` with the Python standard
+library, so nothing is licensed or downloaded. The drop is two water drops: each is the tiny
+bubble a drop traps, ringing up in pitch as it closes. Each `<audio>` tag in `index.html` sets
 when one plays and how loud.
 
 ## Content rules followed

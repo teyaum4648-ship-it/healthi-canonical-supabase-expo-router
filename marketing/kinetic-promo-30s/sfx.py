@@ -1,4 +1,5 @@
-"""Synthesises the promo's three quiet sound effects. Standard library only, so it runs anywhere."""
+"""Synthesises the promo's three quiet sound effects: a tick, a pop and a water drop. No musical
+notes or instruments. Standard library only, so it runs anywhere."""
 import math, struct, wave, os
 
 RATE = 48000
@@ -30,16 +31,23 @@ for i in range(int(RATE * 0.11)):
     pop.append(math.sin(phase) * math.exp(-t / 0.032))
 write('pop.wav', fade_edges(pop, 0.3), 0.55)
 
-# Chime: two soft bell notes for the logo.
-def bell(f, t):
-    return (math.sin(2 * math.pi * f * t) * math.exp(-t / 0.9)
-            + 0.4 * math.sin(2 * math.pi * f * 2.76 * t) * math.exp(-t / 0.35)
-            + 0.18 * math.sin(2 * math.pi * f * 5.4 * t) * math.exp(-t / 0.12))
-chime = []
-for i in range(int(RATE * 2.4)):
-    t = i / RATE
-    s = bell(1318.5, t)
-    if t >= 0.11:
-        s += 0.8 * bell(1975.5, t - 0.11)
-    chime.append(s * min(1.0, t / 0.003))
-write('chime.wav', fade_edges(chime, 20), 0.5)
+# Drop: two water drops for the logo, the second smaller. A drop's sound is the tiny bubble it
+# traps ringing as it closes, so its pitch climbs quickly and it fades in a few hundredths of
+# a second. A few faint reflections give it a little space.
+def drop(f0, f1, decay, at, level, out):
+    phase = 0.0
+    for i in range(int(RATE * decay * 8)):
+        t = i / RATE
+        freq = f0 + (f1 - f0) * (1 - math.exp(-t / 0.012))
+        phase += 2 * math.pi * freq / RATE
+        out[int(at * RATE) + i] += level * math.sin(phase) * math.exp(-t / decay) * min(1.0, t / 0.0008)
+
+drops = [0.0] * int(RATE * 1.0)
+drop(820, 1750, 0.030, 0.0, 1.0, drops)
+drop(1150, 2300, 0.022, 0.36, 0.45, drops)
+space = drops[:]
+for delay, gain in ((0.023, 0.22), (0.041, 0.14), (0.067, 0.08), (0.101, 0.04)):
+    d = int(RATE * delay)
+    for i in range(d, len(space)):
+        space[i] += gain * drops[i - d]
+write('drop.wav', fade_edges(space, 20), 0.5)

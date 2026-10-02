@@ -32,13 +32,13 @@ voice_i=$(timeout 60 "$F" -hide_banner -i "vo-$take/voice.wav" -af loudnorm=prin
   | python3 -c "import json,sys;print(json.loads(sys.stdin.read())['input_i'])")
 lift=$(python3 -c "print(round(-16 - float('$voice_i'), 2))")
 
-# 2. Mix: the clicks dip ~6 dB under the voice. The music bed (sfx/bed.wav, from bed.py) sits
-#    well below it and eases down a few dB more while the voice speaks, so the space between
-#    lines is carried rather than empty.
+# 2. Mix: the clicks dip ~6 dB under the voice. The nature bed (sfx/bed.wav, from bed.py: a
+#    stream and soft breezes) sits well below it and eases down a few dB more while the voice
+#    speaks, so the space between lines is carried rather than empty.
 mixgraph="[1:a]volume=${lift}dB,alimiter=limit=0.6:attack=4:release=80:level=false,asplit=3[v][key][bedkey];\
 [0:a]aresample=48000:resampler=soxr,pan=mono|c0=0.5*c0+0.5*c1,volume=-4dB[sfx];\
 [sfx][key]sidechaincompress=threshold=0.02:ratio=5:attack=4:release=220:makeup=1,aformat=channel_layouts=stereo[duck];\
-[2:a]aresample=48000:resampler=soxr,volume=-10dB[bed];[bedkey]aformat=channel_layouts=stereo[bk];\
+[2:a]aresample=48000:resampler=soxr,volume=-4dB[bed];[bedkey]aformat=channel_layouts=stereo[bk];\
 [bed][bk]sidechaincompress=threshold=0.03:ratio=4:attack=25:release=650:makeup=1[bedduck];\
 [v]aformat=channel_layouts=stereo[vs];[vs][duck][bedduck]amix=inputs=3:normalize=0:duration=first"
 measure=$(timeout 120 "$F" -hide_banner -y -i "$video" -i "vo-$take/voice.wav" -i sfx/bed.wav -filter_complex \
