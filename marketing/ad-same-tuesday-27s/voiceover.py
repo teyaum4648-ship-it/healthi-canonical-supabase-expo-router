@@ -23,7 +23,8 @@ VOICE, SPEED, FIRST = 'af_heart', 1.0, 0.25
 
 # (pause before the take in seconds, the lines read together in one take). Reading a scene's lines in
 # one go lets the voice carry its intonation from sentence to sentence, the way a person talks,
-# instead of starting every sentence fresh. retime.py keeps the picture on the words.
+# instead of starting every sentence fresh. The voice is left dry: a room effect made of short
+# echoes coloured it into something metallic. retime.py keeps the picture on the words.
 TAKES = [
     (0.0, ['Same person. Same Tuesday.', 'Watch what happens at three p.m.']),
     (0.45, ['Up top: snooze, three coffees, no lunch.', 'Down here: one heads-up at seven a.m.',
@@ -46,21 +47,6 @@ def trimmed(samples, rate):
     return out
 
 
-def room(x, rate):
-    """A small, soft room under the dry voice: a few early reflections and a short tail, so it sounds
-    spoken in a space rather than generated. Seeded, so every run sounds the same."""
-    n = int(rate * 0.4)
-    t = np.arange(n) / rate
-    ir = np.zeros(n)
-    for ms, gain in ((7, 0.32), (11, 0.24), (17, 0.17), (23, 0.12), (31, 0.08)):
-        ir[int(rate * ms / 1000)] += gain
-    tail = np.random.default_rng(7).standard_normal(n) * np.exp(-t / 0.07)
-    f = np.fft.rfftfreq(n, 1 / rate)
-    ir += 0.05 * np.fft.irfft(np.fft.rfft(tail) * (f < 6000), n)
-    x = np.concatenate([x, np.zeros(int(rate * 0.25))])
-    return x + 0.55 * np.convolve(x, ir)[: len(x)]
-
-
 kokoro = Kokoro(str(models / 'kokoro-v1.0.onnx'), str(models / 'voices-v1.0.bin'))
 out = here / 'vo'
 out.mkdir(exist_ok=True)
@@ -68,13 +54,13 @@ plan, at = [], FIRST
 for index, (pause, lines) in enumerate(TAKES):
     text = ' '.join(lines)
     samples, rate = kokoro.create(text, voice=VOICE, speed=SPEED, lang='en-us')
-    samples = room(trimmed(np.asarray(samples, dtype=np.float64), rate), rate)
+    samples = trimmed(np.asarray(samples, dtype=np.float64), rate)
     path = out / f'take{index:02d}.wav'
     sf.write(path, samples, rate, subtype='PCM_24')
     at += pause
     seconds = round(len(samples) / rate, 3)
     plan.append({'file': str(path), 'start': round(at, 3), 'seconds': seconds, 'text': text})
-    at += seconds - 0.25
+    at += seconds
 (out / 'plan.json').write_text(json.dumps(plan, indent=1))
 for row in plan:
     print(f"{row['start']:>7.2f}s  {row['seconds']:>5.2f}s  {row['text']}")

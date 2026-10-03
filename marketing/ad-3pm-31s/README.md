@@ -14,14 +14,14 @@ effect on every movement. There is no music and no musical instrument anywhere i
 
 | Seconds | Voice | On screen |
 | --- | --- | --- |
-| 0–5.35 | Your three PM crash is predictable. I used to think I just needed more coffee. | A chat at 3:07 PM: "why am i SO tired rn", "every. single. day.". **predictable.** slams in. Three coffees land in the chat; Jordan replies "that's coffee #3". |
-| 5.35–7 | So I rewound my day. | ◀◀ REWIND: the clock spins back from 3:07 PM to 1:04 AM as the afternoon turns to night. |
-| 7–10.94 | Six hours of sleep. No breakfast. Four meetings, back to back. | Morning returns. Each one lands as a card while "today's battery" drains; four meeting blocks drop in and squeeze together. |
-| 10.94–14.24 | By nine a.m., the crash was already booked. | Tuesday's calendar: an "Energy crash" event appears at 3 PM and a **BOOKED** stamp comes down on it. |
-| 14.24–19.46 | So I built an app that sees it coming at seven, and gives you one thing to do about it. | A 7:02 lock screen. The heads-up buzzes in ("Short night. Your energy will likely dip around 2:30 PM."), opens to one thing ("30 min of daylight before 8."), and gets tapped. |
-| 19.46–23.87 | Then I added this: it learns your rhythm, so it gets sharper every week. | "Then I added this…", then the real Sleep screen. Confidence fills from Low to High over three weeks. |
-| 23.87–26.6 | Send this to the friend who's always tired at three. | Back in the chat, this video gets sent; Jordan replies "WAIT this is literally me" and reacts. |
-| 26.6–31.1 | It's called Day woven. Link in bio. | On mint: "Know your 3 p.m. at 7 a.m.", the wordmark, two threads, and **Link in bio**. |
+| 0–5.4 | Your three PM crash is predictable. I used to think I just needed more coffee. | A chat at 3:07 PM: "why am i SO tired rn", "every. single. day.". **predictable.** slams in. Three coffees land in the chat; Jordan replies "that's coffee #3". |
+| 5.4–7 | So I rewound my day. | ◀◀ REWIND: the clock spins back from 3:07 PM to 1:04 AM as the afternoon turns to night. |
+| 7–10.9 | Six hours of sleep. No breakfast. Four meetings, back to back. | Morning returns. Each one lands as a card while "today's battery" drains; four meeting blocks drop in and squeeze together. |
+| 10.9–14.2 | By nine a.m., the crash was already booked. | Tuesday's calendar: an "Energy crash" event appears at 3 PM and a **BOOKED** stamp comes down on it. |
+| 14.2–19.4 | So I built an app that sees it coming at seven, and gives you one thing to do about it. | A 7:02 lock screen. The heads-up buzzes in ("Short night. Your energy will likely dip around 2:30 PM."), opens to one thing ("30 min of daylight before 8."), and gets tapped. |
+| 19.4–23.9 | Then I added this: it learns your rhythm, so it gets sharper every week. | "Then I added this…", then the real Sleep screen. Confidence fills from Low to High over three weeks. |
+| 23.9–26.6 | Send this to the friend who's always tired at three. | Back in the chat, this video gets sent; Jordan replies "WAIT this is literally me" and reacts. |
+| 26.6–30.9 | It's called Day woven. Link in bio. | On mint: "Know your 3 p.m. at 7 a.m.", the wordmark, two threads, and **Link in bio**. |
 
 The heads-up is true to the app: the rhythm model puts the afternoon dip about 7 to 8 hours
 after waking (so 2–3 p.m. after a 7:02 wake), and its morning-light window is the first hour
@@ -58,8 +58,8 @@ chat come from the system's Noto Color Emoji font.
 ## Voice
 
 The voice is the female voice (`af_heart`) at its natural pace. Each scene's lines are read in one
-take, so the intonation carries from sentence to sentence like someone talking, and a small, soft
-room is added so it sounds spoken in a space rather than generated.
+take, so the intonation carries from sentence to sentence like someone talking. It's left dry: a
+room effect built from short echoes was tried and made it sound metallic.
 
 The animation and the cue sheet are written in the seconds of the take they were first cut to
 (`design.json` records where each word landed). `retime.py` transcribes the current take, matches
