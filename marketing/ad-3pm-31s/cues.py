@@ -15,7 +15,7 @@ here = Path(__file__).parent
 CUES = [
     # 1 · The hook: every movement has its own sound. Each message pops, the captions tick on and slam, three coffees pop in, land and steam,
     # Jordan types and replies, and the chat falls back as the rewind starts.
-    (0.08, 'tick', 0.25), (0.1, 'bloop2', 0.5), (0.1, 'pop', 0.4), (0.3, 'tick', 0.3), (0.8, 'pop2', 0.45), (0.8, 'bloop', 0.35), (2.08, 'thud', 0.9), (2.08, 'knock', 0.6), (2.95, 'puff', 0.15), (3.15, 'tick', 0.3),
+    (0.08, 'tick', 0.25), (0.1, 'bloop2', 0.5), (0.1, 'pop', 0.4), (0.3, 'tick', 0.3), (0.8, 'pop2', 0.45), (0.8, 'bloop', 0.35), (1.76, 'thud', 0.9), (1.76, 'knock', 0.6), (2.95, 'puff', 0.15), (3.15, 'tick', 0.3),
     (3.7, 'pop', 0.3), (3.8, 'tap', 0.45), (3.9, 'steam', 0.3), (4.3, 'pop2', 0.3), (4.4, 'tap', 0.45), (4.52, 'steam', 0.22), (5.14, 'steam', 0.15),
     (4.42, 'blink', 0.3), (4.55, 'tick', 0.15), (4.65, 'tick', 0.15), (4.75, 'tick', 0.15),
     (4.95, 'pop', 0.3), (4.98, 'thud', 0.7), (4.98, 'knock', 0.5), (5.05, 'tap', 0.5),

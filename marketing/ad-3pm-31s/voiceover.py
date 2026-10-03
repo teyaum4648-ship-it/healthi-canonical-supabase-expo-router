@@ -7,7 +7,8 @@ line starts a set gap after the previous one ends, and plan.json records where e
     python voiceover.py                 # → vo/line00.wav … and vo/plan.json
 
 "Day woven" is spelled apart so the voice says the name cleanly; numbers are spelled out so
-they are read as numbers, not digits.
+they are read as numbers, not digits. The first line says "three PM" without the dots, which the
+voice otherwise reads as a full stop and pauses on before "crash".
 """
 import json
 import os
@@ -23,8 +24,8 @@ VOICE, SPEED, FIRST = 'af_heart', 1.06, 0.25
 
 # (pause before the line in seconds, text). Longer pauses mark a change of scene.
 LINES = [
-    (0.0, 'Your three p.m. crash is predictable.'),
-    (0.4, 'I used to think I just needed more coffee.'),
+    (0.0, 'Your three PM crash is predictable.'),
+    (0.79, 'I used to think I just needed more coffee.'),
     (0.3, 'So I rewound my day.'),
     (0.3, 'Six hours of sleep. No breakfast. Four meetings, back to back.'),
     (0.35, 'By nine a.m., the crash was already booked.'),

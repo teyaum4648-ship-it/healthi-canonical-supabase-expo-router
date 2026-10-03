@@ -14,7 +14,7 @@ effect on every movement. There is no music and no musical instrument anywhere i
 
 | Seconds | Voice | On screen |
 | --- | --- | --- |
-| 0–5.75 | Your three p.m. crash is predictable. I used to think I just needed more coffee. | A chat at 3:07 PM: "why am i SO tired rn", "every. single. day.". **predictable.** slams in. Three coffees land in the chat; Jordan replies "that's coffee #3". |
+| 0–5.75 | Your three PM crash is predictable. I used to think I just needed more coffee. | A chat at 3:07 PM: "why am i SO tired rn", "every. single. day.". **predictable.** slams in. Three coffees land in the chat; Jordan replies "that's coffee #3". |
 | 5.75–7.4 | So I rewound my day. | ◀◀ REWIND: the clock spins back from 3:07 PM to 1:04 AM as the afternoon turns to night. |
 | 7.4–11.4 | Six hours of sleep. No breakfast. Four meetings, back to back. | Morning returns. Each one lands as a card while "today's battery" drains; four meeting blocks drop in and squeeze together. |
 | 11.4–14.4 | By nine a.m., the crash was already booked. | Tuesday's calendar: an "Energy crash" event appears at 3 PM and a **BOOKED** stamp comes down on it. |
