@@ -1,4 +1,4 @@
-# daywoven: "Same Tuesday, twice" (27.5 seconds)
+# daywoven: "Same Tuesday, twice" (28.3 seconds)
 
 1080×1920, 30 fps, H.264 + AAC-LC, about −14 LUFS. For Reels, TikTok, Stories and Shorts.
 
@@ -14,14 +14,14 @@ musical instrument anywhere in it.
 
 | Seconds | Voice | On screen |
 | --- | --- | --- |
-| 0–4.5 | Same person. Same Tuesday. Watch what happens at three p.m. | Two blobs asleep at 6:45 AM, one per half. Both phones buzz; both wake. Captions sit on the seam between the halves. |
-| 4.5–7.7 | Up top: snooze, three coffees, no lunch. | The bottom dims. Top: "Snooze ×3" (the blob flops), three coffees (the energy bar spikes), "No lunch"; its clock runs to 1:00 PM and its energy drains. |
-| 7.7–10.4 | Down here: one heads-up at seven a.m. | The top dims. Bottom: "+ one heads-up"; at 7:00 the phone buzzes and the heads-up drops in ("Short night. Your dip will likely hit around 2:30."); it tucks away as a badge. |
-| 10.4–14.6 | Daylight before nine. Lunch before one. Last coffee by two. | The sun comes up behind the blob; each one slides in and gets checked off; the energy holds. |
-| 14.6–16.2 | Three p.m. | Both clocks land on 3:00 PM together. The top blob melts ("(sigh)"), its energy near empty; the bottom one hops. |
-| 16.2–19.6 | Same job. Same sleep. Completely different day. | The captions on the seam; the top half goes grey. |
-| 19.6–25 | That heads-up is Day woven. It learns your rhythm, so every week it fits you a little better. | The heads-up and its blob rise in, the name, then the real Sleep screen, and an energy curve that fits the day's check-ins better by week 4. |
-| 25–27.5 | Link in bio. | On mint: "One heads-up. A whole different day.", the wordmark, two threads, and **Link in bio**. |
+| 0–4.41 | Same person. Same Tuesday. Watch what happens at three p.m. | Two blobs asleep at 6:45 AM, one per half. Both phones buzz; both wake. Captions sit on the seam between the halves. |
+| 4.41–7.55 | Up top: snooze, three coffees, no lunch. | The bottom dims. Top: "Snooze ×3" (the blob flops), three coffees (the energy bar spikes), "No lunch"; its clock runs to 1:00 PM and its energy drains. |
+| 7.55–10.39 | Down here: one heads-up at seven a.m. | The top dims. Bottom: "+ one heads-up"; at 7:00 the phone buzzes and the heads-up drops in ("Short night. Your dip will likely hit around 2:30."); it tucks away as a badge. |
+| 10.39–15.24 | Daylight before nine. Lunch before one. Last coffee by two. | The sun comes up behind the blob; each one slides in and gets checked off; the energy holds. |
+| 15.24–16.76 | Three p.m. | Both clocks land on 3:00 PM together. The top blob melts ("(sigh)"), its energy near empty; the bottom one hops. |
+| 16.76–20.24 | Same job. Same sleep. Completely different day. | The captions on the seam; the top half goes grey. |
+| 20.24–25.48 | That heads-up is Day woven. It learns your rhythm, so every week it fits you a little better. | The heads-up and its blob rise in, the name, then the real Sleep screen, and an energy curve that fits the day's check-ins better by week 4. |
+| 25.48–28.31 | Link in bio. | On mint: "One heads-up. A whole different day.", the wordmark, two threads, and **Link in bio**. |
 
 The heads-up and the three suggestions come from what the app's rhythm model actually plans:
 an afternoon dip 7 to 8 hours after waking, morning light in the first hour, and a caffeine
@@ -34,7 +34,8 @@ cut-off. The curve is illustrative. The Sleep screen is a real capture from
 cd marketing/ad-same-tuesday-27s
 python sfx.py                       # → sfx/*.wav (numpy, soundfile)
 python cues.py                      # writes the effect cues into index.html
-python voiceover.py                 # → vo/line*.wav and vo/plan.json (kokoro-onnx; see the file)
+python voiceover.py                 # → vo/take*.wav and vo/plan.json (kokoro-onnx; see the file)
+python retime.py                    # keeps the picture and effects on the new take's words
 npm run check                       # lint, layout, motion and contrast checks
 npm run render                      # → renders/daywoven-tuesday-27s-9x16.mp4 (picture + effects)
 ./mix.sh                            # → renders/daywoven-tuesday-27s-9x16-vo.mp4 (the finished ad)
@@ -46,6 +47,19 @@ picture slowly so it plays everywhere; the command is in `../ad-3pm-31s/README.m
 
 The picture is cut to the voice, so if a line changes, re-run `voiceover.py`, read the new
 start times it prints, and move that scene's timings and its cues to match.
+
+## Voice
+
+The voice is the female voice (`af_heart`) at its natural pace. Each scene's lines are read in one
+take, so the intonation carries from sentence to sentence like someone talking, and a small, soft
+room is added so it sounds spoken in a space rather than generated.
+
+The animation and the cue sheet are written in the seconds of the take they were first cut to
+(`design.json` records where each word landed). `retime.py` transcribes the current take, matches
+it word for word, and writes `warp.json`, which `index.html` and `cues.py` use to move every tween
+and every effect onto its word. After changing the voice, run `python retime.py --record` first
+(with the old take still in `vo/`), then `voiceover.py`, `retime.py` and `cues.py`. If the design
+take is already recorded, skip `--record`.
 
 ## Sound
 

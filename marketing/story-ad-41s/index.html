@@ -835,6 +835,9 @@
       const draw = (sel, t, d = 0.5, ease = "power2.inOut") => {
         document.querySelectorAll(sel).forEach((el, i) => {
           const len = el.getTotalLength();
+          // Hidden until it starts drawing: a fully offset dash still shows its round end cap as a dot.
+          tl.set(el, { opacity: 0 }, 0);
+          tl.set(el, { opacity: 1 }, t + i * 0.08);
           tl.fromTo(el, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: d, ease }, t + i * 0.08);
         });
       };

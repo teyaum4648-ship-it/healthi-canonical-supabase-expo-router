@@ -14,14 +14,14 @@ effect on every movement. There is no music and no musical instrument anywhere i
 
 | Seconds | Voice | On screen |
 | --- | --- | --- |
-| 0–5.75 | Your three PM crash is predictable. I used to think I just needed more coffee. | A chat at 3:07 PM: "why am i SO tired rn", "every. single. day.". **predictable.** slams in. Three coffees land in the chat; Jordan replies "that's coffee #3". |
-| 5.75–7.4 | So I rewound my day. | ◀◀ REWIND: the clock spins back from 3:07 PM to 1:04 AM as the afternoon turns to night. |
-| 7.4–11.4 | Six hours of sleep. No breakfast. Four meetings, back to back. | Morning returns. Each one lands as a card while "today's battery" drains; four meeting blocks drop in and squeeze together. |
-| 11.4–14.4 | By nine a.m., the crash was already booked. | Tuesday's calendar: an "Energy crash" event appears at 3 PM and a **BOOKED** stamp comes down on it. |
-| 14.4–19.45 | So I built an app that sees it coming at seven, and gives you one thing to do about it. | A 7:02 lock screen. The heads-up buzzes in ("Short night. Your energy will likely dip around 2:30 PM."), opens to one thing ("30 min of daylight before 8."), and gets tapped. |
-| 19.45–23.95 | Then I added this: it learns your rhythm, so it gets sharper every week. | "Then I added this…", then the real Sleep screen. Confidence fills from Low to High over three weeks. |
-| 23.95–27 | Send this to the friend who's always tired at three. | Back in the chat, this video gets sent; Jordan replies "WAIT this is literally me" and reacts. |
-| 27–31 | It's called Day woven. Link in bio. | On mint: "Know your 3 p.m. at 7 a.m.", the wordmark, two threads, and **Link in bio**. |
+| 0–5.35 | Your three PM crash is predictable. I used to think I just needed more coffee. | A chat at 3:07 PM: "why am i SO tired rn", "every. single. day.". **predictable.** slams in. Three coffees land in the chat; Jordan replies "that's coffee #3". |
+| 5.35–7 | So I rewound my day. | ◀◀ REWIND: the clock spins back from 3:07 PM to 1:04 AM as the afternoon turns to night. |
+| 7–10.94 | Six hours of sleep. No breakfast. Four meetings, back to back. | Morning returns. Each one lands as a card while "today's battery" drains; four meeting blocks drop in and squeeze together. |
+| 10.94–14.24 | By nine a.m., the crash was already booked. | Tuesday's calendar: an "Energy crash" event appears at 3 PM and a **BOOKED** stamp comes down on it. |
+| 14.24–19.46 | So I built an app that sees it coming at seven, and gives you one thing to do about it. | A 7:02 lock screen. The heads-up buzzes in ("Short night. Your energy will likely dip around 2:30 PM."), opens to one thing ("30 min of daylight before 8."), and gets tapped. |
+| 19.46–23.87 | Then I added this: it learns your rhythm, so it gets sharper every week. | "Then I added this…", then the real Sleep screen. Confidence fills from Low to High over three weeks. |
+| 23.87–26.6 | Send this to the friend who's always tired at three. | Back in the chat, this video gets sent; Jordan replies "WAIT this is literally me" and reacts. |
+| 26.6–31.1 | It's called Day woven. Link in bio. | On mint: "Know your 3 p.m. at 7 a.m.", the wordmark, two threads, and **Link in bio**. |
 
 The heads-up is true to the app: the rhythm model puts the afternoon dip about 7 to 8 hours
 after waking (so 2–3 p.m. after a 7:02 wake), and its morning-light window is the first hour
@@ -35,7 +35,8 @@ are illustrative.
 cd marketing/ad-3pm-31s
 python sfx.py                       # → sfx/*.wav (numpy, soundfile)
 python cues.py                      # writes the effect cues into index.html
-python voiceover.py                 # → vo/line*.wav and vo/plan.json (kokoro-onnx; see the file)
+python voiceover.py                 # → vo/take*.wav and vo/plan.json (kokoro-onnx; see the file)
+python retime.py                    # keeps the picture and effects on the new take's words
 npm run check                       # lint, layout, motion and contrast checks
 npm run render                      # → renders/daywoven-3pm-31s-9x16.mp4 (picture + effects)
 ./mix.sh                            # → renders/daywoven-3pm-31s-9x16-vo.mp4 (the finished ad)
@@ -53,6 +54,19 @@ ffmpeg -i renders/daywoven-3pm-31s-9x16-vo.mp4 -map 0:v -c:v libx264 -preset ver
 The picture is cut to the voice, so if a line changes, re-run `voiceover.py`, read the new
 start times it prints, and move that scene's timings and its cues to match. The emoji in the
 chat come from the system's Noto Color Emoji font.
+
+## Voice
+
+The voice is the female voice (`af_heart`) at its natural pace. Each scene's lines are read in one
+take, so the intonation carries from sentence to sentence like someone talking, and a small, soft
+room is added so it sounds spoken in a space rather than generated.
+
+The animation and the cue sheet are written in the seconds of the take they were first cut to
+(`design.json` records where each word landed). `retime.py` transcribes the current take, matches
+it word for word, and writes `warp.json`, which `index.html` and `cues.py` use to move every tween
+and every effect onto its word. After changing the voice, run `python retime.py --record` first
+(with the old take still in `vo/`), then `voiceover.py`, `retime.py` and `cues.py`. If the design
+take is already recorded, skip `--record`.
 
 ## Sound
 

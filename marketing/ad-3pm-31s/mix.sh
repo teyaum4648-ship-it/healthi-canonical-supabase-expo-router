@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Lays the voice-over on the rendered 3:07 p.m. ad (whose own audio is the sound effects), then
 # masters the whole mix to -14 LUFS in two passes with peaks under -1.5 dBFS. There is no
-# background bed and no music.
+# background bed by default; BED=1 adds the stream and breeze from bed.py underneath.
 #
 #   npm run render && python sfx.py && python voiceover.py && ./mix.sh
+#   python bed.py && BED=1 ./mix.sh    # with the stream-and-breeze bed
 #
 # Needs an ffmpeg built with libsoxr (FFMPEG=/path overrides).
 set -euo pipefail
 cd "$(dirname "$0")"
 F="${FFMPEG:-ffmpeg}"
-LENGTH=31
+LENGTH=31.1
 video=renders/daywoven-3pm-31s-9x16.mp4
 out=renders/daywoven-3pm-31s-9x16-vo.mp4
 
