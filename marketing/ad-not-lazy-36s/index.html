@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-weight: 400;
+      }
+      :root {
+        --ink: #0b1f19;
+        --muted: #66756e;
+        --canvas: #f2efe9;
+        --mint: #3dd6a3;
+        --mint-deep: #11875f;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--canvas);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--canvas);
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .light {
+        background: radial-gradient(110% 70% at 50% 42%, #fbfaf7 0%, #f2efe9 62%, #e8e3da 100%);
+      }
+      .mintbg {
+        background: radial-gradient(90% 60% at 50% 40%, #6fe6be 0%, #3dd6a3 55%, #22bb8b 100%);
+      }
+      svg.full {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
+      }
+      .t {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+      .it {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: -0.005em;
+      }
+      .word {
+        display: inline-block;
+      }
+      .sphere {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 34% 30%, #ffffff 0%, #d9f8ec 22%, #8be8c6 58%, #3cc89a 100%);
+        box-shadow: 0 26px 50px rgba(18, 90, 66, 0.16);
+      }
+      .sphere.white {
+        background: radial-gradient(circle at 34% 30%, #ffffff 0%, #f3fffa 30%, #c3f3df 70%, #95e7c7 100%);
+        box-shadow: 0 30px 60px rgba(10, 70, 50, 0.2);
+      }
+      .label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 330px;
+        text-align: center;
+        font-size: 70px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+      .plus {
+        position: absolute;
+        left: 740px;
+        top: 700px;
+        font-size: 110px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        color: var(--mint-deep);
+      }
+      .pillar {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 34px 20px 26px;
+        border-radius: 999px;
+        background: #ffffff;
+        font-size: 42px;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        box-shadow: 0 18px 40px rgba(30, 40, 30, 0.12);
+        white-space: nowrap;
+      }
+      .pillar i {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: block;
+      }
+      .pill {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 30px 64px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 56px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="36" data-width="1080" data-height="1920">
+      <svg width="0" height="0" style="position: absolute">
+        <defs>
+          <radialGradient id="gOrb" cx="0.36" cy="0.3" r="0.78">
+            <stop offset="0" stop-color="#f2fffa" />
+            <stop offset="0.18" stop-color="#a8f2d8" />
+            <stop offset="0.55" stop-color="#3dd6a3" />
+            <stop offset="1" stop-color="#128c66" />
+          </radialGradient>
+          <radialGradient id="gShine" cx="0.34" cy="0.26" r="0.62">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.85" />
+            <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.18" />
+            <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="gUnder" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0.45" stop-color="#003a28" stop-opacity="0" />
+            <stop offset="1" stop-color="#003a28" stop-opacity="0.28" />
+          </linearGradient>
+          <radialGradient id="gMoon" cx="0.4" cy="0.35" r="0.8">
+            <stop offset="0" stop-color="#e4dbff" />
+            <stop offset="0.55" stop-color="#ab94f3" />
+            <stop offset="1" stop-color="#7457dd" />
+          </radialGradient>
+          <radialGradient id="gSun" cx="0.4" cy="0.35" r="0.75">
+            <stop offset="0" stop-color="#fff2c4" />
+            <stop offset="0.5" stop-color="#ffcf5a" />
+            <stop offset="1" stop-color="#f0a21e" />
+          </radialGradient>
+          <radialGradient id="gCloud" cx="0.4" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#ffffff" />
+            <stop offset="0.6" stop-color="#d7e9ff" />
+            <stop offset="1" stop-color="#9cc4f5" />
+          </radialGradient>
+          <radialGradient id="gGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffd877" stop-opacity="0.7" />
+            <stop offset="1" stop-color="#ffd877" stop-opacity="0" />
+          </radialGradient>
+          <mask id="mMoon">
+            <circle cx="0" cy="0" r="80" fill="#ffffff" />
+            <circle cx="38" cy="-30" r="70" fill="#000000" />
+          </mask>
+        </defs>
+      </svg>
+
+      <!-- 1 · 0–1.95  The hook: "You're not LAZY.", struck through. -->
+      <div id="l1" class="clip mintbg" data-start="0" data-duration="1.95" data-track-index="0">
+        <div class="sphere white l1-sp" style="left: -80px; top: 160px; width: 240px; height: 240px"></div>
+        <div class="sphere white l1-sp" style="left: 860px; top: 470px; width: 170px; height: 170px"></div>
+        <div class="sphere white l1-sp" style="left: 790px; top: 1420px; width: 260px; height: 260px"></div>
+        <div class="sphere white l1-sp" style="left: 70px; top: 1500px; width: 120px; height: 120px"></div>
+        <div id="l1-top" class="t" style="top: 640px; font-size: 96px">
+          <span class="word">You're</span> <span class="word">not</span>
+        </div>
+        <div id="l1-lazy" class="t" style="top: 760px; font-size: 250px; font-weight: 900; letter-spacing: -0.05em">
+          <span class="word">L</span><span class="word">A</span><span class="word">Z</span><span class="word">Y</span><span class="word">.</span>
+        </div>
+        <svg class="full">
+          <path id="l1-strike" d="M 150 905 C 330 880, 520 930, 700 890 S 900 870, 950 880" fill="none" stroke="#0b1f19" stroke-width="26" stroke-linecap="round" />
+        </svg>
+      </div>
+
+      <!-- 2 · 1.95–22.45  The orb's world: running on 54, then four helpers give it back, one at a time. -->
+      <div id="l2" class="clip light" data-start="1.95" data-duration="20.5" data-track-index="0">
+        <div class="sphere l2-sp" style="left: 80px; top: 560px; width: 70px; height: 70px"></div>
+        <div class="sphere l2-sp" style="left: 930px; top: 640px; width: 52px; height: 52px"></div>
+        <div class="sphere l2-sp" style="left: 900px; top: 1520px; width: 90px; height: 90px"></div>
+        <div class="sphere l2-sp" style="left: 120px; top: 1420px; width: 46px; height: 46px"></div>
+        <div id="lb0" class="label" style="color: var(--muted)">Running on</div>
+        <div id="lb1" class="label">Lights out <span class="it" style="font-size: 96px; color: #7457dd">by 11</span></div>
+        <div id="lb2" class="label">10 min of <span class="it" style="font-size: 96px; color: #d48a06">morning light</span></div>
+        <div id="lb3" class="label">A real <span class="it" style="font-size: 96px; color: var(--mint-deep)">lunch</span></div>
+        <div id="lb4" class="label">2 min of <span class="it" style="font-size: 96px; color: #3f7fd6">breathing</span></div>
+        <div id="lb5" class="label it" style="font-size: 120px; color: var(--mint-deep)">Same you.</div>
+        <div id="lb6" class="label">Which one <span class="it" style="font-size: 96px; color: var(--mint-deep)">first?</span></div>
+        <svg class="full">
+          <ellipse id="o-shadow" cx="540" cy="1262" rx="200" ry="26" fill="#0b3b2c" opacity="0.12" />
+          <circle id="o-glow" cx="540" cy="1020" r="330" fill="url(#gGlow)" opacity="0" />
+          <g id="o-drop"><g id="o-all">
+            <circle cx="540" cy="1020" r="230" fill="url(#gOrb)" />
+            <circle id="o-shine" cx="540" cy="1020" r="230" fill="url(#gShine)" opacity="0.55" />
+            <circle cx="540" cy="1020" r="230" fill="url(#gUnder)" />
+            <text id="o-num" x="540" y="1072" text-anchor="middle" font-family="Inter" font-weight="800" font-size="150" letter-spacing="-6" fill="#063a2a">54</text>
+            <g id="o-eyes">
+              <ellipse cx="482" cy="900" rx="30" ry="34" fill="#ffffff" />
+              <ellipse cx="598" cy="900" rx="30" ry="34" fill="#ffffff" />
+              <circle class="o-pupil" cx="486" cy="908" r="14" fill="#06261c" />
+              <circle class="o-pupil" cx="602" cy="908" r="14" fill="#06261c" />
+            </g>
+            <path id="o-lids" d="M 448 896 L 516 896 M 564 896 L 632 896" fill="none" stroke="#1a7a5a" stroke-width="10" stroke-linecap="round" />
+            <path id="o-flat" d="M 515 1135 L 565 1135" fill="none" stroke="#063a2a" stroke-width="9" stroke-linecap="round" />
+            <path id="o-smile" d="M 505 1128 Q 540 1160 575 1128" fill="none" stroke="#063a2a" stroke-width="9" stroke-linecap="round" />
+          </g></g>
+          <path id="o-q" d="M 470 610 C 470 540, 610 535, 610 610 C 610 660, 540 668, 540 720" fill="none" stroke="#3dd6a3" stroke-width="30" stroke-linecap="round" />
+          <circle id="o-qdot" cx="540" cy="770" r="18" fill="#3dd6a3" />
+
+          <!-- The moon: tucks the orb in. -->
+          <g transform="translate(230 760)"><g id="h-moon">
+            <g mask="url(#mMoon)"><circle cx="0" cy="0" r="80" fill="url(#gMoon)" /></g>
+            <path d="M -42 6 Q -32 14 -22 6 M -8 18 Q 2 26 12 18" fill="none" stroke="#3b2a8a" stroke-width="5" stroke-linecap="round" />
+          </g></g>
+          <g id="h-sparks">
+            <circle class="h-spark" cx="380" cy="780" r="9" fill="#ab94f3" />
+            <circle class="h-spark" cx="470" cy="730" r="7" fill="#ab94f3" />
+            <circle class="h-spark" cx="590" cy="722" r="10" fill="#ab94f3" />
+            <circle class="h-spark" cx="690" cy="770" r="7" fill="#ab94f3" />
+          </g>
+          <!-- The sun: rises and shines on it. -->
+          <circle id="h-glow" cx="850" cy="1330" r="240" fill="url(#gGlow)" />
+          <g transform="translate(850 1330)"><g id="h-sun">
+            <g id="h-rays">
+              <path d="M 0 -150 L 0 -118 M 0 150 L 0 118 M -150 0 L -118 0 M 150 0 L 118 0 M -106 -106 L -84 -84 M 106 106 L 84 84 M -106 106 L -84 84 M 106 -106 L 84 -84" stroke="#f0a21e" stroke-width="14" stroke-linecap="round" />
+            </g>
+            <circle cx="0" cy="0" r="92" fill="url(#gSun)" />
+            <path d="M -36 -6 Q -26 -18 -16 -6 M 16 -6 Q 26 -18 36 -6" fill="none" stroke="#8a5a08" stroke-width="6" stroke-linecap="round" />
+            <path d="M -18 24 Q 0 38 18 24" fill="none" stroke="#8a5a08" stroke-width="6" stroke-linecap="round" />
+          </g></g>
+          <!-- The bowl: a real lunch. -->
+          <g transform="translate(880 1180)"><g id="h-bowl">
+            <circle class="h-food" cx="-40" cy="-42" r="22" fill="#5cbf5a" />
+            <circle class="h-food" cx="6" cy="-50" r="20" fill="#f0a64a" />
+            <circle class="h-food" cx="44" cy="-38" r="18" fill="#e86f6f" />
+            <circle class="h-food" cx="-8" cy="-30" r="16" fill="#8fd16a" />
+            <path d="M -110 -30 L 110 -30 Q 104 70 0 78 Q -104 70 -110 -30 Z" fill="#ffffff" stroke="#d9d2c4" stroke-width="5" />
+            <ellipse cx="-34" cy="16" rx="11" ry="13" fill="#0b1f19" />
+            <ellipse cx="34" cy="16" rx="11" ry="13" fill="#0b1f19" />
+          </g></g>
+          <!-- The cloud: breathes in with it, then out. -->
+          <g transform="translate(220 1180)"><g id="h-cloud">
+            <g id="h-cloudbody">
+              <circle cx="-60" cy="10" r="62" fill="url(#gCloud)" />
+              <circle cx="10" cy="-26" r="78" fill="url(#gCloud)" />
+              <circle cx="74" cy="14" r="58" fill="url(#gCloud)" />
+              <rect x="-110" y="10" width="230" height="62" rx="31" fill="#d7e9ff" />
+            </g>
+            <path d="M -28 6 Q -18 16 -8 6 M 20 6 Q 30 16 40 6" fill="none" stroke="#2f5f9e" stroke-width="6" stroke-linecap="round" />
+          </g></g>
+        </svg>
+        <div id="pl1" class="plus">+12</div>
+        <div id="pl2" class="plus">+8</div>
+        <div id="pl3" class="plus">+7</div>
+        <div id="pl4" class="plus">+5</div>
+      </div>
+
+      <!-- 3 · 22.45–24.3  "So we built daywoven." -->
+      <div id="l3" class="clip light" data-start="22.45" data-duration="1.85" data-track-index="0">
+        <svg class="full"><circle id="l3-wipe" cx="540" cy="1020" r="1300" fill="#3dd6a3" /></svg>
+        <div id="l3-built" class="t" style="top: 760px; font-size: 64px; font-weight: 700; color: #0b3b2c">So we built</div>
+        <div id="l3-mark" class="t" style="top: 840px; font-size: 190px; font-weight: 900; letter-spacing: -0.055em">
+          <span class="word l3-l">d</span><span class="word l3-l">a</span><span class="word l3-l">y</span><span class="word l3-l" style="color: #ffffff">w</span><span class="word l3-l" style="color: #ffffff">o</span><span class="word l3-l" style="color: #ffffff">v</span><span class="word l3-l" style="color: #ffffff">e</span><span class="word l3-l" style="color: #ffffff">n</span>
+        </div>
+        <svg class="full">
+          <path id="l3-t1" d="M 250 1110 C 370 1060, 450 1160, 540 1110 S 710 1060, 830 1110" fill="none" stroke="#0b1f19" stroke-width="10" stroke-linecap="round" />
+          <path id="l3-t2" d="M 250 1110 C 370 1160, 450 1060, 540 1110 S 710 1160, 830 1110" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
+        </svg>
+      </div>
+
+      <!-- 4 · 24.3–31.75  It reads the four parts of your day and picks one thing. -->
+      <div id="l4" class="clip light" data-start="24.3" data-duration="7.45" data-track-index="0">
+        <svg class="full">
+          <path class="l4-th" d="M 250 560 C 300 700, 380 800, 470 860" fill="none" stroke="#3dd6a3" stroke-width="10" stroke-linecap="round" />
+          <path class="l4-th" d="M 830 560 C 780 700, 700 800, 610 860" fill="none" stroke="#9b80ee" stroke-width="10" stroke-linecap="round" />
+          <path class="l4-th" d="M 250 1300 C 300 1180, 380 1100, 470 1060" fill="none" stroke="#4f97ee" stroke-width="10" stroke-linecap="round" />
+          <path class="l4-th" d="M 830 1300 C 780 1180, 700 1100, 610 1060" fill="none" stroke="#f0ad32" stroke-width="10" stroke-linecap="round" />
+          <g id="l4-orb">
+            <circle cx="540" cy="960" r="170" fill="url(#gOrb)" />
+            <circle cx="540" cy="960" r="170" fill="url(#gShine)" />
+            <ellipse cx="497" cy="900" rx="22" ry="25" fill="#ffffff" />
+            <ellipse cx="583" cy="900" rx="22" ry="25" fill="#ffffff" />
+            <circle cx="500" cy="905" r="10" fill="#06261c" />
+            <circle cx="586" cy="905" r="10" fill="#06261c" />
+            <path d="M 515 1010 Q 540 1034 565 1010" fill="none" stroke="#063a2a" stroke-width="8" stroke-linecap="round" />
+          </g>
+        </svg>
+        <div class="pillar l4-p" style="left: 110px; top: 460px"><i style="background: #3dd6a3"></i>Sleep</div>
+        <div class="pillar l4-p" style="left: 700px; top: 460px"><i style="background: #9b80ee"></i>Meals</div>
+        <div class="pillar l4-p" style="left: 70px; top: 1300px"><i style="background: #4f97ee"></i>Movement</div>
+        <div class="pillar l4-p" style="left: 760px; top: 1300px"><i style="background: #f0ad32"></i>Mind</div>
+        <div id="l4-card" style="position: absolute; left: 150px; top: 1220px; width: 780px; padding: 34px 40px; border-radius: 48px; background: #ffffff; box-shadow: 0 30px 70px rgba(30, 40, 30, 0.16); display: flex; align-items: center; gap: 30px">
+          <svg width="110" height="110" viewBox="-90 -90 180 180" style="flex: none"><circle cx="0" cy="0" r="88" fill="#efe9ff" /><g transform="scale(0.62)" mask="url(#mMoon)"><circle cx="0" cy="0" r="80" fill="url(#gMoon)" /></g></svg>
+          <div style="flex: 1">
+            <div style="font-size: 30px; font-weight: 700; color: var(--muted)">Today's one thing</div>
+            <div style="font-size: 54px; font-weight: 850; letter-spacing: -0.03em">Lights out by 11</div>
+          </div>
+          <svg width="96" height="96" viewBox="0 0 96 96" style="flex: none"><circle id="l4-ckc" cx="48" cy="48" r="46" fill="#3dd6a3" /><path id="l4-ck" d="M 28 50 L 42 64 L 70 34" fill="none" stroke="#0b1f19" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+      </div>
+
+      <!-- 5 · 31.75–36  Less guessing. More you. -->
+      <div id="l5" class="clip mintbg" data-start="31.75" data-duration="4.25" data-track-index="0">
+        <div class="sphere white l5-sp" style="left: -80px; top: 180px; width: 240px; height: 240px"></div>
+        <div class="sphere white l5-sp" style="left: 860px; top: 420px; width: 170px; height: 170px"></div>
+        <div class="sphere white l5-sp" style="left: 800px; top: 1440px; width: 260px; height: 260px"></div>
+        <div class="sphere white l5-sp" style="left: 70px; top: 1500px; width: 120px; height: 120px"></div>
+        <div id="l5-a" class="t" style="top: 560px; font-size: 120px">Less guessing.</div>
+        <div id="l5-b" class="t it" style="top: 690px; font-size: 170px; color: #ffffff">More you.</div>
+        <div id="l5-mark" class="t" style="top: 1010px; font-size: 110px; font-weight: 900; letter-spacing: -0.055em">day<span style="color: #ffffff">woven</span></div>
+        <div id="l5-pill" class="pill" style="top: 1190px">Link in bio ↗</div>
+      </div>
+
+      <!-- sfx:start -->
+      <audio id="fx000" src="sfx/bloop.wav" data-start="0.02" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx001" src="sfx/bloop2.wav" data-start="0.1" data-duration="0.3" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx002" src="sfx/tick.wav" data-start="0.14" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx003" src="sfx/bloop.wav" data-start="0.18" data-duration="0.35" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx004" src="sfx/pop2.wav" data-start="0.26" data-duration="0.08" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx005" src="sfx/tick.wav" data-start="0.44" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx006" src="sfx/knock.wav" data-start="0.62" data-duration="0.18" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx007" src="sfx/thud.wav" data-start="0.62" data-duration="0.32" data-volume="1.0" data-track-index="11"></audio>
+      <audio id="fx008" src="sfx/pop.wav" data-start="0.9" data-duration="0.09" data-volume="0.18" data-track-index="10"></audio>
+      <audio id="fx009" src="sfx/pop2.wav" data-start="0.94" data-duration="0.08" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx010" src="sfx/pop.wav" data-start="0.98" data-duration="0.09" data-volume="0.18" data-track-index="12"></audio>
+      <audio id="fx011" src="sfx/pop2.wav" data-start="1.02" data-duration="0.08" data-volume="0.18" data-track-index="10"></audio>
+      <audio id="fx012" src="sfx/pop.wav" data-start="1.06" data-duration="0.09" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx013" src="sfx/scribble.wav" data-start="1.12" data-duration="0.55" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx014" src="sfx/puff.wav" data-start="1.68" data-duration="0.3" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx015" src="sfx/dart.wav" data-start="1.95" data-duration="0.18" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx016" src="sfx/pop.wav" data-start="2.0" data-duration="0.09" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx017" src="sfx/tick.wav" data-start="2.0" data-duration="0.05" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx018" src="sfx/pop2.wav" data-start="2.07" data-duration="0.08" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx019" src="sfx/pop.wav" data-start="2.14" data-duration="0.09" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx020" src="sfx/pop2.wav" data-start="2.21" data-duration="0.08" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx021" src="sfx/squish.wav" data-start="2.37" data-duration="0.45" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx022" src="sfx/thud.wav" data-start="2.37" data-duration="0.32" data-volume="0.7" data-track-index="11"></audio>
+      <audio id="fx023" src="sfx/wobble.wav" data-start="2.49" data-duration="0.6" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx024" src="sfx/blink.wav" data-start="3.4" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx025" src="sfx/scribble.wav" data-start="3.5" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx026" src="sfx/bloop2.wav" data-start="4.1" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx027" src="sfx/pop.wav" data-start="4.12" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx028" src="sfx/squish.wav" data-start="4.9" data-duration="0.45" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx029" src="sfx/wobble.wav" data-start="5.02" data-duration="0.6" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx030" src="sfx/puff.wav" data-start="5.6" data-duration="0.3" data-volume="0.15" data-track-index="10"></audio>
+      <audio id="fx031" src="sfx/blink.wav" data-start="5.62" data-duration="0.05" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx032" src="sfx/tick.wav" data-start="6.0" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx033" src="sfx/whump.wav" data-start="6.1" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx034" src="sfx/sigh.wav" data-start="6.4" data-duration="0.9" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx035" src="sfx/dart.wav" data-start="7.2" data-duration="0.18" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx036" src="sfx/glint.wav" data-start="7.3" data-duration="0.12" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx037" src="sfx/glint.wav" data-start="7.38" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx038" src="sfx/glint.wav" data-start="7.46" data-duration="0.12" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx039" src="sfx/glint.wav" data-start="7.54" data-duration="0.12" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx040" src="sfx/pop.wav" data-start="7.66" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx041" src="sfx/count.wav" data-start="7.68" data-duration="0.42" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx042" src="sfx/bloop.wav" data-start="7.7" data-duration="0.35" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx043" src="sfx/wobble.wav" data-start="7.72" data-duration="0.6" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx044" src="sfx/blink.wav" data-start="7.75" data-duration="0.05" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx045" src="sfx/dart.wav" data-start="8.05" data-duration="0.18" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx046" src="sfx/tick.wav" data-start="8.48" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx047" src="sfx/rise.wav" data-start="8.6" data-duration="1.4" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx048" src="sfx/glint.wav" data-start="9.0" data-duration="0.12" data-volume="0.15" data-track-index="11"></audio>
+      <audio id="fx049" src="sfx/glint.wav" data-start="9.5" data-duration="0.12" data-volume="0.15" data-track-index="11"></audio>
+      <audio id="fx050" src="sfx/whump.wav" data-start="9.9" data-duration="0.3" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx051" src="sfx/glint.wav" data-start="9.92" data-duration="0.12" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx052" src="sfx/pop.wav" data-start="10.3" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx053" src="sfx/count.wav" data-start="10.32" data-duration="0.42" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx054" src="sfx/bloop2.wav" data-start="10.34" data-duration="0.3" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx055" src="sfx/wobble.wav" data-start="10.36" data-duration="0.6" data-volume="0.3" data-track-index="13"></audio>
+      <audio id="fx056" src="sfx/blink.wav" data-start="10.4" data-duration="0.05" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx057" src="sfx/dart.wav" data-start="10.75" data-duration="0.18" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx058" src="sfx/tick.wav" data-start="11.04" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx059" src="sfx/dart.wav" data-start="11.1" data-duration="0.18" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx060" src="sfx/tap.wav" data-start="11.4" data-duration="0.1" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx061" src="sfx/tap.wav" data-start="11.65" data-duration="0.1" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx062" src="sfx/pop.wav" data-start="12.05" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx063" src="sfx/munch.wav" data-start="12.1" data-duration="0.14" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx064" src="sfx/pop2.wav" data-start="12.15" data-duration="0.08" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx065" src="sfx/tap.wav" data-start="12.2" data-duration="0.1" data-volume="0.25" data-track-index="12"></audio>
+      <audio id="fx066" src="sfx/pop.wav" data-start="12.25" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx067" src="sfx/munch.wav" data-start="12.3" data-duration="0.14" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx068" src="sfx/pop.wav" data-start="12.3" data-duration="0.09" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx069" src="sfx/count.wav" data-start="12.32" data-duration="0.42" data-volume="0.45" data-track-index="13"></audio>
+      <audio id="fx070" src="sfx/bloop.wav" data-start="12.34" data-duration="0.35" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx071" src="sfx/pop2.wav" data-start="12.35" data-duration="0.08" data-volume="0.3" data-track-index="14"></audio>
+      <audio id="fx072" src="sfx/wobble.wav" data-start="12.36" data-duration="0.6" data-volume="0.3" data-track-index="15"></audio>
+      <audio id="fx073" src="sfx/dart.wav" data-start="12.7" data-duration="0.18" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx074" src="sfx/tick.wav" data-start="13.04" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx075" src="sfx/whump.wav" data-start="13.1" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx076" src="sfx/puff.wav" data-start="13.12" data-duration="0.3" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx077" src="sfx/breath.wav" data-start="13.65" data-duration="1.1" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx078" src="sfx/pop.wav" data-start="15.1" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx079" src="sfx/count.wav" data-start="15.12" data-duration="0.42" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx080" src="sfx/bloop2.wav" data-start="15.14" data-duration="0.3" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx081" src="sfx/dart.wav" data-start="15.5" data-duration="0.18" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx082" src="sfx/bloop.wav" data-start="16.05" data-duration="0.35" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx083" src="sfx/rise.wav" data-start="16.05" data-duration="1.4" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx084" src="sfx/wobble.wav" data-start="16.05" data-duration="0.6" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx085" src="sfx/knock.wav" data-start="16.08" data-duration="0.18" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx086" src="sfx/thud.wav" data-start="16.08" data-duration="0.32" data-volume="0.7" data-track-index="14"></audio>
+      <audio id="fx087" src="sfx/blink.wav" data-start="16.2" data-duration="0.05" data-volume="0.4" data-track-index="15"></audio>
+      <audio id="fx088" src="sfx/pop2.wav" data-start="16.32" data-duration="0.08" data-volume="0.25" data-track-index="13"></audio>
+      <audio id="fx089" src="sfx/thud.wav" data-start="16.86" data-duration="0.32" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx090" src="sfx/bloop.wav" data-start="16.95" data-duration="0.35" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx091" src="sfx/squish.wav" data-start="17.4" data-duration="0.45" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx092" src="sfx/bloop2.wav" data-start="18.1" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx093" src="sfx/pop.wav" data-start="18.1" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx094" src="sfx/bloop.wav" data-start="18.4" data-duration="0.35" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx095" src="sfx/pop2.wav" data-start="18.4" data-duration="0.08" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx096" src="sfx/bloop2.wav" data-start="18.7" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx097" src="sfx/pop.wav" data-start="18.7" data-duration="0.09" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx098" src="sfx/bloop.wav" data-start="19.0" data-duration="0.35" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx099" src="sfx/pop2.wav" data-start="19.0" data-duration="0.08" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx100" src="sfx/tick.wav" data-start="20.3" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx101" src="sfx/patter.wav" data-start="20.4" data-duration="0.36" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx102" src="sfx/blink.wav" data-start="20.5" data-duration="0.05" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx103" src="sfx/blink.wav" data-start="20.9" data-duration="0.05" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx104" src="sfx/patter.wav" data-start="21.0" data-duration="0.36" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx105" src="sfx/blink.wav" data-start="21.3" data-duration="0.05" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx106" src="sfx/puff.wav" data-start="22.15" data-duration="0.3" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx107" src="sfx/whump.wav" data-start="22.45" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx108" src="sfx/tick.wav" data-start="22.6" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx109" src="sfx/pop.wav" data-start="23.4" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx110" src="sfx/pop2.wav" data-start="23.435" data-duration="0.08" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx111" src="sfx/pop.wav" data-start="23.47" data-duration="0.09" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx112" src="sfx/pop2.wav" data-start="23.505" data-duration="0.08" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx113" src="sfx/pop.wav" data-start="23.54" data-duration="0.09" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx114" src="sfx/zip.wav" data-start="23.55" data-duration="0.32" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx115" src="sfx/pop2.wav" data-start="23.575" data-duration="0.08" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx116" src="sfx/pop.wav" data-start="23.61" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx117" src="sfx/pop2.wav" data-start="23.645" data-duration="0.08" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx118" src="sfx/bloop.wav" data-start="24.32" data-duration="0.35" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx119" src="sfx/pop.wav" data-start="24.32" data-duration="0.09" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx120" src="sfx/bloop2.wav" data-start="25.76" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx121" src="sfx/pop.wav" data-start="25.76" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx122" src="sfx/zip.wav" data-start="25.86" data-duration="0.32" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx123" src="sfx/bloop2.wav" data-start="26.56" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx124" src="sfx/pop.wav" data-start="26.56" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx125" src="sfx/zip.wav" data-start="26.66" data-duration="0.32" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx126" src="sfx/bloop2.wav" data-start="27.36" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx127" src="sfx/pop.wav" data-start="27.36" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx128" src="sfx/zip.wav" data-start="27.46" data-duration="0.32" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx129" src="sfx/bloop2.wav" data-start="28.16" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx130" src="sfx/pop.wav" data-start="28.16" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx131" src="sfx/zip.wav" data-start="28.26" data-duration="0.32" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx132" src="sfx/slurp.wav" data-start="28.7" data-duration="0.42" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx133" src="sfx/dart.wav" data-start="28.85" data-duration="0.18" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx134" src="sfx/pop.wav" data-start="29.15" data-duration="0.09" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx135" src="sfx/tap.wav" data-start="29.45" data-duration="0.1" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx136" src="sfx/pop.wav" data-start="30.9" data-duration="0.09" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx137" src="sfx/scribble.wav" data-start="30.98" data-duration="0.55" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx138" src="sfx/bloop2.wav" data-start="31.1" data-duration="0.3" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx139" src="sfx/bloop.wav" data-start="31.78" data-duration="0.35" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx140" src="sfx/knock.wav" data-start="31.84" data-duration="0.18" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx141" src="sfx/thud.wav" data-start="31.84" data-duration="0.32" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx142" src="sfx/bloop2.wav" data-start="31.85" data-duration="0.3" data-volume="0.4" data-track-index="13"></audio>
+      <audio id="fx143" src="sfx/bloop.wav" data-start="31.92" data-duration="0.35" data-volume="0.5" data-track-index="14"></audio>
+      <audio id="fx144" src="sfx/pop2.wav" data-start="31.99" data-duration="0.08" data-volume="0.4" data-track-index="15"></audio>
+      <audio id="fx145" src="sfx/scribble.wav" data-start="32.7" data-duration="0.55" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx146" src="sfx/drop.wav" data-start="33.5" data-duration="0.9" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx147" src="sfx/pop.wav" data-start="33.95" data-duration="0.09" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx148" src="sfx/knock.wav" data-start="34.0" data-duration="0.18" data-volume="0.4" data-track-index="12"></audio>
+      <!-- sfx:end -->
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+
+      // Small helpers. Every tween is placed at an absolute second, so the timeline is deterministic.
+      const fadeUp = (sel, t, d = 0.45, y = 40) => tl.fromTo(sel, { y, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: d, ease: E }, t);
+      const out = (sel, t, d = 0.22) => tl.to(sel, { autoAlpha: 0, y: -24, duration: d, ease: "power2.in" }, t);
+      const pop = (sel, t, d = 0.45, from = 0) => tl.fromTo(sel, { scale: from, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: d, ease: "back.out(1.8)" }, t);
+      const slam = (sel, t, from = 1.6) => tl.fromTo(sel, { scale: from, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "power4.out" }, t);
+      const draw = (sel, t, d = 0.5, ease = "power2.inOut") => {
+        document.querySelectorAll(sel).forEach((el, i) => {
+          const len = el.getTotalLength();
+          // Hidden until it starts drawing: a fully offset dash still shows its round end cap as a dot.
+          tl.set(el, { opacity: 0 }, 0);
+          tl.set(el, { opacity: 1 }, t + i * 0.08);
+          tl.fromTo(el, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: d, ease }, t + i * 0.08);
+        });
+      };
+      const count = (el, from, to, t, d, ease = "power2.out") => {
+        const p = { v: from };
+        tl.fromTo(p, { v: from }, { v: to, duration: d, ease, immediateRender: false, onUpdate: () => (document.querySelector(el).textContent = String(Math.round(p.v))) }, t);
+      };
+      const drift = (sel, t, d, dist = 40) =>
+        document.querySelectorAll(sel).forEach((el, i) =>
+          tl.fromTo(el, { y: 0, x: 0 }, { y: (i % 2 ? -1 : 1) * dist, x: ((i % 3) - 1) * dist * 0.5, duration: d, ease: "sine.inOut" }, t),
+        );
+      // The orb's size and shape: squashed and small when tired, round and full when it's back.
+      const orb = (t, s, sx, sy, d = 0.6, ease = "elastic.out(1, 0.5)") =>
+        tl.to("#o-all", { scaleX: s * sx, scaleY: s * sy, svgOrigin: "540 1250", duration: d, ease }, t);
+      // A "+N" floats up beside the orb and fades.
+      const plus = (sel, t) => {
+        tl.fromTo(sel, { y: 40, autoAlpha: 0, scale: 0.6 }, { y: 0, autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+        tl.to(sel, { y: -90, autoAlpha: 0, duration: 0.5, ease: "power2.in" }, t + 0.75);
+      };
+
+      // 1 · The hook: spheres bubble up, "You're not" ticks on, LAZY slams and gets struck through.
+      drift(".l1-sp", 0, 1.95, 40);
+      document.querySelectorAll(".l1-sp").forEach((el, i) => pop(el, 0.02 + i * 0.08, 0.45));
+      tl.fromTo("#l1-top .word", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.3, ease: "back.out(2)", stagger: 0.3 }, 0.14);
+      slam("#l1-lazy", 0.62, 1.8);
+      tl.fromTo("#l1-lazy .word", { y: 0 }, { y: -24, duration: 0.09, ease: "power2.out", yoyo: true, repeat: 1, stagger: 0.04 }, 0.9);
+      draw("#l1-strike", 1.12, 0.32, "power2.out");
+      tl.to(["#l1-top", "#l1-lazy", "#l1-strike"], { y: 40, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 1.68);
+
+      // 2 · The orb drops in, tired and squashed: running on 54.
+      drift(".l2-sp", 1.95, 20.5, 36);
+      document.querySelectorAll(".l2-sp").forEach((el, i) => pop(el, 2.0 + i * 0.07, 0.4));
+      tl.set(["#lb1", "#lb2", "#lb3", "#lb4", "#lb5", "#lb6", "#pl1", "#pl2", "#pl3", "#pl4", "#h-moon", "#h-sun", "#h-glow", "#h-bowl", "#h-cloud", ".h-spark", "#o-qdot", "#o-smile"], { autoAlpha: 0 }, 0);
+      tl.set("#o-all", { scaleX: 0.82 * 1.12, scaleY: 0.82 * 0.82, svgOrigin: "540 1250" }, 0);
+      tl.set("#o-eyes", { scaleY: 0.5, transformOrigin: "50% 50%" }, 0);
+      tl.fromTo("#o-drop", { y: -900 }, { y: 0, duration: 0.42, ease: "power2.in" }, 1.95);
+      orb(2.37, 0.82, 1.2, 0.72, 0.12, "power2.out");
+      orb(2.49, 0.82, 1.12, 0.82, 0.6);
+      fadeUp("#lb0", 2.0, 0.35, 24);
+      // Between moments it floats gently, so it never sits dead still (ends back at rest before the bounce).
+      tl.fromTo("#o-drop", { y: 0 }, { y: -10, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 19, immediateRender: false }, 2.6);
+      tl.fromTo("#o-shadow", { attr: { rx: 60 }, opacity: 0 }, { attr: { rx: 200 }, opacity: 0.12, duration: 0.42, ease: "power2.in" }, 1.95);
+
+      // Nobody tells you how to get the rest back: it looks up at a question mark, and shrugs.
+      tl.to(".o-pupil", { y: -10, x: 4, duration: 0.25, ease: E }, 3.4);
+      draw("#o-q", 3.5, 0.55, "power2.out");
+      tl.fromTo("#o-qdot", { scale: 0, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(2.5)" }, 4.1);
+      orb(4.9, 0.82, 1.2, 0.76, 0.12, "power2.out");
+      orb(5.02, 0.82, 1.12, 0.82, 0.45);
+      tl.to(["#o-q", "#o-qdot", "#lb0"], { autoAlpha: 0, duration: 0.2 }, 5.6);
+      tl.to(".o-pupil", { y: 0, x: 0, duration: 0.2 }, 5.6);
+
+      // 1 · Lights out by 11: the moon floats in, swoops over the orb in sparkles. Plus twelve.
+      fadeUp("#lb1", 6.0, 0.35, 24);
+      tl.fromTo("#h-moon", { x: -260, y: -160, autoAlpha: 0, rotation: -30, transformOrigin: "50% 50%" }, { x: 0, y: 0, autoAlpha: 1, rotation: 0, transformOrigin: "50% 50%", duration: 0.55, ease: "back.out(1.4)" }, 6.1);
+      tl.to("#h-moon", { y: -14, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 6.65);
+      tl.to("#h-moon", { x: 470, y: -80, rotation: 40, transformOrigin: "50% 50%", duration: 0.55, ease: "power2.inOut" }, 7.2);
+      tl.fromTo(".h-spark", { scale: 0, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.25, ease: "back.out(3)", stagger: 0.08 }, 7.3);
+      tl.to(".h-spark", { autoAlpha: 0, scale: 0.4, duration: 0.3, stagger: 0.06 }, 7.9);
+      plus("#pl1", 7.66);
+      count("#o-num", 54, 66, 7.68, 0.45);
+      orb(7.7, 0.88, 1.08, 0.88);
+      tl.to("#o-eyes", { scaleY: 0.7, transformOrigin: "50% 50%", duration: 0.3 }, 7.75);
+      tl.to("#h-moon", { x: 900, y: -500, autoAlpha: 0, duration: 0.45, ease: "power2.in" }, 8.05);
+      out("#lb1", 8.3);
+
+      // 2 · Ten minutes of morning light: the sun rises bottom-right, its rays turn, it shines. Plus eight.
+      fadeUp("#lb2", 8.48, 0.35, 24);
+      tl.fromTo("#h-sun", { y: 500, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.6, ease: E }, 8.6);
+      tl.fromTo("#h-rays", { rotation: 0, transformOrigin: "50% 50%" }, { rotation: 90, transformOrigin: "50% 50%", duration: 2.2, ease: "none" }, 8.6);
+      tl.fromTo("#h-glow", { autoAlpha: 0, scale: 0.5, transformOrigin: "50% 50%" }, { autoAlpha: 1, scale: 1.3, duration: 0.6, ease: E }, 9.9);
+      tl.fromTo("#o-glow", { opacity: 0 }, { opacity: 0.9, duration: 0.5 }, 10.0);
+      tl.to("#o-shine", { opacity: 0.85, duration: 0.5 }, 10.0);
+      plus("#pl2", 10.3);
+      count("#o-num", 66, 74, 10.32, 0.4);
+      orb(10.34, 0.93, 1.05, 0.93);
+      tl.to("#o-eyes", { scaleY: 0.85, transformOrigin: "50% 50%", duration: 0.3 }, 10.4);
+      tl.to(["#h-sun", "#h-glow"], { y: 520, autoAlpha: 0, duration: 0.4, ease: "power2.in" }, 10.75);
+      tl.to("#o-glow", { opacity: 0, duration: 0.6 }, 10.8);
+      out("#lb2", 10.85);
+
+      // 3 · A real lunch: the bowl slides in, flips its food into the orb, one bite at a time. Plus seven.
+      fadeUp("#lb3", 11.04, 0.35, 24);
+      tl.fromTo("#h-bowl", { x: 360, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.5)" }, 11.1);
+      tl.to("#h-bowl", { rotation: -24, transformOrigin: "50% 60%", duration: 0.25, ease: "power2.out" }, 11.65);
+      document.querySelectorAll(".h-food").forEach((el, i) =>
+        tl.to(el, { x: -330 + i * 12, y: -180 + i * 18, scale: 0.4, autoAlpha: 0, duration: 0.32, ease: "power2.in" }, 11.75 + i * 0.1),
+      );
+      plus("#pl3", 12.3);
+      count("#o-num", 74, 81, 12.32, 0.4);
+      orb(12.34, 0.97, 1.03, 0.97);
+      tl.to("#h-bowl", { rotation: 0, transformOrigin: "50% 60%", duration: 0.25 }, 12.2);
+      tl.to("#h-bowl", { x: 380, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 12.7);
+      out("#lb3", 12.85);
+
+      // 4 · Two minutes of breathing at three: the cloud breathes in with the orb, then out. Plus five.
+      fadeUp("#lb4", 13.04, 0.35, 24);
+      tl.fromTo("#h-cloud", { x: -340, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.4)" }, 13.1);
+      tl.to("#h-cloudbody", { scale: 1.22, transformOrigin: "50% 70%", duration: 0.75, ease: "sine.inOut" }, 13.65);
+      orb(13.65, 1.02, 1.0, 1.02, 0.75, "sine.inOut");
+      tl.to("#h-cloudbody", { scale: 0.9, transformOrigin: "50% 70%", duration: 0.7, ease: "sine.inOut" }, 14.4);
+      orb(14.4, 0.98, 1.02, 0.98, 0.7, "sine.inOut");
+      plus("#pl4", 15.1);
+      count("#o-num", 81, 86, 15.12, 0.35);
+      tl.to("#h-cloud", { x: -360, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 15.5);
+      out("#lb4", 15.6);
+
+      // Eighty-six. Same you: the orb fills out round and glossy, eyes wide, a smile, a happy bounce.
+      orb(16.05, 1.0, 1.0, 1.0, 0.7);
+      tl.fromTo("#o-num", { scale: 1.25, transformOrigin: "50% 50%" }, { scale: 1, transformOrigin: "50% 50%", duration: 0.3, ease: "power4.out", immediateRender: false }, 16.08);
+      tl.to("#o-shine", { opacity: 1, duration: 0.4 }, 16.1);
+      tl.to("#o-eyes", { scaleY: 1.05, transformOrigin: "50% 50%", duration: 0.25, ease: "back.out(2)" }, 16.2);
+      tl.to("#o-lids", { autoAlpha: 0, duration: 0.15 }, 16.2);
+      tl.to("#o-flat", { autoAlpha: 0, duration: 0.12 }, 16.3);
+      tl.to("#o-smile", { autoAlpha: 1, duration: 0.15 }, 16.32);
+      tl.fromTo("#lb5", { scale: 1.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 16.86);
+      tl.to("#o-drop", { y: -70, duration: 0.22, ease: "power2.out", yoyo: true, repeat: 1 }, 16.95);
+      out("#lb5", 17.85);
+
+      // The fixes were never the hard part: all four helpers crowd in at once and circle it.
+      tl.to(["#h-moon", "#h-sun", "#h-bowl", "#h-cloud"], { autoAlpha: 0, duration: 0.01 }, 17.95);
+      tl.set("#h-moon", { x: 0, y: -60, rotation: 0 }, 17.96);
+      tl.set("#h-sun", { x: 40, y: -520, scale: 0.7, transformOrigin: "50% 50%" }, 17.96);
+      tl.set("#h-bowl", { x: 0, y: 160, rotation: 0 }, 17.96);
+      tl.set("#h-cloud", { x: 0, y: 200 }, 17.96);
+      tl.set("#h-cloudbody", { scale: 1, transformOrigin: "50% 70%" }, 17.96);
+      tl.set(["#h-glow"], { autoAlpha: 0 }, 17.96);
+      tl.set(".h-food", { x: 0, y: 0, scale: 1, autoAlpha: 1 }, 17.96);
+      ["#h-moon", "#h-sun", "#h-bowl", "#h-cloud"].forEach((s, i) => {
+        tl.to(s, { autoAlpha: 1, duration: 0.15 }, 18.1 + i * 0.3);
+        tl.fromTo(s, { y: "+=70" }, { y: "-=70", duration: 0.4, ease: "back.out(2)", immediateRender: false }, 18.1 + i * 0.3);
+      });
+      fadeUp("#lb6", 20.3, 0.35, 24);
+      ["#h-moon", "#h-sun", "#h-bowl", "#h-cloud"].forEach((s, i) => {
+        [0, 1, 2, 3].forEach((k) => tl.to(s, { x: `+=${[60, -60, 60, -60][(i + k) % 4]}`, y: `+=${[-40, 40, -40, 40][(i + k) % 4]}`, duration: 0.3, ease: "sine.inOut" }, 20.4 + k * 0.3));
+      });
+      [20.5, 20.9, 21.3].forEach((t, k) => tl.to(".o-pupil", { x: [-10, 10, 0][k], duration: 0.14, ease: "power2.out" }, t));
+      tl.to(["#h-moon", "#h-sun", "#h-bowl", "#h-cloud", "#lb6"], { autoAlpha: 0, duration: 0.25 }, 22.15);
+
+      // 3 · The wipe opens from the orb, and the name drops in over two threads.
+      tl.fromTo("#l3-wipe", { scale: 0, svgOrigin: "540 1020" }, { scale: 1, svgOrigin: "540 1020", duration: 0.45, ease: "power3.inOut" }, 22.45);
+      fadeUp("#l3-built", 22.6, 0.35, 24);
+      tl.fromTo(".l3-l", { yPercent: -120, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.36, ease: "back.out(1.6)", stagger: 0.035 }, 23.12);
+      draw("#l3-t1, #l3-t2", 23.55, 0.5);
+
+      // 4 · Sleep, meals, movement, mind pop on their words and thread into the orb; then one thing.
+      tl.set(["#l4-card", ".l4-p"], { autoAlpha: 0 }, 0);
+      pop("#l4-orb", 24.32, 0.5, 0.5);
+      [25.76, 26.56, 27.36, 28.16].forEach((t, i) => {
+        tl.fromTo(document.querySelectorAll(".l4-p")[i], { scale: 0.4, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.4, ease: "back.out(1.8)" }, t);
+      });
+      [25.86, 26.66, 27.46, 28.26].forEach((t, i) => draw(`.l4-th:nth-of-type(${i + 1})`, t, 0.4, "power2.out"));
+      tl.to(".l4-p", { scale: 0.6, autoAlpha: 0, duration: 0.3, ease: "power2.in", stagger: 0.05 }, 28.7);
+      tl.to(".l4-th", { autoAlpha: 0, duration: 0.3 }, 28.75);
+      tl.to("#l4-orb", { y: -140, duration: 0.45, ease: E }, 28.85);
+      tl.fromTo("#l4-card", { y: 80, autoAlpha: 0, scale: 0.9 }, { y: 0, autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, 29.15);
+      tl.set("#l4-ckc", { scale: 0, transformOrigin: "50% 50%" }, 0);
+      tl.to("#l4-ckc", { scale: 1, duration: 0.3, ease: "back.out(2.5)" }, 30.9);
+      draw("#l4-ck", 30.98, 0.28, "power2.out");
+      tl.to("#l4-orb", { y: -200, duration: 0.2, ease: "power2.out", yoyo: true, repeat: 1 }, 31.1);
+
+      // 5 · Less guessing. More you. The name, and one thing to do.
+      document.querySelectorAll(".l5-sp").forEach((el, i) => pop(el, 31.78 + i * 0.07, 0.45));
+      drift(".l5-sp", 31.75, 4.25, 40);
+      slam("#l5-a", 31.84, 1.4);
+      tl.fromTo("#l5-b", { clipPath: "inset(0 100% 0 0)", autoAlpha: 1 }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power2.out" }, 32.7);
+      fadeUp("#l5-mark", 33.5, 0.45, 30);
+      pop("#l5-pill", 33.95, 0.45, 0.6);
+
+      // The tweens above are written in the seconds of the take they were first cut to. WARP (written by
+      // retime.py) maps those seconds onto the current voice, word by word, so each one lands on its word.
+      const WARP = /* warp:start */[[0, 0]]/* warp:end */;
+      const warp = (t) => {
+        for (let i = 1; i < WARP.length; i++) {
+          const [a0, b0] = WARP[i - 1];
+          const [a1, b1] = WARP[i];
+          if (t <= a1) return b0 + ((t - a0) * (b1 - b0)) / (a1 - a0);
+        }
+        const [a, b] = WARP[WARP.length - 1];
+        return b + t - a;
+      };
+      tl.getChildren(false, true, false).forEach((child) => child.startTime(warp(child.startTime())));
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
