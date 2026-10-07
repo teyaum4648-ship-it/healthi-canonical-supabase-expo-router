@@ -10,7 +10,7 @@ export function readinessSummary(label: DailyReadinessLabel): string {
   if (label === 'steady') return 'Your system supports a steady, useful pace today.';
   if (label === 'conserve') return 'Protect your capacity and keep the day controlled.';
   if (label === 'restore') return 'Recovery rhythm leads today, with lighter demands where possible.';
-  return 'Your system is still calibrating. Healthi will sharpen this as more signals arrive.';
+  return 'Log one thing, like last night’s sleep, a meal, a workout or your schedule, to see today’s readiness.';
 }
 
 export function readinessFocusLabel(focus: DailyReadinessPrimaryFocus): string {

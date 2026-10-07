@@ -833,6 +833,8 @@ export default function DashboardScreen() {
   }
   const accountZone = readinessZone(visibleReadinessScore, shouldSurfaceSafety(protocol.safety.status));
   const accountHeadline = readinessHeadline(accountZone, dashboardHero.summary);
+  /* With nothing logged there is no number to check in against, so the button asks for an entry. */
+  const needsEntry = morningBriefing.readiness.reason_codes.includes('readiness_needs_entry');
   const biomarkerBreakdown = <BiomarkerBreakdown summaries={biomarkerSummaries} onEdit={(kind) => setBiomarkerSheet({ kind, date: today })} />;
   function weekCardAction(card: WeekCard) {
     if (card.back.quickEntry) router.navigate(quickEntryHref(card.back.quickEntry));
@@ -882,8 +884,8 @@ export default function DashboardScreen() {
             word={accountHeadline.word}
             insight={accountHeadline.insight}
             meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
-            primaryLabel="Check in"
-            onPrimary={openCheckin}
+            primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Check in'}
+            onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : openCheckin}
             details={biomarkerBreakdown}
             pillars={morningBriefing.driver_cards}
           />

@@ -107,9 +107,9 @@ export function evaluateReadinessNow(input: ReadinessNowInput) {
   if (fresh && checkin?.demand === 'demanding')
     limit('mind_life_load', -4, 'current_day_demanding', 'You described today as demanding. Leave room for a pause or a lighter session.');
   const safe = input.safetyActive || input.base.mode === 'professional_guidance';
-  const enough = input.base.date === day && input.base.label !== 'calibrating' && input.base.missing_data.length < 3 && ledger.length === 4;
+  const enough = input.base.date === day && input.base.label !== 'calibrating' && ledger.length === 4;
   const state = safe ? 'safety_guidance' : !enough ? 'building_context' : !fresh ? 'update_needed' : 'current';
-  if (!enough) unknown.push('More foundation data is needed before showing a readiness number. A check-in alone cannot fill those gaps.');
+  if (!enough) unknown.push('Log one thing first, like last night’s sleep, a meal, a workout, or your schedule. A check-in alone cannot fill those gaps.');
   const score = Math.min(100, Math.max(0, (input.base.contributions?.baseline ?? 70) + ledger.reduce((sum, d) => sum + d.contribution, 0)));
   const attention = ledger.filter(d => d.explanation || (!d.missing && d.contribution < 0)).map(d => ({
     domain: d.domain, text: d.explanation ?? input.base.driver_cards.find(c => c.domain === d.domain)?.detail ?? 'This foundation is limiting today’s estimate.'

@@ -25,9 +25,22 @@ function windowValue(window: { start_at: string; end_at: string } | undefined) {
   return { start: timeLabel(window.start_at) ?? window.start_at, end: timeLabel(window.end_at) ?? window.end_at };
 }
 
+function dayBefore(date: string): string {
+  const [year, month, day] = date.slice(0, 10).split('-').map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! - 1)).toISOString().slice(0, 10);
+}
+
+/** Sleep only speaks for today when it is last night's: woken up today, or yesterday if not logged yet. */
+function isLastNight(session: { date: string } | null | undefined, date: string): boolean {
+  if (!session?.date) return false;
+  const day = session.date.slice(0, 10);
+  return day === date.slice(0, 10) || day === dayBefore(date);
+}
+
 function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadinessInput {
   const briefing = input.rhythm?.briefing;
-  const session = input.rhythm?.recent_sleep_session;
+  const recent = input.rhythm?.recent_sleep_session;
+  const session = isLastNight(recent, input.date) ? recent : null;
   const nutrition = input.nutrition;
   const movement = input.movement;
   const schedule = input.schedule;
@@ -36,7 +49,8 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
 
   return {
     date: input.date,
-    // A default clock-based briefing is a suggestion, not observed sleep evidence.
+    // A default clock-based briefing is a suggestion, not observed sleep evidence, and a
+    // night logged weeks ago says nothing about today.
     rhythm: session
       ? {
           sleep_duration_hours: typeof session?.duration_minutes === 'number' ? Math.round((session.duration_minutes / 60) * 10) / 10 : null,
@@ -80,7 +94,10 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
       ? {
           block_count: scheduleBlockCount,
           open_window_count: scheduleBlockCount > 0 ? dayPlan?.open_windows.length ?? 0 : 0,
-          next_protected_block: schedule.next_protected_block ?? dayPlan?.protected_blocks[0]?.start ?? null,
+          // The day plan fills in blocks of its own; they are not something the person entered.
+          next_protected_block: scheduleBlockCount > 0
+            ? schedule.next_protected_block ?? dayPlan?.protected_blocks[0]?.start ?? null
+            : null,
           confidence: dayPlan?.confidence ?? 'low',
           reason_codes: [...(dayPlan?.reason_codes ?? [])]
         }
@@ -94,14 +111,14 @@ function headline(label: DailyReadinessLabel): string {
   if (label === 'steady') return 'A steady day';
   if (label === 'conserve') return 'Protect your capacity';
   if (label === 'restore') return 'Recovery leads today';
-  return 'Your system is still calibrating';
+  return 'Nothing logged yet today';
 }
 
 function sourceLabel(
   readiness: DailyReadinessResult,
   sources: MorningBriefingComposerInput['sources']
 ): MorningBriefingSource {
-  if (readiness.missing_data.length >= 3) return 'calibrating';
+  if (readiness.label === 'calibrating') return 'calibrating';
   const values = Object.values(sources ?? {});
   if (values.includes('demo')) return 'demo';
   if (values.includes('logged')) return 'logged';

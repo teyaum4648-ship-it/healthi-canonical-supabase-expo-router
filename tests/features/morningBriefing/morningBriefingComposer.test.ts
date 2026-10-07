@@ -132,10 +132,22 @@ describe('composeMorningBriefing', () => {
     expect(schedule?.detail).toContain('open windows');
   });
 
-  it('returns a calibrating source for sparse local demo data', () => {
+  it('gives a low-confidence demo estimate from a single local entry', () => {
     const briefing = composeMorningBriefing({
       date,
       schedule: { block_count: 1 },
+      sources: { schedule: 'demo' }
+    });
+    expect(briefing.source_label).toBe('demo');
+    expect(briefing.readiness.label).not.toBe('calibrating');
+    expect(briefing.readiness.missing_data).toHaveLength(3);
+    expect(briefing.confidence).toBe('low');
+  });
+
+  it('returns a calibrating source when local demo data has no entries', () => {
+    const briefing = composeMorningBriefing({
+      date,
+      schedule: { block_count: 0 },
       sources: { schedule: 'demo' }
     });
     expect(briefing.source_label).toBe('calibrating');

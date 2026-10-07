@@ -24,10 +24,10 @@ const CONFIDENCE_VALUE: Record<DataConfidence, number> = { low: 0, medium: 1, hi
 /**
  * Where a day starts before anything is known about it.
  *
- * A domain with no data contributes nothing, so a profile with nothing logged reads
- * exactly 70 — deliberately, because missing data must lower confidence rather than the
- * score. The cost is that 70 looks like a finding when it is an absence, which is what
- * the driver ledger and its prompts exist to make visible.
+ * A domain with no data contributes nothing, because missing data must lower confidence
+ * rather than the score. With nothing logged at all the result would be exactly 70, which
+ * looks like a finding when it is an absence, so that day is labelled calibrating and no
+ * number is shown until the person enters something.
  */
 export const READINESS_BASELINE = 70;
 
@@ -59,6 +59,7 @@ export const READINESS_CONTRIBUTION_RANGE: Readonly<Record<DailyReadinessDomain,
   movement_capacity: [-15, 12],
   mind_life_load: [-10, 6]
 };
+const READINESS_DOMAIN_COUNT = Object.keys(READINESS_CONTRIBUTION_RANGE).length;
 /**
  * The pillar score at which the floor is reached, rather than zero.
  *
@@ -120,12 +121,12 @@ function rhythmScore(input: GenerateDailyReadinessInput['rhythm']): DomainScore 
     if (debt >= 1) reasons.push('sleep_debt_present');
     else reasons.push('sleep_debt_low');
   }
-  if (['morning_peak', 'second_peak', 'rising'].includes(normalized(input.energy_phase))) contribution += 2;
-
-  const hasSignal = typeof duration === 'number' || typeof debt === 'number' || Boolean(input.energy_phase);
+  // The energy phase comes from the clock, so it only adds to sleep the person logged.
+  const hasSignal = typeof duration === 'number' || typeof debt === 'number';
+  if (hasSignal && ['morning_peak', 'second_peak', 'rising'].includes(normalized(input.energy_phase))) contribution += 2;
   return {
     domain: 'recovery_rhythm',
-    contribution: clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.recovery_rhythm),
+    contribution: hasSignal ? clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.recovery_rhythm) : 0,
     confidence: input.confidence ?? 'low',
     missing: !hasSignal,
     reasons: unique(hasSignal ? reasons : [...reasons, 'rhythm_data_missing'])
@@ -206,8 +207,12 @@ function scheduleScore(input: GenerateDailyReadinessInput['schedule']): DomainSc
   else if (openWindows >= 3) contribution = 6;
   else if (openWindows >= 2) contribution = 3;
   else if (blocks > 0 && openWindows === 0) contribution = -3;
-  const hasSignal = blocks > 0 || openWindows > 0 || Boolean(input.next_protected_block);
-  if (!hasSignal) reasons.push('schedule_data_missing');
+  // Open windows and protected blocks can come from a generated plan; only blocks the person added count.
+  const hasSignal = blocks > 0;
+  if (!hasSignal) {
+    contribution = 0;
+    reasons.push('schedule_data_missing');
+  }
   if (contribution <= -6) reasons.push('schedule_load_high');
   if (openWindows > 0) reasons.push('open_windows_available');
 
@@ -228,8 +233,13 @@ function combinedConfidence(scores: DomainScore[]): DataConfidence {
   return average >= 0.75 ? 'medium' : 'low';
 }
 
+/*
+ * A number needs at least one thing the person entered. With nothing logged anywhere the
+ * score would only be the baseline, so it stays calibrating. One entry gives an estimate,
+ * and confidence stays low until three of the four foundations have something.
+ */
 function readinessLabel(score: number, missingCount: number): DailyReadinessLabel {
-  if (missingCount >= 3) return 'calibrating';
+  if (missingCount >= READINESS_DOMAIN_COUNT) return 'calibrating';
   if (score >= 85) return 'primed';
   if (score >= 70) return 'steady';
   if (score >= 55) return 'conserve';
@@ -455,7 +465,8 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
     `readiness_${label}`,
     `readiness_mode_${mode}`,
     `primary_focus_${focus}`,
-    ...(missingData.length > 0 ? ['readiness_data_incomplete'] : [])
+    ...(missingData.length > 0 ? ['readiness_data_incomplete'] : []),
+    ...(missingData.length >= READINESS_DOMAIN_COUNT ? ['readiness_needs_entry'] : [])
   ]);
 
   return {
