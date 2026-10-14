@@ -7,6 +7,7 @@ import type { HabitDay } from './moodHabits';
 import type { PracticeDay, PracticeSession } from './practiceModel';
 import { comparePulse, isRestingContext, type PulseBaseline, type PulseReading } from './pulseModel';
 import type { ZoneDay } from './zoneModel';
+import { latestHeadCheck, type HeadCheck } from './headCheck';
 
 /**
  * What the Mood tab's Today view is built from: the day's signals, gathered from the
@@ -49,8 +50,10 @@ export function moodScoreInput(input: {
   daylight: DaylightDay;
   zones: ZoneDay;
   habits: HabitDay;
+  heads?: readonly HeadCheck[];
 }): MindScoreInput {
   const minutes = lastNightMinutes(input.sleepSessions, input.today);
+  const head = latestHeadCheck(input.heads ?? [], input.today);
   return {
     date: input.today,
     sleep: minutes === null ? null : { minutes, needMinutes: input.sleepNeedMinutes },
@@ -62,7 +65,8 @@ export function moodScoreInput(input: {
       tensionReleases: input.zones.sessions.length,
       morningLightMinutes: input.daylight.morningMinutes,
       habitsDone: input.habits.done
-    }
+    },
+    head: head ? { rating: head.rating } : null
   };
 }
 

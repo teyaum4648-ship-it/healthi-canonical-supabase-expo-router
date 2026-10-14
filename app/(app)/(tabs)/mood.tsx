@@ -13,6 +13,18 @@ import { moodWeekCard } from '../../../src/features/dashboard/weekCards';
 import { getDemoScheduleBlocksForDate } from '../../../src/features/dayPlan/localDemoScheduleStore';
 import { getScheduleBlocksForDate, type DayScheduleBlockSupabaseClient } from '../../../src/features/dayPlan/scheduleBlockPersistence';
 import { MoodToday } from '../../../src/features/practice/MoodToday';
+import { HeadCheckCard, PracticeHeadCheck } from '../../../src/features/practice/HeadCheckCard';
+import {
+  createHeadCheck,
+  headShift,
+  latestHeadCheck,
+  localHeadCheckStore,
+  shiftsByTechnique,
+  type HeadCheck,
+  type HeadMoment,
+  type HeadRating,
+  type HeadShift
+} from '../../../src/features/practice/headCheck';
 import { moodRings, moodScoreInput, moodWeek } from '../../../src/features/practice/moodDashboardModel';
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { loadSleepHistory } from '../../../src/features/sleepRhythm/sleepSessionSource';
@@ -137,6 +149,11 @@ export default function MoodScreen() {
   const [sleepNeedMinutes, setSleepNeedMinutes] = useState<number | null>(null);
   const [scheduleBlocks, setScheduleBlocks] = useState<number | null>(null);
   const [checkins, setCheckins] = useState<ReadinessCheckin[]>([]);
+  const [heads, setHeads] = useState<HeadCheck[]>([]);
+  /* The before-and-after around one breathing session. */
+  const [beforeHead, setBeforeHead] = useState<HeadRating | null>(null);
+  const [awaitingAfter, setAwaitingAfter] = useState(false);
+  const [lastShift, setLastShift] = useState<HeadShift | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -148,9 +165,11 @@ export default function MoodScreen() {
         localZoneStore.read(scope),
         localHabitCompletionStore.read(scope),
         localCustomHabitStore.read(scope),
-        localRoutineStore.read(scope)
-      ]).then(([breath, pulse, daylight, zone, done, custom, routine]) => {
+        localRoutineStore.read(scope),
+        localHeadCheckStore.read(scope)
+      ]).then(([breath, pulse, daylight, zone, done, custom, routine, head]) => {
         if (!active) return;
+        setHeads(head);
         setSessions(breath);
         setPulses(pulse);
         setBouts(daylight);
@@ -211,8 +230,10 @@ export default function MoodScreen() {
 
   const mind = useMemo(() => calculateMindScore(moodScoreInput({
     today: date, sleepSessions, sleepNeedMinutes, scheduleBlocks, checkins, pulses, baseline,
-    practice: day, daylight: daylightDay, zones: zoneDay, habits: habitDay
-  }), new Date().getHours()), [date, sleepSessions, sleepNeedMinutes, scheduleBlocks, checkins, pulses, baseline, day, daylightDay, zoneDay, habitDay]);
+    practice: day, daylight: daylightDay, zones: zoneDay, habits: habitDay, heads
+  }), new Date().getHours()), [date, sleepSessions, sleepNeedMinutes, scheduleBlocks, checkins, pulses, baseline, day, daylightDay, zoneDay, habitDay, heads]);
+  const latestHead = useMemo(() => latestHeadCheck(heads, date), [heads, date]);
+  const helps = useMemo(() => shiftsByTechnique(heads), [heads]);
   const rings = useMemo(() => moodRings({ practice: day, daylight: daylightDay, habits: habitDay, zones: zoneDay }), [day, daylightDay, habitDay, zoneDay]);
   const week = useMemo(() => moodWeek(sessions, date), [sessions, date]);
   const weekCard = useMemo(() => moodWeekCard({ today: date, practice: sessions, daylight: bouts }), [date, sessions, bouts]);
@@ -223,7 +244,28 @@ export default function MoodScreen() {
     setSegment('Practice');
   }
 
+  async function recordHead(rating: HeadRating, moment: HeadMoment) {
+    const row = createHeadCheck({ date, rating, moment, techniqueId: moment === 'now' ? null : technique.id });
+    setHeads((current) => [...current, row]);
+    setHeads(await localHeadCheckStore.append(scope, row));
+  }
+
+  function answerBefore(rating: HeadRating) {
+    setBeforeHead(rating);
+    setLastShift(null);
+    void recordHead(rating, 'before');
+  }
+
+  function answerAfter(rating: HeadRating) {
+    if (beforeHead) setLastShift(headShift(beforeHead, rating));
+    setBeforeHead(null);
+    setAwaitingAfter(false);
+    void recordHead(rating, 'after');
+  }
+
   async function recordBreath(seconds: number) {
+    /* Long enough to have done something; the question after a five-second tap is noise. */
+    if (seconds >= 30) setAwaitingAfter(true);
     const session: PracticeSession = {
       id: `breath-${Date.now()}`,
       date,
@@ -331,6 +373,7 @@ export default function MoodScreen() {
         </View>
         <SegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} />
 
+        {segment === 'Today' ? <HeadCheckCard helps={helps} latest={latestHead} onAnswer={(rating) => void recordHead(rating, 'now')} /> : null}
         {segment === 'Today' ? <MoodToday onSuggestion={followSuggestion} rings={rings} score={mind} week={week} /> : null}
 
         {segment === 'Trends' ? (
@@ -383,6 +426,14 @@ export default function MoodScreen() {
               {technique.caution ? <Text style={styles.inlineCaution}>{technique.caution}</Text> : null}
             </>
           )}
+          <PracticeHeadCheck
+            awaitingAfter={awaitingAfter}
+            before={beforeHead}
+            onAfter={answerAfter}
+            onBefore={answerBefore}
+            onSkip={() => { setAwaitingAfter(false); setBeforeHead(null); }}
+            shift={lastShift}
+          />
         </View>
 
         <View style={styles.panel}>

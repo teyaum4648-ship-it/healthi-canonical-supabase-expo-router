@@ -34,6 +34,8 @@ export type MindScoreInput = {
   pulseBand?: MindPulseBand | null;
   /** What was done today on the Mood tab. */
   resets?: { breathingSeconds: number; tensionReleases: number; morningLightMinutes: number; habitsDone: number } | null;
+  /** The latest "How's your head?" answer today, 1 (overloaded) to 5 (clear). */
+  head?: { rating: 1 | 2 | 3 | 4 | 5 } | null;
 };
 
 export type MindSuggestion = {
@@ -47,7 +49,12 @@ export type MindSuggestion = {
 
 export type MindScore = FoundationScore & { suggestion: MindSuggestion };
 
-const WEIGHTS = { sleep: 0.3, schedule: 0.2, demand: 0.2, energy: 0.1, pulse: 0.1, resets: 0.1 } as const;
+/*
+ * The person's own answer about their head carries as much as their plan does. Energy is
+ * lighter than the rest because Movement reads it too.
+ */
+const WEIGHTS = { sleep: 0.3, schedule: 0.15, demand: 0.15, head: 0.15, energy: 0.05, pulse: 0.1, resets: 0.1 } as const;
+const HEAD_WORDS = { 1: 'overloaded', 2: 'tense', 3: 'okay', 4: 'steady', 5: 'clear' } as const;
 const DEFAULT_NEED_MINUTES = 480;
 
 const hours = (minutes: number) => {
@@ -82,6 +89,15 @@ function demandTerm(checkin: MindScoreInput['checkin']): FoundationContributor {
     id: 'demand', label: 'Today’s demand', weight: WEIGHTS.demand,
     value: demand === 'demanding' ? 0.35 : demand === 'usual' ? 0.85 : null,
     detail: demand === 'demanding' ? 'You described today as demanding.' : demand === 'usual' ? 'You described today as usual.' : 'Not answered today.'
+  };
+}
+
+function headTerm(head: MindScoreInput['head']): FoundationContributor {
+  const rating = head?.rating ?? null;
+  return {
+    id: 'head', label: 'How your head is', weight: WEIGHTS.head,
+    value: rating === null ? null : (rating - 1) / 4,
+    detail: rating === null ? 'No check-in yet today.' : `You said your head is ${HEAD_WORDS[rating]}.`
   };
 }
 
@@ -126,6 +142,9 @@ export function suggestMindReset(limiters: FoundationContributor[], localHour: n
   if (top === 'sleep' && localHour >= 18) {
     return { id: 'wind_down', title: 'An earlier wind-down tonight', detail: 'Last night ran short. A few minutes of slow breathing can ease the step into sleep.', techniqueId: 'wind_down', reason_codes: ['limited_by_sleep', 'evening_window'] };
   }
+  if (top === 'head') {
+    return { id: 'settle_and_recheck', title: 'Two minutes of Settle, then check in again', detail: 'In for four, out for eight. Say how your head is before and after, and see what it does for you.', techniqueId: 'settle', reason_codes: ['limited_by_head'] };
+  }
   if (top === 'schedule' || top === 'demand') {
     return { id: 'settle_before_block', title: 'Two minutes of Settle before your next block', detail: 'A full day goes better with a short pause between things. In for four, out for eight.', techniqueId: 'settle', reason_codes: [`limited_by_${top}`] };
   }
@@ -146,12 +165,13 @@ export function calculateMindScore(input: MindScoreInput, localHour = 12): MindS
       sleepTerm(input.sleep),
       scheduleTerm(input.scheduleBlocks),
       demandTerm(input.checkin),
+      headTerm(input.head),
       energyTerm(input.checkin),
       pulseTerm(input.pulseBand),
       resetTerm(input.resets)
     ],
     summarise: (value, limiters) => {
-      if (value === null) return 'Not enough to read yet. Log last night’s sleep, add today’s plan, or answer the morning check-in.';
+      if (value === null) return 'Not enough to read yet. Log last night’s sleep, add today’s plan, or say how your head is.';
       const heaviest = limiters[0]?.label.toLowerCase();
       if (value >= 75 || !heaviest) return 'Today’s load looks manageable.';
       return value >= 55 ? `A moderate load today. ${limiters[0].label} is the heaviest part.` : `A heavy load today. ${limiters[0].label} is weighing most.`;
