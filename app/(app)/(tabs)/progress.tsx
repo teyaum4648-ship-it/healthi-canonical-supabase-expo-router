@@ -20,6 +20,7 @@ import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 const rangeLabels = ['7 days', '14 days', '30 days'] as const;
 type RangeLabel = typeof rangeLabels[number];
@@ -64,6 +65,7 @@ function DomainCard({ card, rangeDays }: { card: TrendsDomainCard; rangeDays: nu
  * is a to-do rather than a trend and the other said everything twice.
  */
 export default function ProgressScreen() {
+  const tabSpace = useTabBarSpace();
   const { user } = useAuth();
   const [range, setRange] = useState<RangeLabel>('7 days');
   const rangeDays = rangeDaysFor[range];
@@ -96,7 +98,7 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to Home" hitSlop={8} onPress={() => router.canGoBack() ? router.back() : router.navigate('/')} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
           <Ionicons color={colors.accent} name="chevron-back" size={22} />
           <Text style={styles.backText}>Home</Text>

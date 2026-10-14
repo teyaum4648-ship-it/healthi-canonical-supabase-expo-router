@@ -72,6 +72,7 @@ import {
 } from '../../../src/features/movement/movementPersistence';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, hairlineWidth, palette, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -399,6 +400,7 @@ function DayTimeline({
 }
 
 export default function PlanScreen() {
+  const tabSpace = useTabBarSpace();
   const { user, mode } = useAuth();
   const today = useLocalToday();
   const now = useMemo(() => wallClockIso(), []);
@@ -893,7 +895,7 @@ export default function PlanScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={['top']} style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace + 22 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <Pressable accessibilityRole="button" onPress={() => router.navigate('/')} style={styles.backHome}><Ionicons name="chevron-back" color={colors.accentMid} size={20} /><Text style={styles.backHomeLabel}>Home</Text></Pressable>
             <Text accessibilityRole="header" style={styles.pageTitle}>Your plan</Text>

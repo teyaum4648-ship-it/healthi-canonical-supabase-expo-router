@@ -92,6 +92,7 @@ import {
 } from '../../../src/features/practice/zoneModel';
 import { colors, hairlineWidth, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 /**
  * Mood — the fourth pillar, and the one that does something rather than reporting.
@@ -130,6 +131,7 @@ const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
 export default function MoodScreen() {
+  const tabSpace = useTabBarSpace();
   const { user, mode } = useAuth();
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
   const date = localDateKey();
@@ -367,7 +369,7 @@ export default function MoodScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text accessibilityRole="header" style={styles.title}>Mood</Text>
         </View>

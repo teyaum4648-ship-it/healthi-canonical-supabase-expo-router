@@ -200,6 +200,7 @@ import {
   glassSurface,
   hues
 } from '../../../src/styles/mobileTheme';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 const C = {
   bg: themeColors.background,
@@ -543,6 +544,7 @@ function TrackerProgress({
 }
 
 export default function FoodScreen() {
+  const tabSpace = useTabBarSpace();
   const { session, mode } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [activeSegment, setActiveSegment] = useState<Segment>('Diary');
@@ -2519,7 +2521,7 @@ export default function FoodScreen() {
             ref={scrollRef}
             onScroll={(event) => { scrollPositions.current[scannerOpen ? 'scanner' : activeSegment] = event.nativeEvent.contentOffset.y; }}
             scrollEventThrottle={100}
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={[styles.scroll, inFlow ? { paddingBottom: tabSpace } : null]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
@@ -2553,7 +2555,7 @@ export default function FoodScreen() {
             {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
             {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
-          {!inFlow ? <View style={styles.adaptiveActionDock}>
+          {!inFlow ? <View style={[styles.adaptiveActionDock, { marginBottom: tabSpace - 12 }]}>
             <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color={onPillar} size={22} /><Text style={[styles.adaptivePrimaryButtonText, styles.diaryAddText]}>Add meal</Text></Pressable>
             {/*
               Scanning was three taps inside the add-meal sheet, which is a long way

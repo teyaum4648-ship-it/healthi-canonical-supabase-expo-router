@@ -33,6 +33,7 @@ import { loadProfileScreenModel } from '../../../src/features/profile/profileCom
 import type { ProfileScreenModel } from '../../../src/features/profile/profileTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
   return value === 'ready' ? 'Ready' : value === 'partial' ? 'Early pattern' : 'Calibrating';
@@ -81,6 +82,7 @@ function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint'
 }
 
 export default function SettingsScreen() {
+  const tabSpace = useTabBarSpace();
   const { signOut, user, profile, mode, startDemo } = useAuth();
   const actualToday = useLocalToday();
   const [confirmDemoReset, setConfirmDemoReset] = useState(false);
@@ -162,7 +164,7 @@ export default function SettingsScreen() {
   const baseline = model?.baseline;
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={{ ...styles.content, paddingBottom: tabSpace }}>
       <SectionHeader
         title="You"
         body="Your progress, profile and preferences."

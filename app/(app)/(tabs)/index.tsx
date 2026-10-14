@@ -105,6 +105,7 @@ import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
@@ -317,6 +318,7 @@ function SleepSparkline({ values }: { values: number[] }) {
 }
 
 export default function DashboardScreen() {
+  const tabSpace = useTabBarSpace();
   const { user, mode, profile } = useAuth();
   const isFocused = useIsFocused();
   const today = useLocalToday();
@@ -926,7 +928,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* The date shares a line with the buttons so the greeting gets the full width, like a large title. */}
         <View style={styles.header}>
           <View style={styles.headerCopy}>

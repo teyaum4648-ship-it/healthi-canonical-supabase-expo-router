@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, usePathname } from 'expo-router';
-import { Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mainTabs } from '../../../src/features/navigation/navigationModel';
 import { SideMenuProvider, useSideMenu } from '../../../src/features/navigation/SideMenu';
+import { TAB_BAR_HEIGHT, tabBarBottomGap } from '../../../src/features/navigation/tabBarSpace';
 
 import { ambientGlow, colors, fonts, glassChrome } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
@@ -54,25 +56,27 @@ function AppTabs() {
           },
           tabBarItemStyle: { paddingTop: 7, paddingBottom: 6, paddingHorizontal: 0 },
           /*
-           * A pill that floats above the bottom edge, the way the system tab bar does now.
-           * It stays in the layout rather than over the content, so nothing on any screen
-           * has to make room for it; the margin around it is the page's own black.
+           * A pill that floats over the content, frosted, the way the system tab bar does.
+           * The content scrolls underneath it and blurs through; every tab leaves room at
+           * the end of its scroll (useTabBarSpace) so nothing is left hidden behind it.
            */
           tabBarStyle: {
             ...glassChrome,
-            position: 'relative',
+            backgroundColor: 'rgba(22, 25, 30, 0.55)',
+            position: 'absolute',
+            left: 12,
+            right: 12,
+            bottom: tabBarBottomGap(insets.bottom),
             borderTopWidth: hairlineWidthOrOne,
             borderTopColor: glassChrome.borderColor,
             borderRadius: 32,
-            height: 64,
-            marginHorizontal: 12,
-            marginBottom: Math.max(insets.bottom, 12),
-            marginTop: 6,
+            height: TAB_BAR_HEIGHT,
             paddingBottom: 0,
             paddingTop: 0,
             paddingHorizontal: 2,
             overflow: 'hidden'
-          }
+          },
+          tabBarBackground: () => <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
         };
       }}
     >

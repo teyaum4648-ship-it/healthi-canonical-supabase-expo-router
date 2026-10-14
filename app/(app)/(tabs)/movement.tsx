@@ -191,6 +191,7 @@ import {
   type StoredMovementScreen
 } from '../../../src/features/movement/movementScreenStore';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
+import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
@@ -296,6 +297,7 @@ function Chip({ label, selected, onPress }: { label: string; selected?: boolean;
 }
 
 export default function MovementScreen() {
+  const tabSpace = useTabBarSpace();
   const { user, mode } = useAuth();
   const { moveFixture } = useLocalSearchParams<{ moveFixture?: string | string[] }>();
   /* The local day, not the UTC one: an evening workout in the Americas was being dated tomorrow. */
@@ -2054,7 +2056,7 @@ export default function MovementScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Movement</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Movement · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
 
         {usePreviewFixture ? (
