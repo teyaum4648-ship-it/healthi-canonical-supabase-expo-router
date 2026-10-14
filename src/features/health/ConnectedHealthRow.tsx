@@ -41,7 +41,9 @@ export function ConnectedHealthRow({ source, scope, readSleep, saveSleep }: {
 
   const detail = available
     ? 'Bring in the last week of sleep and steps. Nights you log yourself always stay as you logged them.'
-    : 'Sleep and steps will come in from the iPhone and Android apps. Nights you log yourself always stay as you logged them.';
+    : Platform.OS === 'web'
+      ? 'Sleep and steps come in through the iPhone and Android apps. Nights you log yourself always stay as you logged them.'
+      : `${appName} works in the installed daywoven app; this preview build cannot reach it.`;
 
   return <View style={styles.row}>
     <View style={styles.icon}><Ionicons accessible={false} color="#FF6B81" name="heart" size={18} /></View>

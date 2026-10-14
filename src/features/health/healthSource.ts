@@ -1,11 +1,11 @@
 import { unavailableHealthSource, type HealthSource } from './healthImport';
 
 /**
- * The one place the app gets its health-data reader.
+ * The health-data reader for the web build, and the fallback everywhere else.
  *
- * Reading Apple Health or Health Connect needs a native module and a development build,
- * which Expo Go and the web demo cannot run. Until that module is added this is the
- * unavailable source, so every screen shows the honest "not connected yet" state; adding
- * the module means replacing this export with an adapter that implements HealthSource.
+ * The iPhone and Android readers live beside this file as healthSource.ios.ts and
+ * healthSource.android.ts, and the bundler picks them on those platforms. The web demo
+ * has no Apple Health or Health Connect to reach, so it gets the unavailable source and
+ * every screen shows the honest "not here" state.
  */
 export const healthSource: HealthSource = unavailableHealthSource;
