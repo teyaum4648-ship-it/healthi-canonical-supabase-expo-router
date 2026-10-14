@@ -4,6 +4,7 @@ import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { FluidPressable } from '../../components/mobile/FluidPressable';
 import type { MorningReport } from '../../engines/circadian/sleepRecoveryAdapter';
 import type { SleepRecoverySummary } from '../../engines/circadian/types';
+import { recoveryTier } from '../../engines/circadian/energyModel';
 import { isPlausibleMorningHR, PLAUSIBLE_MORNING_HR, type Restedness } from '../../engines/sleepEnergy';
 import { cardSurface, fonts, zones } from '../../styles/mobileTheme';
 
@@ -48,8 +49,10 @@ const AWAKE: { value: number | null; label: string }[] = [
 const AWAKENINGS = [1, 2, 3, 4, 5];
 
 function recoveryWords(score: number): { tone: 'optimal' | 'warning' | 'critical'; label: string } {
-  if (score >= 80) return { tone: 'optimal', label: 'Well recovered' };
-  if (score >= 55) return { tone: 'warning', label: 'Partly recovered' };
+  // The same tiers the day outlook is held to, so the two cards never disagree.
+  const tier = recoveryTier(score);
+  if (tier === 'well') return { tone: 'optimal', label: 'Well recovered' };
+  if (tier === 'partly') return { tone: 'warning', label: 'Partly recovered' };
   return { tone: 'critical', label: 'Under-recovered' };
 }
 

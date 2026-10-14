@@ -1,6 +1,7 @@
 import { calculateSleepDebt } from './calculateSleepDebt';
 import { circularDifference, estimateCircadianPhase, type CircadianPhaseEstimate } from './circadianPhase';
 import {
+  alignOutlookWithRecovery,
   circadianEnergyAt,
   computeRestoration,
   deriveDayOutlook,
@@ -522,7 +523,10 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     ? predicted.curve
     : generateEnergyCurve(wakeTime, targetBedtime, restorationFactor, curveModifiers);
   const inputCoverage = prediction ? prediction.modelConfidence / 100 : restoration.coverage;
-  const dayOutlook = deriveDayOutlook(energyCurve, inputCoverage, ENERGY_SAMPLE_STEP_MINUTES);
+  const rawOutlook = deriveDayOutlook(energyCurve, inputCoverage, ENERGY_SAMPLE_STEP_MINUTES);
+  const recoverySummary = prediction ? summarizeRecovery(prediction) : null;
+  const aligned = rawOutlook && recoverySummary ? alignOutlookWithRecovery(rawOutlook, recoverySummary.score) : null;
+  const dayOutlook = aligned ? aligned.outlook : rawOutlook;
   const energyZones = deriveEnergyZones(energyCurve);
   const energyExtrema = deriveEnergyExtrema(energyCurve);
   const rhythmPlan = createRhythmPlan(wakeTime, targetBedtime, sleepDebt7Day.nightly_average_debt_minutes);
@@ -555,6 +559,9 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
   }
   if (inputCoverage < THIN_COVERAGE) {
     reasonCodes.push('sleep_inputs_thin');
+  }
+  if (aligned?.adjusted) {
+    reasonCodes.push('outlook_aligned_with_sleep_score');
   }
   if (prediction) {
     reasonCodes.push('sleep_recovery_predicted', ...prediction.reason_codes);
@@ -603,7 +610,7 @@ export function generateCircadianBriefing(params: GenerateCircadianBriefingParam
     typical_band: prediction && timingCurve
       ? typicalBandFromTiming(timingCurve, recentNightMinutes, params.sleepNeed.minutes)
       : deriveTypicalBand(recentNightMinutes, params.sleepNeed.minutes, (targetBedtime.getTime() - wakeTime.getTime()) / MINUTE_MS),
-    sleep_recovery: prediction ? summarizeRecovery(prediction) : null
+    sleep_recovery: recoverySummary
   };
 }
 

@@ -443,6 +443,44 @@ export function deriveDayOutlook(
   };
 }
 
+/**
+ * The Sleep score's tiers. The morning card names them; the day outlook stays inside them.
+ */
+export const RECOVERY_TIERS = { well: 80, partly: 55 } as const;
+export type RecoveryTier = 'well' | 'partly' | 'under';
+
+export function recoveryTier(score: number): RecoveryTier {
+  if (score >= RECOVERY_TIERS.well) return 'well';
+  if (score >= RECOVERY_TIERS.partly) return 'partly';
+  return 'under';
+}
+
+/** Lowest score of each outlook band, matching deriveDayOutlook's cut points. */
+const BAND_FLOOR: Record<OutlookBand, number> = { sharp: 70, steady: 45, slow: 25, flat: 0 };
+
+function bandFor(score: number): OutlookBand {
+  return score >= BAND_FLOOR.sharp ? 'sharp' : score >= BAND_FLOOR.steady ? 'steady' : score >= BAND_FLOOR.slow ? 'slow' : 'flat';
+}
+
+/**
+ * Keeps the day outlook inside what the Sleep score says.
+ *
+ * They are measured differently on purpose: the Sleep score is how recovered the night
+ * left you, the outlook is how much of the day's curve is usable. But a card reading
+ * "Partly recovered" above a forecast reading "Sharp · 72" tells someone two different
+ * things about the same morning, and they will believe neither. So a partial recovery
+ * caps the outlook at Steady, an under-recovered night at Slow, and a well-recovered one
+ * keeps it from reading Flat. Inside those bounds the curve's own score stands.
+ */
+export function alignOutlookWithRecovery(outlook: DayOutlook, recoveryScore: number): { outlook: DayOutlook; adjusted: boolean } {
+  const tier = recoveryTier(recoveryScore);
+  const ceiling = tier === 'well' ? 100 : tier === 'partly' ? BAND_FLOOR.sharp - 1 : BAND_FLOOR.steady - 1;
+  const floor = tier === 'well' ? BAND_FLOOR.steady : 0;
+  const score = Math.min(ceiling, Math.max(floor, outlook.score));
+  if (score === outlook.score) return { outlook, adjusted: false };
+  return { outlook: { ...outlook, score, band: bandFor(score) }, adjusted: true };
+}
+
 function levelFor(energy: number): EnergyZoneLevel {
   if (energy >= HIGH_ENERGY_THRESHOLD) return 'high';
   if (energy >= MODERATE_ENERGY_THRESHOLD) return 'moderate';
