@@ -41,6 +41,7 @@ import { addGlassOfWater, GLASS_ML, removeWater } from '../../../src/features/nu
 import { createDemoWaterStore, readWater, waterForDay, type HydrationClient } from '../../../src/features/nutrition/hydrationStore';
 import { waterPace } from '../../../src/features/nutrition/waterPace';
 import { EMPTY_MIND_ENTRIES, loadMindEntries, mindReadinessSignals, type MindEntries } from '../../../src/features/practice/mindSignals';
+import { latestLoadCheck, localLoadCheckStore, personalBaselineFrom, type LoadCheckRecord } from '../../../src/features/loadCheck/loadCheckStore';
 import { dietAccents } from '../../../src/features/nutrition/DietDashboard';
 import { recordReadiness } from '../../../src/features/trends/readinessHistoryStore';
 import { targetRowToTarget as goalTargetsFromRow } from '../../../src/features/nutrition/nutritionTargetModel';
@@ -327,6 +328,7 @@ export default function DashboardScreen() {
   const [waterTargetMl, setWaterTargetMl] = useState<number | null>(null);
   const [mindEntries, setMindEntries] = useState<MindEntries>(EMPTY_MIND_ENTRIES);
   const [mindVersion, setMindVersion] = useState(0);
+  const [loadCheck, setLoadCheck] = useState<LoadCheckRecord | null>(null);
   const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const waterBusy = useRef(false);
   const [recapDismissedWeek, setRecapDismissedWeek] = useState<string | null | undefined>(undefined);
@@ -506,6 +508,17 @@ export default function DashboardScreen() {
     }, [mode, today, user?.id, waterVersion])
   );
 
+  /* The load check, which sets where readiness starts for this person. */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      localLoadCheckStore.read(protocolScopeValue)
+        .then((rows) => { if (active) setLoadCheck(latestLoadCheck(rows)); })
+        .catch(() => { if (active) setLoadCheck(null); });
+      return () => { active = false; };
+    }, [protocolScopeValue])
+  );
+
   /* Mood entries and check-ins, which bring Mind + Life Load into readiness. */
   useFocusEffect(
     useCallback(() => {
@@ -677,6 +690,7 @@ export default function DashboardScreen() {
     };
   }, [circadianBriefing.target_bedtime, circadianBriefing.wake_time, waterTargetMl, waterTodayMl]);
   const entrySource = mode === 'demo' ? 'demo' as const : 'logged' as const;
+  const personalBaseline = useMemo(() => personalBaselineFrom(loadCheck), [loadCheck]);
   const morningBriefing = useMemo(
     () =>
       composeMorningBriefing({
@@ -704,7 +718,8 @@ export default function DashboardScreen() {
         },
         hydration: hydrationToday,
         mind: mindSignals,
-        baseline_mode: baselineSetup?.baseline_mode
+        baseline_mode: baselineSetup?.baseline_mode,
+        personal_baseline: personalBaseline
       }),
     [
       circadianBriefing,
@@ -713,6 +728,7 @@ export default function DashboardScreen() {
       hydrationToday,
       latestSleepSession,
       mindSignals,
+      personalBaseline,
       movementSignal,
       movementSource,
       movementSummary,
@@ -959,6 +975,20 @@ export default function DashboardScreen() {
             <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
           </View>
         ) : null}
+
+        <Pressable
+          accessibilityHint="Opens the load check"
+          accessibilityRole="button"
+          onPress={() => router.navigate('/load-check')}
+          style={({ pressed }) => [styles.startingPoint, pressed && styles.pressed]}
+        >
+          <Ionicons accessible={false} color={homePalette.blueSoft} name={personalBaseline ? 'flag-outline' : 'compass-outline'} size={18} />
+          <View style={styles.primaryActionCopy}>
+            <Text style={styles.startingPointTitle}>{personalBaseline ? `Your days start at ${personalBaseline.score}` : 'Set your starting point'}</Text>
+            <Text style={styles.startingPointDetail}>{personalBaseline ? 'From your load check. Retake it any time.' : 'A short load check, so readiness starts from you instead of 70.'}</Text>
+          </View>
+          <Ionicons accessible={false} color={homePalette.textFaint} name="chevron-forward" size={17} />
+        </Pressable>
 
         {/* Component B: last night and today's load, side by side. */}
         <MetricGrid sleep={sleepAtGlance} load={loadToday} onOpenSleep={() => router.navigate('/rhythm')} onOpenLoad={() => router.navigate('/movement')} />
@@ -1458,6 +1488,9 @@ const styles = StyleSheet.create({
     fontFamily: homeFont,
     marginTop: 3
   },
+  startingPoint: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingHorizontal: 4, paddingVertical: 2 },
+  startingPointTitle: { color: homePalette.white, fontFamily: homeFont, fontSize: 15, fontWeight: '600', lineHeight: 20 },
+  startingPointDetail: { color: homePalette.textMuted, fontFamily: homeFont, fontSize: 13, lineHeight: 18, marginTop: 1 },
   safetyRow: {
     alignItems: 'center',
     flexDirection: 'row',

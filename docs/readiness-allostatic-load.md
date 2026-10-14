@@ -284,3 +284,27 @@ those get written from scratch.
 Naming follows the same rule, which is why the tab is **Mood** rather than Dr. Happiness.
 Credit Chek and the book by name, take the structure, write everything a person reads.
 And talk to the CHEK Institute before anything commercial ships.
+
+## What is built (October 2026)
+
+- **The load check** (`src/engines/loadCheck`, screen at `app/(app)/load-check.tsx`). Thirty-one
+  of our own questions in six areas: sleep and rhythm, what you eat, when you eat,
+  digestion, life load, and everyday exposures. Each answer is 0–3 points of load. Each
+  area is banded light, moderate or heavy using the proportions of the cut points above,
+  read as shares because the items are ours. Areas are never totalled.
+- **Observation outranks self-report** for five questions, once there is enough logged in
+  the last fourteen days:
+  - waking tired, from morning check-ins
+  - late bedtimes and bedtime swings, from sleep logs
+  - first meal after 11 a.m., from meal logs
+  - caffeine drinks a day, from the caffeine log
+  The screen shows the basis for each.
+- **The baseline.** Capacity is `1 − burden`, folded per readiness foundation and averaged,
+  then mapped to a starting point between 50 and 85 (`PERSONAL_BASELINE_RANGE`). It
+  replaces the flat 70 once three areas are at least half answered. It still takes a daily
+  entry to show a number.
+- **Red flags** (recurring stomach pain, headaches, unexplained skin reactions, feeling
+  foggy most days) are shown as "worth getting checked" beside the score and never
+  change it.
+- **Not yet:** inferred nights, platform sleep data, and zone prescriptions. Completed checks
+  are kept on the device under the user's scope, like the Mood tab's logs.

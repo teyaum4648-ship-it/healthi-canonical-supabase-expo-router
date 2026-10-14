@@ -177,7 +177,8 @@ export default function SettingsScreen() {
         <>
           {/* Trends has its own screen; a second full copy here said everything twice. */}
           <View style={styles.trendsLink}>
-            <ActionRow title="Trends" detail="Charts for sleep, food, movement and mood" icon="stats-chart-outline" onPress={() => router.navigate('/progress')} last />
+            <ActionRow title="Trends" detail="Charts for sleep, food, movement and mood" icon="stats-chart-outline" onPress={() => router.navigate('/progress')} />
+            <ActionRow title="Load check" detail="Sets where your readiness starts each day" icon="compass-outline" onPress={() => router.navigate('/load-check')} last />
           </View>
 
           <Text style={styles.groupLabel}>Connected apps</Text>

@@ -171,7 +171,11 @@ export function calculateMindScore(input: MindScoreInput, localHour = 12): MindS
       resetTerm(input.resets)
     ],
     summarise: (value, limiters) => {
-      if (value === null) return 'Not enough to read yet. Log last night’s sleep, add today’s plan, or say how your head is.';
+      if (value === null) {
+        return input.head
+          ? 'Your check-in is in. Add last night’s sleep or today’s plan to read the whole day.'
+          : 'Not enough to read yet. Log last night’s sleep, add today’s plan, or say how your head is.';
+      }
       const heaviest = limiters[0]?.label.toLowerCase();
       if (value >= 75 || !heaviest) return 'Today’s load looks manageable.';
       return value >= 55 ? `A moderate load today. ${limiters[0].label} is the heaviest part.` : `A heavy load today. ${limiters[0].label} is weighing most.`;
