@@ -32,6 +32,19 @@ const CONFIDENCE_VALUE: Record<DataConfidence, number> = { low: 0, medium: 1, hi
 export const READINESS_BASELINE = 70;
 
 /**
+ * How far a person's own baseline can sit from the population one. A load check moves
+ * where the day starts; it cannot outvote a night of sleep, so the range stays narrower
+ * than what one domain can do.
+ */
+export const PERSONAL_BASELINE_RANGE = [50, 85] as const;
+
+function startingPoint(input: GenerateDailyReadinessInput): { score: number; personal: boolean } {
+  const personal = input.user_context?.personal_baseline;
+  if (!personal || !Number.isFinite(personal.score)) return { score: READINESS_BASELINE, personal: false };
+  return { score: Math.round(clamp(personal.score, ...PERSONAL_BASELINE_RANGE)), personal: true };
+}
+
+/**
  * What food is allowed to do to the day.
  *
  * Until the nourishment pillar existed, nutrition reached readiness as a handful of
@@ -151,12 +164,26 @@ function nutritionScore(input: GenerateDailyReadinessInput['nutrition']): Domain
     if (response === 'watch' || response === 'mixed') contribution -= 2;
   }
 
+  /*
+   * Water only ever adds. Being behind on the water someone logged is too often water
+   * they drank and did not log, so it lowers nothing; keeping pace earns a little.
+   */
+  const waterMl = typeof input.water_ml === 'number' && input.water_ml > 0 ? input.water_ml : 0;
+  if (waterMl > 0) {
+    const pace = input.water_pace;
+    if (typeof pace !== 'number') contribution += 1;
+    else if (pace >= 0.9) contribution += 3;
+    else if (pace >= 0.6) contribution += 1;
+    reasons.push(typeof pace === 'number' && pace >= 0.9 ? 'hydration_on_pace' : 'hydration_logged');
+  }
+
   const hasSignal =
     (input.meal_count ?? 0) > 0 ||
     fromPillar !== null ||
     Boolean(input.readiness_adjustment) ||
     isAvailableLabel(quality) ||
-    isAvailableLabel(response);
+    isAvailableLabel(response) ||
+    waterMl > 0;
   if (!hasSignal) reasons.push('nutrition_data_missing');
 
   return {
@@ -195,12 +222,22 @@ function movementScore(input: GenerateDailyReadinessInput['movement']): DomainSc
   };
 }
 
-function scheduleScore(input: GenerateDailyReadinessInput['schedule']): DomainScore {
-  if (!input) return { domain: 'mind_life_load', contribution: 0, confidence: 'low', missing: true, reasons: ['schedule_data_missing'] };
-  const blocks = input.block_count ?? 0;
-  const openWindows = input.open_window_count ?? 0;
+/** How a "How's your head?" answer moves the day, 1 (overloaded) to 5 (clear). */
+const HEAD_CONTRIBUTION: Record<1 | 2 | 3 | 4 | 5, number> = { 1: -5, 2: -3, 3: 0, 4: 2, 5: 3 };
+
+/*
+ * Mind + Life Load: today's plan, plus what the person told the app about their head and
+ * their day. The plan and the mood entries each count as an entry on their own, so a
+ * check-in on the Mood tab brings this foundation in even on a day with no calendar.
+ */
+function mindLoadScore(
+  input: GenerateDailyReadinessInput['schedule'],
+  mind: GenerateDailyReadinessInput['mind']
+): DomainScore {
+  const blocks = input?.block_count ?? 0;
+  const openWindows = input?.open_window_count ?? 0;
   let contribution = 0;
-  const reasons = [...(input.reason_codes ?? [])];
+  const reasons = [...(input?.reason_codes ?? []), ...(mind?.reason_codes ?? [])];
 
   if (blocks >= 8 && openWindows === 0) contribution = -10;
   else if (blocks >= 6 && openWindows <= 1) contribution = -6;
@@ -208,18 +245,48 @@ function scheduleScore(input: GenerateDailyReadinessInput['schedule']): DomainSc
   else if (openWindows >= 2) contribution = 3;
   else if (blocks > 0 && openWindows === 0) contribution = -3;
   // Open windows and protected blocks can come from a generated plan; only blocks the person added count.
-  const hasSignal = blocks > 0;
-  if (!hasSignal) {
-    contribution = 0;
-    reasons.push('schedule_data_missing');
-  }
+  const hasPlan = blocks > 0;
+  if (!hasPlan) contribution = 0;
   if (contribution <= -6) reasons.push('schedule_load_high');
-  if (openWindows > 0) reasons.push('open_windows_available');
+  if (hasPlan && openWindows > 0) reasons.push('open_windows_available');
+
+  const head = mind?.head_rating ?? null;
+  const demand = mind?.demand ?? null;
+  const pulse = mind?.pulse_band ?? null;
+  const resets = Math.max(0, mind?.resets_today ?? 0);
+  if (head !== null) {
+    contribution += HEAD_CONTRIBUTION[head];
+    reasons.push(head >= 4 ? 'head_clear' : head <= 2 ? 'head_loaded' : 'head_okay');
+  }
+  if (demand === 'demanding') {
+    contribution -= 3;
+    reasons.push('day_demanding');
+  } else if (demand === 'usual') {
+    contribution += 1;
+  }
+  if (pulse === 'well_above') {
+    contribution -= 4;
+    reasons.push('pulse_well_above_usual');
+  } else if (pulse === 'above') {
+    contribution -= 2;
+    reasons.push('pulse_above_usual');
+  }
+  // Resets only count in someone's favour; a day without one is a day the app did not see one.
+  if (resets > 0) {
+    contribution += 2;
+    reasons.push('reset_done_today');
+  }
+
+  const hasMood = head !== null || demand !== null || pulse !== null || resets > 0;
+  const hasSignal = hasPlan || hasMood;
+  if (!hasSignal) reasons.push('schedule_data_missing');
+  const confidences = [hasPlan ? input?.confidence ?? 'low' : null, hasMood ? mind?.confidence ?? 'medium' : null]
+    .filter((value): value is DataConfidence => value !== null);
 
   return {
     domain: 'mind_life_load',
-    contribution: clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.mind_life_load),
-    confidence: input.confidence ?? 'low',
+    contribution: hasSignal ? clamp(contribution, ...READINESS_CONTRIBUTION_RANGE.mind_life_load) : 0,
+    confidence: confidences.length ? confidences.reduce((best, value) => (CONFIDENCE_VALUE[value] > CONFIDENCE_VALUE[best] ? value : best)) : 'low',
     missing: !hasSignal,
     reasons: unique(reasons)
   };
@@ -287,20 +354,38 @@ function driverDetail(score: DomainScore, input: GenerateDailyReadinessInput): s
       : 'Rhythm timing is available; sleep duration is still calibrating.';
   }
   if (score.domain === 'nourishment') {
-    return `${input.nutrition?.meal_count ?? 0} meals logged · ${normalized(input.nutrition?.food_response_label).replace(/_/g, ' ') || 'response calibrating'}`;
+    const meals = input.nutrition?.meal_count ?? 0;
+    const water = input.nutrition?.water_ml ?? 0;
+    const parts = [
+      meals > 0 ? `${meals} ${meals === 1 ? 'meal' : 'meals'} logged` : null,
+      water > 0 ? `${Math.round(water).toLocaleString()} mL water` : null
+    ].filter((part): part is string => part !== null);
+    return parts.join(' · ') || 'Food signals are in.';
   }
   if (score.domain === 'movement_capacity') {
     return `${input.movement?.workout_count_7d ?? 0} workouts · ${input.movement?.total_minutes_7d ?? 0} minutes in 7 days`;
   }
-  return `${input.schedule?.block_count ?? 0} blocks · ${input.schedule?.open_window_count ?? 0} open windows`;
+  const blocks = input.schedule?.block_count ?? 0;
+  const head = input.mind?.head_rating;
+  const resets = input.mind?.resets_today ?? 0;
+  const parts = [
+    blocks > 0 ? `${blocks} ${blocks === 1 ? 'block' : 'blocks'} planned` : null,
+    blocks > 0 ? `${input.schedule?.open_window_count ?? 0} open windows` : null,
+    head ? `head ${HEAD_WORDS[head]}` : null,
+    input.mind?.demand === 'demanding' ? 'a demanding day' : null,
+    resets > 0 ? `${resets} ${resets === 1 ? 'reset' : 'resets'} done` : null
+  ].filter((part): part is string => part !== null);
+  return parts.join(' · ') || 'Mood signals are in.';
 }
+
+const HEAD_WORDS: Record<1 | 2 | 3 | 4 | 5, string> = { 1: 'overloaded', 2: 'tense', 3: 'okay', 4: 'steady', 5: 'clear' };
 
 function drivers(scores: DomainScore[], input: GenerateDailyReadinessInput): DailyReadinessDriver[] {
   const labels: Record<DailyReadinessDomain, string> = {
     recovery_rhythm: 'Recovery + Rhythm',
     nourishment: 'Food + Fueling',
     movement_capacity: 'Movement',
-    mind_life_load: 'Schedule + Life Load'
+    mind_life_load: 'Mind + Life Load'
   };
   return scores.map((score) => ({
     domain: score.domain,
@@ -451,9 +536,10 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
     rhythmScore(input.rhythm),
     nutritionScore(input.nutrition),
     movementScore(input.movement),
-    scheduleScore(input.schedule)
+    mindLoadScore(input.schedule, input.mind)
   ];
-  const rawScore = READINESS_BASELINE + scores.reduce((sum, domain) => sum + domain.contribution, 0);
+  const start = startingPoint(input);
+  const rawScore = start.score + scores.reduce((sum, domain) => sum + domain.contribution, 0);
   const score = clamp(rawScore, 0, 100);
   const missingData = scores.filter((domain) => domain.missing).map((domain) => domain.domain);
   const confidence = combinedConfidence(scores);
@@ -466,13 +552,15 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
     `readiness_mode_${mode}`,
     `primary_focus_${focus}`,
     ...(missingData.length > 0 ? ['readiness_data_incomplete'] : []),
-    ...(missingData.length >= READINESS_DOMAIN_COUNT ? ['readiness_needs_entry'] : [])
+    ...(missingData.length >= READINESS_DOMAIN_COUNT ? ['readiness_needs_entry'] : []),
+    start.personal ? 'baseline_personal' : 'baseline_default',
+    ...(start.personal ? input.user_context?.personal_baseline?.reason_codes ?? [] : [])
   ]);
 
   return {
     date: input.date.slice(0, 10),
     score,
-    baseline_score: READINESS_BASELINE,
+    baseline_score: start.score,
     raw_score: rawScore,
     label,
     mode,
@@ -483,6 +571,6 @@ export function generateDailyReadiness(input: GenerateDailyReadinessInput): Dail
     driver_cards: drivers(scores, input),
     reason_codes: reasonCodes,
     missing_data: missingData,
-    contributions: { baseline: 70, domains: scores.map(domain => ({ ...domain, reasons: [...domain.reasons] })) }
+    contributions: { baseline: start.score, domains: scores.map(domain => ({ ...domain, reasons: [...domain.reasons] })) }
   };
 }

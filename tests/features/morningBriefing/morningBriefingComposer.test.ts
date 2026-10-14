@@ -114,7 +114,7 @@ describe('composeMorningBriefing', () => {
   it('maps nutrition readiness and reason codes', () => {
     const briefing = completeBriefing();
     const nutrition = briefing.driver_cards.find((driver) => driver.domain === 'nourishment');
-    expect(nutrition?.detail).toContain('1 meals logged');
+    expect(nutrition?.detail).toContain('1 meal logged');
     expect(nutrition?.reason_codes.length).toBeGreaterThan(0);
   });
 
@@ -128,7 +128,7 @@ describe('composeMorningBriefing', () => {
   it('maps schedule blocks and open windows', () => {
     const briefing = completeBriefing();
     const schedule = briefing.driver_cards.find((driver) => driver.domain === 'mind_life_load');
-    expect(schedule?.detail).toContain('1 blocks');
+    expect(schedule?.detail).toContain('1 block planned');
     expect(schedule?.detail).toContain('open windows');
   });
 

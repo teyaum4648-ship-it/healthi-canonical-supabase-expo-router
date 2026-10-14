@@ -10,7 +10,7 @@ export function readinessSummary(label: DailyReadinessLabel): string {
   if (label === 'steady') return 'Your system supports a steady, useful pace today.';
   if (label === 'conserve') return 'Protect your capacity and keep the day controlled.';
   if (label === 'restore') return 'Recovery rhythm leads today, with lighter demands where possible.';
-  return 'Log one thing, like last night’s sleep, a meal, a workout or your schedule, to see today’s readiness.';
+  return 'Log one thing, like last night’s sleep, a meal or water, a workout, your plan or a mood check-in, to see today’s readiness.';
 }
 
 export function readinessFocusLabel(focus: DailyReadinessPrimaryFocus): string {
@@ -31,9 +31,9 @@ export function readinessFocusLabel(focus: DailyReadinessPrimaryFocus): string {
  */
 export function missingDomainPrompt(domain: DailyReadinessDomain): string {
   if (domain === 'recovery_rhythm') return 'Nothing logged yet — add last night to see how it lands.';
-  if (domain === 'nourishment') return 'No meals logged yet — add one to bring food into today.';
+  if (domain === 'nourishment') return 'No meals or water logged yet — add one to bring food into today.';
   if (domain === 'movement_capacity') return 'No sessions logged this week — add one to bring movement in.';
-  return 'Your plan is empty today — add a block to bring your schedule in.';
+  return 'Nothing here yet today — a mood check-in or a block in your plan brings it in.';
 }
 
 /**

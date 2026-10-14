@@ -6,7 +6,8 @@ import type {
   DailyReadinessDriver,
   DailyReadinessMode,
   DailyReadinessResult,
-  DataConfidence
+  DataConfidence,
+  GenerateDailyReadinessInput
 } from '../../engines/readiness';
 import type { DashboardNutritionSummary } from '../dashboard/dashboardComposer';
 
@@ -28,8 +29,14 @@ export type MorningBriefingComposerInput = {
     day_plan?: DayPlanResult | null;
     next_protected_block?: string | null;
   };
-  sources?: Partial<Record<'rhythm' | 'nutrition' | 'movement' | 'schedule', MorningBriefingSource>>;
+  /** Water logged today, and how it paces against the day so far (1 = on pace). */
+  hydration?: { ml_today: number; pace: number | null } | null;
+  /** Today's Mood tab and check-in entries, without sleep. */
+  mind?: GenerateDailyReadinessInput['mind'] | null;
+  sources?: Partial<Record<'rhythm' | 'nutrition' | 'movement' | 'schedule' | 'hydration' | 'mind', MorningBriefingSource>>;
   baseline_mode?: DailyReadinessMode;
+  /** The person's own starting point from their load check, when they have one. */
+  personal_baseline?: NonNullable<GenerateDailyReadinessInput['user_context']>['personal_baseline'];
 };
 
 export type MorningBriefing = {

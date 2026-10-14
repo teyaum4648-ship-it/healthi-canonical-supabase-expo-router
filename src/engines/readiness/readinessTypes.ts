@@ -43,6 +43,13 @@ export type GenerateDailyReadinessInput = {
     readiness_adjustment?: number;
     food_quality_label?: string;
     food_response_label?: string;
+    /** Water logged today, in mL. A glass of water is an entry like a meal is. */
+    water_ml?: number | null;
+    /**
+     * Water logged against what would be expected by this time of day, where 1 is on
+     * pace. Null early in the day or when there is no target to pace against.
+     */
+    water_pace?: number | null;
     confidence?: DataConfidence;
     reason_codes?: string[];
   };
@@ -61,8 +68,33 @@ export type GenerateDailyReadinessInput = {
     confidence?: DataConfidence;
     reason_codes?: string[];
   };
+  /**
+   * Today's Mind + Life Load entries from the Mood tab and the check-in. Sleep is left
+   * out on purpose: it already counts under Recovery + Rhythm.
+   */
+  mind?: {
+    /** The latest "How's your head?" answer today, 1 (overloaded) to 5 (clear). */
+    head_rating?: 1 | 2 | 3 | 4 | 5 | null;
+    /** Today's check-in answer about how demanding the day is. */
+    demand?: 'usual' | 'demanding' | null;
+    /** Today's latest resting pulse against the person's own usual range. */
+    pulse_band?: 'typical' | 'above' | 'well_above' | 'below' | 'well_below' | null;
+    /** Breathing sessions, tension releases, morning light and habits done today. */
+    resets_today?: number;
+    confidence?: DataConfidence;
+    reason_codes?: string[];
+  };
   user_context?: {
     baseline_mode?: DailyReadinessMode;
+    /**
+     * Where this person's day starts, from their load check, instead of the flat
+     * population baseline. Absent until they have answered it.
+     */
+    personal_baseline?: {
+      score: number;
+      confidence: DataConfidence;
+      reason_codes?: string[];
+    } | null;
   };
 };
 

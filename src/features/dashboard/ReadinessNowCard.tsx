@@ -94,7 +94,7 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
 }
 
 /** Device-local demo only. The account Home continues using its existing daily briefing. */
-export function ReadinessNowCard({ base, mealTimes, safetyActive, details, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0 }: {
+export function ReadinessNowCard({ base, mealTimes, safetyActive, details, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0, onCheckinSaved }: {
   base: DailyReadinessResult; mealTimes: string[]; safetyActive: boolean;
   /** The biomarker breakdown, revealed under the ring with what moved the estimate. */
   details?: ReactNode; checkinRequest?: number;
@@ -102,6 +102,8 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
   sleepMissing: boolean; sessionsThisWeek: number | null;
   /** Bumped by Home when it logs something this card reads, such as a glass of water. */
   refreshKey?: number;
+  /** Called after a check-in is saved, so Home can read its answers into readiness. */
+  onCheckinSaved?: () => void;
 }) {
   const focused = useIsFocused();
   const [now, setNow] = useState(() => new Date().toISOString());
@@ -177,7 +179,7 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
       pillars={result.ledger}
     />
     {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
-    {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); }} /> : null}
+    {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); onCheckinSaved?.(); }} /> : null}
     {sheet === 'reminders' ? <ReminderSheet initial={data.reminders} onSave={saveReminders} onClose={() => setSheet(null)} /> : null}
     {sheet === 'why' ? <EntrySheet title="Your current picture" onClose={() => setSheet(null)}>
       {promptRows ? <LoggingPrompts rows={promptRows} onAction={promptAction} /> : null}

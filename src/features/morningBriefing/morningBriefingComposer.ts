@@ -45,6 +45,7 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
   const movement = input.movement;
   const schedule = input.schedule;
   const dayPlan = schedule?.day_plan;
+  const hydration = input.hydration && input.hydration.ml_today > 0 ? input.hydration : null;
   const scheduleBlockCount = schedule?.block_count ?? dayPlan?.protected_blocks.length ?? 0;
 
   return {
@@ -66,15 +67,17 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
           reason_codes: [...(briefing?.reason_codes ?? []), ...(session?.reason_codes ?? [])]
         }
       : undefined,
-    nutrition: nutrition
+    nutrition: nutrition || hydration
       ? {
-          meal_count: nutrition.meal_count,
-          readiness_adjustment: nutrition.readiness_adjustment,
-          nourishment_score: nutrition.nourishment_score,
-          food_quality_label: nutrition.food_quality_label,
-          food_response_label: nutrition.food_response_label,
-          confidence: nutrition.confidence,
-          reason_codes: [...nutrition.reason_codes]
+          meal_count: nutrition?.meal_count ?? 0,
+          readiness_adjustment: nutrition?.readiness_adjustment,
+          nourishment_score: nutrition?.nourishment_score,
+          food_quality_label: nutrition?.food_quality_label,
+          food_response_label: nutrition?.food_response_label,
+          water_ml: hydration?.ml_today ?? null,
+          water_pace: hydration?.pace ?? null,
+          confidence: nutrition?.confidence ?? 'medium',
+          reason_codes: [...(nutrition?.reason_codes ?? [])]
         }
       : undefined,
     movement: movement?.summary || movement?.signal
@@ -102,7 +105,10 @@ function readinessInput(input: MorningBriefingComposerInput): GenerateDailyReadi
           reason_codes: [...(dayPlan?.reason_codes ?? [])]
         }
       : undefined,
-    user_context: input.baseline_mode ? { baseline_mode: input.baseline_mode } : undefined
+    mind: input.mind ?? undefined,
+    user_context: input.baseline_mode || input.personal_baseline
+      ? { baseline_mode: input.baseline_mode, personal_baseline: input.personal_baseline ?? null }
+      : undefined
   };
 }
 

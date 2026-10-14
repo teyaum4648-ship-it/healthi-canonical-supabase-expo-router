@@ -38,7 +38,9 @@ import type { PracticeSession } from '../../../src/features/practice/practiceMod
 import { localPracticeStore } from '../../../src/features/practice/practiceStore';
 import { readGoalSetup } from '../../../src/features/nutrition/nutritionGoalStore';
 import { addGlassOfWater, GLASS_ML, removeWater } from '../../../src/features/nutrition/quickWater';
-import type { HydrationClient } from '../../../src/features/nutrition/hydrationStore';
+import { createDemoWaterStore, readWater, waterForDay, type HydrationClient } from '../../../src/features/nutrition/hydrationStore';
+import { waterPace } from '../../../src/features/nutrition/waterPace';
+import { EMPTY_MIND_ENTRIES, loadMindEntries, mindReadinessSignals, type MindEntries } from '../../../src/features/practice/mindSignals';
 import { dietAccents } from '../../../src/features/nutrition/DietDashboard';
 import { recordReadiness } from '../../../src/features/trends/readinessHistoryStore';
 import { targetRowToTarget as goalTargetsFromRow } from '../../../src/features/nutrition/nutritionTargetModel';
@@ -211,11 +213,11 @@ function targetRowToTarget(row: NutritionTargetRow | null): NutritionTargets | n
 
 type DashboardBaselineClient = {
   from(table: 'baseline_profiles'): {
-    select(columns: 'initial_foundation_scores'): {
+    select(columns: 'initial_foundation_scores, hydration_target_ml'): {
       eq(column: 'user_id', value: string): {
         order(column: 'generated_at', options: { ascending: boolean }): {
           limit(count: number): Promise<{
-            data: Array<{ initial_foundation_scores?: unknown }> | null;
+            data: Array<{ initial_foundation_scores?: unknown; hydration_target_ml?: number | null }> | null;
             error: { message?: string } | null;
           }>;
         };
@@ -321,6 +323,11 @@ export default function DashboardScreen() {
   const [recapOpen, setRecapOpen] = useState(false);
   const [waterNotice, setWaterNotice] = useState<{ id: string | null; text: string } | null>(null);
   const [waterVersion, setWaterVersion] = useState(0);
+  const [waterTodayMl, setWaterTodayMl] = useState(0);
+  const [waterTargetMl, setWaterTargetMl] = useState<number | null>(null);
+  const [mindEntries, setMindEntries] = useState<MindEntries>(EMPTY_MIND_ENTRIES);
+  const [mindVersion, setMindVersion] = useState(0);
+  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   const waterBusy = useRef(false);
   const [recapDismissedWeek, setRecapDismissedWeek] = useState<string | null | undefined>(undefined);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
@@ -352,8 +359,9 @@ export default function DashboardScreen() {
         AsyncStorage.getItem(demoOnboardingResultKey)
           .then((value) => {
             if (!isMounted) return;
-            const parsed = value ? JSON.parse(value) as { baselineProfile?: { initial_foundation_scores?: unknown } } : null;
+            const parsed = value ? JSON.parse(value) as { baselineProfile?: { initial_foundation_scores?: unknown; hydration_target_ml?: number | null } } : null;
             setBaselineSetup(readOnboardingV2Setup(parsed?.baselineProfile?.initial_foundation_scores));
+            setWaterTargetMl(parsed?.baselineProfile?.hydration_target_ml ?? null);
           })
           .catch(() => {
             if (isMounted) setBaselineSetup(null);
@@ -365,13 +373,14 @@ export default function DashboardScreen() {
 
       (supabase as unknown as DashboardBaselineClient)
         .from('baseline_profiles')
-        .select('initial_foundation_scores')
+        .select('initial_foundation_scores, hydration_target_ml')
         .eq('user_id', userId)
         .order('generated_at', { ascending: false })
         .limit(1)
         .then(({ data, error }) => {
           if (!isMounted) return;
           setBaselineSetup(error ? null : readOnboardingV2Setup(data?.[0]?.initial_foundation_scores));
+          setWaterTargetMl(error ? null : data?.[0]?.hydration_target_ml ?? null);
         })
         .catch(() => {
           if (isMounted) setBaselineSetup(null);
@@ -478,6 +487,34 @@ export default function DashboardScreen() {
         isMounted = false;
       };
     }, [mode, today, user?.id])
+  );
+
+  /* Today's water, so a glass logged here or in Diet counts toward readiness. */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const userId = user?.id;
+      const load = mode === 'demo'
+        ? createDemoWaterStore(AsyncStorage).read().then((rows) => waterForDay(rows, 'demo-user', today))
+        : isUuid(userId)
+          ? readWater(supabase as unknown as HydrationClient, userId, today)
+          : Promise.resolve([]);
+      load
+        .then((rows) => { if (active) setWaterTodayMl(rows.reduce((sum, row) => sum + row.amount_ml, 0)); })
+        .catch(() => { if (active) setWaterTodayMl(0); });
+      return () => { active = false; };
+    }, [mode, today, user?.id, waterVersion])
+  );
+
+  /* Mood entries and check-ins, which bring Mind + Life Load into readiness. */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      loadMindEntries(protocolScopeValue, AsyncStorage)
+        .then((entries) => { if (active) setMindEntries(entries); })
+        .catch(() => { if (active) setMindEntries(EMPTY_MIND_ENTRIES); });
+      return () => { active = false; };
+    }, [protocolScopeValue, mindVersion])
   );
 
   useFocusEffect(
@@ -620,6 +657,26 @@ export default function DashboardScreen() {
       ),
     [circadianBriefing.target_bedtime, circadianBriefing.wake_time, movementSignal, nutritionSummary.meal_count, scheduleBlocks, today]
   );
+  const mindSignals = useMemo(() => mindReadinessSignals(mindEntries, today), [mindEntries, today]);
+  const hydrationToday = useMemo(() => {
+    if (waterTodayMl <= 0) return null;
+    const utcMinute = (iso: string | null | undefined) => {
+      const date = iso ? new Date(iso) : null;
+      return date && !Number.isNaN(date.getTime()) ? date.getUTCHours() * 60 + date.getUTCMinutes() : null;
+    };
+    const now = new Date();
+    return {
+      ml_today: waterTodayMl,
+      pace: waterPace({
+        mlToday: waterTodayMl,
+        targetMl: waterTargetMl,
+        wakeMinute: utcMinute(circadianBriefing.wake_time),
+        bedMinute: utcMinute(circadianBriefing.target_bedtime),
+        nowMinute: now.getHours() * 60 + now.getMinutes()
+      })
+    };
+  }, [circadianBriefing.target_bedtime, circadianBriefing.wake_time, waterTargetMl, waterTodayMl]);
+  const entrySource = mode === 'demo' ? 'demo' as const : 'logged' as const;
   const morningBriefing = useMemo(
     () =>
       composeMorningBriefing({
@@ -641,14 +698,21 @@ export default function DashboardScreen() {
           rhythm: rhythmSource === 'remote' ? 'logged' : rhythmSource,
           nutrition: nutritionSource === 'remote' ? 'logged' : nutritionSource,
           movement: movementSource === 'remote' ? 'logged' : movementSource,
-          schedule: scheduleSource === 'remote' ? 'logged' : scheduleSource
+          schedule: scheduleSource === 'remote' ? 'logged' : scheduleSource,
+          hydration: hydrationToday ? entrySource : 'calibrating',
+          mind: mindSignals ? entrySource : 'calibrating'
         },
+        hydration: hydrationToday,
+        mind: mindSignals,
         baseline_mode: baselineSetup?.baseline_mode
       }),
     [
       circadianBriefing,
       baselineSetup?.baseline_mode,
+      entrySource,
+      hydrationToday,
       latestSleepSession,
+      mindSignals,
       movementSignal,
       movementSource,
       movementSummary,
@@ -686,7 +750,6 @@ export default function DashboardScreen() {
       }),
     [baselineSetup, circadianBriefing, morningBriefing, movementSignal, nutritionSummary, preliminaryDayPlan, today]
   );
-  const protocolScopeValue = useMemo(() => protocolScope(user?.id), [user?.id]);
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -876,7 +939,7 @@ export default function DashboardScreen() {
           reads the morning briefing and checks in through the evening closeout.
         */}
         {mode === 'demo' ? (
-          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
+          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
         ) : (
           <ReadinessHub
             score={visibleReadinessScore}
