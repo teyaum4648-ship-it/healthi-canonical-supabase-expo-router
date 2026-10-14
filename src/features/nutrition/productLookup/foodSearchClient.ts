@@ -116,6 +116,24 @@ function withBundled(result: SearchResult, local: HealthiProductSnapshot[], quer
   };
 }
 /**
+ * Where searches go, or undefined to search the catalogue directly from the device.
+ *
+ * A same-origin path such as "/api/food-search" only means something in a browser served
+ * from that origin. On a phone there is no origin to resolve it against, so it is joined
+ * to the site's own address when one is set: the same server the web app uses, USDA and
+ * all. With neither, the phone searches the catalogue directly, as it always has.
+ */
+export function resolveFoodSearchEndpoint(configured: string | undefined, siteUrl: string | undefined, inBrowser: boolean): string | undefined {
+  const path = configured?.trim();
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path)) return path;
+  if (inBrowser) return path;
+  const site = siteUrl?.trim().replace(/\/+$/, '');
+  if (!site || !/^https:\/\//i.test(site)) return undefined;
+  return `${site}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
+/**
  * Searches for what somebody probably meant, and says so when that differs from what
  * they typed.
  *
@@ -136,14 +154,11 @@ export async function searchFoods(query: string, options: {
   const local = await restaurantMatches(q, options);
   const store = findStoreBrand(q);
   const storeNotice = store ? storeBrandNotice(store) : undefined;
-  const configured = options.endpoint ?? process.env.EXPO_PUBLIC_FOOD_SEARCH_URL;
-  /*
-   * A same-origin path such as "/api/food-search" only means something in a browser served
-   * from that origin. In the app on a phone there is no origin to resolve it against and
-   * every search against it fails, so there the catalogue is searched directly instead.
-   */
-  const endpoint = configured && (options.endpoint || /^https?:\/\//i.test(configured) || typeof (globalThis as { location?: unknown }).location !== 'undefined')
-    ? configured : undefined;
+  const endpoint = options.endpoint ?? resolveFoodSearchEndpoint(
+    process.env.EXPO_PUBLIC_FOOD_SEARCH_URL,
+    process.env.EXPO_PUBLIC_SITE_URL,
+    typeof (globalThis as { location?: unknown }).location !== 'undefined'
+  );
   if (!endpoint) {
     const base = { signal: options.signal, ...(options.fetcher ? { fetcher: options.fetcher as unknown as ProductLookupFetch } : {}) };
     const countryTag = options.countryTag === undefined ? deviceCountryTag() : options.countryTag;

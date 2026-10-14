@@ -74,6 +74,18 @@ Screen** in Safari gives a full-screen app shell with no browser chrome. It is a
 web app, not a native build: no App Store, no TestFlight, and no native camera or
 haptics.
 
+### Food search on a phone
+
+The web app reaches the food search server at `/api/food-search` on its own address. A
+phone app has no address of its own, so it joins that path to `EXPO_PUBLIC_SITE_URL`.
+Once the Worker has deployed, set `EXPO_PUBLIC_SITE_URL` in the phone build's
+environment to the Worker's address (`https://healthi-demo.<your-subdomain>.workers.dev`,
+shown in the Cloudflare dashboard and in the deploy log). Phone searches then go through
+the same server, USDA results included, and the in-app links to the legal pages start
+working too. Until it is set, the phone searches the catalogue directly, as before. The
+server accepts requests from the app because they carry no `Origin` header; it only
+turns away other websites.
+
 ### What the demo deliberately does not do
 
 The demo build carries no Supabase credentials, so records stay device-local and
