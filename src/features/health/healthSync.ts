@@ -25,7 +25,7 @@ export async function syncHealth(source: HealthSource, deps: {
   saveSleep(session: SleepSession): Promise<void>;
 }): Promise<HealthSyncResult | null> {
   if (!source.platform || !(await source.isAvailable())) return null;
-  if (!(await source.requestPermission())) throw new Error('Healthi wasn’t given access. You can allow it in your phone’s Health settings.');
+  if (!(await source.requestPermission())) throw new Error('daywoven wasn’t given access. You can allow it in your phone’s Health settings.');
   const until = deps.now.toISOString();
   const since = new Date(deps.now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const [sleepSamples, stepSamples, existing] = await Promise.all([source.readSleep(since, until), source.readSteps(since, until), deps.readSleep()]);

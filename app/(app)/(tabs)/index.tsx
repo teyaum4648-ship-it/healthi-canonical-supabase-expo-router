@@ -937,14 +937,6 @@ export default function DashboardScreen() {
               <Ionicons name="calendar-outline" color={homePalette.blueSoft} size={22} />
               <Text style={styles.calendarLabel}>Plan</Text>
             </Pressable>
-            {/*
-              "You" used to hold a fifth of the tab bar. Mood needed that slot and is a
-              pillar rather than a settings screen, so the profile lives here instead —
-              the place every other app keeps it.
-            */}
-            <Pressable accessibilityRole="button" accessibilityLabel="Open your profile and settings" onPress={() => router.navigate('/settings')} style={({ pressed }) => [styles.profileButton, pressed && styles.pressed]}>
-              <Ionicons name="person-outline" color={homePalette.blueSoft} size={21} />
-            </Pressable>
           </View>
         </View>
         <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
@@ -1060,16 +1052,6 @@ const styles = StyleSheet.create({
   weekLinkText: { fontFamily: homeFont, fontSize: 15, fontWeight: '500', color: homePalette.blueSoft },
   weekRow: { flexDirection: 'row', gap: 10 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  profileButton: {
-    ...glassSurface,
-    alignItems: 'center',
-    borderColor: glass.edge,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 44,
-    justifyContent: 'center',
-    width: 44
-  },
   calendarButton: { ...glassSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },

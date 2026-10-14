@@ -100,15 +100,15 @@ const focusLabels: Record<FoundationDomain, string> = {
 
 const focusSummaries: Record<FoundationDomain, string> = {
   recovery_rhythm:
-    'Your answers suggest Recovery + Rhythm should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward steadier sleep timing, calmer wind-down, and better recovery spacing before pushing progression.',
+    'Your answers suggest Recovery + Rhythm should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward steadier sleep timing, calmer wind-down, and better recovery spacing before pushing progression.',
   nourishment:
-    'Your answers suggest Nourishment should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward steadier hydration, meal rhythm, digestion support, and energy consistency before increasing demand.',
+    'Your answers suggest Nourishment should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward steadier hydration, meal rhythm, digestion support, and energy consistency before increasing demand.',
   movement_capacity:
-    'Your answers suggest Movement Capacity should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward movement quality, confidence, and consistency before adding more load.',
+    'Your answers suggest Movement Capacity should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward movement quality, confidence, and consistency before adding more load.',
   mind_life_load:
-    'Your answers suggest Mind + Life Load should be your first calibration focus. For the next 2 weeks, Healthi will bias your plan toward lower friction, decompression, and consistency that fits your current life load.',
+    'Your answers suggest Mind + Life Load should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward lower friction, decompression, and consistency that fits your current life load.',
   balanced:
-    'Your answers suggest a balanced first calibration. For the next 2 weeks, Healthi will keep your plan steady while it learns which levers matter most for you.'
+    'Your answers suggest a balanced first calibration. For the next 2 weeks, daywoven will keep your plan steady while it learns which levers matter most for you.'
 };
 
 const baselineModeLabels: Record<OnboardingV2Result['baseline_mode'], string> = {
@@ -206,7 +206,7 @@ function renderScoreSheet(focusProfile: BiweeklyFocusProfile) {
       <View style={styles.scoreGlowTwo} />
 
       <View style={styles.scoreSheetHeader}>
-        <Text style={styles.scoreSheetEyebrow}>Healthi Review</Text>
+        <Text style={styles.scoreSheetEyebrow}>daywoven Review</Text>
         <Text style={styles.scoreSheetTitle}>Your Score Sheet</Text>
         <Text style={styles.scoreSheetSubtitle}>
           Your answers were weighted to identify the strongest signals shaping your next 2-week
@@ -265,14 +265,14 @@ function renderScoreSheet(focusProfile: BiweeklyFocusProfile) {
           ))
         ) : (
           <Text style={styles.rankExplanation}>
-            No single signal strongly dominated. Healthi will keep the first cycle balanced while
+            No single signal strongly dominated. daywoven will keep the first cycle balanced while
             calibration continues.
           </Text>
         )}
       </View>
 
       <View style={styles.scoreSection}>
-        <Text style={styles.scoreSectionTitle}>What Healthi will prioritize</Text>
+        <Text style={styles.scoreSectionTitle}>What daywoven will prioritize</Text>
         <Text style={styles.scoreMeaning}>{scoreSheet.summary}</Text>
       </View>
     </Card>
@@ -674,7 +674,7 @@ export default function OnboardingScreen() {
   if (!isDraftLoaded) {
     return (
       <Screen scroll={false}>
-        <SectionHeader title="Healthi" body="Loading your setup." />
+        <SectionHeader title="daywoven" body="Loading your setup." />
       </Screen>
     );
   }
@@ -683,7 +683,7 @@ export default function OnboardingScreen() {
     const topReasons =
       focusProfile.top_limiting_factors.length > 0
         ? focusProfile.top_limiting_factors
-        : ['Healthi is still calibrating from your first answers.'];
+        : ['daywoven is still calibrating from your first answers.'];
 
     return (
       <Screen contentStyle={styles.resultScreen}>
@@ -761,7 +761,7 @@ export default function OnboardingScreen() {
         </View>
 
         <Card style={styles.focusCard}>
-          <Text style={styles.focusLabel}>Suggested Healthi mode</Text>
+          <Text style={styles.focusLabel}>Suggested daywoven mode</Text>
           <Text style={styles.focusTitle}>{baselineModeLabels[setupResult.baseline_mode]}</Text>
           <Text style={styles.focusSecondary}>
             First focus: {onboardingV2FocusLabels[setupResult.primary_focus]}
@@ -769,7 +769,7 @@ export default function OnboardingScreen() {
         </Card>
 
         <Card style={styles.resultPanel}>
-          <Text style={styles.cardTitle}>What Healthi is watching first</Text>
+          <Text style={styles.cardTitle}>What daywoven is watching first</Text>
           {setupResult.calibration_hints.map((hint) => (
             <View key={hint.domain} style={styles.setupHintRow}>
               <View style={[styles.reasonDot, hint.priority >= 45 ? styles.reasonDotHigh : null]} />
@@ -797,11 +797,11 @@ export default function OnboardingScreen() {
         <Card style={styles.resultPanel}>
           <Text style={styles.confidenceText}>{formatConfidence(setupResult.confidence)}</Text>
           <Text style={styles.reassessmentText}>
-            You can change these details later. Healthi will keep calibrating from your logged data.
+            You can change these details later. daywoven will keep calibrating from your logged data.
           </Text>
         </Card>
 
-        <Button label="Continue to Healthi" onPress={handleContinueFromFocus} />
+        <Button label="Continue to daywoven" onPress={handleContinueFromFocus} />
       </Screen>
     );
   }

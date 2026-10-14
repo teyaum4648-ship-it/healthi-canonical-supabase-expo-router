@@ -136,8 +136,8 @@ function modeForAnswers(
 function detailForDomain(domain: OnboardingV2Domain, priority: number, missing: string[]): string {
   if (missing.length) return `A few more ${onboardingV2DomainLabels[domain].toLowerCase()} details will sharpen this starting point.`;
   if (domain === 'recovery_rhythm') return priority >= 45 ? 'Start with a more repeatable sleep window and a calmer wind-down.' : 'Your rhythm has a useful starting shape. Keep logging sleep windows to refine it.';
-  if (domain === 'nourishment') return priority >= 45 ? 'Keep meal rhythm and food response visible while your first pattern forms.' : 'Your nourishment answers give Healthi an early foundation to build from.';
-  if (domain === 'movement_capacity') return priority >= 45 ? 'Favor repeatable movement and recovery spacing before adding more demand.' : 'Your current movement context gives Healthi a useful place to start.';
+  if (domain === 'nourishment') return priority >= 45 ? 'Keep meal rhythm and food response visible while your first pattern forms.' : 'Your nourishment answers give daywoven an early foundation to build from.';
+  if (domain === 'movement_capacity') return priority >= 45 ? 'Favor repeatable movement and recovery spacing before adding more demand.' : 'Your current movement context gives daywoven a useful place to start.';
   return priority >= 45 ? 'Protect the parts of the day that make a steady plan easier to follow.' : 'Your schedule context will become more useful as you add real blocks to your day.';
 }
 
@@ -167,14 +167,14 @@ function nextStepsForResult(
   const actions: Record<OnboardingV2Domain, OnboardingV2Result['next_steps'][number]> = {
     recovery_rhythm: { id: 'log_sleep', title: 'Add your next sleep window', detail: 'This gives your recovery rhythm a more personal starting point.', priority: 'high', reason_codes: ['recovery_rhythm_next_step'] },
     nourishment: { id: 'log_meal', title: 'Log one familiar meal', detail: 'This starts turning nourishment answers into a food response pattern.', priority: 'high', reason_codes: ['nourishment_next_step'] },
-    movement_capacity: { id: 'log_movement', title: 'Log your next movement session', detail: 'This helps Healthi learn your training time and recovery context.', priority: 'high', reason_codes: ['movement_capacity_next_step'] },
-    mind_life_load: { id: 'add_schedule', title: 'Add a few schedule blocks', detail: 'This helps Healthi find useful openings in your day.', priority: 'high', reason_codes: ['mind_life_load_next_step'] }
+    movement_capacity: { id: 'log_movement', title: 'Log your next movement session', detail: 'This helps daywoven learn your training time and recovery context.', priority: 'high', reason_codes: ['movement_capacity_next_step'] },
+    mind_life_load: { id: 'add_schedule', title: 'Add a few schedule blocks', detail: 'This helps daywoven find useful openings in your day.', priority: 'high', reason_codes: ['mind_life_load_next_step'] }
   };
   const second = hints.find((hint) => hint.domain !== focusDomain && hint.priority >= 35)?.domain;
   const steps = [actions[focusDomain]];
   if (second) steps.push({ ...actions[second], priority: 'medium' });
   if (missingData.length) {
-    steps.push({ id: 'keep_calibrating', title: 'Keep the first week simple', detail: 'You can update these details later as Healthi learns from available data.', priority: 'low', reason_codes: ['baseline_details_missing'] });
+    steps.push({ id: 'keep_calibrating', title: 'Keep the first week simple', detail: 'You can update these details later as daywoven learns from available data.', priority: 'low', reason_codes: ['baseline_details_missing'] });
   }
   return steps;
 }
@@ -205,8 +205,8 @@ export function generateOnboardingV2Result(input: GenerateOnboardingV2Input): On
   // a noun phrase rather than a domain name. Each focus gets a sentence that fits it.
   const summary = completed
     ? focus === 'balanced'
-      ? 'Your first baseline is balanced across recovery, nourishment, movement and daily load. Healthi will keep the next steps practical while your logged data adds context.'
-      : `Your first baseline centers on ${onboardingV2FocusLabels[focus].toLowerCase()}. Healthi will keep the next steps practical while your logged data adds context.`
+      ? 'Your first baseline is balanced across recovery, nourishment, movement and daily load. daywoven will keep the next steps practical while your logged data adds context.'
+      : `Your first baseline centers on ${onboardingV2FocusLabels[focus].toLowerCase()}. daywoven will keep the next steps practical while your logged data adds context.`
     : 'Your baseline is still forming. Add a few core details to make the first steps more personal.';
 
   return {

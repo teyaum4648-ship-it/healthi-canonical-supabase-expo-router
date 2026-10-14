@@ -319,7 +319,7 @@ function nextFocus(cards: TrendsDomainCard[]): TrendsSummary['next_focus'] {
 
 function insights(cards: TrendsDomainCard[]): TrendsInsight[] {
   const chosen = [...cards.filter((card) => card.status === 'watch'), ...cards.filter((card) => card.status === 'supportive')].slice(0, 4);
-  if (!chosen.length) return [{ id: 'calibrating', title: 'A clearer pattern is forming', detail: 'Your next few logs will help Healthi organize more useful trends.', domain: 'balanced', priority: 'low', confidence: 'low', reason_codes: ['trends_calibrating'] }];
+  if (!chosen.length) return [{ id: 'calibrating', title: 'A clearer pattern is forming', detail: 'Your next few logs will help daywoven organize more useful trends.', domain: 'balanced', priority: 'low', confidence: 'low', reason_codes: ['trends_calibrating'] }];
   return chosen.map((card) => ({ id: `${card.domain}-${card.status}`, title: card.title, detail: card.detail, domain: card.domain, priority: card.status === 'watch' ? 'high' : 'low', confidence: card.confidence, reason_codes: [...card.reason_codes] }));
 }
 

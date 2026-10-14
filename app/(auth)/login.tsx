@@ -36,7 +36,7 @@ export default function LoginScreen() {
     try {
       await signIn(email.trim(), password);
       setFeedback({
-        message: 'Signed in. Opening Healthi…',
+        message: 'Signed in. Opening daywoven…',
         tone: 'success'
       });
     } catch (error) {
@@ -52,7 +52,7 @@ export default function LoginScreen() {
     <Screen contentStyle={styles.screen}>
       <SectionHeader
         eyebrow="Welcome back"
-        title="Healthi"
+        title="daywoven"
         body="Sign in to continue to your wellness dashboard."
       />
 
@@ -92,7 +92,7 @@ export default function LoginScreen() {
       </Card>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>New to Healthi?</Text>
+        <Text style={styles.footerText}>New to daywoven?</Text>
         <Link href="/(auth)/signup" style={styles.link}>
           Create an account
         </Link>

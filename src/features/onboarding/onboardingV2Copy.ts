@@ -1,7 +1,7 @@
 import type { OnboardingV2Domain, OnboardingV2PrimaryFocus } from './onboardingV2Types';
 
 export const onboardingV2Welcome =
-  'Healthi learns from your rhythm, nourishment, movement, and schedule so it can guide your day.';
+  'daywoven learns from your rhythm, nourishment, movement, and schedule so it can guide your day.';
 
 export const onboardingV2DomainLabels: Record<OnboardingV2Domain, string> = {
   recovery_rhythm: 'Recovery rhythm',

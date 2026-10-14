@@ -78,7 +78,7 @@ export default function SignupScreen() {
   return (
     <Screen contentStyle={styles.screen}>
       <SectionHeader
-        title="Start with Healthi"
+        title="Start with daywoven"
         body="Create your account, set your baseline, and begin with your own daily entries."
       />
 

@@ -10,7 +10,7 @@ export default function OnboardingLayout() {
   if (isLoading) {
     return (
       <Screen scroll={false}>
-        <SectionHeader title="Healthi" body="Preparing your setup." />
+        <SectionHeader title="daywoven" body="Preparing your setup." />
       </Screen>
     );
   }

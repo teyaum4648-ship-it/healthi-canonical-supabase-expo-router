@@ -33,7 +33,7 @@ function hasSeriousFlag(input: SafetyReviewInput): boolean {
 const strongerMovementDisallowed: SafetyDisallowedAction = {
   id: 'no_stronger_movement',
   title: 'Stronger training session',
-  detail: 'Healthi is skipping a harder session today and keeping movement easy.',
+  detail: 'daywoven is skipping a harder session today and keeping movement easy.',
   reason_codes: ['stronger_movement_withheld']
 };
 

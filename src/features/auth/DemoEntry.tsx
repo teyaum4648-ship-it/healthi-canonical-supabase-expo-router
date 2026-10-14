@@ -21,7 +21,7 @@ export function DemoEntry() {
   }
   return (
     <Screen contentStyle={{ justifyContent: 'center' }}>
-      <SectionHeader eyebrow="Healthi preview" title="Start with your day" body="Explore your sleep, nourishment, movement, and daily plan with a clean profile." />
+      <SectionHeader eyebrow="daywoven preview" title="Start with your day" body="Explore your sleep, nourishment, movement, and daily plan with a clean profile." />
       <Card>
         <Text style={{ ...type.body, color: colors.textMuted }}>This demo is saved on this device. It starts with onboarding and your own entries; sample health data is never added automatically.</Text>
         <Button label="Continue demo" isLoading={busy} onPress={() => void enter(false)} />

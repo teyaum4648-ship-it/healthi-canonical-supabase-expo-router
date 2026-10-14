@@ -32,6 +32,6 @@ export const dayPlanCopy = {
   windDownTitle: 'Wind-down',
   windDownDetail: 'Protect wind-down so tomorrow starts cleaner.',
   scheduleAdjustmentTitle: 'Schedule opening',
-  scheduleAdjustmentDetail: 'Add one anchor block so Healthi can fit your day plan with more confidence.'
+  scheduleAdjustmentDetail: 'Add one anchor block so daywoven can fit your day plan with more confidence.'
 } as const;
 

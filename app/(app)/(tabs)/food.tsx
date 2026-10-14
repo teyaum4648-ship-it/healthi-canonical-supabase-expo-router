@@ -1491,7 +1491,7 @@ export default function FoodScreen() {
         const saved = await savePostMealResponseLog(supabase as unknown as FoodPersonalizationSupabaseClient, userId, response);
         setResponses((current) => [saved, ...current]);
         setMeals((current) => applyResponseToMealLogs(current, response));
-        setStatus('Response logged. Healthi has one more food response signal.');
+        setStatus('Response logged. daywoven has one more food response signal.');
       } else {
         const localResponse = createLocalDemoResponseRow(response);
         // The stored diary is the thing being changed, so it is what gets read, patched and
@@ -1588,7 +1588,7 @@ export default function FoodScreen() {
             <View style={styles.scannerHeadingCopy}>
               <Text style={styles.cardTitle}>Barcode scanner</Text>
               <Text style={styles.body}>
-                Healthi uses the camera to scan product barcodes. You can also enter a barcode manually.
+                daywoven uses the camera to scan product barcodes. You can also enter a barcode manually.
               </Text>
             </View>
           </View>
@@ -1899,7 +1899,7 @@ export default function FoodScreen() {
             <View style={styles.personalResponseNote}>
               <Ionicons color={tabAccent.food} name="pulse-outline" size={18} />
               <Text style={styles.personalResponseText}>
-                Food quality is only one signal. Your personal food response can change how Healthi recommends this product for you.
+                Food quality is only one signal. Your personal food response can change how daywoven recommends this product for you.
               </Text>
             </View>
 
@@ -2492,7 +2492,7 @@ export default function FoodScreen() {
           <Text style={styles.cardTitle}>{profileCopy?.title ?? 'Food Pattern Profile calibrating'}</Text>
           <Text style={styles.body}>
             {profileCopy?.summary ??
-              'Healthi does not have enough food pattern signal yet. Take the Food Pattern Test or log a few meals.'}
+              'daywoven does not have enough food pattern signal yet. Take the Food Pattern Test or log a few meals.'}
           </Text>
           <View style={styles.signalGrid}>
             <Metric label="Responses" value={`${responses.length}`} tone={tabAccent.food} />

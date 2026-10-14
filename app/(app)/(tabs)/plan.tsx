@@ -407,7 +407,7 @@ export default function PlanScreen() {
   const [blocks, setBlocks] = useState<DayScheduleBlockRow[]>([]);
   const [sleepBriefing, setSleepBriefing] = useState<CircadianBriefing | null>(null);
   const [form, setForm] = useState<ScheduleBlockFormState>(() => createEmptyScheduleBlockForm(today));
-  const [status, setStatus] = useState('Schedule blocks help Healthi find useful openings.');
+  const [status, setStatus] = useState('Schedule blocks help daywoven find useful openings.');
   const [dataMode, setDataMode] = useState<'remote' | 'demo' | 'calibrating'>('demo');
   const [movementInput, setMovementInput] = useState<ReturnType<typeof movementSignalToDayPlanInput> | undefined>();
   const [isLoading, setIsLoading] = useState(true);
@@ -430,7 +430,7 @@ export default function PlanScreen() {
             if (!isMounted) return;
             setBlocks(sortedBlocks(rows));
             setDataMode('remote');
-            setStatus(rows.length > 0 ? 'Schedule blocks loaded.' : 'Add schedule blocks so Healthi can find useful openings.');
+            setStatus(rows.length > 0 ? 'Schedule blocks loaded.' : 'Add schedule blocks so daywoven can find useful openings.');
             return;
           }
 
@@ -438,7 +438,7 @@ export default function PlanScreen() {
           if (!isMounted) return;
           setBlocks(sortedBlocks(rows));
           setDataMode('demo');
-          setStatus(rows.length > 0 ? 'Local demo schedule loaded.' : 'Add schedule blocks so Healthi can find useful openings.');
+          setStatus(rows.length > 0 ? 'Local demo schedule loaded.' : 'Add schedule blocks so daywoven can find useful openings.');
         } catch {
           if (!isMounted) return;
           setBlocks([]);
@@ -754,7 +754,7 @@ export default function PlanScreen() {
               ))}
             </View>
           ) : (
-            <Text style={styles.body}>Add schedule blocks so Healthi can shape the day.</Text>
+            <Text style={styles.body}>Add schedule blocks so daywoven can shape the day.</Text>
           )}
         </View>
 

@@ -10,7 +10,7 @@ export default function AuthLayout() {
   if (isLoading) {
     return (
       <Screen scroll={false}>
-        <SectionHeader title="Healthi" body="Checking your secure session." />
+        <SectionHeader title="daywoven" body="Checking your secure session." />
       </Screen>
     );
   }

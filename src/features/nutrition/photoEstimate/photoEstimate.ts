@@ -144,7 +144,7 @@ export function parsePhotoEstimate(
   const model = readText(options.model, 80);
 
   if (!payload || typeof payload !== 'object') {
-    return { ok: false, refusal: { reason: 'malformed_response', detail: 'The estimate came back in a shape Healthi could not read.' } };
+    return { ok: false, refusal: { reason: 'malformed_response', detail: 'The estimate came back in a shape daywoven could not read.' } };
   }
 
   const root = payload as Record<string, unknown>;
@@ -183,7 +183,7 @@ export function parsePhotoEstimate(
   if (items.length === 0) {
     return {
       ok: false,
-      refusal: { reason: 'no_food_found', detail: 'Healthi could not make out a food in that photo. Try another angle, or search for it instead.' }
+      refusal: { reason: 'no_food_found', detail: 'daywoven could not make out a food in that photo. Try another angle, or search for it instead.' }
     };
   }
 

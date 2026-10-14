@@ -3,6 +3,7 @@ import { Tabs, usePathname } from 'expo-router';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mainTabs } from '../../../src/features/navigation/navigationModel';
+import { SideMenuProvider, useSideMenu } from '../../../src/features/navigation/SideMenu';
 
 import { ambientGlow, colors, fonts, glassChrome } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
@@ -24,6 +25,15 @@ function tabIcon(outline: TabIconName, filled: TabIconName) {
 }
 
 export default function AppTabsLayout() {
+  return (
+    <SideMenuProvider>
+      <AppTabs />
+    </SideMenuProvider>
+  );
+}
+
+function AppTabs() {
+  const menu = useSideMenu();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const inHomeCalendar = pathname === '/plan';
@@ -40,9 +50,9 @@ export default function AppTabsLayout() {
             fontFamily: systemFont,
             fontSize: 10,
             fontWeight: '600',
-            letterSpacing: 0.1
+            letterSpacing: 0
           },
-          tabBarItemStyle: { paddingTop: 7, paddingBottom: 6 },
+          tabBarItemStyle: { paddingTop: 7, paddingBottom: 6, paddingHorizontal: 0 },
           /*
            * A pill that floats above the bottom edge, the way the system tab bar does now.
            * It stays in the layout rather than over the content, so nothing on any screen
@@ -55,12 +65,12 @@ export default function AppTabsLayout() {
             borderTopColor: glassChrome.borderColor,
             borderRadius: 32,
             height: 64,
-            marginHorizontal: 16,
+            marginHorizontal: 12,
             marginBottom: Math.max(insets.bottom, 12),
             marginTop: 6,
             paddingBottom: 0,
             paddingTop: 0,
-            paddingHorizontal: 6,
+            paddingHorizontal: 2,
             overflow: 'hidden'
           }
         };
@@ -79,6 +89,22 @@ export default function AppTabsLayout() {
           ...(homeContext ? { tabBarLabelStyle: { fontFamily: systemFont, fontSize: 10, fontWeight: '600' as const, letterSpacing: 0.1, color: colors.accent } } : {})
         }} />;
       })}
+      {/*
+        The three-line tab opens the side menu in place; it never navigates, so whichever
+        tab was open stays open underneath and the menu closes back onto it.
+      */}
+      <Tabs.Screen
+        listeners={{ tabPress: (event) => { event.preventDefault(); menu.open(); } }}
+        name="menu"
+        options={{
+          title: 'Menu',
+          tabBarAccessibilityLabel: 'Open the menu',
+          /* Icon only and narrower than a pillar: three lines read as "menu" without a word. */
+          tabBarLabel: () => null,
+          tabBarItemStyle: { flex: 0.6, justifyContent: 'center', paddingBottom: 0, paddingTop: 0 },
+          tabBarIcon: ({ color, size }) => <Ionicons color={color} name="menu" size={size + 2} />
+        }}
+      />
       <Tabs.Screen
         name="plan"
         options={{
@@ -86,7 +112,7 @@ export default function AppTabsLayout() {
           sceneStyle: ambientGlow(colors.accent)
         }}
       />
-      {/* Reached from the Home header rather than the bar; see mainTabs. */}
+      {/* Reached from the side menu rather than the bar; see mainTabs. */}
       <Tabs.Screen
         name="settings"
         options={{

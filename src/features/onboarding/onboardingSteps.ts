@@ -53,7 +53,7 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: 'rhythm',
     title: 'Sleep and daily load',
-    intro: 'Your sleep window anchors every timing suggestion Healthi makes, so these are worth answering properly.',
+    intro: 'Your sleep window anchors every timing suggestion daywoven makes, so these are worth answering properly.',
     questions: [
       question('bedtime'),
       question('wake_time'),

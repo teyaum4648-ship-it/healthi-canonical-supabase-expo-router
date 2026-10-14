@@ -34,7 +34,7 @@ function refusalFor(code: unknown, detail: unknown): PhotoEstimateRefusal {
     case 'too_unclear':
       return { reason: 'too_unclear', detail: text(detail, 'That photo could not be assessed. Try another angle.') };
     case 'malformed_response':
-      return { reason: 'malformed_response', detail: text(detail, 'The estimate came back in a shape Healthi could not read.') };
+      return { reason: 'malformed_response', detail: text(detail, 'The estimate came back in a shape daywoven could not read.') };
     case 'invalid_image':
       return { reason: 'unavailable', detail: text(detail, 'That photo could not be sent.') };
     default:

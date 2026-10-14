@@ -82,7 +82,7 @@ function productFields(locale = 'en'): string {
 
 const requestHeaders = {
   Accept: 'application/json',
-  'X-User-Agent': 'Healthi/0.1'
+  'X-User-Agent': 'daywoven/0.1'
 };
 
 async function fetchWithTimeout(

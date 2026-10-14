@@ -466,7 +466,7 @@ function actions(
     add({
       id: 'log_next_meal',
       title: 'Log your next meal to sharpen the fueling signal.',
-      detail: 'A simple meal log helps Healthi connect nourishment with the rest of your day.',
+      detail: 'A simple meal log helps daywoven connect nourishment with the rest of your day.',
       domain: 'nourishment',
       priority: 'medium',
       confidence: 'low',

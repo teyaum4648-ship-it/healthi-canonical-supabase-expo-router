@@ -19,7 +19,7 @@ export default function IndexRoute() {
   const [startError, setStartError] = useState('');
 
   const destination = entryDestination({ isLoading, mode, hasSession: Boolean(session), onboardingStatus: profile?.onboarding_status });
-  if (destination === 'loading') return <Screen><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening Healthi…</Text></Screen>;
+  if (destination === 'loading') return <Screen><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening daywoven…</Text></Screen>;
   if (destination === 'demo') return <DemoEntry />;
   if (destination !== 'welcome') return <Redirect href={destination} />;
   /**
@@ -55,7 +55,7 @@ export default function IndexRoute() {
 
       router.push('/(onboarding)');
     } catch (error) {
-      setStartError(error instanceof Error ? error.message : 'Could not open Healthi just now. Try again.');
+      setStartError(error instanceof Error ? error.message : 'Could not open daywoven just now. Try again.');
     }
   }
 
@@ -84,7 +84,7 @@ export default function IndexRoute() {
             <Text style={styles.headlineAccent}>sets the plan.</Text>
           </Text>
           <Text style={styles.subcopy}>
-            Start with a short wellness test that helps Healthi understand your sleep, stress,
+            Start with a short wellness test that helps daywoven understand your sleep, stress,
             nourishment, and movement signals before it suggests a first 2-week focus.
           </Text>
 
@@ -143,7 +143,7 @@ export default function IndexRoute() {
             <View style={styles.protocolTextWrap}>
               <Text style={styles.protocolTitle}>First: your wellness test</Text>
               <Text style={styles.protocolText}>
-                Healthi uses your answers to choose a calm first focus, not a label.
+                daywoven uses your answers to choose a calm first focus, not a label.
               </Text>
             </View>
           </View>

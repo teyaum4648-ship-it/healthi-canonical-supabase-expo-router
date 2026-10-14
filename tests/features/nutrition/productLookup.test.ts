@@ -175,7 +175,7 @@ describe('product lookup and quality', () => {
     expect(fetcher).toHaveBeenCalledWith(
       expect.stringContaining('/3017620422003.json'),
       expect.objectContaining({
-        headers: expect.objectContaining({ Accept: 'application/json', 'X-User-Agent': 'Healthi/0.1' }),
+        headers: expect.objectContaining({ Accept: 'application/json', 'X-User-Agent': 'daywoven/0.1' }),
         signal: expect.anything()
       })
     );

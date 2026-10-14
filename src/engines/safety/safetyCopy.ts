@@ -7,13 +7,13 @@ import type { SafetyAllowedAction, SafetyStatus } from './safetyTypes';
  */
 
 export const SAFETY_SUMMARY: Record<SafetyStatus, string> = {
-  clear: 'Available signals look steady. Healthi can offer the usual daily guidance.',
+  clear: 'Available signals look steady. daywoven can offer the usual daily guidance.',
   caution:
-    'A few signals suggest an easier day. Healthi will keep today gentle and practical rather than pushing.',
+    'A few signals suggest an easier day. daywoven will keep today gentle and practical rather than pushing.',
   limit_guidance:
-    'Healthi is holding back stronger guidance today and keeping the focus on easy, supportive steps.',
+    'daywoven is holding back stronger guidance today and keeping the focus on easy, supportive steps.',
   professional_guidance:
-    'Some of what you shared is worth checking with a qualified professional before any stronger guidance. Healthi will keep today gentle in the meantime.'
+    'Some of what you shared is worth checking with a qualified professional before any stronger guidance. daywoven will keep today gentle in the meantime.'
 };
 
 /** Baseline safe actions Healthi can always suggest, tailored by how limited the day is. */

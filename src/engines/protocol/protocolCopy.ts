@@ -25,13 +25,13 @@ export function protocolHeadline(status: ProtocolStatus, mode: ProtocolDayMode):
 
 export function protocolSummary(status: ProtocolStatus, mode: ProtocolDayMode): string {
   if (status === 'professional_guidance') {
-    return 'Healthi is holding stronger guidance until things feel settled. Today is about easy, supportive steps.';
+    return 'daywoven is holding stronger guidance until things feel settled. Today is about easy, supportive steps.';
   }
   if (status === 'limited') {
-    return 'A few signals point to an easier day, so Healthi is keeping today light and practical.';
+    return 'A few signals point to an easier day, so daywoven is keeping today light and practical.';
   }
   if (status === 'calibrating') {
-    return 'Healthi is still learning your baseline. Here are a few steady steps while confidence builds.';
+    return 'daywoven is still learning your baseline. Here are a few steady steps while confidence builds.';
   }
 
   switch (mode) {

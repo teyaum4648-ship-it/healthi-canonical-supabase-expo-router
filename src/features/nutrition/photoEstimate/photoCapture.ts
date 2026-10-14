@@ -33,8 +33,8 @@ async function ensurePermission(source: PhotoCaptureSource): Promise<PhotoCaptur
       reason: 'permission_denied',
       detail: canAskAgain
         ? source === 'camera'
-          ? 'Healthi needs camera access to estimate a meal from a photo.'
-          : 'Healthi needs photo access to estimate a meal from a photo.'
+          ? 'daywoven needs camera access to estimate a meal from a photo.'
+          : 'daywoven needs photo access to estimate a meal from a photo.'
         : `Allow ${source === 'camera' ? 'camera' : 'photo'} access in Settings to use this.`
     };
   } catch {

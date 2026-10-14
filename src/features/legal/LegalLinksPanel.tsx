@@ -31,7 +31,7 @@ const SUBTITLES: Record<LegalDocument, string> = {
   cookies: 'We use none — here is what is on your device',
   refunds: '14 days, no reasons needed',
   accessibility: 'What works, and what does not yet',
-  attributions: 'The open data and software behind Healthi'
+  attributions: 'The open data and software behind daywoven'
 };
 
 export function LegalLinks() {
@@ -66,7 +66,7 @@ export function LegalLinks() {
       </View>
 
       <View style={styles.notice}>
-        <Text style={styles.noticeTitle}>Healthi is not medical advice</Text>
+        <Text style={styles.noticeTitle}>daywoven is not medical advice</Text>
         <Text style={styles.noticeBody}>
           It does not diagnose or treat anything, and it is not a substitute for a doctor. In an
           emergency call 911. For crisis support in the US, call or text 988.

@@ -24,7 +24,7 @@ import { resolveSearchFoods } from './searchFoodResolution';
 
 const ENGINE_URL = 'https://search.openfoodfacts.org/search';
 const ENGINE_FIELDS = 'code,product_name,product_name_en,generic_name,brands,categories_tags,countries_tags,labels_tags,nutriments,image_front_small_url,quantity,lang';
-const headers = { Accept: 'application/json', 'X-User-Agent': 'Healthi/0.1' };
+const headers = { Accept: 'application/json', 'X-User-Agent': 'daywoven/0.1' };
 
 type Hit = Record<string, unknown>;
 const isRecord = (value: unknown): value is Hit => !!value && typeof value === 'object' && !Array.isArray(value);

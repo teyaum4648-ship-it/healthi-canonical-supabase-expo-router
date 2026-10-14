@@ -164,7 +164,7 @@ export function screenReferrals(screen: MovementScreen): string[] {
   return testedFindings(screen)
     .filter((row) => row.finding === 'restricted')
     .map((row) =>
-      `${row.test.name} came back restricted or painful. Healthi will leave that one alone — it is worth having a qualified professional look at it.`);
+      `${row.test.name} came back restricted or painful. daywoven will leave that one alone — it is worth having a qualified professional look at it.`);
 }
 
 /** Every test id, for callers building the screen UI. */

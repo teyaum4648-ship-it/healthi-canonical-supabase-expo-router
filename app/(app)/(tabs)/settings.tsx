@@ -308,7 +308,7 @@ export default function SettingsScreen() {
             <Text style={styles.cardEyebrow}>Allergens</Text>
             <Text style={styles.preferenceTitle}>Groups to watch for</Text>
             <Text style={styles.detail}>
-              Healthi flags these when a food's label declares them. It cannot tell you a food
+              daywoven flags these when a food's label declares them. It cannot tell you a food
               is free of an allergen — many records carry no allergen statement at all — so
               always check the packet.
             </Text>
@@ -385,7 +385,7 @@ export default function SettingsScreen() {
 
           <Button label="Log out" onPress={handleSignOut} variant="secondary" />
           </Disclosure>
-          <Text style={styles.footer}>Healthi provides general wellness guidance based on available data.</Text>
+          <Text style={styles.footer}>daywoven provides general wellness guidance based on available data.</Text>
 
           {model.load_error ? <Text style={styles.errorNote}>Some profile details are still calibrating while data becomes available.</Text> : null}
         </>

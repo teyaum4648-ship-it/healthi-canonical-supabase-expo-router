@@ -1824,7 +1824,7 @@ export default function MovementScreen() {
                       <Text style={styles.libraryItemMeta}>{titleCase(item.movement_pattern ?? item.category)} emphasis</Text>
                     </View>
                     <View style={styles.libraryItemAside}>
-                      <Text style={styles.libraryItemCategory}>{item.is_default ? 'Healthi movement' : 'Custom'}</Text>
+                      <Text style={styles.libraryItemCategory}>{item.is_default ? 'daywoven movement' : 'Custom'}</Text>
                       <Text style={styles.monoMeta}>{item.equipment?.join(', ') || 'No equipment'}</Text>
                     </View>
                   </Pressable>

@@ -134,17 +134,17 @@ function sleepBlueprint(params: {
       friction.push('Recent sleep debt is building across logged nights.');
     }
     if (!friction.length) supporters.push('Your recent sleep duration is staying close to your estimated need.');
-    if (nights.length >= 3) supporters.push(`${nights.length} recent nights are giving Healthi usable rhythm context.`);
+    if (nights.length >= 3) supporters.push(`${nights.length} recent nights are giving daywoven usable rhythm context.`);
   }
   const windDown = params.preferredBedtime ? shiftedTime(params.preferredBedtime, 90) : null;
   const caffeineCutoff = params.preferredBedtime ? shiftedTime(params.preferredBedtime, 8 * 60) : null;
   const tips = [
     windDown
       ? { title: 'Wind-down cue', detail: `Start easing the day around ${windDown}, based on your preferred bedtime.` }
-      : { title: 'Add your sleep window', detail: 'A bedtime and wake time help Healthi organize more useful rhythm cues.' },
+      : { title: 'Add your sleep window', detail: 'A bedtime and wake time help daywoven organize more useful rhythm cues.' },
     caffeineCutoff
       ? { title: 'Caffeine boundary', detail: `Consider wrapping caffeine around ${caffeineCutoff} to protect your preferred sleep window.` }
-      : { title: 'Keep timing visible', detail: 'Log a few sleep windows so Healthi can make timing suggestions from your pattern.' }
+      : { title: 'Keep timing visible', detail: 'Log a few sleep windows so daywoven can make timing suggestions from your pattern.' }
   ];
   return {
     confidence: debt.confidence,

@@ -4,7 +4,7 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   {
     key: 'primary_goal',
     section: 'Starting point',
-    prompt: 'What would you like Healthi to support first?',
+    prompt: 'What would you like daywoven to support first?',
     helper: 'Choose the area that would make the biggest difference in your day right now.',
     type: 'single',
     options: [
@@ -170,7 +170,7 @@ export const onboardingQuestions: OnboardingQuestion[] = [
     key: 'daily_stress_score',
     section: 'Mind and life load',
     prompt: 'How full does your life load feel most days?',
-    helper: 'This helps Healthi make plans that fit your actual capacity.',
+    helper: 'This helps daywoven make plans that fit your actual capacity.',
     type: 'scale',
     min: 1,
     max: 10,

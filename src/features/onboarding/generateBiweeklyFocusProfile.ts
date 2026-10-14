@@ -637,10 +637,10 @@ function buildRankedReasons(signalsByDomain: DomainSignals): RankedScoreReason[]
 
 function buildScoreSheetSummary(primaryFocus: FoundationDomain) {
   if (primaryFocus === 'balanced') {
-    return 'No single domain strongly dominated your score sheet, so Healthi will keep your first 2 weeks balanced while calibration continues.';
+    return 'No single domain strongly dominated your score sheet, so daywoven will keep your first 2 weeks balanced while calibration continues.';
   }
 
-  return `Your answers suggest ${domainLabels[primaryFocus]} is carrying the most weight right now. Healthi will use this score sheet to bias your next 2-week focus.`;
+  return `Your answers suggest ${domainLabels[primaryFocus]} is carrying the most weight right now. daywoven will use this score sheet to bias your next 2-week focus.`;
 }
 
 function buildDynamicScoreSheet(

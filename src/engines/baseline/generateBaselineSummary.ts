@@ -42,7 +42,7 @@ function baseProfileCards(input: GenerateBaselineSummaryInput): BaselineProfileC
     cards.push({ id: 'goal', title: 'Primary goal', value: humanize(goal), detail: 'Saved from your baseline setup.', confidence: 'medium', reason_codes: ['baseline_goal_available'] });
   }
   if (profile?.baseline_mode) {
-    cards.push({ id: 'mode', title: 'Healthi mode', value: baselineModeLabels[profile.baseline_mode], detail: 'Your current planning mode.', confidence: 'low', reason_codes: ['baseline_mode_available'] });
+    cards.push({ id: 'mode', title: 'daywoven mode', value: baselineModeLabels[profile.baseline_mode], detail: 'Your current planning mode.', confidence: 'low', reason_codes: ['baseline_mode_available'] });
   }
   if (signals?.primary_focus) {
     cards.push({ id: 'focus', title: 'Current focus', value: humanize(signals.primary_focus), detail: 'Based on your available signals.', confidence: 'low', reason_codes: ['current_focus_available'] });
@@ -62,7 +62,7 @@ function baseProfileCards(input: GenerateBaselineSummaryInput): BaselineProfileC
 function preferences(input: GenerateBaselineSummaryInput): BaselineSummary['preferences'] {
   const baseline = input.onboarding?.baseline_profile;
   if (!baseline) {
-    return [{ id: 'preferences', title: 'Preferences', detail: 'Preferences will appear as you personalize Healthi.' }];
+    return [{ id: 'preferences', title: 'Preferences', detail: 'Preferences will appear as you personalize daywoven.' }];
   }
   const values: BaselineSummary['preferences'] = [];
   if (baseline.preferred_bedtime || baseline.preferred_waketime) {
@@ -77,7 +77,7 @@ function preferences(input: GenerateBaselineSummaryInput): BaselineSummary['pref
   if (baseline.food_constraints?.length) {
     values.push({ id: 'food_constraints', title: 'Food preferences', detail: `${baseline.food_constraints.length} saved preference${baseline.food_constraints.length === 1 ? '' : 's'}.` });
   }
-  return values.length ? values : [{ id: 'preferences', title: 'Preferences', detail: 'Preferences will appear as you personalize Healthi.' }];
+  return values.length ? values : [{ id: 'preferences', title: 'Preferences', detail: 'Preferences will appear as you personalize daywoven.' }];
 }
 
 function nextSteps(
@@ -85,7 +85,7 @@ function nextSteps(
   calibration: BaselineCalibrationDomain[]
 ): BaselineSummary['next_steps'] {
   if (!hasSetup) {
-    return [{ id: 'complete_setup', title: 'Complete your baseline setup', detail: 'Your first answers give Healthi a useful starting point.', priority: 'high', reason_codes: ['baseline_setup_missing'] }];
+    return [{ id: 'complete_setup', title: 'Complete your baseline setup', detail: 'Your first answers give daywoven a useful starting point.', priority: 'high', reason_codes: ['baseline_setup_missing'] }];
   }
   const actions: BaselineSummary['next_steps'] = [];
   for (const domain of calibration.filter((item) => item.status === 'calibrating')) {
@@ -122,10 +122,10 @@ export function generateBaselineSummary(input: GenerateBaselineSummaryInput): Ba
   const headline = status === 'needs_setup'
     ? 'Your baseline is ready to begin.'
     : status === 'ready'
-      ? 'Your Healthi baseline is taking shape.'
+      ? 'Your daywoven baseline is taking shape.'
       : 'Your baseline is still calibrating.';
   const detail = status === 'needs_setup'
-    ? 'Complete a few baseline details so Healthi can organize your starting point.'
+    ? 'Complete a few baseline details so daywoven can organize your starting point.'
     : status === 'ready'
       ? 'Your baseline and logged data are creating a more personal view of your day.'
       : 'Log a few more moments across your day to reveal clearer patterns.';
@@ -139,7 +139,7 @@ export function generateBaselineSummary(input: GenerateBaselineSummaryInput): Ba
     profile_cards: profileCards,
     calibration: {
       completion_label: onboarding?.completed ? 'Baseline setup complete' : 'Baseline setup needed',
-      detail: onboarding?.completed ? 'Coverage grows as you log the parts of your day that matter.' : 'A short setup gives Healthi a useful starting point.',
+      detail: onboarding?.completed ? 'Coverage grows as you log the parts of your day that matter.' : 'A short setup gives daywoven a useful starting point.',
       domains: calibration
     },
     preferences: preferences(input),

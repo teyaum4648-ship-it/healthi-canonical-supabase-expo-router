@@ -154,7 +154,7 @@ export function buildAdaptiveDietPresentation(input: {
       tag: 'Act now',
       horizon: 'Today',
       title: 'Log your first meal',
-      reason: 'Healthi needs at least one meal before it can describe today’s nutrition coverage.',
+      reason: 'daywoven needs at least one meal before it can describe today’s nutrition coverage.',
       action: 'Log a meal',
       destination: 'Log Meal',
       confidence: 'high'
@@ -270,7 +270,7 @@ export function buildAdaptiveDietPresentation(input: {
     { id: 'fat', name: 'Fat', amount: amount(summary.fat_g, ' g'), context: targets.fat_g_target ? `Working range context · ${Math.round(targets.fat_g_target)} g` : 'No working range available', confidence: summary.confidence },
     { id: 'fiber', name: 'Fiber', amount: amount(summary.fiber_g, ' g'), context: targets.fiber_g_target ? `Working range context · ${Math.round(targets.fiber_g_target)} g` : 'No working range available', confidence: summary.confidence },
     { id: 'sodium', name: 'Sodium', amount: amount(summary.sodium_mg, ' mg'), context: 'Shown as label context, not a universal quality score', confidence: summary.confidence },
-    { id: 'calories', name: 'Energy', amount: amount(summary.calories, ' cal'), context: 'Context only; Healthi is not a calorie-tracking app', confidence: summary.confidence },
+    { id: 'calories', name: 'Energy', amount: amount(summary.calories, ' cal'), context: 'Context only; daywoven is not a calorie-tracking app', confidence: summary.confidence },
     /*
      * The tracked panel. These three rows used to be potassium, calcium and iron with
      * the amount hardcoded to "Not reported" and the context reading "current meal
@@ -320,7 +320,7 @@ export function buildAdaptiveDietPresentation(input: {
         : {
             need: hasMeals ? 'More complete context' : 'First meal',
             suggestion: hasMeals ? 'Add the next meal when it happens.' : 'Log one meal to begin.',
-            explanation: 'Healthi will update the picture from the information you choose to log.',
+            explanation: 'daywoven will update the picture from the information you choose to log.',
             destination: 'Log Meal' as const,
             action: 'Log a meal'
           };

@@ -10,7 +10,7 @@ export default function ProtectedLayout() {
   if (isLoading) {
     return (
       <Screen scroll={false}>
-        <SectionHeader title="Healthi" body="Preparing your app." />
+        <SectionHeader title="daywoven" body="Preparing your app." />
       </Screen>
     );
   }

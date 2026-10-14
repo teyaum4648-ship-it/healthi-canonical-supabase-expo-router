@@ -29,7 +29,7 @@ const COPY_BY_LABEL: Record<FoodPatternProfile['pattern_label'], Omit<FoodPatter
   calibrating: {
     title: 'Food pattern calibrating',
     summary:
-      'Healthi does not have a clear enough food pattern yet. A few meal logs and response check-ins will make this more useful.'
+      'daywoven does not have a clear enough food pattern yet. A few meal logs and response check-ins will make this more useful.'
   }
 };
 
@@ -52,7 +52,7 @@ function provenanceNote(profile: FoodPatternProfile): string {
     return 'This has been adjusted by how your logged meals actually went, not only by your answers.';
   }
   if (profile.source === 'manual_adjustment') {
-    return 'You set this yourself. Healthi will leave it alone unless you change it.';
+    return 'You set this yourself. daywoven will leave it alone unless you change it.';
   }
   return 'This comes from your answers so far. Logging how meals go will sharpen it into something measured.';
 }
@@ -63,8 +63,8 @@ export function getFoodPatternResultCopy(profile: FoodPatternProfile): FoodPatte
     profile.confidence === 'high'
       ? 'Confidence is high, from repeated responses to meals of this kind.'
       : profile.confidence === 'medium'
-        ? 'Confidence is medium based on your answers. Healthi will keep refining this as you log meals and responses.'
-        : 'Confidence is low for now. Healthi will keep calibrating with meal logs and response check-ins.';
+        ? 'Confidence is medium based on your answers. daywoven will keep refining this as you log meals and responses.'
+        : 'Confidence is low for now. daywoven will keep calibrating with meal logs and response check-ins.';
 
   return {
     ...copy,

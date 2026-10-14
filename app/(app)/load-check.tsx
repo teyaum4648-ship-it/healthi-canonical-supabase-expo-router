@@ -183,7 +183,7 @@ export default function LoadCheckScreen() {
                     <Text style={styles.flagText}>{flag.message}</Text>
                   </View>
                 ))}
-                <Text style={styles.footnote}>This sits alongside your score; it does not change it. Healthi is general wellness guidance and cannot tell you what is causing a symptom.</Text>
+                <Text style={styles.footnote}>This sits alongside your score; it does not change it. daywoven is general wellness guidance and cannot tell you what is causing a symptom.</Text>
               </View>
             ) : null}
             <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.doneButton, pressed && styles.pressed]}>

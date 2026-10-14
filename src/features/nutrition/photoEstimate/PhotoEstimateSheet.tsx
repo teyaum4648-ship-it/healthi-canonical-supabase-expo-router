@@ -91,7 +91,7 @@ function ItemRow({ item, busy, onCorrect, onRemove }: {
       <Text style={styles.detail}>
         {item.portion.corrected
           ? `Your portion · ${portionLabel(item)}`
-          : `Healthi's estimate · ${portionLabel(item)}`}
+          : `daywoven's estimate · ${portionLabel(item)}`}
       </Text>
 
       <Text style={styles.itemCalories}>

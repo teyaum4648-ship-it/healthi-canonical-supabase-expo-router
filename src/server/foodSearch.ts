@@ -7,7 +7,7 @@ type CacheLike = { match(request: Request): Promise<Response | undefined>; put(r
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => !!v && typeof v === 'object' && !Array.isArray(v);
 const fields = ['code','product_name','brands','quantity','serving_size','serving_quantity','ingredients_text','categories_tags','countries_tags','nutriments','image_front_small_url','labels_tags','last_modified_t'];
-const headers = { 'User-Agent': 'Healthi/0.1 (food diary search)', Accept: 'application/json' };
+const headers = { 'User-Agent': 'daywoven/0.1 (food diary search)', Accept: 'application/json' };
 export type SearchPayload = { products: RecordValue[]; usdaFoods: RecordValue[]; sources: string[]; partial: boolean; stale?: boolean; servingDetailsIncomplete?: boolean; usdaConfigured: boolean; fetchedAt: string };
 const json = (body: unknown, status = 200, extra: Record<string,string> = {}) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra } });
 async function requestJson(fetcher: typeof fetch, url: string, init: RequestInit, timeout = 4500) {

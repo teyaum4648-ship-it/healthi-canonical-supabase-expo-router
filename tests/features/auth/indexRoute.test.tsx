@@ -31,7 +31,7 @@ describe('installed app root screen', () => {
   it('renders a loading message rather than prematurely opening onboarding', () => {
     auth.current = { ...auth.current, isLoading: true };
     const html = renderToStaticMarkup(<IndexRoute />);
-    expect(html).toContain('Opening Healthi');
+    expect(html).toContain('Opening daywoven');
     expect(html).not.toContain('data-destination');
   });
   it('keeps the account welcome flow separate from local demo entry', () => {

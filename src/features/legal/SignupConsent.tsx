@@ -70,18 +70,18 @@ export function SignupConsent({
       <CheckBox
         checked={value.healthData}
         hint="Required, because the app is built on this data. You can withdraw it later by deleting your account."
-        label="I consent to Healthi collecting and storing my health information to produce my scores and guidance"
+        label="I consent to daywoven collecting and storing my health information to produce my scores and guidance"
         onChange={(healthData) => onChange({ ...value, healthData })}
       >
         <Text style={styles.label}>
-          I consent to Healthi collecting and storing my <Text style={styles.emphasis}>health
+          I consent to daywoven collecting and storing my <Text style={styles.emphasis}>health
           information</Text> — what I eat, how I sleep, how I move and how I feel — in order to
           produce my scores and daily guidance.
         </Text>
       </CheckBox>
 
       <Text style={styles.footnote}>
-        We never sell or share this, and there is no advertising or analytics in Healthi. You can
+        We never sell or share this, and there is no advertising or analytics in daywoven. You can
         export or delete all of it at any time. Withdraw this consent and the app has nothing to
         work from, so withdrawing it means closing your account.
       </Text>
