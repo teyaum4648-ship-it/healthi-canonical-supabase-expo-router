@@ -41,6 +41,8 @@ import type { MorningReport } from '../../../src/engines/circadian/sleepRecovery
 import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
 import type { BiomarkerReading } from '../../../src/engines/biomarkers';
 import { MorningCheckIn } from '../../../src/features/sleepRhythm/MorningCheckIn';
+import { CaffeineLog } from '../../../src/features/sleepRhythm/CaffeineLog';
+import { caffeineOnBoard, createCaffeineEntry, localCaffeineStore, type CaffeineDrink, type CaffeineEntry } from '../../../src/features/sleepRhythm/caffeineLog';
 import { localMorningReportStore, saveMorningReport, type MorningReportRow } from '../../../src/features/sleepRhythm/morningReportStore';
 
 type RhythmDataMode = 'manual' | 'persisted' | 'demo';
@@ -161,6 +163,28 @@ export default function RhythmScreen() {
     return () => { active = false; };
   }, [user?.id]);
 
+  /* Caffeine logged here moves the energy curve below it. */
+  const [caffeine, setCaffeine] = useState<CaffeineEntry[]>([]);
+  useEffect(() => {
+    let active = true;
+    void localCaffeineStore.read(protocolScope(user?.id)).then((rows) => {
+      if (active) setCaffeine(rows);
+    });
+    return () => { active = false; };
+  }, [user?.id]);
+  const caffeineMg = useMemo(() => caffeineOnBoard(caffeine, Date.parse(now)), [caffeine, now]);
+  async function addCaffeine(drink: CaffeineDrink) {
+    const entry = createCaffeineEntry(drink, today);
+    setCaffeine((rows) => [...rows, entry]);
+    setNow(new Date().toISOString());
+    setCaffeine(await localCaffeineStore.append(protocolScope(user?.id), entry));
+  }
+  async function undoCaffeine(entry: CaffeineEntry) {
+    const kept = caffeine.filter((row) => row.id !== entry.id);
+    setCaffeine(kept);
+    setCaffeine(await localCaffeineStore.replace(protocolScope(user?.id), kept));
+  }
+
   /*
    * The clock someone described, used until their logged nights say otherwise. It also
    * replaces the 22:30 bedtime that used to be hardcoded here for everybody.
@@ -244,11 +268,12 @@ export default function RhythmScreen() {
       refreshment: boundedQuality(sleepQuality),
       morningLightDates: light.morningDates,
       morningLightMinutes: light.todayMinutes > 0 ? light.todayMinutes : null,
+      caffeineOnBoardMg: caffeineMg > 0 ? caffeineMg : null,
       chronotypeMidSleepMinutes: chronotypePrior(chronotype),
       morningReport,
       morningPulses
     }),
-    [briefingSessions, chronotype, clock, light, morningPulses, morningReport, preferredBedtime, sleepNeed, sleepQuality, today]
+    [briefingSessions, caffeineMg, chronotype, clock, light, morningPulses, morningReport, preferredBedtime, sleepNeed, sleepQuality, today]
   );
 
   const lastNight = useMemo(() => briefingSessions.find((session) => session.date === today) ?? null, [briefingSessions, today]);
@@ -366,6 +391,7 @@ export default function RhythmScreen() {
       sleepStartTime={sleepStartTime}
       wakeTime={wakeTime}
       morningSlot={
+        <>
         <MorningCheckIn
           palette={paletteFor(clock)}
           hasNight={lastNight !== null}
@@ -376,6 +402,16 @@ export default function RhythmScreen() {
           onChange={(patch) => { void updateMorningReport(patch); }}
           onSavePulse={saveMorningPulse}
         />
+        <CaffeineLog
+          cutoff={briefing.rhythm_plan.caffeine_cutoff ?? null}
+          entries={caffeine}
+          onAdd={(drink) => { void addCaffeine(drink); }}
+          onBoardMg={caffeineMg}
+          onUndo={(entry) => { void undoCaffeine(entry); }}
+          palette={paletteFor(clock)}
+          today={today}
+        />
+        </>
       }
     />
   );
