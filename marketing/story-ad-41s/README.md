@@ -107,17 +107,18 @@ they're read as numbers.
   - Inter and Instrument Serif are used under the SIL Open Font License (`fonts/*-LICENSE.txt`).
   - GSAP is bundled under its standard no-charge license.
 
-## Lyan's voice (ElevenLabs)
+## Ashley's voice (ElevenLabs)
 
-The current cut is voiced by Lyan, an ElevenLabs voice that sounds like a regular person on a
-Reel rather than a narrator. Her takes are kept in `voice-lyan/` (one per scene, in the order
-`voiceover.py` asks for them), because they were paid for and the picture is timed to them.
-`index.html`, `cues.py` and `mix.sh` are already retimed to her read. To rebuild:
+The current cut is voiced by Ashley, an ElevenLabs voice for TikTok and YouTube that sounds like a
+regular young woman talking to camera. Her takes are kept in `voice-ashley/` (one per scene, in
+the order `voiceover.py` asks for them), because they were paid for and the picture is timed to
+them. `index.html`, `cues.py` and `mix.sh` are already retimed to her read. To rebuild:
 
 ```bash
-VOICE_ENGINE=files VOICE_FILES=voice-lyan python voiceover.py
+VOICE_ENGINE=files VOICE_FILES=voice-ashley python voiceover.py
 python retime.py && python sfx.py && python cues.py && npm run render && ./mix.sh
 ```
 
+`voice-lyan/` holds an earlier read by Lyan; pass `VOICE_FILES=voice-lyan` to go back to it.
 Running `voiceover.py` without `VOICE_ENGINE` brings back the original Kokoro voice; `retime.py`
 then moves the picture back onto it.

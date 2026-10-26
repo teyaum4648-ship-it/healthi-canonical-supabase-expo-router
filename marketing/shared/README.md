@@ -37,4 +37,5 @@ VOICE_ENGINE=files VOICE_FILES=voice-lyan python voiceover.py
 python retime.py && python cues.py && npm run render && ./mix.sh
 ```
 
-The ads' current takes are Lyan's, kept in each ad's `voice-lyan/`.
+The ads' current takes are Ashley's, kept in each ad's `voice-ashley/` (an earlier read by Lyan is in
+`voice-lyan/`).
