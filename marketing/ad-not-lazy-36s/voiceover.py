@@ -11,13 +11,16 @@ they are read as numbers, not digits.
 """
 import json
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
-from kokoro_onnx import Kokoro
 
 here = Path(__file__).parent
+sys.path.insert(0, str(here.parent / 'shared'))
+from voice_engine import Voice  # noqa: E402  (VOICE_ENGINE=elevenlabs to use ElevenLabs)
+
 models = Path(os.environ.get('KOKORO_DIR', here / 'voices'))
 VOICE, SPEED, FIRST = 'af_heart', 1.0, 0.25
 
@@ -53,13 +56,16 @@ def trimmed(samples, rate):
     return out
 
 
-kokoro = Kokoro(str(models / 'kokoro-v1.0.onnx'), str(models / 'voices-v1.0.bin'))
+voice = Voice(models, VOICE, SPEED)
 out = here / 'vo'
 out.mkdir(exist_ok=True)
 plan, at = [], FIRST
 for index, (pause, lines) in enumerate(TAKES):
     text = ' '.join(lines)
-    samples, rate = kokoro.create(text, voice=VOICE, speed=SPEED, lang='en-us')
+    # The lines either side, so each take sounds like part of one read.
+    previous_text = ' '.join(TAKES[index - 1][1]) if index else None
+    next_text = ' '.join(TAKES[index + 1][1]) if index + 1 < len(TAKES) else None
+    samples, rate = voice.say(text, previous_text, next_text)
     samples = trimmed(np.asarray(samples, dtype=np.float64), rate)
     path = out / f'take{index:02d}.wav'
     sf.write(path, samples, rate, subtype='PCM_24')
@@ -70,4 +76,4 @@ for index, (pause, lines) in enumerate(TAKES):
 (out / 'plan.json').write_text(json.dumps(plan, indent=1))
 for row in plan:
     print(f"{row['start']:>7.2f}s  {row['seconds']:>5.2f}s  {row['text']}")
-print(f'voice ends at {at:.2f}s')
+print(f'{voice.name}: voice ends at {at:.2f}s')
