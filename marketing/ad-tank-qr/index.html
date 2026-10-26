@@ -24,8 +24,7 @@
         --mint-deep: #11875f;
         --lav: #7457dd;
         --amber: #e39b2d;
-        --olive: #66763f;
-        --olive-dark: #3f4a26;
+        --olive-dark: #36401f;
       }
       * {
         margin: 0;
@@ -63,23 +62,22 @@
       .ink {
         background: radial-gradient(90% 60% at 50% 45%, #15302a 0%, #0b1714 65%, #070e0c 100%);
       }
+      .night {
+        background: radial-gradient(100% 70% at 50% 30%, #2d3a63 0%, #1a2240 55%, #0d1226 100%);
+      }
       .dusk {
         background: radial-gradient(100% 70% at 50% 35%, #2b3554 0%, #1a2038 60%, #10142a 100%);
       }
       .mintbg {
         background: radial-gradient(90% 60% at 50% 40%, #6fe6be 0%, #3dd6a3 55%, #22bb8b 100%);
       }
-      /* The field: a hazy sky over a dusty plain. */
-      .sky {
-        background: linear-gradient(180deg, #c9d3cf 0%, #e6dcc4 52%, #ead9b6 64%);
-      }
-      .ground {
+      svg.full {
         position: absolute;
         left: 0;
-        right: 0;
-        top: 1230px;
-        bottom: 0;
-        background: linear-gradient(180deg, #cdb789 0%, #b89f70 40%, #a48c5f 100%);
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
       }
       .cap {
         position: absolute;
@@ -96,13 +94,8 @@
         font-weight: 400;
         letter-spacing: -0.005em;
       }
-      svg.full {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 1080px;
-        height: 1920px;
-        overflow: visible;
+      .lift {
+        text-shadow: 0 2px 24px rgba(255, 248, 232, 0.65);
       }
       .phone {
         position: absolute;
@@ -149,55 +142,81 @@
         color: var(--muted);
         margin-bottom: 6px;
       }
-      /* The browser the QR code opens. */
+      .hud {
+        position: absolute;
+        padding: 12px 22px;
+        border-radius: 14px;
+        background: rgba(8, 24, 19, 0.82);
+        color: var(--mint);
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      .hud.amber {
+        color: #ffc46b;
+      }
+      /* The page the code opens. */
       .browser {
         position: absolute;
-        left: 70px;
-        right: 70px;
-        top: 640px;
-        height: 760px;
-        border-radius: 48px;
+        left: 80px;
+        right: 80px;
+        top: 590px;
+        height: 880px;
+        border-radius: 56px;
         background: #ffffff;
-        box-shadow: 0 50px 120px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 60px 140px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.04);
         overflow: hidden;
       }
       .urlbar {
         margin: 34px 34px 0;
-        height: 96px;
-        border-radius: 30px;
-        background: #eef1ef;
+        height: 100px;
+        border-radius: 32px;
+        background: #eff2f0;
         display: flex;
         align-items: center;
         padding: 0 34px;
-        gap: 22px;
+        gap: 20px;
         font-size: 46px;
         font-weight: 650;
         letter-spacing: -0.015em;
         color: var(--ink);
       }
-      .urlbar .lock {
-        width: 26px;
-        height: 30px;
-        border-radius: 6px;
+      .caret {
+        width: 4px;
+        height: 50px;
         background: var(--mint-deep);
+        border-radius: 2px;
       }
       .loadbar {
-        margin: 18px 34px 0;
+        margin: 16px 34px 0;
         height: 8px;
         border-radius: 4px;
-        background: var(--mint);
+        background: linear-gradient(90deg, #3dd6a3, #7457dd);
         transform-origin: 0 50%;
       }
       .site {
         position: absolute;
         left: 0;
         right: 0;
-        top: 240px;
+        top: 190px;
+        bottom: 0;
         text-align: center;
+        background: radial-gradient(90% 60% at 50% 0%, #e6fbf2 0%, #ffffff 70%);
       }
       .wordmark {
         font-family: "Instrument Serif", serif;
         font-style: italic;
+        letter-spacing: -0.01em;
+      }
+      .btn {
+        display: inline-block;
+        padding: 28px 64px;
+        border-radius: 999px;
+        background: var(--ink);
+        font-size: 44px;
+        font-weight: 800;
+        color: #ffffff;
         letter-spacing: -0.01em;
       }
       .conf {
@@ -259,145 +278,498 @@
       }
       .qrcard {
         position: absolute;
-        left: 310px;
-        top: 1080px;
-        width: 460px;
-        height: 460px;
-        border-radius: 44px;
+        left: 300px;
+        top: 1070px;
+        width: 480px;
+        height: 480px;
+        border-radius: 48px;
         background: #ffffff;
         box-shadow: 0 40px 90px rgba(6, 60, 42, 0.3);
+      }
+      /* Film grain and a soft vignette over everything, so the flat shapes sit in one light. */
+      #grade {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 50;
       }
     </style>
   </head>
   <body>
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="qr" viewBox="0 0 25 25"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM16 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM13 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM10 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM5 11h1v1h-1zM8 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM0 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM6 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM8 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM14 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM16 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1z" /></symbol>
+        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14" /></filter>
+        <filter id="softer" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40" /></filter>
+        <filter id="blur2" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.2" /></filter>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        <filter id="decal" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-color="#141a0c" flood-opacity="0.45" /></filter>
+        <filter id="grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <linearGradient id="g-hull" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#86975a" />
+          <stop offset="0.45" stop-color="#6b7b44" />
+          <stop offset="1" stop-color="#4e5a31" />
+        </linearGradient>
+        <linearGradient id="g-turret" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#8a9b5d" />
+          <stop offset="0.5" stop-color="#6f7f47" />
+          <stop offset="1" stop-color="#525f34" />
+        </linearGradient>
+        <linearGradient id="g-skirt" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#76874b" />
+          <stop offset="1" stop-color="#55623a" />
+        </linearGradient>
+        <linearGradient id="g-barrel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3c4626" />
+          <stop offset="0.3" stop-color="#7f9054" />
+          <stop offset="0.6" stop-color="#55633a" />
+          <stop offset="1" stop-color="#363f22" />
+        </linearGradient>
+        <radialGradient id="g-wheel" cx="0.4" cy="0.35" r="0.7">
+          <stop offset="0" stop-color="#8a9a60" />
+          <stop offset="0.6" stop-color="#5e6c3c" />
+          <stop offset="1" stop-color="#3d4727" />
+        </radialGradient>
+        <linearGradient id="g-track" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#34392a" />
+          <stop offset="1" stop-color="#1b1f15" />
+        </linearGradient>
+        <linearGradient id="g-dbody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#6c7682" />
+          <stop offset="0.5" stop-color="#434b55" />
+          <stop offset="1" stop-color="#262b31" />
+        </linearGradient>
+        <linearGradient id="g-dbody-w" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" />
+          <stop offset="1" stop-color="#d9efe6" />
+        </linearGradient>
+        <radialGradient id="g-lens" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stop-color="#3b5a66" />
+          <stop offset="0.5" stop-color="#0f1a20" />
+          <stop offset="1" stop-color="#05080a" />
+        </radialGradient>
+        <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#7cf0c6" stop-opacity="0.85" />
+          <stop offset="1" stop-color="#3dd6a3" stop-opacity="0.12" />
+        </linearGradient>
+        <clipPath id="c-track"><rect x="40" y="330" width="790" height="112" rx="56" /></clipPath>
+        <clipPath id="c-armor">
+          <path d="M60 300 L96 238 L690 238 L818 286 L818 300 Z" />
+          <path d="M70 300 L812 300 L800 374 L82 374 Z" />
+          <path d="M300 240 L336 164 L560 156 L642 194 L656 240 Z" />
+        </clipPath>
+        <pattern id="p-qr" width="150" height="150" patternUnits="userSpaceOnUse" patternTransform="rotate(-14)">
+          <rect x="18" y="18" width="114" height="114" rx="14" fill="#0b1f19" opacity="0.05" />
+          <use href="#qr" x="30" y="30" width="90" height="90" fill="#0b1f19" opacity="0.07" />
+        </pattern>
+      </defs>
+    </svg>
+
     <div id="root" data-composition-id="main" data-start="0" data-duration="50.6" data-width="1080" data-height="1920">
-      <!-- 1–3 · 0–16.15  The field: a tank gets its QR code, a drone arrives, scans it, and lands on daywovenapp.com. -->
+      <!-- 1–3 · 0–16.15  The field: a tank gets plastered in QR codes, a drone arrives, scans one, and lands on daywovenapp.com. -->
       <div id="f" class="clip" data-start="0" data-duration="16.15" data-track-index="0">
-        <div class="layer sky"></div>
-        <div class="ground"></div>
-        <div id="f-dust" class="layer" style="opacity: 0">
+        <div id="f-cam" class="layer" style="transform-origin: 540px 1150px">
           <svg class="full" viewBox="0 0 1080 1920">
-            <ellipse cx="300" cy="1420" rx="220" ry="36" fill="#d9c79e" opacity="0.7" />
-            <ellipse cx="160" cy="1395" rx="140" ry="26" fill="#e2d2ad" opacity="0.6" />
+            <defs>
+              <linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#8fb0bd" />
+                <stop offset="0.4" stop-color="#c9d3c8" />
+                <stop offset="0.62" stop-color="#ead9b4" />
+              </linearGradient>
+              <linearGradient id="g-ground" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#d8c193" />
+                <stop offset="0.35" stop-color="#c3a874" />
+                <stop offset="1" stop-color="#8f7550" />
+              </linearGradient>
+            </defs>
+            <rect x="-200" y="-200" width="1480" height="1500" fill="url(#g-sky)" />
+            <circle cx="790" cy="640" r="230" fill="#fff3d6" opacity="0.55" filter="url(#softer)" />
+            <circle cx="790" cy="640" r="74" fill="#fffaf0" />
+            <path d="M-200 1150 C 0 1060, 140 1090, 260 1040 S 520 1000, 640 1060 S 900 1010, 1280 1080 L 1280 1300 L -200 1300 Z" fill="#b8bba8" opacity="0.75" />
+            <path d="M-200 1205 C 60 1150, 240 1190, 420 1150 S 760 1160, 900 1130 S 1150 1170, 1280 1150 L 1280 1300 L -200 1300 Z" fill="#cbb98f" opacity="0.9" />
+            <rect x="-200" y="1225" width="1480" height="900" fill="url(#g-ground)" />
+            <g fill="#e6d3a6" opacity="0.6">
+              <ellipse cx="140" cy="1330" rx="180" ry="7" />
+              <ellipse cx="760" cy="1300" rx="240" ry="6" />
+              <ellipse cx="420" cy="1560" rx="320" ry="10" />
+              <ellipse cx="900" cy="1680" rx="260" ry="9" />
+            </g>
+            <g fill="#9c8259" opacity="0.55">
+              <ellipse cx="300" cy="1500" rx="9" ry="4" />
+              <ellipse cx="660" cy="1530" rx="12" ry="5" />
+              <ellipse cx="880" cy="1470" rx="7" ry="3" />
+              <ellipse cx="180" cy="1640" rx="14" ry="6" />
+              <ellipse cx="560" cy="1720" rx="10" ry="4" />
+              <ellipse cx="980" cy="1780" rx="12" ry="5" />
+            </g>
+            <!-- Dust kicked up behind the tank. -->
+            <g id="f-puffs" fill="#e8d7ae">
+              <circle class="puff" cx="150" cy="1400" r="70" filter="url(#soft)" />
+              <circle class="puff" cx="260" cy="1410" r="80" filter="url(#soft)" />
+              <circle class="puff" cx="360" cy="1395" r="70" filter="url(#soft)" />
+              <circle class="puff" cx="450" cy="1410" r="75" filter="url(#soft)" />
+              <circle class="puff" cx="70" cy="1405" r="60" filter="url(#soft)" />
+            </g>
+            <!-- The tank's and the drone's shadows on the ground. -->
+            <ellipse id="f-tshadow" cx="510" cy="1440" rx="470" ry="34" fill="#4d3d24" opacity="0.38" filter="url(#soft)" />
+            <ellipse id="f-dshadow" cx="540" cy="1460" rx="150" ry="16" fill="#4d3d24" opacity="0" filter="url(#soft)" />
+            <!-- Motes drifting in the haze. -->
+            <g id="f-motes" fill="#fffaf0" opacity="0.5">
+              <circle cx="120" cy="820" r="3" />
+              <circle cx="300" cy="960" r="2" />
+              <circle cx="520" cy="880" r="3" />
+              <circle cx="700" cy="1010" r="2" />
+              <circle cx="880" cy="900" r="3" />
+              <circle cx="980" cy="1060" r="2" />
+              <circle cx="220" cy="1120" r="2" />
+              <circle cx="640" cy="760" r="2" />
+            </g>
           </svg>
+
+          <!-- The tank, side on, facing right. -->
+          <div id="f-tankw" style="position: absolute; left: 70px; top: 980px; width: 920px; height: 470px">
+            <svg id="f-tank" width="920" height="470" viewBox="0 0 900 460" style="display: block; overflow: visible">
+              <!-- Antenna, swaying from its base. -->
+              <g id="f-ant"><path d="M362 164 Q 352 100, 336 30" fill="none" stroke="#2c3220" stroke-width="4" stroke-linecap="round" /><circle cx="336" cy="30" r="5" fill="#2c3220" /></g>
+              <!-- Tracks. -->
+              <rect x="40" y="330" width="790" height="112" rx="56" fill="url(#g-track)" />
+              <g clip-path="url(#c-track)">
+                <g id="f-treads" fill="#454b37">
+                  <rect x="0" y="332" width="12" height="108" rx="3" />
+<rect x="30" y="332" width="12" height="108" rx="3" />
+<rect x="60" y="332" width="12" height="108" rx="3" />
+<rect x="90" y="332" width="12" height="108" rx="3" />
+<rect x="120" y="332" width="12" height="108" rx="3" />
+<rect x="150" y="332" width="12" height="108" rx="3" />
+<rect x="180" y="332" width="12" height="108" rx="3" />
+<rect x="210" y="332" width="12" height="108" rx="3" />
+<rect x="240" y="332" width="12" height="108" rx="3" />
+<rect x="270" y="332" width="12" height="108" rx="3" />
+<rect x="300" y="332" width="12" height="108" rx="3" />
+<rect x="330" y="332" width="12" height="108" rx="3" />
+<rect x="360" y="332" width="12" height="108" rx="3" />
+<rect x="390" y="332" width="12" height="108" rx="3" />
+<rect x="420" y="332" width="12" height="108" rx="3" />
+<rect x="450" y="332" width="12" height="108" rx="3" />
+<rect x="480" y="332" width="12" height="108" rx="3" />
+<rect x="510" y="332" width="12" height="108" rx="3" />
+<rect x="540" y="332" width="12" height="108" rx="3" />
+<rect x="570" y="332" width="12" height="108" rx="3" />
+<rect x="600" y="332" width="12" height="108" rx="3" />
+<rect x="630" y="332" width="12" height="108" rx="3" />
+<rect x="660" y="332" width="12" height="108" rx="3" />
+<rect x="690" y="332" width="12" height="108" rx="3" />
+<rect x="720" y="332" width="12" height="108" rx="3" />
+<rect x="750" y="332" width="12" height="108" rx="3" />
+<rect x="780" y="332" width="12" height="108" rx="3" />
+<rect x="810" y="332" width="12" height="108" rx="3" />
+<rect x="840" y="332" width="12" height="108" rx="3" />
+<rect x="870" y="332" width="12" height="108" rx="3" />
+<rect x="900" y="332" width="12" height="108" rx="3" />
+<rect x="930" y="332" width="12" height="108" rx="3" />
+<rect x="960" y="332" width="12" height="108" rx="3" />
+<rect x="990" y="332" width="12" height="108" rx="3" />
+<rect x="1020" y="332" width="12" height="108" rx="3" />
+<rect x="1050" y="332" width="12" height="108" rx="3" />
+<rect x="1080" y="332" width="12" height="108" rx="3" />
+<rect x="1110" y="332" width="12" height="108" rx="3" />
+<rect x="1140" y="332" width="12" height="108" rx="3" />
+<rect x="1170" y="332" width="12" height="108" rx="3" />
+<rect x="1200" y="332" width="12" height="108" rx="3" />
+<rect x="1230" y="332" width="12" height="108" rx="3" />
+<rect x="1260" y="332" width="12" height="108" rx="3" />
+<rect x="1290" y="332" width="12" height="108" rx="3" />
+<rect x="1320" y="332" width="12" height="108" rx="3" />
+<rect x="1350" y="332" width="12" height="108" rx="3" />
+<rect x="1380" y="332" width="12" height="108" rx="3" />
+<rect x="1410" y="332" width="12" height="108" rx="3" />
+<rect x="1440" y="332" width="12" height="108" rx="3" />
+<rect x="1470" y="332" width="12" height="108" rx="3" />
+<rect x="1500" y="332" width="12" height="108" rx="3" />
+<rect x="1530" y="332" width="12" height="108" rx="3" />
+<rect x="1560" y="332" width="12" height="108" rx="3" />
+<rect x="1590" y="332" width="12" height="108" rx="3" />
+<rect x="1620" y="332" width="12" height="108" rx="3" />
+<rect x="1650" y="332" width="12" height="108" rx="3" />
+<rect x="1680" y="332" width="12" height="108" rx="3" />
+<rect x="1710" y="332" width="12" height="108" rx="3" />
+<rect x="1740" y="332" width="12" height="108" rx="3" />
+<rect x="1770" y="332" width="12" height="108" rx="3" />
+<rect x="1800" y="332" width="12" height="108" rx="3" />
+<rect x="1830" y="332" width="12" height="108" rx="3" />
+<rect x="1860" y="332" width="12" height="108" rx="3" />
+<rect x="1890" y="332" width="12" height="108" rx="3" />
+<rect x="1920" y="332" width="12" height="108" rx="3" />
+<rect x="1950" y="332" width="12" height="108" rx="3" />
+<rect x="1980" y="332" width="12" height="108" rx="3" />
+<rect x="2010" y="332" width="12" height="108" rx="3" />
+<rect x="2040" y="332" width="12" height="108" rx="3" />
+<rect x="2070" y="332" width="12" height="108" rx="3" />
+<rect x="2100" y="332" width="12" height="108" rx="3" />
+<rect x="2130" y="332" width="12" height="108" rx="3" />
+<rect x="2160" y="332" width="12" height="108" rx="3" />
+<rect x="2190" y="332" width="12" height="108" rx="3" />
+<rect x="2220" y="332" width="12" height="108" rx="3" />
+<rect x="2250" y="332" width="12" height="108" rx="3" />
+<rect x="2280" y="332" width="12" height="108" rx="3" />
+<rect x="2310" y="332" width="12" height="108" rx="3" />
+<rect x="2340" y="332" width="12" height="108" rx="3" />
+<rect x="2370" y="332" width="12" height="108" rx="3" />
+                </g>
+              </g>
+              <rect x="56" y="346" width="758" height="80" rx="40" fill="#1b1f15" opacity="0.55" />
+              <!-- Idler, road wheels, sprocket. -->
+              <g class="wheel"><circle cx="96" cy="378" r="38" fill="#262b1d" /><circle cx="96" cy="378" r="30" fill="url(#g-wheel)" /><circle cx="96" cy="378" r="10" fill="#363f23" /><rect x="93" y="352" width="6" height="12" rx="2" fill="#3a4426" /></g>
+              <g class="wheel"><circle cx="170" cy="392" r="40" fill="#1f2318" /><circle cx="170" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="170" cy="392" r="11" fill="#363f23" /><circle cx="189.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="175.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="154.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="154.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="175.9" cy="373.9" r="3" fill="#2e361e" /><rect x="167" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+<g class="wheel"><circle cx="260" cy="392" r="40" fill="#1f2318" /><circle cx="260" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="260" cy="392" r="11" fill="#363f23" /><circle cx="279.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="265.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="244.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="244.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="265.9" cy="373.9" r="3" fill="#2e361e" /><rect x="257" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+<g class="wheel"><circle cx="350" cy="392" r="40" fill="#1f2318" /><circle cx="350" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="350" cy="392" r="11" fill="#363f23" /><circle cx="369.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="355.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="334.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="334.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="355.9" cy="373.9" r="3" fill="#2e361e" /><rect x="347" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+<g class="wheel"><circle cx="440" cy="392" r="40" fill="#1f2318" /><circle cx="440" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="440" cy="392" r="11" fill="#363f23" /><circle cx="459.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="445.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="424.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="424.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="445.9" cy="373.9" r="3" fill="#2e361e" /><rect x="437" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+<g class="wheel"><circle cx="530" cy="392" r="40" fill="#1f2318" /><circle cx="530" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="530" cy="392" r="11" fill="#363f23" /><circle cx="549.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="535.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="514.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="514.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="535.9" cy="373.9" r="3" fill="#2e361e" /><rect x="527" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+<g class="wheel"><circle cx="620" cy="392" r="40" fill="#1f2318" /><circle cx="620" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="620" cy="392" r="11" fill="#363f23" /><circle cx="639.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="625.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="604.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="604.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="625.9" cy="373.9" r="3" fill="#2e361e" /><rect x="617" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+<g class="wheel"><circle cx="710" cy="392" r="40" fill="#1f2318" /><circle cx="710" cy="392" r="31" fill="url(#g-wheel)" /><circle cx="710" cy="392" r="11" fill="#363f23" /><circle cx="729.0" cy="392.0" r="3" fill="#2e361e" /><circle cx="715.9" cy="410.1" r="3" fill="#2e361e" /><circle cx="694.6" cy="403.2" r="3" fill="#2e361e" /><circle cx="694.6" cy="380.8" r="3" fill="#2e361e" /><circle cx="715.9" cy="373.9" r="3" fill="#2e361e" /><rect x="707" y="363" width="6" height="10" rx="2" fill="#3a4426" /></g>
+              <g class="wheel"><path d="M824.0 372.0 L814.3 382.5 L816.0 396.7 L802.0 399.5 L795.0 411.9 L782.0 406.0 L769.0 411.9 L762.0 399.5 L748.0 396.7 L749.7 382.5 L740.0 372.0 L749.7 361.5 L748.0 347.3 L762.0 344.5 L769.0 332.1 L782.0 338.0 L795.0 332.1 L802.0 344.5 L816.0 347.3 L814.3 361.5 Z" fill="#2a2f20" /><circle cx="782" cy="372" r="30" fill="url(#g-wheel)" /><circle cx="782" cy="372" r="11" fill="#363f23" /><rect x="779" y="346" width="6" height="12" rx="2" fill="#3a4426" /></g>
+              <!-- Hull, skirt and turret. -->
+              <path d="M60 300 L96 238 L690 238 L818 286 L818 300 Z" fill="url(#g-hull)" />
+              <path d="M96 238 L690 238 L818 286" fill="none" stroke="#a3b471" stroke-width="3" opacity="0.7" />
+              <path d="M70 300 L812 300 L800 374 L82 374 Z" fill="url(#g-skirt)" />
+              <path d="M82 374 L800 374 L796 384 L86 384 Z" fill="#3d4727" />
+              <g stroke="#46522c" stroke-width="3">
+                <path d="M255 302 V372" />
+                <path d="M440 302 V372" />
+                <path d="M625 302 V372" />
+              </g>
+              <g fill="#4a5630">
+                <circle cx="92" cy="309" r="3.5" />
+<circle cx="132" cy="309" r="3.5" />
+<circle cx="172" cy="309" r="3.5" />
+<circle cx="212" cy="309" r="3.5" />
+<circle cx="252" cy="309" r="3.5" />
+<circle cx="292" cy="309" r="3.5" />
+<circle cx="332" cy="309" r="3.5" />
+<circle cx="372" cy="309" r="3.5" />
+<circle cx="412" cy="309" r="3.5" />
+<circle cx="452" cy="309" r="3.5" />
+<circle cx="492" cy="309" r="3.5" />
+<circle cx="532" cy="309" r="3.5" />
+<circle cx="572" cy="309" r="3.5" />
+<circle cx="612" cy="309" r="3.5" />
+<circle cx="652" cy="309" r="3.5" />
+<circle cx="692" cy="309" r="3.5" />
+<circle cx="732" cy="309" r="3.5" />
+<circle cx="772" cy="309" r="3.5" />
+              </g>
+              <g fill="#5b6a3a" stroke="#46522c" stroke-width="2">
+                <rect x="112" y="250" width="110" height="34" rx="6" />
+              </g>
+              <g stroke="#3c4626" stroke-width="3">
+                <path d="M124 256 v22 M138 256 v22 M152 256 v22 M166 256 v22 M180 256 v22 M194 256 v22 M208 256 v22" />
+              </g>
+              <rect x="790" y="262" width="20" height="12" rx="3" fill="#f2e7c6" />
+              <path d="M300 240 L336 164 L560 156 L642 194 L656 240 Z" fill="url(#g-turret)" />
+              <path d="M336 164 L560 156 L642 194" fill="none" stroke="#a6b874" stroke-width="3" opacity="0.75" />
+              <path d="M306 228 L652 228 L656 240 L300 240 Z" fill="#46522c" opacity="0.6" />
+              <g fill="none" stroke="#4a5630" stroke-width="5" stroke-linecap="round">
+                <path d="M300 186 L262 186 L262 230 L300 230" />
+                <path d="M280 186 V230" />
+              </g>
+              <rect x="396" y="140" width="78" height="22" rx="8" fill="#5f6e3c" />
+              <rect x="410" y="128" width="50" height="14" rx="6" fill="#4c5830" />
+              <rect x="500" y="146" width="26" height="12" rx="3" fill="#3f4a28" />
+              <g fill="#4d5a31">
+                <rect x="586" y="168" width="12" height="22" rx="3" transform="rotate(-28 592 179)" />
+                <rect x="602" y="172" width="12" height="22" rx="3" transform="rotate(-28 608 183)" />
+                <rect x="618" y="176" width="12" height="22" rx="3" transform="rotate(-28 624 187)" />
+              </g>
+              <!-- Barrel, mantlet and muzzle brake. -->
+              <rect x="640" y="186" width="46" height="46" rx="10" fill="#57653a" />
+              <rect x="680" y="198" width="210" height="20" rx="6" fill="url(#g-barrel)" />
+              <rect x="760" y="192" width="54" height="32" rx="12" fill="url(#g-barrel)" />
+              <rect x="868" y="193" width="34" height="30" rx="5" fill="#3a4426" />
+              <rect x="874" y="199" width="8" height="18" rx="2" fill="#262b19" />
+              <!-- Camouflage, clipped to the armour. -->
+              <g clip-path="url(#c-armor)" opacity="0.32">
+                <path d="M120 250 C 170 220, 240 260, 220 300 C 200 340, 120 330, 110 300 Z" fill="#c2b07a" />
+                <path d="M380 300 C 430 270, 520 300, 500 350 C 480 390, 390 380, 370 350 Z" fill="#3a4224" />
+                <path d="M600 240 C 660 220, 740 250, 720 290 C 700 330, 620 320, 600 290 Z" fill="#c2b07a" />
+                <path d="M420 170 C 470 150, 540 175, 520 210 C 500 240, 430 230, 410 205 Z" fill="#3a4224" />
+                <path d="M640 310 C 700 300, 770 320, 760 350 C 750 380, 660 380, 640 355 Z" fill="#c2b07a" />
+                <path d="M200 320 C 240 310, 290 330, 280 360 C 270 385, 210 380, 200 360 Z" fill="#3a4224" />
+              </g>
+              <!-- The QR stickers: one first, then the rest, until the tank is covered. -->
+              <g id="f-stickers" filter="url(#decal)">
+                <g transform="translate(383 171) rotate(-4 31.0 31.0)"><g class="qs"><rect width="62" height="62" rx="6.2" fill="#fbfaf3" /><use href="#qr" x="6.2" y="6.2" width="49.6" height="49.6" fill="#141912" /></g></g>
+<g transform="translate(648 200) rotate(0 16.0 16.0)"><g class="qs"><rect width="32" height="32" rx="3.2" fill="#fbfaf3" /><use href="#qr" x="3.2" y="3.2" width="25.6" height="25.6" fill="#141912" /></g></g>
+<g transform="translate(822 193) rotate(-3 14.0 14.0)"><g class="qs"><rect width="28" height="28" rx="2.8" fill="#fbfaf3" /><use href="#qr" x="2.8" y="2.8" width="22.4" height="22.4" fill="#141912" /></g></g>
+<g transform="translate(500 246) rotate(3 22.0 22.0)"><g class="qs"><rect width="44" height="44" rx="4.4" fill="#fbfaf3" /><use href="#qr" x="4.4" y="4.4" width="35.2" height="35.2" fill="#141912" /></g></g>
+<g transform="translate(96 308) rotate(4 28.0 28.0)"><g class="qs"><rect width="56" height="56" rx="5.6" fill="#fbfaf3" /><use href="#qr" x="5.6" y="5.6" width="44.8" height="44.8" fill="#141912" /></g></g>
+<g transform="translate(420 250) rotate(-5 23.0 23.0)"><g class="qs"><rect width="46" height="46" rx="4.6" fill="#fbfaf3" /><use href="#qr" x="4.6" y="4.6" width="36.8" height="36.8" fill="#141912" /></g></g>
+<g transform="translate(528 166) rotate(-8 24.0 24.0)"><g class="qs"><rect width="48" height="48" rx="4.8" fill="#fbfaf3" /><use href="#qr" x="4.8" y="4.8" width="38.4" height="38.4" fill="#141912" /></g></g>
+<g transform="translate(514 312) rotate(-3 27.0 27.0)"><g class="qs"><rect width="54" height="54" rx="5.4" fill="#fbfaf3" /><use href="#qr" x="5.4" y="5.4" width="43.2" height="43.2" fill="#141912" /></g></g>
+<g transform="translate(172 252) rotate(5 20.0 20.0)"><g class="qs"><rect width="40" height="40" rx="4.0" fill="#fbfaf3" /><use href="#qr" x="4.0" y="4.0" width="32.0" height="32.0" fill="#141912" /></g></g>
+<g transform="translate(600 308) rotate(6 29.0 29.0)"><g class="qs"><rect width="58" height="58" rx="5.8" fill="#fbfaf3" /><use href="#qr" x="5.8" y="5.8" width="46.4" height="46.4" fill="#141912" /></g></g>
+<g transform="translate(690 312) rotate(-4 26.0 26.0)"><g class="qs"><rect width="52" height="52" rx="5.2" fill="#fbfaf3" /><use href="#qr" x="5.2" y="5.2" width="41.6" height="41.6" fill="#141912" /></g></g>
+<g transform="translate(172 312) rotate(-5 26.0 26.0)"><g class="qs"><rect width="52" height="52" rx="5.2" fill="#fbfaf3" /><use href="#qr" x="5.2" y="5.2" width="41.6" height="41.6" fill="#141912" /></g></g>
+<g transform="translate(430 308) rotate(5 29.0 29.0)"><g class="qs"><rect width="58" height="58" rx="5.8" fill="#fbfaf3" /><use href="#qr" x="5.8" y="5.8" width="46.4" height="46.4" fill="#141912" /></g></g>
+<g transform="translate(742 262) rotate(14 16.0 16.0)"><g class="qs"><rect width="32" height="32" rx="3.2" fill="#fbfaf3" /><use href="#qr" x="3.2" y="3.2" width="25.6" height="25.6" fill="#141912" /></g></g>
+<g transform="translate(240 248) rotate(-3 23.0 23.0)"><g class="qs"><rect width="46" height="46" rx="4.6" fill="#fbfaf3" /><use href="#qr" x="4.6" y="4.6" width="36.8" height="36.8" fill="#141912" /></g></g>
+<g transform="translate(460 174) rotate(6 26.0 26.0)"><g class="qs"><rect width="52" height="52" rx="5.2" fill="#fbfaf3" /><use href="#qr" x="5.2" y="5.2" width="41.6" height="41.6" fill="#141912" /></g></g>
+<g transform="translate(346 314) rotate(-7 25.0 25.0)"><g class="qs"><rect width="50" height="50" rx="5.0" fill="#fbfaf3" /><use href="#qr" x="5.0" y="5.0" width="40.0" height="40.0" fill="#141912" /></g></g>
+<g transform="translate(596 198) rotate(10 17.0 17.0)"><g class="qs"><rect width="34" height="34" rx="3.4" fill="#fbfaf3" /><use href="#qr" x="3.4" y="3.4" width="27.2" height="27.2" fill="#141912" /></g></g>
+<g transform="translate(110 246) rotate(-6 22.0 22.0)"><g class="qs"><rect width="44" height="44" rx="4.4" fill="#fbfaf3" /><use href="#qr" x="4.4" y="4.4" width="35.2" height="35.2" fill="#141912" /></g></g>
+<g transform="translate(262 308) rotate(3 29.0 29.0)"><g class="qs"><rect width="58" height="58" rx="5.8" fill="#fbfaf3" /><use href="#qr" x="5.8" y="5.8" width="46.4" height="46.4" fill="#141912" /></g></g>
+<g transform="translate(582 250) rotate(-6 21.0 21.0)"><g class="qs"><rect width="42" height="42" rx="4.2" fill="#fbfaf3" /><use href="#qr" x="4.2" y="4.2" width="33.6" height="33.6" fill="#141912" /></g></g>
+<g transform="translate(318 198) rotate(-10 16.0 16.0)"><g class="qs"><rect width="32" height="32" rx="3.2" fill="#fbfaf3" /><use href="#qr" x="3.2" y="3.2" width="25.6" height="25.6" fill="#141912" /></g></g>
+<g transform="translate(330 246) rotate(4 21.0 21.0)"><g class="qs"><rect width="42" height="42" rx="4.2" fill="#fbfaf3" /><use href="#qr" x="4.2" y="4.2" width="33.6" height="33.6" fill="#141912" /></g></g>
+<g transform="translate(680 246) rotate(7 21.0 21.0)"><g class="qs"><rect width="42" height="42" rx="4.2" fill="#fbfaf3" /><use href="#qr" x="4.2" y="4.2" width="33.6" height="33.6" fill="#141912" /></g></g>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Lock-on brackets and the scan, in the same space as the tank. -->
+          <svg id="f-ret" class="full" viewBox="0 0 1080 1920" style="opacity: 0">
+            <g fill="none" stroke="#ffb547" stroke-width="10" stroke-linecap="round" filter="url(#glow)">
+              <path d="M80 1010 v-70 h70" />
+              <path d="M1000 1010 v-70 h-70" />
+              <path d="M80 1440 v70 h70" />
+              <path d="M1000 1440 v70 h-70" />
+            </g>
+          </svg>
+          <svg id="f-scan" class="full" viewBox="0 0 1080 1920">
+            <path id="f-beam" d="M540 682 L452 1146 L532 1146 Z" fill="url(#beam)" opacity="0" filter="url(#blur2)" />
+            <g id="f-hit" opacity="0">
+              <rect x="459" y="1152" width="68" height="68" rx="6" fill="#3dd6a3" opacity="0.25" />
+              <g fill="none" stroke="#7cf0c6" stroke-width="6" stroke-linecap="round" filter="url(#glow)">
+                <path d="M446 1176 v-30 h30" />
+                <path d="M540 1176 v-30 h-30" />
+                <path d="M446 1196 v30 h30" />
+                <path d="M540 1196 v30 h-30" />
+              </g>
+            </g>
+            <rect id="f-line" x="446" y="1146" width="94" height="6" rx="3" fill="#b7ffe6" opacity="0" filter="url(#glow)" />
+          </svg>
+          <div id="f-hud1" class="hud amber" style="left: 80px; top: 1530px">● LOCKED</div>
+          <div id="f-hud2" class="hud" style="left: 560px; top: 1150px">QR DETECTED</div>
+
+          <!-- The drone. -->
+          <div id="f-drone-w" style="position: absolute; left: 340px; top: 500px"><div id="f-drone" class="drone" data-kind="dark" data-w="400"></div></div>
         </div>
-
-        <!-- The tank, side on. The panel on its hull is where the code goes. -->
-        <svg id="f-tank" width="860" height="452" viewBox="0 0 800 420" style="position: absolute; left: 110px; top: 990px">
-          <rect x="40" y="290" width="720" height="112" rx="56" fill="#2f3524" />
-          <g fill="#4a5236" stroke="#262b1c" stroke-width="6">
-            <circle cx="112" cy="346" r="36" />
-            <circle cx="208" cy="346" r="36" />
-            <circle cx="304" cy="346" r="36" />
-            <circle cx="400" cy="346" r="36" />
-            <circle cx="496" cy="346" r="36" />
-            <circle cx="592" cy="346" r="36" />
-            <circle cx="688" cy="346" r="36" />
-          </g>
-          <path d="M58 300 L118 170 L700 170 L762 300 Z" fill="#66763f" />
-          <path d="M58 300 L762 300 L748 318 L72 318 Z" fill="#4f5c30" />
-          <rect x="520" y="112" width="270" height="28" rx="10" fill="#4c5a2e" />
-          <rect x="770" y="106" width="30" height="40" rx="6" fill="#3f4a26" />
-          <path d="M250 170 L298 92 L520 92 L566 170 Z" fill="#5a6937" />
-          <rect x="350" y="70" width="90" height="26" rx="10" fill="#4c5a2e" />
-          <rect x="440" y="204" width="200" height="16" rx="8" fill="#55643a" />
-          <rect x="440" y="238" width="200" height="16" rx="8" fill="#55643a" />
-          <g id="f-qrpanel">
-            <rect x="150" y="178" width="124" height="124" rx="10" fill="#ffffff" />
-            <g transform="translate(160 188) scale(4.16)"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM16 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM13 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM10 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM5 11h1v1h-1zM8 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM0 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM6 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM8 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM14 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM16 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1z" fill="#111611" /></g>
-          </g>
-        </svg>
-
-        <!-- Brackets the drone puts round the tank. -->
-        <svg id="f-ret" class="full" viewBox="0 0 1080 1920" style="opacity: 0">
-          <g fill="none" stroke="#e39b2d" stroke-width="12" stroke-linecap="round">
-            <path d="M120 1010 v-70 h70" />
-            <path d="M960 1010 v-70 h-70" />
-            <path d="M120 1400 v70 h70" />
-            <path d="M960 1400 v70 h-70" />
-          </g>
-        </svg>
-
-        <!-- The scan: a beam from the drone's camera onto the code, and a line passing over it. -->
-        <svg id="f-scan" class="full" viewBox="0 0 1080 1920">
-          <defs>
-            <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#3dd6a3" stop-opacity="0.75" />
-              <stop offset="1" stop-color="#3dd6a3" stop-opacity="0.15" />
-            </linearGradient>
-          </defs>
-          <path id="f-beam" d="M540 700 L240 1160 L414 1160 Z" fill="url(#beam)" opacity="0" />
-          <rect id="f-line" x="228" y="1166" width="196" height="10" rx="5" fill="#3dd6a3" opacity="0" />
-          <g id="f-corners" fill="none" stroke="#3dd6a3" stroke-width="9" stroke-linecap="round" opacity="0">
-            <path d="M226 1196 v-34 h34" />
-            <path d="M418 1196 v-34 h-34" />
-            <path d="M226 1300 v34 h34" />
-            <path d="M418 1300 v34 h-34" />
-          </g>
-        </svg>
-
-        <!-- The drone: a small quadcopter. Its camera is its eye. -->
-        <div id="f-drone-w" style="position: absolute; left: 330px; top: 520px"><svg id="f-drone" width="420" height="234" viewBox="0 0 360 200" style="display: block">
-          <g stroke="#2a2f36" stroke-width="12" stroke-linecap="round">
-            <path d="M120 96 L44 66" />
-            <path d="M240 96 L316 66" />
-          </g>
-          <rect x="34" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
-          <rect x="306" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
-          <ellipse class="rotor" cx="44" cy="50" rx="62" ry="9" fill="#5b6470" opacity="0.55" />
-          <ellipse class="rotor" cx="316" cy="50" rx="62" ry="9" fill="#5b6470" opacity="0.55" />
-          <rect x="112" y="78" width="136" height="62" rx="26" fill="#3a414a" />
-          <rect x="130" y="90" width="100" height="10" rx="5" fill="#5a636d" />
-          <circle cx="180" cy="160" r="30" fill="#2a2f36" />
-          <circle cx="180" cy="160" r="19" fill="#0e1216" />
-          <circle cx="173" cy="153" r="6" fill="#9fe9cf" />
-          <path class="lid" d="M150 160 A30 30 0 0 1 210 160 Z" fill="#3a414a" transform="scale(1 0)" style="transform-origin: 180px 160px" />
-          <path d="M140 136 L128 150 M220 136 L232 150" stroke="#2a2f36" stroke-width="8" stroke-linecap="round" />
-        </svg></div>
 
         <!-- The page the code opens. -->
         <div id="f-browser" class="browser">
-          <div class="urlbar"><span class="lock"></span><span id="f-url"></span></div>
+          <div class="urlbar">
+            <svg width="30" height="36" viewBox="0 0 30 36"><rect x="3" y="15" width="24" height="19" rx="5" fill="#11875f" /><path d="M8 15 V10 a7 7 0 0 1 14 0 V15" fill="none" stroke="#11875f" stroke-width="4" /></svg>
+            <span id="f-url"></span><span id="f-caret" class="caret"></span>
+          </div>
           <div id="f-load" class="loadbar"></div>
           <div id="f-site" class="site">
-            <div class="wordmark" style="font-size: 170px; color: var(--ink)">daywoven</div>
-            <div style="font-size: 50px; font-weight: 700; letter-spacing: -0.02em; margin-top: 30px; color: var(--muted)">Know your 3 p.m. at 7 a.m.</div>
-            <div style="display: inline-block; margin-top: 60px; padding: 26px 60px; border-radius: 999px; background: var(--mint); font-size: 46px; font-weight: 800; color: var(--ink)">Get the app</div>
+            <div class="wordmark" style="font-size: 140px; margin-top: 26px; color: var(--ink)">daywoven</div>
+            <div style="font-size: 46px; font-weight: 700; letter-spacing: -0.02em; margin-top: 18px; color: var(--muted)">Know your 3 p.m. at 7 a.m.</div>
+            <svg id="f-ring" width="190" height="190" viewBox="0 0 230 230" style="display: block; margin: 30px auto 0">
+              <circle cx="115" cy="115" r="92" fill="none" stroke="#e7efeb" stroke-width="20" />
+              <circle id="f-arc" cx="115" cy="115" r="92" fill="none" stroke="#3dd6a3" stroke-width="20" stroke-linecap="round" transform="rotate(-90 115 115)" stroke-dasharray="578" stroke-dashoffset="578" />
+              <text id="f-num" x="115" y="135" text-anchor="middle" font-family="Inter" font-weight="800" font-size="64" fill="#0b1f19">0</text>
+            </svg>
+            <div class="btn" style="margin-top: 30px">Get the app</div>
           </div>
         </div>
 
-        <div id="f-c1" class="cap" style="top: 170px; font-size: 76px">Militaries are putting</div>
-        <div id="f-c2" class="cap it" style="top: 258px; font-size: 200px; color: var(--olive-dark)">QR codes</div>
-        <div id="f-c3" class="cap" style="top: 470px; font-size: 76px">on their tanks.</div>
+        <div id="f-c1" class="cap lift" style="top: 170px; font-size: 76px">Militaries are putting</div>
+        <div id="f-c2" class="cap it lift" style="top: 258px; font-size: 200px; color: var(--olive-dark)">QR codes</div>
+        <div id="f-c3" class="cap lift" style="top: 490px; font-size: 76px">on their tanks.</div>
 
-        <div id="f-c4" class="cap" style="top: 170px; font-size: 72px">Here's why.</div>
-        <div id="f-c5" class="cap it" style="top: 250px; font-size: 200px; color: var(--olive-dark)">Drones.</div>
+        <div id="f-c4" class="cap lift" style="top: 170px; font-size: 72px">Here's why.</div>
+        <div id="f-c5" class="cap it lift" style="top: 254px; font-size: 200px; color: var(--olive-dark)">Drones.</div>
 
-        <div id="f-c6" class="cap" style="top: 170px; font-size: 72px">Before a drone fires,</div>
-        <div id="f-c7" class="cap" style="top: 262px; font-size: 104px">it <span class="it" style="font-size: 150px; color: var(--mint-deep)">scans</span> the tank.</div>
+        <div id="f-c6" class="cap lift" style="top: 170px; font-size: 72px">Before a drone fires,</div>
+        <div id="f-c7" class="cap lift" style="top: 262px; font-size: 104px">it <span class="it" style="font-size: 150px; color: var(--mint-deep)">scans</span> the tank.</div>
 
-        <div id="f-c8" class="cap" style="top: 200px; font-size: 76px">And the code sends it to…</div>
+        <div id="f-c8" class="cap lift" style="top: 200px; font-size: 76px">And the code sends it to…</div>
       </div>
 
       <!-- 4 · 16.15–20.25  The drone checks in: four hours of sleep. -->
-      <div id="d" class="clip dusk" data-start="16.15" data-duration="4.1" data-track-index="0">
-        <div id="d-drone-w" style="position: absolute; left: 160px; top: 760px"><svg id="d-drone" width="760" height="422" viewBox="0 0 360 200" style="display: block">
-          <g stroke="#2a2f36" stroke-width="12" stroke-linecap="round">
-            <path d="M120 96 L44 66" />
-            <path d="M240 96 L316 66" />
+      <div id="d" class="clip night" data-start="16.15" data-duration="4.1" data-track-index="0">
+        <svg class="full" viewBox="0 0 1080 1920">
+          <circle cx="860" cy="560" r="160" fill="#fff6dc" opacity="0.18" filter="url(#softer)" />
+          <circle cx="860" cy="560" r="62" fill="#f7efd8" />
+          <circle cx="884" cy="546" r="56" fill="#26314f" />
+          <g fill="#ffffff">
+            <circle cx="946" cy="1186" r="2.5" opacity="1" />
+<circle cx="1060" cy="1242" r="2" opacity="0.6" />
+<circle cx="994" cy="1329" r="3" opacity="0.6" />
+<circle cx="212" cy="954" r="2" opacity="0.6" />
+<circle cx="205" cy="1143" r="1.5" opacity="1" />
+<circle cx="947" cy="1300" r="2" opacity="0.4" />
+<circle cx="149" cy="161" r="1.5" opacity="0.6" />
+<circle cx="515" cy="1268" r="1.5" opacity="1" />
+<circle cx="688" cy="942" r="3" opacity="0.6" />
+<circle cx="498" cy="642" r="2.5" opacity="0.4" />
+<circle cx="194" cy="976" r="2" opacity="1" />
+<circle cx="190" cy="560" r="2" opacity="0.6" />
+<circle cx="611" cy="100" r="1.5" opacity="0.4" />
+<circle cx="840" cy="260" r="2" opacity="1" />
+<circle cx="156" cy="74" r="1.5" opacity="0.6" />
+<circle cx="449" cy="147" r="2.5" opacity="1" />
+<circle cx="833" cy="899" r="1.5" opacity="0.6" />
+<circle cx="572" cy="729" r="1.5" opacity="0.8" />
+<circle cx="701" cy="71" r="2.5" opacity="0.4" />
+<circle cx="295" cy="544" r="1.5" opacity="0.4" />
+<circle cx="142" cy="992" r="2.5" opacity="0.6" />
+<circle cx="405" cy="956" r="3" opacity="0.6" />
+<circle cx="288" cy="898" r="2.5" opacity="0.4" />
+<circle cx="828" cy="901" r="2" opacity="0.4" />
+<circle cx="572" cy="1253" r="2" opacity="0.4" />
+<circle cx="451" cy="423" r="2.5" opacity="0.4" />
+<circle cx="106" cy="339" r="2" opacity="1" />
+<circle cx="548" cy="59" r="3" opacity="0.8" />
+<circle cx="626" cy="830" r="1.5" opacity="0.4" />
+<circle cx="204" cy="467" r="3" opacity="0.6" />
+<circle cx="51" cy="1271" r="2" opacity="0.8" />
+<circle cx="948" cy="300" r="3" opacity="1" />
+<circle cx="297" cy="830" r="2" opacity="0.6" />
+<circle cx="656" cy="507" r="3" opacity="0.6" />
+<circle cx="408" cy="364" r="3" opacity="0.6" />
+<circle cx="815" cy="1028" r="3" opacity="0.4" />
+<circle cx="883" cy="137" r="1.5" opacity="0.4" />
+<circle cx="99" cy="1089" r="2" opacity="0.6" />
+<circle cx="822" cy="566" r="2.5" opacity="1" />
+<circle cx="620" cy="1105" r="2" opacity="0.4" />
+<circle cx="278" cy="507" r="2.5" opacity="0.4" />
+<circle cx="593" cy="474" r="2" opacity="0.4" />
+<circle cx="161" cy="591" r="2.5" opacity="1" />
+<circle cx="530" cy="163" r="1.5" opacity="0.6" />
+<circle cx="597" cy="795" r="3" opacity="0.6" />
+<circle cx="208" cy="781" r="2" opacity="1" />
+<circle cx="697" cy="1108" r="3" opacity="0.6" />
+<circle cx="91" cy="76" r="2.5" opacity="0.8" />
+<circle cx="658" cy="108" r="1.5" opacity="0.4" />
+<circle cx="1007" cy="177" r="2" opacity="0.8" />
+<circle cx="299" cy="188" r="1.5" opacity="1" />
+<circle cx="773" cy="131" r="2" opacity="0.8" />
+<circle cx="740" cy="213" r="2.5" opacity="0.4" />
+<circle cx="874" cy="101" r="2.5" opacity="0.4" />
+<circle cx="803" cy="816" r="3" opacity="0.4" />
+<circle cx="167" cy="204" r="1.5" opacity="0.4" />
+<circle cx="546" cy="892" r="2" opacity="1" />
+<circle cx="957" cy="942" r="2.5" opacity="0.4" />
+<circle cx="81" cy="675" r="3" opacity="0.4" />
+<circle cx="1004" cy="85" r="2" opacity="0.4" />
+<circle cx="1038" cy="1298" r="2.5" opacity="0.8" />
+<circle cx="43" cy="793" r="2" opacity="0.6" />
+<circle cx="434" cy="1101" r="2" opacity="0.8" />
+<circle cx="925" cy="1060" r="2" opacity="0.8" />
+<circle cx="848" cy="553" r="2" opacity="1" />
+<circle cx="430" cy="478" r="2.5" opacity="0.6" />
+<circle cx="668" cy="469" r="2" opacity="0.6" />
+<circle cx="1036" cy="758" r="1.5" opacity="0.4" />
+<circle cx="586" cy="386" r="1.5" opacity="1" />
+<circle cx="985" cy="603" r="2" opacity="1" />
           </g>
-          <rect x="34" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
-          <rect x="306" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
-          <ellipse class="rotor" cx="44" cy="50" rx="62" ry="9" fill="#8b95a1" opacity="0.5" />
-          <ellipse class="rotor" cx="316" cy="50" rx="62" ry="9" fill="#8b95a1" opacity="0.5" />
-          <rect x="112" y="78" width="136" height="62" rx="26" fill="#4a525c" />
-          <rect x="130" y="90" width="100" height="10" rx="5" fill="#6a737d" />
-          <circle cx="180" cy="160" r="30" fill="#2a2f36" />
-          <circle cx="180" cy="160" r="19" fill="#0e1216" />
-          <circle cx="173" cy="153" r="6" fill="#9fe9cf" />
-          <path id="d-lid" d="M150 160 A30 30 0 0 1 210 160 Z" fill="#4a525c" />
-          <path d="M140 136 L128 150 M220 136 L232 150" stroke="#2a2f36" stroke-width="8" stroke-linecap="round" />
-        </svg></div>
+          <path d="M-20 1700 C 200 1640, 420 1680, 620 1630 S 940 1650, 1100 1620 L 1100 1940 L -20 1940 Z" fill="#141b33" />
+        </svg>
+        <div id="d-drone-w" style="position: absolute; left: 160px; top: 760px"><div id="d-drone" class="drone" data-kind="dark" data-w="760" data-lid="1"></div></div>
         <div id="d-z1" class="cap it" style="top: 640px; left: 700px; right: auto; font-size: 90px; color: #c9d1e8">z</div>
         <div id="d-z2" class="cap it" style="top: 560px; left: 770px; right: auto; font-size: 120px; color: #c9d1e8">z</div>
         <div id="d-z3" class="cap it" style="top: 450px; left: 850px; right: auto; font-size: 150px; color: #c9d1e8">z</div>
@@ -440,6 +812,7 @@
 
       <!-- 8 · 36.45–40.75  Two minutes of breathing when the day gets heavy. -->
       <div id="b" class="clip dusk" data-start="36.45" data-duration="4.3" data-track-index="0">
+        <div id="b-halo" style="position: absolute; left: 190px; top: 720px; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(61, 214, 163, 0.35) 0%, rgba(61, 214, 163, 0) 70%)"></div>
         <div id="b-orb" style="position: absolute; left: 290px; top: 820px; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #e9fff6 0%, #9ff0d1 45%, #3dd6a3 100%); box-shadow: 0 0 140px rgba(61, 214, 163, 0.5)"></div>
         <div id="b-in" class="cap it" style="top: 1430px; font-size: 90px; color: #e8fff5">breathe in…</div>
         <div id="b-out" class="cap it" style="top: 1430px; font-size: 90px; color: #e8fff5">and out.</div>
@@ -468,27 +841,19 @@
 
       <!-- 10 · 44.75–50.6  daywovenapp.com, a real code, and a calmer drone. -->
       <div id="e" class="clip mintbg" data-start="44.75" data-duration="5.85" data-track-index="0">
-        <div id="e-drone-w" style="position: absolute; left: 340px; top: 150px"><svg id="e-drone" width="400" height="222" viewBox="0 0 360 200" style="display: block">
-          <g stroke="#0b1f19" stroke-width="12" stroke-linecap="round">
-            <path d="M120 96 L44 66" />
-            <path d="M240 96 L316 66" />
-          </g>
-          <rect x="34" y="52" width="20" height="18" rx="5" fill="#0b1f19" />
-          <rect x="306" y="52" width="20" height="18" rx="5" fill="#0b1f19" />
-          <ellipse class="rotor" cx="44" cy="50" rx="62" ry="9" fill="#0b1f19" opacity="0.35" />
-          <ellipse class="rotor" cx="316" cy="50" rx="62" ry="9" fill="#0b1f19" opacity="0.35" />
-          <rect x="112" y="78" width="136" height="62" rx="26" fill="#ffffff" />
-          <rect x="130" y="90" width="100" height="10" rx="5" fill="#d7f6ea" />
-          <circle cx="180" cy="160" r="30" fill="#0b1f19" />
-          <path d="M166 162 Q180 150 194 162" fill="none" stroke="#9fe9cf" stroke-width="6" stroke-linecap="round" />
-          <path d="M140 136 L128 150 M220 136 L232 150" stroke="#0b1f19" stroke-width="8" stroke-linecap="round" />
-        </svg></div>
+        <svg id="e-pattern" class="full" viewBox="0 0 1080 1920"><rect x="-300" y="-300" width="1680" height="2520" fill="url(#p-qr)" /></svg>
+        <div id="e-drone-w" style="position: absolute; left: 340px; top: 130px"><div id="e-drone" class="drone" data-kind="light" data-w="400"></div></div>
         <div id="e-url" class="cap" style="top: 520px; font-size: 104px; color: var(--ink)">daywovenapp.com</div>
         <div id="e-mark" class="cap wordmark" style="top: 700px; font-size: 130px; font-weight: 400; color: var(--ink)">daywoven</div>
         <div id="e-qr" class="qrcard">
-          <svg width="460" height="460" viewBox="-4 -4 33 33"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM16 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM13 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM10 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM5 11h1v1h-1zM8 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM0 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM6 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM8 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM14 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM16 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1z" fill="#0b1f19" /></svg>
+          <svg width="480" height="480" viewBox="-4 -4 33 33"><use href="#qr" x="0" y="0" width="25" height="25" fill="#0b1f19" /></svg>
         </div>
         <div id="e-c1" class="cap" style="top: 1640px; font-size: 64px; color: var(--ink)">Even the drones are calmer now.</div>
+      </div>
+
+      <div id="grade">
+        <svg class="full" viewBox="0 0 1080 1920" style="mix-blend-mode: overlay; opacity: 0.1"><rect width="1080" height="1920" filter="url(#grain)" /></svg>
+        <div class="layer" style="background: radial-gradient(120% 80% at 50% 45%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.22) 100%)"></div>
       </div>
 
       <!-- sfx:start -->
@@ -599,6 +964,35 @@
     </div>
 
     <script>
+      // One drone drawing, used three times: dark in the field and at night, white on the end card.
+      document.querySelectorAll(".drone").forEach((el) => {
+        const light = el.dataset.kind === "light";
+        const w = Number(el.dataset.w);
+        const ink = light ? "#0b1f19" : "#22272d";
+        const body = light ? "url(#g-dbody-w)" : "url(#g-dbody)";
+        const lid = el.dataset.lid
+          ? `<path class="lid" d="M177 186 A33 33 0 0 1 243 186 Z" fill="${light ? "#ffffff" : "#4a535d"}" />`
+          : "";
+        const eye = light
+          ? `<path d="M196 188 Q210 174 224 188" fill="none" stroke="#9fe9cf" stroke-width="7" stroke-linecap="round" />`
+          : `<circle cx="210" cy="186" r="21" fill="url(#g-lens)" /><circle cx="202" cy="178" r="6" fill="#bff5e2" /><circle cx="217" cy="193" r="3" fill="#7cc7b0" opacity="0.7" />`;
+        el.innerHTML = `<svg width="${w}" height="${w * 0.6}" viewBox="0 0 420 252" style="display:block;overflow:visible">
+          <g stroke="${ink}" stroke-width="13" stroke-linecap="round" fill="none"><path d="M150 112 L60 80" /><path d="M270 112 L360 80" /></g>
+          <g stroke="${ink}" stroke-width="7" stroke-linecap="round"><path d="M168 150 L150 196" /><path d="M252 150 L270 196" /><path d="M138 196 H164 M256 196 H282" /></g>
+          <rect x="46" y="66" width="28" height="22" rx="6" fill="${ink}" /><rect x="346" y="66" width="28" height="22" rx="6" fill="${ink}" />
+          <ellipse cx="60" cy="58" rx="78" ry="11" fill="${light ? "#0b1f19" : "#c8d2dc"}" opacity="${light ? 0.18 : 0.28}" filter="url(#blur2)" />
+          <ellipse cx="360" cy="58" rx="78" ry="11" fill="${light ? "#0b1f19" : "#c8d2dc"}" opacity="${light ? 0.18 : 0.28}" filter="url(#blur2)" />
+          <rect class="rotor" x="-12" y="55" width="144" height="7" rx="3.5" fill="${ink}" opacity="0.75" />
+          <rect class="rotor" x="288" y="55" width="144" height="7" rx="3.5" fill="${ink}" opacity="0.75" />
+          <rect x="132" y="92" width="156" height="70" rx="30" fill="${body}" />
+          <path d="M150 104 Q210 88 270 104" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.28" />
+          <circle class="led-r" cx="148" cy="138" r="6" fill="#ff6b5b" /><circle class="led-g" cx="272" cy="138" r="6" fill="#4ef0b5" />
+          <rect x="196" y="158" width="28" height="12" rx="4" fill="${ink}" />
+          <circle cx="210" cy="186" r="33" fill="${ink}" />
+          ${eye}${lid}
+        </svg>`;
+      });
+
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
       const E = "power3.out";
@@ -608,60 +1002,94 @@
       const out = (sel, t, d = 0.22) => tl.to(sel, { autoAlpha: 0, y: -24, duration: d, ease: "power2.in" }, t);
       const pop = (sel, t, d = 0.42, from = 0, origin = "50% 50%") => tl.fromTo(sel, { scale: from, autoAlpha: 0, transformOrigin: origin }, { scale: 1, autoAlpha: 1, duration: d, ease: "back.out(1.8)", transformOrigin: origin }, t);
       const slam = (sel, t, from = 1.6) => tl.fromTo(sel, { scale: from, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "power4.out" }, t);
-      // Rotors blur by squashing back and forth for as long as the drone is on screen.
-      const spin = (sel, t, d) => tl.fromTo(sel, { scaleX: 1, transformOrigin: "50% 50%" }, { scaleX: 0.3, duration: 0.05, ease: "none", repeat: Math.round(d / 0.05), yoyo: true, transformOrigin: "50% 50%" }, t);
+      // Rotor blades sweep by squashing back and forth for as long as the drone is on screen.
+      const spin = (sel, t, d, period = 0.05) => tl.fromTo(sel, { scaleX: 1, transformOrigin: "50% 50%" }, { scaleX: -1, duration: period, ease: "none", repeat: Math.round(d / period), yoyo: true, transformOrigin: "50% 50%" }, t);
       const bob = (sel, t, d, dist = 14, period = 0.9) => tl.fromTo(sel, { y: 0 }, { y: -dist, duration: period / 2, ease: "sine.inOut", repeat: Math.round((2 * d) / period), yoyo: true }, t);
+      const blinkLeds = (root, t, d) => {
+        tl.fromTo(`${root} .led-r`, { opacity: 1 }, { opacity: 0.2, duration: 0.25, ease: "none", repeat: Math.round(d / 0.25), yoyo: true }, t);
+        tl.fromTo(`${root} .led-g`, { opacity: 0.2 }, { opacity: 1, duration: 0.25, ease: "none", repeat: Math.round(d / 0.25), yoyo: true }, t);
+      };
+      // A small camera shake: a few quick offsets that settle.
+      const shake = (sel, t, amp = 10) => {
+        [[amp, -amp * 0.6], [-amp * 0.7, amp * 0.5], [amp * 0.4, -amp * 0.3], [0, 0]].forEach(([x, y], i) => tl.to(sel, { x, y, duration: 0.045, ease: "none" }, t + i * 0.045));
+      };
 
-      // 1 · The tank rolls in, and a code is stamped on its hull.
-      tl.set(["#f-c4", "#f-c5", "#f-c6", "#f-c7", "#f-c8", "#f-browser", "#f-drone-w"], { autoAlpha: 0 }, 0);
-      tl.fromTo("#f-tank", { x: -1000 }, { x: 0, duration: 1.3, ease: "power2.out" }, 0.1);
-      tl.fromTo("#f-tank", { rotation: 0 }, { rotation: -0.8, duration: 0.12, ease: "sine.inOut", repeat: 9, yoyo: true, transformOrigin: "50% 100%" }, 0.1);
-      tl.fromTo("#f-dust", { autoAlpha: 0, x: -200 }, { autoAlpha: 1, x: 0, duration: 1.0, ease: E }, 0.4);
-      tl.to("#f-dust", { autoAlpha: 0, duration: 0.8 }, 1.6);
-      tl.set("#f-qrpanel", { autoAlpha: 0 }, 0);
+      // 1 · The tank rolls in on moving treads and settles; then it is plastered in QR stickers.
+      tl.set(["#f-c4", "#f-c5", "#f-c6", "#f-c7", "#f-c8", "#f-browser", "#f-drone-w", "#f-hud1", "#f-hud2"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#f-cam", { scale: 1 }, { scale: 1.05, duration: 2.3, ease: "sine.inOut" }, 0);
+      tl.fromTo("#f-tankw", { x: -1150 }, { x: 0, duration: 1.4, ease: "power2.out" }, 0.05);
+      tl.fromTo("#f-tshadow", { x: -1150 }, { x: 0, duration: 1.4, ease: "power2.out" }, 0.05);
+      tl.fromTo("#f-treads", { x: 0 }, { x: -1150, duration: 1.4, ease: "power2.out" }, 0.05);
+      tl.fromTo("#f-tank .wheel", { rotation: 0, transformOrigin: "50% 50%" }, { rotation: 1700, duration: 1.4, ease: "power2.out", transformOrigin: "50% 50%" }, 0.05);
+      tl.fromTo("#f-tank", { rotation: 0 }, { rotation: 1.3, duration: 0.18, ease: "power2.out", transformOrigin: "80% 95%" }, 1.42);
+      tl.to("#f-tank", { rotation: 0, duration: 0.6, ease: "elastic.out(1, 0.45)", transformOrigin: "80% 95%" }, 1.6);
+      tl.fromTo("#f-ant", { rotation: 0 }, { rotation: -9, duration: 0.2, ease: "power2.out", transformOrigin: "362px 164px" }, 1.42);
+      tl.to("#f-ant", { rotation: 0, duration: 1.4, ease: "elastic.out(1.2, 0.2)", transformOrigin: "362px 164px" }, 1.62);
+      document.querySelectorAll("#f-puffs .puff").forEach((p, i) => {
+        tl.fromTo(p, { scale: 0.3, opacity: 0, transformOrigin: "50% 50%" }, { scale: 1.7, opacity: 0.75, duration: 0.5, ease: E, transformOrigin: "50% 50%" }, 0.25 + i * 0.16);
+        tl.to(p, { opacity: 0, scale: 2.4, y: -40, duration: 1.4, ease: "sine.out" }, 0.75 + i * 0.16);
+      });
+      tl.fromTo("#f-motes", { x: 0, y: 0 }, { x: 60, y: -40, duration: 16, ease: "none" }, 0);
       fadeUp("#f-c1", 0.32);
-      tl.fromTo("#f-qrpanel", { scale: 2.6, autoAlpha: 0, transformOrigin: "212px 240px" }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out", transformOrigin: "212px 240px" }, 2.4);
-      tl.fromTo("#f-tank", { y: 0 }, { y: 10, duration: 0.08, ease: "power2.out", yoyo: true, repeat: 1 }, 2.68);
+      const stickers = gsap.utils.toArray("#f-stickers .qs");
+      tl.set(stickers, { autoAlpha: 0 }, 0);
+      stickers.forEach((s, i) => {
+        const t = i === 0 ? 2.4 : 2.72 + (i - 1) * 0.048;
+        tl.fromTo(s, { scale: i === 0 ? 3 : 2.2, autoAlpha: 0, rotation: "-=12", transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, rotation: "+=12", duration: i === 0 ? 0.3 : 0.2, ease: "power4.out", transformOrigin: "50% 50%" }, t);
+      });
       slam("#f-c2", 2.4);
-      fadeUp("#f-c3", 3.4, 0.35, 24);
+      shake("#f-tankw", 2.62, 8);
+      tl.to("#f-cam", { scale: 1.32, y: -70, duration: 1.2, ease: "power2.inOut" }, 2.5);
+      fadeUp("#f-c3", 3.44, 0.35, 24);
       out(["#f-c1", "#f-c2", "#f-c3"], 4.35);
 
-      // 2 · Here's why: a drone drops in and brackets the tank.
+      // 2 · Here's why: a drone drops in, its shadow finds the ground, and it locks on.
+      tl.to("#f-cam", { scale: 1, y: 40, duration: 1.0, ease: "power2.inOut" }, 4.4);
       fadeUp("#f-c4", 4.56, 0.35, 24);
-      tl.fromTo("#f-drone-w", { y: -700, autoAlpha: 1 }, { y: 0, autoAlpha: 1, duration: 0.8, ease: "back.out(1.2)" }, 5.5);
-      spin("#f-drone .rotor", 5.5, 10.6);
-      bob("#f-drone", 6.35, 9.7);
+      tl.fromTo("#f-drone-w", { y: -760, rotation: -10, autoAlpha: 1 }, { y: 0, rotation: 0, autoAlpha: 1, duration: 0.85, ease: "back.out(1.2)" }, 5.45);
+      tl.fromTo("#f-dshadow", { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 0.32, scale: 1, duration: 0.85, ease: E, transformOrigin: "50% 50%" }, 5.45);
+      spin("#f-drone .rotor", 5.45, 10.7);
+      bob("#f-drone", 6.35, 9.8);
+      blinkLeds("#f-drone", 5.45, 10.7);
       slam("#f-c5", 5.76);
-      tl.fromTo("#f-ret", { autoAlpha: 0, scale: 1.12, transformOrigin: "540px 1205px" }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: E, transformOrigin: "540px 1205px" }, 6.72);
+      tl.fromTo("#f-ret", { autoAlpha: 0, scale: 1.15, transformOrigin: "540px 1225px" }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: E, transformOrigin: "540px 1225px" }, 6.72);
       tl.to("#f-ret", { autoAlpha: 0.35, duration: 0.12, yoyo: true, repeat: 5 }, 7.05);
+      fadeUp("#f-hud1", 6.8, 0.3, 12);
       out(["#f-c4", "#f-c5"], 8.4);
 
       // 3 · Before it fires, it scans. The code sends it to daywovenapp.com.
       fadeUp("#f-c6", 8.56, 0.35, 24);
-      tl.to("#f-ret", { autoAlpha: 0, duration: 0.3 }, 10.5);
+      tl.to(["#f-ret", "#f-hud1"], { autoAlpha: 0, duration: 0.3 }, 10.5);
+      tl.to("#f-cam", { scale: 1.12, y: 0, duration: 1.4, ease: "power2.inOut" }, 10.6);
       fadeUp("#f-c7", 11.2, 0.35, 24);
       tl.fromTo("#f-beam", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: E }, 11.2);
-      tl.fromTo("#f-line", { opacity: 0, y: 0 }, { opacity: 1, y: 0, duration: 0.05 }, 11.25);
-      tl.fromTo("#f-line", { y: 0 }, { y: 150, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 1 }, 11.3);
-      tl.to("#f-line", { opacity: 0, duration: 0.15 }, 12.4);
-      tl.fromTo("#f-corners", { opacity: 0, scale: 1.25, transformOrigin: "322px 1248px" }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)", transformOrigin: "322px 1248px" }, 12.4);
+      tl.fromTo("#f-line", { opacity: 0 }, { opacity: 1, duration: 0.05 }, 11.25);
+      tl.fromTo("#f-line", { y: 0 }, { y: 70, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 11.3);
+      tl.to("#f-line", { opacity: 0, duration: 0.15 }, 12.35);
+      tl.fromTo("#f-hit", { opacity: 0, scale: 1.4, transformOrigin: "493px 1186px" }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)", transformOrigin: "493px 1186px" }, 12.4);
+      pop("#f-hud2", 12.45, 0.35, 0.4, "0% 50%");
       out(["#f-c6", "#f-c7"], 12.45);
       fadeUp("#f-c8", 12.56, 0.35, 24);
-      tl.fromTo("#f-browser", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, ease: E }, 13.6);
-      tl.to("#f-beam", { opacity: 0, duration: 0.3 }, 13.7);
+      tl.to("#f-cam", { filter: "blur(10px) brightness(0.8)", duration: 0.5, ease: "power2.inOut" }, 13.55);
+      tl.fromTo("#f-browser", { y: 980, scale: 0.94, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.6, ease: E }, 13.6);
       const url = "daywovenapp.com";
       const typed = { n: 0 };
-      tl.fromTo(typed, { n: 0 }, { n: url.length, duration: 0.85, ease: "none", immediateRender: false, onUpdate: () => (document.querySelector("#f-url").textContent = url.slice(0, Math.round(typed.n))) }, 14.12);
       tl.set("#f-url", { textContent: "" }, 0);
+      tl.fromTo(typed, { n: 0 }, { n: url.length, duration: 0.85, ease: "none", immediateRender: false, onUpdate: () => (document.querySelector("#f-url").textContent = url.slice(0, Math.round(typed.n))) }, 14.12);
+      tl.fromTo("#f-caret", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "steps(1)", repeat: 7, yoyo: true }, 13.7);
       tl.fromTo("#f-load", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 15.0);
       tl.fromTo("#f-site", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: E }, 15.35);
+      tl.fromTo("#f-arc", { strokeDashoffset: 578 }, { strokeDashoffset: 133, duration: 0.7, ease: "power2.out" }, 15.45);
+      const ring = { v: 0 };
+      tl.fromTo(ring, { v: 0 }, { v: 77, duration: 0.7, ease: "power2.out", immediateRender: false, onUpdate: () => (document.querySelector("#f-num").textContent = Math.round(ring.v)) }, 15.45);
 
       // 4 · The drone, it turns out, slept four hours.
-      spin("#d-drone .rotor", 16.15, 4.1);
+      spin("#d-drone .rotor", 16.15, 4.1, 0.09);
       bob("#d-drone", 16.15, 4.1, 10, 1.4);
+      blinkLeds("#d-drone", 16.15, 4.1);
       tl.fromTo("#d-drone-w", { scale: 0.7, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.45, ease: E }, 16.18);
       fadeUp("#d-c1", 16.32, 0.35, 24);
-      tl.fromTo("#d-lid", { scaleY: 0, transformOrigin: "180px 160px" }, { scaleY: 0.75, duration: 0.6, ease: "power2.inOut", transformOrigin: "180px 160px" }, 17.2);
+      tl.fromTo("#d-drone .lid", { scaleY: 0, transformOrigin: "210px 186px" }, { scaleY: 0.78, duration: 0.6, ease: "power2.inOut", transformOrigin: "210px 186px" }, 17.2);
       tl.to("#d-drone", { rotation: 7, duration: 0.6, ease: "sine.inOut", transformOrigin: "50% 50%" }, 17.2);
       slam("#d-c2", 18.32);
       pop("#d-s1", 18.32, 0.4, 0.5);
@@ -706,13 +1134,16 @@
       tl.set(["#b-c2", "#b-c3", "#b-out"], { autoAlpha: 0 }, 0);
       fadeUp("#b-c1", 36.64, 0.35, 24);
       tl.fromTo("#b-orb", { scale: 0.55, autoAlpha: 0 }, { scale: 0.6, autoAlpha: 1, duration: 0.5, ease: E }, 36.6);
+      tl.fromTo("#b-halo", { scale: 0.6, autoAlpha: 0 }, { scale: 0.7, autoAlpha: 1, duration: 0.5, ease: E }, 36.6);
       slam("#b-c2", 38.4);
       fadeUp("#b-in", 38.45, 0.4, 20);
       tl.to("#b-orb", { scale: 1.05, duration: 1.5, ease: "sine.inOut" }, 38.4);
+      tl.to("#b-halo", { scale: 1.15, duration: 1.5, ease: "sine.inOut" }, 38.4);
       fadeUp("#b-c3", 38.96, 0.35, 24);
       tl.to("#b-in", { autoAlpha: 0, duration: 0.25 }, 39.85);
       fadeUp("#b-out", 39.95, 0.4, 20);
       tl.to("#b-orb", { scale: 0.7, duration: 0.8, ease: "sine.inOut" }, 39.95);
+      tl.to("#b-halo", { scale: 0.8, duration: 0.8, ease: "sine.inOut" }, 39.95);
 
       // 9 · It learns your rhythm, so it gets sharper every week.
       tl.set("#l-c2", { autoAlpha: 0 }, 0);
@@ -728,8 +1159,10 @@
       tl.to("#l-v3", { opacity: 1, duration: 0.1 }, 43.7);
 
       // 10 · daywovenapp.com. Even the drones are calmer now.
-      spin("#e-drone .rotor", 44.75, 5.85);
+      tl.fromTo("#e-pattern", { y: 0 }, { y: -120, duration: 5.85, ease: "none" }, 44.75);
+      spin("#e-drone .rotor", 44.75, 5.85, 0.07);
       bob("#e-drone", 45.2, 5.4, 12, 2.0);
+      blinkLeds("#e-drone", 44.75, 5.85);
       tl.fromTo("#e-drone-w", { y: -400 }, { y: 0, duration: 0.7, ease: "back.out(1.1)" }, 44.75);
       slam("#e-url", 44.96, 1.4);
       fadeUp("#e-mark", 45.6, 0.4, 24);
