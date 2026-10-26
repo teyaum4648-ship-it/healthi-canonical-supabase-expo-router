@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-weight: 400;
+      }
+      :root {
+        --ink: #0b1f19;
+        --muted: #66756e;
+        --paper: #f6efe4;
+        --mint: #3dd6a3;
+        --mint-deep: #11875f;
+        --lav: #7457dd;
+        --amber: #e39b2d;
+        --olive: #66763f;
+        --olive-dark: #3f4a26;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+      }
+      .paper {
+        background: radial-gradient(110% 70% at 50% 30%, #fdf9f2 0%, #f6efe4 60%, #eee3d2 100%);
+      }
+      .ink {
+        background: radial-gradient(90% 60% at 50% 45%, #15302a 0%, #0b1714 65%, #070e0c 100%);
+      }
+      .dusk {
+        background: radial-gradient(100% 70% at 50% 35%, #2b3554 0%, #1a2038 60%, #10142a 100%);
+      }
+      .mintbg {
+        background: radial-gradient(90% 60% at 50% 40%, #6fe6be 0%, #3dd6a3 55%, #22bb8b 100%);
+      }
+      /* The field: a hazy sky over a dusty plain. */
+      .sky {
+        background: linear-gradient(180deg, #c9d3cf 0%, #e6dcc4 52%, #ead9b6 64%);
+      }
+      .ground {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 1230px;
+        bottom: 0;
+        background: linear-gradient(180deg, #cdb789 0%, #b89f70 40%, #a48c5f 100%);
+      }
+      .cap {
+        position: absolute;
+        left: 60px;
+        right: 60px;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.05;
+      }
+      .it {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: -0.005em;
+      }
+      svg.full {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
+      }
+      .phone {
+        position: absolute;
+        left: 230px;
+        top: 520px;
+        width: 620px;
+        height: 1310px;
+        border-radius: 88px;
+        background: #0a0f0d;
+        border: 16px solid #1d2622;
+        box-shadow: 0 50px 100px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+      }
+      .phone img {
+        display: block;
+        width: 588px;
+        height: auto;
+      }
+      .chip {
+        position: absolute;
+        padding: 22px 38px;
+        border-radius: 999px;
+        font-size: 50px;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        box-shadow: 0 18px 40px rgba(11, 31, 25, 0.25);
+      }
+      .sticker {
+        position: absolute;
+        padding: 26px 34px;
+        border-radius: 34px;
+        background: #ffffff;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        font-size: 44px;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .sticker small {
+        display: block;
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      /* The browser the QR code opens. */
+      .browser {
+        position: absolute;
+        left: 70px;
+        right: 70px;
+        top: 640px;
+        height: 760px;
+        border-radius: 48px;
+        background: #ffffff;
+        box-shadow: 0 50px 120px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      .urlbar {
+        margin: 34px 34px 0;
+        height: 96px;
+        border-radius: 30px;
+        background: #eef1ef;
+        display: flex;
+        align-items: center;
+        padding: 0 34px;
+        gap: 22px;
+        font-size: 46px;
+        font-weight: 650;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+      }
+      .urlbar .lock {
+        width: 26px;
+        height: 30px;
+        border-radius: 6px;
+        background: var(--mint-deep);
+      }
+      .loadbar {
+        margin: 18px 34px 0;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--mint);
+        transform-origin: 0 50%;
+      }
+      .site {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 240px;
+        text-align: center;
+      }
+      .wordmark {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        letter-spacing: -0.01em;
+      }
+      .conf {
+        position: absolute;
+        left: 110px;
+        width: 860px;
+        top: 860px;
+        padding: 44px 48px 40px;
+        border-radius: 48px;
+        background: #ffffff;
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.35);
+      }
+      .conf .hd {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 46px;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+      }
+      .conf .val {
+        position: relative;
+        width: 230px;
+        height: 56px;
+        text-align: right;
+      }
+      .conf .val b {
+        position: absolute;
+        right: 0;
+        top: 0;
+        color: var(--amber);
+      }
+      .conf .bars {
+        display: flex;
+        gap: 22px;
+        margin-top: 34px;
+      }
+      .conf .bar {
+        flex: 1;
+        height: 34px;
+        border-radius: 17px;
+        background: #e8ece9;
+        overflow: hidden;
+      }
+      .conf .bar i {
+        display: block;
+        height: 100%;
+        border-radius: 17px;
+        background: var(--mint);
+        transform-origin: 0 50%;
+      }
+      .conf .wk {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 18px;
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .qrcard {
+        position: absolute;
+        left: 310px;
+        top: 1080px;
+        width: 460px;
+        height: 460px;
+        border-radius: 44px;
+        background: #ffffff;
+        box-shadow: 0 40px 90px rgba(6, 60, 42, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="50.6" data-width="1080" data-height="1920">
+      <!-- 1–3 · 0–16.15  The field: a tank gets its QR code, a drone arrives, scans it, and lands on daywovenapp.com. -->
+      <div id="f" class="clip" data-start="0" data-duration="16.15" data-track-index="0">
+        <div class="layer sky"></div>
+        <div class="ground"></div>
+        <div id="f-dust" class="layer" style="opacity: 0">
+          <svg class="full" viewBox="0 0 1080 1920">
+            <ellipse cx="300" cy="1420" rx="220" ry="36" fill="#d9c79e" opacity="0.7" />
+            <ellipse cx="160" cy="1395" rx="140" ry="26" fill="#e2d2ad" opacity="0.6" />
+          </svg>
+        </div>
+
+        <!-- The tank, side on. The panel on its hull is where the code goes. -->
+        <svg id="f-tank" width="860" height="452" viewBox="0 0 800 420" style="position: absolute; left: 110px; top: 990px">
+          <rect x="40" y="290" width="720" height="112" rx="56" fill="#2f3524" />
+          <g fill="#4a5236" stroke="#262b1c" stroke-width="6">
+            <circle cx="112" cy="346" r="36" />
+            <circle cx="208" cy="346" r="36" />
+            <circle cx="304" cy="346" r="36" />
+            <circle cx="400" cy="346" r="36" />
+            <circle cx="496" cy="346" r="36" />
+            <circle cx="592" cy="346" r="36" />
+            <circle cx="688" cy="346" r="36" />
+          </g>
+          <path d="M58 300 L118 170 L700 170 L762 300 Z" fill="#66763f" />
+          <path d="M58 300 L762 300 L748 318 L72 318 Z" fill="#4f5c30" />
+          <rect x="520" y="112" width="270" height="28" rx="10" fill="#4c5a2e" />
+          <rect x="770" y="106" width="30" height="40" rx="6" fill="#3f4a26" />
+          <path d="M250 170 L298 92 L520 92 L566 170 Z" fill="#5a6937" />
+          <rect x="350" y="70" width="90" height="26" rx="10" fill="#4c5a2e" />
+          <rect x="440" y="204" width="200" height="16" rx="8" fill="#55643a" />
+          <rect x="440" y="238" width="200" height="16" rx="8" fill="#55643a" />
+          <g id="f-qrpanel">
+            <rect x="150" y="178" width="124" height="124" rx="10" fill="#ffffff" />
+            <g transform="translate(160 188) scale(4.16)"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM16 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM13 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM10 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM5 11h1v1h-1zM8 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM0 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM6 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM8 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM14 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM16 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1z" fill="#111611" /></g>
+          </g>
+        </svg>
+
+        <!-- Brackets the drone puts round the tank. -->
+        <svg id="f-ret" class="full" viewBox="0 0 1080 1920" style="opacity: 0">
+          <g fill="none" stroke="#e39b2d" stroke-width="12" stroke-linecap="round">
+            <path d="M120 1010 v-70 h70" />
+            <path d="M960 1010 v-70 h-70" />
+            <path d="M120 1400 v70 h70" />
+            <path d="M960 1400 v70 h-70" />
+          </g>
+        </svg>
+
+        <!-- The scan: a beam from the drone's camera onto the code, and a line passing over it. -->
+        <svg id="f-scan" class="full" viewBox="0 0 1080 1920">
+          <defs>
+            <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#3dd6a3" stop-opacity="0.75" />
+              <stop offset="1" stop-color="#3dd6a3" stop-opacity="0.15" />
+            </linearGradient>
+          </defs>
+          <path id="f-beam" d="M540 700 L240 1160 L414 1160 Z" fill="url(#beam)" opacity="0" />
+          <rect id="f-line" x="228" y="1166" width="196" height="10" rx="5" fill="#3dd6a3" opacity="0" />
+          <g id="f-corners" fill="none" stroke="#3dd6a3" stroke-width="9" stroke-linecap="round" opacity="0">
+            <path d="M226 1196 v-34 h34" />
+            <path d="M418 1196 v-34 h-34" />
+            <path d="M226 1300 v34 h34" />
+            <path d="M418 1300 v34 h-34" />
+          </g>
+        </svg>
+
+        <!-- The drone: a small quadcopter. Its camera is its eye. -->
+        <div id="f-drone-w" style="position: absolute; left: 330px; top: 520px"><svg id="f-drone" width="420" height="234" viewBox="0 0 360 200" style="display: block">
+          <g stroke="#2a2f36" stroke-width="12" stroke-linecap="round">
+            <path d="M120 96 L44 66" />
+            <path d="M240 96 L316 66" />
+          </g>
+          <rect x="34" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
+          <rect x="306" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
+          <ellipse class="rotor" cx="44" cy="50" rx="62" ry="9" fill="#5b6470" opacity="0.55" />
+          <ellipse class="rotor" cx="316" cy="50" rx="62" ry="9" fill="#5b6470" opacity="0.55" />
+          <rect x="112" y="78" width="136" height="62" rx="26" fill="#3a414a" />
+          <rect x="130" y="90" width="100" height="10" rx="5" fill="#5a636d" />
+          <circle cx="180" cy="160" r="30" fill="#2a2f36" />
+          <circle cx="180" cy="160" r="19" fill="#0e1216" />
+          <circle cx="173" cy="153" r="6" fill="#9fe9cf" />
+          <path class="lid" d="M150 160 A30 30 0 0 1 210 160 Z" fill="#3a414a" transform="scale(1 0)" style="transform-origin: 180px 160px" />
+          <path d="M140 136 L128 150 M220 136 L232 150" stroke="#2a2f36" stroke-width="8" stroke-linecap="round" />
+        </svg></div>
+
+        <!-- The page the code opens. -->
+        <div id="f-browser" class="browser">
+          <div class="urlbar"><span class="lock"></span><span id="f-url"></span></div>
+          <div id="f-load" class="loadbar"></div>
+          <div id="f-site" class="site">
+            <div class="wordmark" style="font-size: 170px; color: var(--ink)">daywoven</div>
+            <div style="font-size: 50px; font-weight: 700; letter-spacing: -0.02em; margin-top: 30px; color: var(--muted)">Know your 3 p.m. at 7 a.m.</div>
+            <div style="display: inline-block; margin-top: 60px; padding: 26px 60px; border-radius: 999px; background: var(--mint); font-size: 46px; font-weight: 800; color: var(--ink)">Get the app</div>
+          </div>
+        </div>
+
+        <div id="f-c1" class="cap" style="top: 170px; font-size: 76px">Militaries are putting</div>
+        <div id="f-c2" class="cap it" style="top: 258px; font-size: 200px; color: var(--olive-dark)">QR codes</div>
+        <div id="f-c3" class="cap" style="top: 470px; font-size: 76px">on their tanks.</div>
+
+        <div id="f-c4" class="cap" style="top: 170px; font-size: 72px">Here's why.</div>
+        <div id="f-c5" class="cap it" style="top: 250px; font-size: 200px; color: var(--olive-dark)">Drones.</div>
+
+        <div id="f-c6" class="cap" style="top: 170px; font-size: 72px">Before a drone fires,</div>
+        <div id="f-c7" class="cap" style="top: 262px; font-size: 104px">it <span class="it" style="font-size: 150px; color: var(--mint-deep)">scans</span> the tank.</div>
+
+        <div id="f-c8" class="cap" style="top: 200px; font-size: 76px">And the code sends it to…</div>
+      </div>
+
+      <!-- 4 · 16.15–20.25  The drone checks in: four hours of sleep. -->
+      <div id="d" class="clip dusk" data-start="16.15" data-duration="4.1" data-track-index="0">
+        <div id="d-drone-w" style="position: absolute; left: 160px; top: 760px"><svg id="d-drone" width="760" height="422" viewBox="0 0 360 200" style="display: block">
+          <g stroke="#2a2f36" stroke-width="12" stroke-linecap="round">
+            <path d="M120 96 L44 66" />
+            <path d="M240 96 L316 66" />
+          </g>
+          <rect x="34" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
+          <rect x="306" y="52" width="20" height="18" rx="5" fill="#2a2f36" />
+          <ellipse class="rotor" cx="44" cy="50" rx="62" ry="9" fill="#8b95a1" opacity="0.5" />
+          <ellipse class="rotor" cx="316" cy="50" rx="62" ry="9" fill="#8b95a1" opacity="0.5" />
+          <rect x="112" y="78" width="136" height="62" rx="26" fill="#4a525c" />
+          <rect x="130" y="90" width="100" height="10" rx="5" fill="#6a737d" />
+          <circle cx="180" cy="160" r="30" fill="#2a2f36" />
+          <circle cx="180" cy="160" r="19" fill="#0e1216" />
+          <circle cx="173" cy="153" r="6" fill="#9fe9cf" />
+          <path id="d-lid" d="M150 160 A30 30 0 0 1 210 160 Z" fill="#4a525c" />
+          <path d="M140 136 L128 150 M220 136 L232 150" stroke="#2a2f36" stroke-width="8" stroke-linecap="round" />
+        </svg></div>
+        <div id="d-z1" class="cap it" style="top: 640px; left: 700px; right: auto; font-size: 90px; color: #c9d1e8">z</div>
+        <div id="d-z2" class="cap it" style="top: 560px; left: 770px; right: auto; font-size: 120px; color: #c9d1e8">z</div>
+        <div id="d-z3" class="cap it" style="top: 450px; left: 850px; right: auto; font-size: 150px; color: #c9d1e8">z</div>
+        <div id="d-s1" class="sticker" style="left: 120px; top: 1300px"><small>Sleep</small>4h 02m</div>
+        <div id="d-s2" class="sticker" style="left: 560px; top: 1300px"><small>Readiness</small><span style="color: var(--amber)">41 · Low</span></div>
+        <div id="d-c1" class="cap" style="top: 170px; font-size: 58px; color: #ffffff">Turns out the drone's running on</div>
+        <div id="d-c2" class="cap it" style="top: 262px; font-size: 150px; color: var(--mint)">4 hours of sleep</div>
+        <div id="d-c3" class="cap" style="top: 470px; font-size: 76px; color: #ffffff">too.</div>
+      </div>
+
+      <!-- 5 · 20.25–27.75  One number from your sleep, meals, movement and mind. -->
+      <div id="h" class="clip paper" data-start="20.25" data-duration="7.5" data-track-index="0">
+        <div id="h-phone" class="phone"><img id="h-img" src="assets/home.png" alt="" /></div>
+        <div id="h-k1" class="chip" style="left: 60px; top: 760px; background: #3f7fd6">sleep</div>
+        <div id="h-k2" class="chip" style="left: 760px; top: 900px; background: #b8760a">meals</div>
+        <div id="h-k3" class="chip" style="left: 40px; top: 1180px; background: #11875f">movement</div>
+        <div id="h-k4" class="chip" style="left: 790px; top: 1320px; background: #7457dd">mind</div>
+        <div id="h-c1" class="cap" style="top: 170px; font-size: 80px">daywoven reads your day</div>
+        <div id="h-c2" class="cap" style="top: 150px; font-size: 76px">and turns it into</div>
+        <div id="h-c3" class="cap it" style="top: 236px; font-size: 170px; color: var(--mint-deep)">one number.</div>
+      </div>
+
+      <!-- 6 · 27.75–32.45  When your energy peaks, and when the crash is coming. -->
+      <div id="r" class="clip ink" data-start="27.75" data-duration="4.7" data-track-index="0">
+        <div id="r-phone" class="phone"><img id="r-img" src="assets/rhythm.png" alt="" /></div>
+        <div id="r-c1" class="cap" style="top: 150px; font-size: 76px; color: #ffffff">It knows when your</div>
+        <div id="r-c2" class="cap it" style="top: 236px; font-size: 170px; color: var(--mint)">energy peaks</div>
+        <div id="r-c3" class="cap" style="top: 150px; font-size: 76px; color: #ffffff">and when the</div>
+        <div id="r-c4" class="cap it" style="top: 246px; font-size: 128px; color: var(--amber)">crash is coming.</div>
+        <div id="r-s1" class="sticker" style="left: 470px; top: 1420px"><small>Heads-up</small>Dip likely ~2:30 PM</div>
+      </div>
+
+      <!-- 7 · 32.45–36.45  Search any food and see how it scores. -->
+      <div id="o" class="clip paper" data-start="32.45" data-duration="4.0" data-track-index="0">
+        <div id="o-phone" class="phone"><img id="o-img" src="assets/food-results.png" alt="" style="margin-top: -40px" /></div>
+        <div id="o-c1" class="cap" style="top: 150px; font-size: 80px">Search any food.</div>
+        <div id="o-c2" class="cap" style="top: 250px; font-size: 76px">See how it <span class="it" style="font-size: 150px; color: var(--mint-deep)">scores</span></div>
+        <div id="o-c3" class="cap" style="top: 400px; font-size: 64px; color: var(--muted)">before you eat it.</div>
+      </div>
+
+      <!-- 8 · 36.45–40.75  Two minutes of breathing when the day gets heavy. -->
+      <div id="b" class="clip dusk" data-start="36.45" data-duration="4.3" data-track-index="0">
+        <div id="b-orb" style="position: absolute; left: 290px; top: 820px; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #e9fff6 0%, #9ff0d1 45%, #3dd6a3 100%); box-shadow: 0 0 140px rgba(61, 214, 163, 0.5)"></div>
+        <div id="b-in" class="cap it" style="top: 1430px; font-size: 90px; color: #e8fff5">breathe in…</div>
+        <div id="b-out" class="cap it" style="top: 1430px; font-size: 90px; color: #e8fff5">and out.</div>
+        <div id="b-c1" class="cap" style="top: 170px; font-size: 76px; color: #ffffff">When your day gets heavy,</div>
+        <div id="b-c2" class="cap it" style="top: 262px; font-size: 160px; color: var(--mint)">2 minutes</div>
+        <div id="b-c3" class="cap" style="top: 470px; font-size: 76px; color: #ffffff">of breathing to reset.</div>
+      </div>
+
+      <!-- 9 · 40.75–44.75  It learns your rhythm. -->
+      <div id="l" class="clip ink" data-start="40.75" data-duration="4.0" data-track-index="0">
+        <div id="l-conf" class="conf">
+          <div class="hd">
+            <span>Confidence</span>
+            <div class="val"><b id="l-v1">Low</b><b id="l-v2" style="opacity: 0">Medium</b><b id="l-v3" style="opacity: 0; color: var(--mint-deep)">High</b></div>
+          </div>
+          <div class="bars">
+            <div class="bar"><i id="l-w1"></i></div>
+            <div class="bar"><i id="l-w2"></i></div>
+            <div class="bar"><i id="l-w3"></i></div>
+          </div>
+          <div class="wk"><span>Week 1</span><span>Week 2</span><span>Week 3</span></div>
+        </div>
+        <div id="l-c1" class="cap" style="top: 330px; font-size: 80px; color: #ffffff">It learns your rhythm,</div>
+        <div id="l-c2" class="cap it" style="top: 430px; font-size: 160px; color: var(--mint)">sharper every week.</div>
+      </div>
+
+      <!-- 10 · 44.75–50.6  daywovenapp.com, a real code, and a calmer drone. -->
+      <div id="e" class="clip mintbg" data-start="44.75" data-duration="5.85" data-track-index="0">
+        <div id="e-drone-w" style="position: absolute; left: 340px; top: 150px"><svg id="e-drone" width="400" height="222" viewBox="0 0 360 200" style="display: block">
+          <g stroke="#0b1f19" stroke-width="12" stroke-linecap="round">
+            <path d="M120 96 L44 66" />
+            <path d="M240 96 L316 66" />
+          </g>
+          <rect x="34" y="52" width="20" height="18" rx="5" fill="#0b1f19" />
+          <rect x="306" y="52" width="20" height="18" rx="5" fill="#0b1f19" />
+          <ellipse class="rotor" cx="44" cy="50" rx="62" ry="9" fill="#0b1f19" opacity="0.35" />
+          <ellipse class="rotor" cx="316" cy="50" rx="62" ry="9" fill="#0b1f19" opacity="0.35" />
+          <rect x="112" y="78" width="136" height="62" rx="26" fill="#ffffff" />
+          <rect x="130" y="90" width="100" height="10" rx="5" fill="#d7f6ea" />
+          <circle cx="180" cy="160" r="30" fill="#0b1f19" />
+          <path d="M166 162 Q180 150 194 162" fill="none" stroke="#9fe9cf" stroke-width="6" stroke-linecap="round" />
+          <path d="M140 136 L128 150 M220 136 L232 150" stroke="#0b1f19" stroke-width="8" stroke-linecap="round" />
+        </svg></div>
+        <div id="e-url" class="cap" style="top: 520px; font-size: 104px; color: var(--ink)">daywovenapp.com</div>
+        <div id="e-mark" class="cap wordmark" style="top: 700px; font-size: 130px; font-weight: 400; color: var(--ink)">daywoven</div>
+        <div id="e-qr" class="qrcard">
+          <svg width="460" height="460" viewBox="-4 -4 33 33"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM16 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM13 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM10 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM5 11h1v1h-1zM8 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM0 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM6 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM8 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM14 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM16 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1z" fill="#0b1f19" /></svg>
+        </div>
+        <div id="e-c1" class="cap" style="top: 1640px; font-size: 64px; color: var(--ink)">Even the drones are calmer now.</div>
+      </div>
+
+      <!-- sfx:start -->
+      <audio id="fx000" src="sfx/rumble.wav" data-start="0.1" data-duration="1.8" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx001" src="sfx/tick.wav" data-start="0.32" data-duration="0.05" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx002" src="sfx/rumble.wav" data-start="1.0" data-duration="1.8" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx003" src="sfx/knock.wav" data-start="2.4" data-duration="0.18" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx004" src="sfx/thud.wav" data-start="2.4" data-duration="0.32" data-volume="1.0" data-track-index="12"></audio>
+      <audio id="fx005" src="sfx/tap.wav" data-start="2.68" data-duration="0.1" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx006" src="sfx/pop.wav" data-start="3.4" data-duration="0.09" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx007" src="sfx/tick.wav" data-start="4.56" data-duration="0.05" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx008" src="sfx/air.wav" data-start="5.5" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx009" src="sfx/rotor.wav" data-start="5.5" data-duration="2.2" data-volume="0.55" data-track-index="11"></audio>
+      <audio id="fx010" src="sfx/knock.wav" data-start="5.76" data-duration="0.18" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx011" src="sfx/thud.wav" data-start="5.76" data-duration="0.32" data-volume="0.8" data-track-index="13"></audio>
+      <audio id="fx012" src="sfx/blink.wav" data-start="6.72" data-duration="0.05" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx013" src="sfx/whump.wav" data-start="6.72" data-duration="0.3" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx014" src="sfx/blink.wav" data-start="7.05" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx015" src="sfx/blink.wav" data-start="7.29" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx016" src="sfx/rotor.wav" data-start="7.3" data-duration="2.2" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx017" src="sfx/blink.wav" data-start="7.53" data-duration="0.05" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx018" src="sfx/tick.wav" data-start="8.56" data-duration="0.05" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx019" src="sfx/rotor.wav" data-start="9.1" data-duration="2.2" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx020" src="sfx/rotor.wav" data-start="10.9" data-duration="2.2" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx021" src="sfx/scan.wav" data-start="11.2" data-duration="0.7" data-volume="0.9" data-track-index="12"></audio>
+      <audio id="fx022" src="sfx/tick.wav" data-start="11.2" data-duration="0.05" data-volume="0.25" data-track-index="13"></audio>
+      <audio id="fx023" src="sfx/glint.wav" data-start="12.4" data-duration="0.12" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx024" src="sfx/zip.wav" data-start="12.4" data-duration="0.32" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="fx025" src="sfx/tick.wav" data-start="12.56" data-duration="0.05" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx026" src="sfx/rotor.wav" data-start="12.7" data-duration="2.2" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx027" src="sfx/swish.wav" data-start="13.6" data-duration="0.28" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx028" src="sfx/whump.wav" data-start="13.6" data-duration="0.3" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx029" src="sfx/tap.wav" data-start="14.12" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx030" src="sfx/tap.wav" data-start="14.23" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx031" src="sfx/tap.wav" data-start="14.34" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx032" src="sfx/tap.wav" data-start="14.45" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx033" src="sfx/rotor.wav" data-start="14.5" data-duration="2.2" data-volume="0.3" data-track-index="12"></audio>
+      <audio id="fx034" src="sfx/tap.wav" data-start="14.56" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx035" src="sfx/tap.wav" data-start="14.67" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx036" src="sfx/tap.wav" data-start="14.78" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx037" src="sfx/tap.wav" data-start="14.89" data-duration="0.1" data-volume="0.18" data-track-index="11"></audio>
+      <audio id="fx038" src="sfx/count.wav" data-start="15.0" data-duration="0.42" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx039" src="sfx/drop.wav" data-start="15.35" data-duration="0.9" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx040" src="sfx/pop.wav" data-start="15.35" data-duration="0.09" data-volume="0.45" data-track-index="13"></audio>
+      <audio id="fx041" src="sfx/rotor.wav" data-start="16.15" data-duration="2.2" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx042" src="sfx/whump.wav" data-start="16.18" data-duration="0.3" data-volume="0.35" data-track-index="13"></audio>
+      <audio id="fx043" src="sfx/blink.wav" data-start="17.2" data-duration="0.05" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx044" src="sfx/sigh.wav" data-start="17.2" data-duration="0.9" data-volume="0.7" data-track-index="12"></audio>
+      <audio id="fx045" src="sfx/rotor.wav" data-start="17.95" data-duration="2.2" data-volume="0.25" data-track-index="11"></audio>
+      <audio id="fx046" src="sfx/pop.wav" data-start="18.32" data-duration="0.09" data-volume="0.45" data-track-index="12"></audio>
+      <audio id="fx047" src="sfx/thud.wav" data-start="18.32" data-duration="0.32" data-volume="0.6" data-track-index="13"></audio>
+      <audio id="fx048" src="sfx/pop2.wav" data-start="18.9" data-duration="0.08" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx049" src="sfx/tick.wav" data-start="19.6" data-duration="0.05" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx050" src="sfx/swish.wav" data-start="20.3" data-duration="0.28" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx051" src="sfx/whump.wav" data-start="20.3" data-duration="0.3" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx052" src="sfx/bloop.wav" data-start="21.68" data-duration="0.35" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx053" src="sfx/pop.wav" data-start="21.68" data-duration="0.09" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx054" src="sfx/bloop2.wav" data-start="22.56" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx055" src="sfx/pop2.wav" data-start="22.56" data-duration="0.08" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx056" src="sfx/bloop.wav" data-start="23.36" data-duration="0.35" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx057" src="sfx/pop.wav" data-start="23.36" data-duration="0.09" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx058" src="sfx/bloop2.wav" data-start="24.56" data-duration="0.3" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx059" src="sfx/pop2.wav" data-start="24.56" data-duration="0.08" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx060" src="sfx/tick.wav" data-start="25.2" data-duration="0.05" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx061" src="sfx/air.wav" data-start="25.4" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx062" src="sfx/knock.wav" data-start="26.24" data-duration="0.18" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx063" src="sfx/thud.wav" data-start="26.24" data-duration="0.32" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx064" src="sfx/swish.wav" data-start="27.8" data-duration="0.28" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx065" src="sfx/whump.wav" data-start="27.8" data-duration="0.3" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx066" src="sfx/thud.wav" data-start="28.8" data-duration="0.32" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx067" src="sfx/swish.wav" data-start="29.85" data-duration="0.28" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx068" src="sfx/drain.wav" data-start="30.64" data-duration="0.4" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx069" src="sfx/thud.wav" data-start="30.64" data-duration="0.32" data-volume="0.8" data-track-index="11"></audio>
+      <audio id="fx070" src="sfx/buzz.wav" data-start="31.2" data-duration="0.62" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx071" src="sfx/pop.wav" data-start="31.25" data-duration="0.09" data-volume="0.35" data-track-index="11"></audio>
+      <audio id="fx072" src="sfx/swish.wav" data-start="32.5" data-duration="0.28" data-volume="0.3" data-track-index="10"></audio>
+      <audio id="fx073" src="sfx/whump.wav" data-start="32.5" data-duration="0.3" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx074" src="sfx/tap.wav" data-start="32.64" data-duration="0.1" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx075" src="sfx/tick.wav" data-start="34.0" data-duration="0.05" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx076" src="sfx/pop.wav" data-start="34.64" data-duration="0.09" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx077" src="sfx/zip.wav" data-start="34.64" data-duration="0.32" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx078" src="sfx/tick.wav" data-start="35.2" data-duration="0.05" data-volume="0.2" data-track-index="10"></audio>
+      <audio id="fx079" src="sfx/rise.wav" data-start="36.6" data-duration="1.4" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx080" src="sfx/breath.wav" data-start="38.4" data-duration="1.1" data-volume="0.7" data-track-index="10"></audio>
+      <audio id="fx081" src="sfx/thud.wav" data-start="38.4" data-duration="0.32" data-volume="0.5" data-track-index="11"></audio>
+      <audio id="fx082" src="sfx/puff.wav" data-start="39.95" data-duration="0.3" data-volume="0.35" data-track-index="10"></audio>
+      <audio id="fx083" src="sfx/whump.wav" data-start="40.85" data-duration="0.3" data-volume="0.45" data-track-index="10"></audio>
+      <audio id="fx084" src="sfx/tick.wav" data-start="40.96" data-duration="0.05" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx085" src="sfx/count.wav" data-start="41.4" data-duration="0.42" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx086" src="sfx/tap.wav" data-start="41.4" data-duration="0.1" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx087" src="sfx/count.wav" data-start="42.4" data-duration="0.42" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx088" src="sfx/tap.wav" data-start="42.4" data-duration="0.1" data-volume="0.4" data-track-index="11"></audio>
+      <audio id="fx089" src="sfx/thud.wav" data-start="43.04" data-duration="0.32" data-volume="0.6" data-track-index="10"></audio>
+      <audio id="fx090" src="sfx/count.wav" data-start="43.68" data-duration="0.42" data-volume="0.4" data-track-index="10"></audio>
+      <audio id="fx091" src="sfx/tap.wav" data-start="43.68" data-duration="0.1" data-volume="0.45" data-track-index="11"></audio>
+      <audio id="fx092" src="sfx/glint.wav" data-start="43.7" data-duration="0.12" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx093" src="sfx/air.wav" data-start="44.75" data-duration="0.55" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx094" src="sfx/rotor.wav" data-start="44.75" data-duration="2.2" data-volume="0.3" data-track-index="11"></audio>
+      <audio id="fx095" src="sfx/knock.wav" data-start="44.96" data-duration="0.18" data-volume="0.5" data-track-index="12"></audio>
+      <audio id="fx096" src="sfx/thud.wav" data-start="44.96" data-duration="0.32" data-volume="0.9" data-track-index="13"></audio>
+      <audio id="fx097" src="sfx/drop.wav" data-start="45.6" data-duration="0.9" data-volume="0.5" data-track-index="10"></audio>
+      <audio id="fx098" src="sfx/bloop.wav" data-start="45.9" data-duration="0.35" data-volume="0.35" data-track-index="12"></audio>
+      <audio id="fx099" src="sfx/pop.wav" data-start="45.9" data-duration="0.09" data-volume="0.5" data-track-index="13"></audio>
+      <audio id="fx100" src="sfx/rotor.wav" data-start="46.55" data-duration="2.2" data-volume="0.25" data-track-index="10"></audio>
+      <audio id="fx101" src="sfx/tick.wav" data-start="47.36" data-duration="0.05" data-volume="0.2" data-track-index="11"></audio>
+      <audio id="fx102" src="sfx/rotor.wav" data-start="48.35" data-duration="2.2" data-volume="0.22" data-track-index="11"></audio>
+      <!-- sfx:end -->
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+
+      // Small helpers. Every tween is placed at an absolute second, on the word it belongs to.
+      const fadeUp = (sel, t, d = 0.4, y = 36) => tl.fromTo(sel, { y, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: d, ease: E }, t);
+      const out = (sel, t, d = 0.22) => tl.to(sel, { autoAlpha: 0, y: -24, duration: d, ease: "power2.in" }, t);
+      const pop = (sel, t, d = 0.42, from = 0, origin = "50% 50%") => tl.fromTo(sel, { scale: from, autoAlpha: 0, transformOrigin: origin }, { scale: 1, autoAlpha: 1, duration: d, ease: "back.out(1.8)", transformOrigin: origin }, t);
+      const slam = (sel, t, from = 1.6) => tl.fromTo(sel, { scale: from, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "power4.out" }, t);
+      // Rotors blur by squashing back and forth for as long as the drone is on screen.
+      const spin = (sel, t, d) => tl.fromTo(sel, { scaleX: 1, transformOrigin: "50% 50%" }, { scaleX: 0.3, duration: 0.05, ease: "none", repeat: Math.round(d / 0.05), yoyo: true, transformOrigin: "50% 50%" }, t);
+      const bob = (sel, t, d, dist = 14, period = 0.9) => tl.fromTo(sel, { y: 0 }, { y: -dist, duration: period / 2, ease: "sine.inOut", repeat: Math.round((2 * d) / period), yoyo: true }, t);
+
+      // 1 · The tank rolls in, and a code is stamped on its hull.
+      tl.set(["#f-c4", "#f-c5", "#f-c6", "#f-c7", "#f-c8", "#f-browser", "#f-drone-w"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#f-tank", { x: -1000 }, { x: 0, duration: 1.3, ease: "power2.out" }, 0.1);
+      tl.fromTo("#f-tank", { rotation: 0 }, { rotation: -0.8, duration: 0.12, ease: "sine.inOut", repeat: 9, yoyo: true, transformOrigin: "50% 100%" }, 0.1);
+      tl.fromTo("#f-dust", { autoAlpha: 0, x: -200 }, { autoAlpha: 1, x: 0, duration: 1.0, ease: E }, 0.4);
+      tl.to("#f-dust", { autoAlpha: 0, duration: 0.8 }, 1.6);
+      tl.set("#f-qrpanel", { autoAlpha: 0 }, 0);
+      fadeUp("#f-c1", 0.32);
+      tl.fromTo("#f-qrpanel", { scale: 2.6, autoAlpha: 0, transformOrigin: "212px 240px" }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "power4.out", transformOrigin: "212px 240px" }, 2.4);
+      tl.fromTo("#f-tank", { y: 0 }, { y: 10, duration: 0.08, ease: "power2.out", yoyo: true, repeat: 1 }, 2.68);
+      slam("#f-c2", 2.4);
+      fadeUp("#f-c3", 3.4, 0.35, 24);
+      out(["#f-c1", "#f-c2", "#f-c3"], 4.35);
+
+      // 2 · Here's why: a drone drops in and brackets the tank.
+      fadeUp("#f-c4", 4.56, 0.35, 24);
+      tl.fromTo("#f-drone-w", { y: -700, autoAlpha: 1 }, { y: 0, autoAlpha: 1, duration: 0.8, ease: "back.out(1.2)" }, 5.5);
+      spin("#f-drone .rotor", 5.5, 10.6);
+      bob("#f-drone", 6.35, 9.7);
+      slam("#f-c5", 5.76);
+      tl.fromTo("#f-ret", { autoAlpha: 0, scale: 1.12, transformOrigin: "540px 1205px" }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: E, transformOrigin: "540px 1205px" }, 6.72);
+      tl.to("#f-ret", { autoAlpha: 0.35, duration: 0.12, yoyo: true, repeat: 5 }, 7.05);
+      out(["#f-c4", "#f-c5"], 8.4);
+
+      // 3 · Before it fires, it scans. The code sends it to daywovenapp.com.
+      fadeUp("#f-c6", 8.56, 0.35, 24);
+      tl.to("#f-ret", { autoAlpha: 0, duration: 0.3 }, 10.5);
+      fadeUp("#f-c7", 11.2, 0.35, 24);
+      tl.fromTo("#f-beam", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: E }, 11.2);
+      tl.fromTo("#f-line", { opacity: 0, y: 0 }, { opacity: 1, y: 0, duration: 0.05 }, 11.25);
+      tl.fromTo("#f-line", { y: 0 }, { y: 150, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 1 }, 11.3);
+      tl.to("#f-line", { opacity: 0, duration: 0.15 }, 12.4);
+      tl.fromTo("#f-corners", { opacity: 0, scale: 1.25, transformOrigin: "322px 1248px" }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)", transformOrigin: "322px 1248px" }, 12.4);
+      out(["#f-c6", "#f-c7"], 12.45);
+      fadeUp("#f-c8", 12.56, 0.35, 24);
+      tl.fromTo("#f-browser", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, ease: E }, 13.6);
+      tl.to("#f-beam", { opacity: 0, duration: 0.3 }, 13.7);
+      const url = "daywovenapp.com";
+      const typed = { n: 0 };
+      tl.fromTo(typed, { n: 0 }, { n: url.length, duration: 0.85, ease: "none", immediateRender: false, onUpdate: () => (document.querySelector("#f-url").textContent = url.slice(0, Math.round(typed.n))) }, 14.12);
+      tl.set("#f-url", { textContent: "" }, 0);
+      tl.fromTo("#f-load", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 15.0);
+      tl.fromTo("#f-site", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: E }, 15.35);
+
+      // 4 · The drone, it turns out, slept four hours.
+      spin("#d-drone .rotor", 16.15, 4.1);
+      bob("#d-drone", 16.15, 4.1, 10, 1.4);
+      tl.fromTo("#d-drone-w", { scale: 0.7, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.45, ease: E }, 16.18);
+      fadeUp("#d-c1", 16.32, 0.35, 24);
+      tl.fromTo("#d-lid", { scaleY: 0, transformOrigin: "180px 160px" }, { scaleY: 0.75, duration: 0.6, ease: "power2.inOut", transformOrigin: "180px 160px" }, 17.2);
+      tl.to("#d-drone", { rotation: 7, duration: 0.6, ease: "sine.inOut", transformOrigin: "50% 50%" }, 17.2);
+      slam("#d-c2", 18.32);
+      pop("#d-s1", 18.32, 0.4, 0.5);
+      pop("#d-s2", 18.9, 0.4, 0.5);
+      fadeUp("#d-c3", 19.6, 0.3, 20);
+      [["#d-z1", 18.6], ["#d-z2", 18.9], ["#d-z3", 19.2]].forEach(([z, t]) => tl.fromTo(z, { autoAlpha: 0, y: 30 }, { autoAlpha: 0.9, y: -30, duration: 0.6, ease: "sine.out" }, t));
+
+      // 5 · Sleep, meals, movement, mind: one number.
+      tl.set(["#h-c2", "#h-c3"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#h-phone", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, ease: E }, 20.3);
+      fadeUp("#h-c1", 20.4, 0.35, 24);
+      pop("#h-k1", 21.68, 0.4, 0.3);
+      pop("#h-k2", 22.56, 0.4, 0.3);
+      pop("#h-k3", 23.36, 0.4, 0.3);
+      pop("#h-k4", 24.56, 0.4, 0.3);
+      out("#h-c1", 25.15);
+      fadeUp("#h-c2", 25.2, 0.35, 24);
+      tl.to(["#h-k1", "#h-k2", "#h-k3", "#h-k4"], { x: (i) => [180, -180, 200, -200][i], y: (i) => [-60, -120, -280, -460][i], scale: 0.4, autoAlpha: 0, duration: 0.45, ease: "power2.in", stagger: 0.05 }, 25.4);
+      slam("#h-c3", 26.24);
+      tl.fromTo("#h-img", { scale: 1, transformOrigin: "50% 30%" }, { scale: 1.3, duration: 0.8, ease: "power2.inOut", transformOrigin: "50% 30%" }, 26.24);
+
+      // 6 · When your energy peaks, and when the crash is coming.
+      tl.set(["#r-c3", "#r-c4"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#r-phone", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, ease: E }, 27.8);
+      fadeUp("#r-c1", 27.92, 0.35, 24);
+      slam("#r-c2", 28.8);
+      tl.fromTo("#r-img", { scale: 1, transformOrigin: "10% 20%" }, { scale: 1.25, duration: 1.2, ease: "power2.inOut", transformOrigin: "10% 20%" }, 28.9);
+      out(["#r-c1", "#r-c2"], 29.85);
+      fadeUp("#r-c3", 30.0, 0.3, 24);
+      slam("#r-c4", 30.64);
+      pop("#r-s1", 31.2, 0.45, 0.4, "100% 100%");
+
+      // 7 · Search any food, see how it scores.
+      tl.set(["#o-c2", "#o-c3"], { autoAlpha: 0 }, 0);
+      tl.fromTo("#o-phone", { y: 900, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, ease: E }, 32.5);
+      fadeUp("#o-c1", 32.64, 0.35, 24);
+      fadeUp("#o-c2", 34.0, 0.35, 24);
+      tl.fromTo("#o-img", { scale: 1, transformOrigin: "92% 62%" }, { scale: 1.45, duration: 0.9, ease: "power2.inOut", transformOrigin: "92% 62%" }, 34.64);
+      fadeUp("#o-c3", 35.2, 0.3, 20);
+
+      // 8 · Two minutes of breathing.
+      tl.set(["#b-c2", "#b-c3", "#b-out"], { autoAlpha: 0 }, 0);
+      fadeUp("#b-c1", 36.64, 0.35, 24);
+      tl.fromTo("#b-orb", { scale: 0.55, autoAlpha: 0 }, { scale: 0.6, autoAlpha: 1, duration: 0.5, ease: E }, 36.6);
+      slam("#b-c2", 38.4);
+      fadeUp("#b-in", 38.45, 0.4, 20);
+      tl.to("#b-orb", { scale: 1.05, duration: 1.5, ease: "sine.inOut" }, 38.4);
+      fadeUp("#b-c3", 38.96, 0.35, 24);
+      tl.to("#b-in", { autoAlpha: 0, duration: 0.25 }, 39.85);
+      fadeUp("#b-out", 39.95, 0.4, 20);
+      tl.to("#b-orb", { scale: 0.7, duration: 0.8, ease: "sine.inOut" }, 39.95);
+
+      // 9 · It learns your rhythm, so it gets sharper every week.
+      tl.set("#l-c2", { autoAlpha: 0 }, 0);
+      fadeUp("#l-c1", 40.96, 0.35, 24);
+      tl.fromTo("#l-conf", { y: 500, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, ease: E }, 40.85);
+      tl.fromTo("#l-w1", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: E }, 41.4);
+      tl.fromTo("#l-w2", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: E }, 42.4);
+      tl.to("#l-v1", { opacity: 0, duration: 0.1 }, 42.4);
+      tl.to("#l-v2", { opacity: 1, duration: 0.1 }, 42.42);
+      slam("#l-c2", 43.04);
+      tl.fromTo("#l-w3", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: E }, 43.68);
+      tl.to("#l-v2", { opacity: 0, duration: 0.1 }, 43.68);
+      tl.to("#l-v3", { opacity: 1, duration: 0.1 }, 43.7);
+
+      // 10 · daywovenapp.com. Even the drones are calmer now.
+      spin("#e-drone .rotor", 44.75, 5.85);
+      bob("#e-drone", 45.2, 5.4, 12, 2.0);
+      tl.fromTo("#e-drone-w", { y: -400 }, { y: 0, duration: 0.7, ease: "back.out(1.1)" }, 44.75);
+      slam("#e-url", 44.96, 1.4);
+      fadeUp("#e-mark", 45.6, 0.4, 24);
+      pop("#e-qr", 45.9, 0.5, 0.6);
+      fadeUp("#e-c1", 47.36, 0.4, 24);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
