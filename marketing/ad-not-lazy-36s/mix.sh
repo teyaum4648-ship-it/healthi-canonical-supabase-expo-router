@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 F="${FFMPEG:-ffmpeg}"
-LENGTH=36
+LENGTH=44.95
 video=renders/daywoven-lazy-36s-9x16.mp4
 out=renders/daywoven-lazy-36s-9x16-vo.mp4
 

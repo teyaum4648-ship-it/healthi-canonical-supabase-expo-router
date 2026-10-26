@@ -25,3 +25,16 @@ default, so the ads render exactly as before until you choose otherwise.
 
 Each take is sent with the lines either side of it, so the read carries across scene cuts
 instead of restarting at each one.
+
+## Using takes made in the ElevenLabs app or connector
+
+When the takes come from somewhere other than the API (the ElevenLabs app, or Claude through the
+ElevenLabs connector), save them as `take00.mp3`, `take01.mp3` … in one folder, one per scene in
+the order the ad's `voiceover.py` lists them, and point the files engine at it:
+
+```bash
+VOICE_ENGINE=files VOICE_FILES=voice-lyan python voiceover.py
+python retime.py && python cues.py && npm run render && ./mix.sh
+```
+
+The ads' current takes are Lyan's, kept in each ad's `voice-lyan/`.

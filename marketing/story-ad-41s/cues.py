@@ -6,12 +6,14 @@ the sfx:start and sfx:end markers, so adding or moving an effect is a one-line c
 Each cue is (second, sound, volume). Sounds are the files sfx.py makes in sfx/. Effects that
 overlap in time are put on separate tracks automatically.
 """
+import json
 import re
 from pathlib import Path
 
 import soundfile as sf
 
 here = Path(__file__).parent
+TOTAL = 41  # the design length; warp.json carries the current one
 CUES = [
     # 1 · Hook. Every movement in the first ten seconds has its own sound. The spheres bubble up; the
     # card lifts in, counts up, draws its chart and its tags land; it is flicked away; LYING slams (the
@@ -78,10 +80,24 @@ CUES = [
     *[(t, 'glint', v) for t, v in ((38.45, 0.2), (38.69, 0.25), (38.93, 0.2), (39.97, 0.2), (40.21, 0.25), (40.45, 0.2))],
 ]
 
+# The cue times above are design seconds; warp.json (from retime.py) maps them onto the current voice.
+warp_file = here / 'warp.json'
+WARP = json.loads(warp_file.read_text()) if warp_file.exists() else {'total': TOTAL, 'anchors': [[0, 0]]}
+TOTAL = WARP['total']
+
+
+def warp(t, anchors=WARP['anchors']):
+    for (a0, b0), (a1, b1) in zip(anchors, anchors[1:]):
+        if t <= a1:
+            return b0 + (t - a0) * (b1 - b0) / (a1 - a0)
+    return anchors[-1][1] + t - anchors[-1][0]
+
+
+CUES = [(round(warp(at), 3), name, volume) for at, name, volume in CUES]
 lengths = {p.stem: round(sf.info(p).duration, 3) for p in (here / 'sfx').glob('*.wav')}
 tracks, tags = [], []  # tracks[k] is the second the last cue on track 10+k ends
 for i, (at, name, volume) in enumerate(sorted(CUES)):
-    length = min(lengths[name], round(41 - at, 3))
+    length = min(lengths[name], round(TOTAL - at, 3))
     k = next((k for k, end in enumerate(tracks) if end <= at), len(tracks))
     if k == len(tracks):
         tracks.append(0)

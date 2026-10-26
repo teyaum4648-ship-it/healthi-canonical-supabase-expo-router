@@ -6,6 +6,9 @@
         ELEVENLABS_VOICE_ID    which voice (the ID from the voice's page, or audition.py --list)
         ELEVENLABS_MODEL       optional, default eleven_multilingual_v2
         ELEVENLABS_FORMAT      optional, default pcm_24000 (the same rate as Kokoro)
+    VOICE_ENGINE=files         takes already made elsewhere (the ElevenLabs app or connector), read
+        VOICE_FILES            from this folder as take00.mp3, take01.mp3 … in the order the ad
+                               asks for them (any format ffmpeg reads; FFMPEG overrides the path)
 
 Each ad's voiceover.py asks this for one take per scene and keeps doing everything else the
 same way: trimming, plan.json, then retime.py moving the picture onto the new take's words.
@@ -16,6 +19,7 @@ like one person talking.
 """
 import json
 import os
+import subprocess
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -78,17 +82,36 @@ class Voice:
             from kokoro_onnx import Kokoro
             models = Path(models_dir)
             self.kokoro = Kokoro(str(models / 'kokoro-v1.0.onnx'), str(models / 'voices-v1.0.bin'))
+        elif self.engine == 'files':
+            self.files = Path(os.environ.get('VOICE_FILES', ''))
+            if not self.files.is_dir():
+                raise SystemExit('Set VOICE_FILES to the folder holding take00.mp3, take01.mp3 …')
+            self.taken = 0
         elif self.engine != 'elevenlabs':
-            raise SystemExit(f'VOICE_ENGINE must be kokoro or elevenlabs, not {self.engine!r}.')
+            raise SystemExit(f'VOICE_ENGINE must be kokoro, elevenlabs or files, not {self.engine!r}.')
 
     @property
     def name(self):
         if self.engine == 'kokoro':
             return f'kokoro:{self.kokoro_voice}'
+        if self.engine == 'files':
+            return f'files:{self.files}'
         return f"elevenlabs:{os.environ.get('ELEVENLABS_VOICE_ID', '?')}"
 
     def say(self, text, previous_text=None, next_text=None):
         if self.engine == 'kokoro':
             samples, rate = self.kokoro.create(text, voice=self.kokoro_voice, speed=self.speed, lang='en-us')
             return np.asarray(samples, dtype=np.float64), rate
+        if self.engine == 'files':
+            return self._next_file()
         return elevenlabs(text, previous_text=previous_text, next_text=next_text)
+
+    def _next_file(self, rate=24000):
+        found = sorted(self.files.glob(f'take{self.taken:02d}.*'))
+        if not found:
+            raise SystemExit(f'No take{self.taken:02d} in {self.files}.')
+        self.taken += 1
+        ffmpeg = os.environ.get('FFMPEG', 'ffmpeg')
+        raw = subprocess.run([ffmpeg, '-v', 'error', '-i', str(found[0]), '-ac', '1', '-ar', str(rate), '-f', 's16le', '-'],
+                             capture_output=True, check=True).stdout
+        return np.frombuffer(raw, dtype='<i2').astype(np.float64) / 32768.0, rate
