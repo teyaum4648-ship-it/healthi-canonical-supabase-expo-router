@@ -1,4 +1,4 @@
-import { authenticatedUser } from '../_shared/auth.ts';
+import { authenticatedUser, serviceClient } from '../_shared/auth.ts';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 
 /**
@@ -109,6 +109,21 @@ Deno.serve(async (request) => {
   const user = await authenticatedUser(request);
   if (!user) return jsonResponse({ error: 'unauthorized' }, 401);
 
+  // The photo leaves for a third-party AI service only with the person's recorded
+  // permission (App Store 5.1.2(i)). Consent is an append-only log, so the latest row for
+  // the type is the current answer; a withdrawal is a newer row saying no.
+  const { data: consent } = await serviceClient()
+    .from('user_consents')
+    .select('granted')
+    .eq('user_id', user.id)
+    .eq('consent_type', 'ai_photo_estimate')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (consent?.granted !== true) {
+    return jsonResponse({ error: 'consent_required', detail: 'Allow photo estimates first. Nothing was sent.' }, 403);
+  }
+
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
     return jsonResponse({
@@ -190,7 +205,7 @@ Deno.serve(async (request) => {
   try {
     items = JSON.parse(text) as unknown;
   } catch {
-    return jsonResponse({ error: 'malformed_response', detail: 'The estimate came back in a shape Healthi could not read.' });
+    return jsonResponse({ error: 'malformed_response', detail: 'The estimate came back in a shape daywoven could not read.' });
   }
 
   // The client validates and clamps every field; this only forwards the shape plus the

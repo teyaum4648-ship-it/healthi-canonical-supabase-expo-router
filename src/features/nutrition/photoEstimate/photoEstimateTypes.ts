@@ -70,6 +70,7 @@ export type PhotoEstimate = {
  */
 export type PhotoEstimateRefusal =
   | { reason: 'not_configured'; detail: string }
+  | { reason: 'consent_required'; detail: string }
   | { reason: 'no_food_found'; detail: string }
   | { reason: 'too_unclear'; detail: string }
   | { reason: 'rate_limited'; detail: string }

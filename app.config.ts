@@ -27,9 +27,54 @@ const config: ExpoConfig = {
     preferRelatedApplications: false
   },
   ios: {
-    supportsTablet: true
+    /*
+     * The App Store identity. It is permanent once the first build is uploaded, so if a
+     * different one is already registered in App Store Connect, set IOS_BUNDLE_IDENTIFIER
+     * rather than editing this default.
+     */
+    bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER ?? 'com.daywovenapp.daywoven',
+    buildNumber: '1',
+    /*
+     * iPhone only. The screens are designed for a phone in portrait, and an iPad build
+     * would be reviewed on an iPad; the iPhone app still runs on iPad in compatibility mode.
+     */
+    supportsTablet: false,
+    config: {
+      // Only standard HTTPS and the OS keychain: exempt, so uploads skip the export question.
+      usesNonExemptEncryption: false
+    },
+    /*
+     * Apple's privacy manifest. No tracking and no tracking domains. The collected types
+     * match the App Store privacy label in docs/legal/APP-STORE-SUBMISSION.md — change
+     * both together. The API reasons cover what React Native and Expo themselves use.
+     */
+    privacyManifests: {
+      NSPrivacyTracking: false,
+      NSPrivacyTrackingDomains: [],
+      NSPrivacyCollectedDataTypes: [
+        ['NSPrivacyCollectedDataTypeHealth', true],
+        ['NSPrivacyCollectedDataTypeFitness', true],
+        ['NSPrivacyCollectedDataTypeEmailAddress', true],
+        ['NSPrivacyCollectedDataTypeName', true],
+        ['NSPrivacyCollectedDataTypeUserID', true],
+        ['NSPrivacyCollectedDataTypePhotosorVideos', false]
+      ].map(([type, linked]) => ({
+        NSPrivacyCollectedDataType: type as string,
+        NSPrivacyCollectedDataTypeLinked: linked as boolean,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+      })),
+      NSPrivacyAccessedAPITypes: [
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults', NSPrivacyAccessedAPITypeReasons: ['CA92.1'] },
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp', NSPrivacyAccessedAPITypeReasons: ['C617.1'] },
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime', NSPrivacyAccessedAPITypeReasons: ['35F9.1'] },
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryDiskSpace', NSPrivacyAccessedAPITypeReasons: ['E174.1'] }
+      ]
+    }
   },
   android: {
+    package: process.env.ANDROID_PACKAGE ?? 'com.daywovenapp.daywoven',
+    versionCode: 1,
     adaptiveIcon: {
       backgroundColor: '#000000'
     },
@@ -41,7 +86,9 @@ const config: ExpoConfig = {
     [
       'expo-secure-store',
       {
-        configureAndroidBackup: true
+        configureAndroidBackup: true,
+        // The session token is kept in the keychain without biometrics, so Face ID is never asked for.
+        faceIDPermission: false
       }
     ],
     [
@@ -49,14 +96,17 @@ const config: ExpoConfig = {
       {
         barcodeScannerEnabled: true,
         cameraPermission: 'daywoven uses the camera to scan product barcodes and to estimate a meal from a photo. You can also enter a barcode manually or search for a food.',
+        // No video is recorded, so the microphone is never asked for.
+        microphonePermission: false,
         recordAudioAndroid: false
       }
     ],
     [
       'expo-image-picker',
       {
-        photosPermission: 'daywoven reads a photo you choose so it can estimate the foods in that meal. Photos are used for that estimate and are not stored by daywoven.',
-        cameraPermission: 'daywoven uses the camera to estimate a meal from a photo you take.'
+        photosPermission: 'daywoven reads a photo you choose so it can estimate the foods in that meal. With your permission the photo is sent to an AI service for that estimate; daywoven does not store it.',
+        cameraPermission: 'daywoven uses the camera to estimate a meal from a photo you take.',
+        microphonePermission: false
       }
     ],
     /*

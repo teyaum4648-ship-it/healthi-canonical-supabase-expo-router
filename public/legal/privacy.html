@@ -97,7 +97,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
     </tr>
     <tr>
       <td><strong>Wearable and phone health data</strong></td>
-      <td>If and only if you connect a source, the metrics you approve from it &mdash; for example sleep stages, resting heart rate or heart-rate variability. You can disconnect at any time. We ask for the narrowest set of metrics the feature needs.</td>
+      <td>If and only if you connect a source, the metrics you approve from it &mdash; today, sleep and step counts from Apple Health or Health Connect. We only read; we never write to them. You can disconnect at any time, and we ask for the narrowest set of metrics the feature needs.</td>
       <td>You, via a connection you authorise</td>
     </tr>
     <tr>
@@ -129,6 +129,9 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <li><strong>No medication list.</strong> We deliberately leave this out. Your prescriptions are between you and your doctor, and our guidance is not the kind that should be steering around them.</li>
 </ul>
 
+<h3 id="apple-health">Apple Health and Health Connect</h3>
+<p>Data read from Apple Health (HealthKit) or Health Connect is used only to give you your own sleep and readiness guidance inside daywoven. We do not use it for advertising or marketing, we do not sell it, we do not give it to data brokers or use it for data mining, and we do not disclose it to anyone else without your permission except the service providers in section&nbsp;6 that run the app for us. It is not stored in iCloud. Deleting your account deletes our copy; what Apple Health or Health Connect holds stays there under your control.</p>
+
 <h2 id="why">3. Why we collect it</h2>
 <p>Each category is collected for a specific job, and for no other job:</p>
 <ul>
@@ -144,7 +147,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
 <p>There are three separate things here and they behave differently.</p>
 <ul>
   <li><strong>Barcode scanning.</strong> The camera reads a barcode on your device. The <em>number</em> is then sent to our server and on to food databases to look up the product. The camera image never leaves your device.</li>
-  <li><strong>Meal photo estimation.</strong> If you take or choose a photo to estimate a meal, that photo is sent to Anthropic&rsquo;s API so a model can identify the foods in it. The photo is used for that single estimate. <strong>daywoven does not store your meal photos.</strong> What we keep is the resulting text estimate &mdash; &ldquo;about 140&nbsp;g chicken thigh&rdquo; &mdash; and a note of which model produced it.</li>
+  <li><strong>Meal photo estimation.</strong> Before your first photo estimate, the app asks whether you allow photos to be sent to an outside AI service, and nothing is sent until you say yes. If you then take or choose a photo to estimate a meal, that photo &mdash; and any note you type with it &mdash; is sent to Anthropic&rsquo;s API so a model can identify the foods in it. Your name, email and health history are not sent with it. The photo is used for that single estimate. <strong>daywoven does not store your meal photos.</strong> What we keep is the resulting text estimate &mdash; &ldquo;about 140&nbsp;g chicken thigh&rdquo; &mdash; and a note of which model produced it.</li>
   <li><strong>Food search.</strong> The words you type go to our search endpoint and on to Open Food Facts and USDA FoodData Central. Search requests are sent <strong>without any account identifier</strong>, so those lookups are not tied to you by us.</li>
 </ul>
 <p>Camera and photo-library access are requested at the moment you first use a feature that needs them, with a plain explanation, and you can refuse and still use the app: every food can be entered by search or by typing the barcode.</p>
@@ -170,7 +173,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <tbody>
     <tr><td>Supabase</td><td>Database, login, server functions</td><td>Everything in your account. This is where your data lives.</td></tr>
     <tr><td>Cloudflare</td><td>Serving the web app; the food-search endpoint</td><td>IP address and request metadata; food search terms, with no account identifier attached.</td></tr>
-    <tr><td>Anthropic</td><td>Meal photo estimation; assistant features</td><td>Only what a task needs: a meal photo, or a structured summary you have consented to send.</td></tr>
+    <tr><td>Anthropic</td><td>Meal photo estimation; assistant features</td><td>Only with your separate permission, asked before the first use, and only what a task needs: a meal photo and any note you add, or a structured summary you have consented to send. No name, email or account identifier.</td></tr>
     <tr><td>Open Food Facts</td><td>Packaged food and barcode database</td><td>A barcode number or a search term. No account identifier.</td></tr>
     <tr><td>USDA FoodData Central</td><td>Government food composition database</td><td>A search term. No account identifier.</td></tr>
     <tr><td>Apple, Google</td><td>App distribution and, if you subscribe, payment</td><td>Whatever their own privacy policies describe. We receive a subscription status from them, never a card number.</td></tr>
@@ -188,7 +191,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <thead><tr><th scope="col">What</th><th scope="col">Kept for</th></tr></thead>
   <tbody>
     <tr><td>Your account and health history</td><td>As long as your account is open. This is your record; deleting it on a timer would break the product.</td></tr>
-    <tr><td>Everything, after you delete your account</td><td>Erased within <strong>30 days</strong>, and removed from routine backups within <strong>90 days</strong>.</td></tr>
+    <tr><td>Everything, after you delete your account</td><td>Erased from our database <strong>immediately</strong> when you delete the account in the app (within <strong>30 days</strong> if you ask us by email), and removed from routine backups within <strong>90 days</strong>.</td></tr>
     <tr><td>Meal photos</td><td>Not stored. Discarded as soon as the estimate comes back.</td></tr>
     <tr><td>AI conversation history and context snapshots</td><td><strong>90 days</strong>, then deleted automatically. You can delete it sooner.</td></tr>
     <tr><td>Technical logs</td><td><strong>30 days</strong>.</td></tr>
@@ -201,11 +204,11 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
 <p>These are available to <strong>everyone who uses daywoven</strong>, not only to people in places whose laws demand them. You do not need to cite a statute at us.</p>
 <ul>
   <li><strong>See it</strong> &mdash; ask what we hold about you.</li>
-  <li><strong>Export it</strong> &mdash; get the whole thing in a machine-readable file, from Settings.</li>
+  <li><strong>Export it</strong> &mdash; get the whole thing in a machine-readable file, in the app under <em>Menu &rarr; Your data and account &rarr; Export my data</em>.</li>
   <li><strong>Correct it</strong> &mdash; fix anything wrong, mostly by editing it in the app.</li>
-  <li><strong>Delete it</strong> &mdash; erase your account and everything in it, from Settings. This cannot be undone.</li>
-  <li><strong>Delete part of it</strong> &mdash; drop your food history, or your AI chat history, without closing your account.</li>
-  <li><strong>Withdraw a consent</strong> &mdash; turn off AI features, disconnect a wearable, or switch off notifications, and keep using everything else.</li>
+  <li><strong>Delete it</strong> &mdash; erase your account and everything in it, in the app under <em>Menu &rarr; Your data and account &rarr; Delete account</em>. This cannot be undone.</li>
+  <li><strong>Delete part of it</strong> &mdash; remove individual entries, such as a meal, a workout or a night&rsquo;s sleep, without closing your account. For anything larger, write to us.</li>
+  <li><strong>Withdraw a consent</strong> &mdash; turn off meal photo estimates under <em>Menu &rarr; Your data and account</em>, disconnect Apple Health or Health Connect, or switch off notifications, and keep using everything else.</li>
   <li><strong>Object, or ask us to restrict processing</strong> &mdash; tell us and we will deal with it rather than sending you a form.</li>
   <li><strong>Not be discriminated against</strong> for exercising any of the above. There is no worse version of daywoven for people who ask.</li>
 </ul>
@@ -219,6 +222,8 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <li><strong>Sensitive personal information.</strong> Your health entries are sensitive personal information. We use them only to deliver the service you asked for, which is one of the permitted purposes, and not to infer characteristics about you for anyone else&rsquo;s benefit. You may direct us to limit their use, though in practice limiting them means turning the product off.</li>
   <li><strong>The categories</strong> we collect, our purposes, the third parties we disclose to, and our retention periods are in sections 2, 3, 6 and 7 above. In the twelve months before the date at the top of this page we disclosed personal information only to the service providers in section&nbsp;6.</li>
   <li><strong>Your rights</strong> to know, delete, correct, and to data portability, plus the right not to be retaliated against, are in section&nbsp;8.</li>
+  <li><strong>Medical information.</strong> Because daywoven is software that helps you manage information about your own health, California&rsquo;s Confidentiality of Medical Information Act (Civil Code &sect;&nbsp;56.06) may treat us as a provider of care for that information. We act as if it does: we do not disclose your health information to anyone except as described in section&nbsp;6 or with your written authorisation, unless the law requires it, and you can see, copy and delete it as described in section&nbsp;8.</li>
+  <li><strong>Shine the Light.</strong> We do not disclose personal information to third parties for their own direct-marketing purposes, so there is nothing to report under Civil Code &sect;&nbsp;1798.83.</li>
 </ul>
 <p id="not-hipaa"><strong>We are not a healthcare provider, and HIPAA does not apply to us.</strong> daywoven is not a doctor, a clinic, an insurer or a billing service, so the federal health-privacy rules that cover those do not cover us &mdash; and we will never claim to be &ldquo;HIPAA compliant&rdquo;, because for a company like ours that claim would be meaningless. What does apply to us is California&rsquo;s own medical-information law, the general consumer-protection rules, and the promises on this page, which we intend to keep.</p>
 
@@ -228,7 +233,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <li>We collect consumer health data only with your <strong>opt-in consent</strong>, gathered for a stated purpose at the point of collection.</li>
   <li>We <strong>do not sell consumer health data,</strong> to anyone, for anything. No authorisation form exists because there is nothing to authorise.</li>
   <li>Sharing with the service providers in section&nbsp;6 happens only to the extent needed to deliver a feature you have asked for.</li>
-  <li>You can withdraw consent and request deletion of consumer health data at any time, at <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY_EMAIL}}</span></a>, and we will pass deletion requests on to the providers that hold it.</li>
+  <li>You can withdraw consent and delete consumer health data at any time, in the app or at <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY_EMAIL}}</span></a>, and we will pass deletion requests on to the providers that hold it.</li>
 </ul>
 
 <h2 id="security">11. Security</h2>

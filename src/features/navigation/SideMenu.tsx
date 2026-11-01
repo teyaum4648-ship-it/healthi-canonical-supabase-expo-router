@@ -127,6 +127,8 @@ function SideMenuContent({ onClose }: { onClose: () => void }) {
       <Text style={styles.groupLabel}>You</Text>
       <View style={styles.group}>
         <MenuRow detail="Goals, allergens, units and your baseline" icon="person-circle-outline" onPress={() => go('/settings')} title="Profile and preferences" />
+        {/* Its own row so export and account deletion are one tap from anywhere (App Store 5.1.1(v)). */}
+        {mode === 'account' ? <MenuRow detail="Export a copy, or delete your account" icon="shield-checkmark-outline" onPress={() => go({ pathname: '/settings', params: { section: 'data' } })} title="Your data and account" /> : null}
         <MenuRow detail="Where your readiness starts each day" icon="compass-outline" onPress={() => go('/load-check')} title="Load check" />
         <MenuRow detail="Sleep, food, movement and mood over time" icon="stats-chart-outline" onPress={() => go('/progress')} title="Trends" />
         <MenuRow detail="Your day, block by block" icon="calendar-outline" onPress={() => go('/plan')} title="Plan and calendar" />

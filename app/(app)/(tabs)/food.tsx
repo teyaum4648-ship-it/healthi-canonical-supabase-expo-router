@@ -179,6 +179,7 @@ import {
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { PhotoEstimateSheet } from '../../../src/features/nutrition/photoEstimate/PhotoEstimateSheet';
 import { PhotoEntrySheet } from '../../../src/features/nutrition/photoEstimate/PhotoEntrySheet';
+import { readAiPhotoConsent, setAiPhotoConsent, type ConsentWriter } from '../../../src/features/account/aiPhotoConsentStore';
 import { capturePhotoForEstimate, type PhotoCaptureSource } from '../../../src/features/nutrition/photoEstimate/photoCapture';
 import { photoEstimateItemToSnapshot } from '../../../src/features/nutrition/photoEstimate/photoEstimate';
 import {
@@ -598,6 +599,7 @@ export default function FoodScreen() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoNotice, setPhotoNotice] = useState('');
   const [photoEntryOpen, setPhotoEntryOpen] = useState(false);
+  const [photoConsentNeeded, setPhotoConsentNeeded] = useState(true);
   const [avoidingAllergens, setAvoidingAllergens] = useState<AllergenGroup[]>([]);
   useEffect(() => {
     const key = scannerOpen ? 'scanner' : activeSegment;
@@ -939,6 +941,8 @@ export default function FoodScreen() {
       });
       if (!result.ok) {
         setPhotoUri(null);
+        // The server holds the governing record; if it has no "yes", ask again here.
+        if (result.refusal.reason === 'consent_required') setPhotoConsentNeeded(true);
         setPhotoNotice(`${photoEstimateRefusalTitle(result.refusal)} — ${result.refusal.detail}`);
         return;
       }
@@ -980,6 +984,20 @@ export default function FoodScreen() {
     setMealChooserOpen(false);
     setPhotoNotice('');
     setPhotoEntryOpen(true);
+    void readAiPhotoConsent(userId).then(consent => setPhotoConsentNeeded(!consent.granted));
+  }
+
+  async function allowPhotoEstimates() {
+    if (photoBusy) return;
+    setPhotoBusy(true);
+    setPhotoNotice('');
+    try {
+      const saved = await setAiPhotoConsent(userId, true, canUseRemote ? (supabase as unknown as ConsentWriter) : null);
+      if (saved) setPhotoConsentNeeded(false);
+      else setPhotoNotice('Your choice could not be saved. Check your connection and try again.');
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   async function handleSearchProducts() {
@@ -2613,7 +2631,7 @@ export default function FoodScreen() {
       </EntrySheet> : null}
       {mealEditDraft ? <MealEditSheet draft={mealEditDraft} onChange={setMealEditDraft} onClose={() => setMealEditDraft(null)} onSave={handleSaveMealEdit} busy={savingMealEdit} error={mealEditError} /> : null}
       {mealLibraryOpen ? <MealLibrarySheet key={`${mode}:${userId}`} userId={userId} demo={mode === 'demo'} client={supabase as unknown as MealCollectionClient} meals={meals} items={mealLogItems} foods={productLibrary} initialEntry={libraryInitialEntry} onClose={() => setMealLibraryOpen(false)} onUseMeal={usePreviousMeal} onUseFood={food => { setMealLibraryOpen(false); setSearchQuery(food.name); setSearchResults([food]); setSearchMessage('Choose this food to review your portion.'); setFoodEntryOpen(true); }} /> : null}
-      {photoEntryOpen ? <PhotoEntrySheet available={canUseRemote} busy={photoBusy} notice={photoNotice} onCapture={source => void handlePhotoEstimate(source)} onClose={() => setPhotoEntryOpen(false)} onSearch={() => { setPhotoEntryOpen(false); setFoodEntryOpen(true); }} /> : null}
+      {photoEntryOpen ? <PhotoEntrySheet available={canUseRemote} busy={photoBusy} notice={photoNotice} needsConsent={photoConsentNeeded} onAllow={() => void allowPhotoEstimates()} onCapture={source => void handlePhotoEstimate(source)} onClose={() => setPhotoEntryOpen(false)} onSearch={() => { setPhotoEntryOpen(false); setFoodEntryOpen(true); }} /> : null}
       {photoEstimate ? <PhotoEstimateSheet
         busy={photoBusy}
         error={photoNotice}

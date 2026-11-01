@@ -8,13 +8,14 @@ import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
 import { SectionHeader } from '../../../src/components/SectionHeader';
 import { LegalLinks } from '../../../src/features/legal/LegalLinksPanel';
+import { YourDataPanel } from '../../../src/features/account/YourDataPanel';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { ConnectedHealthRow } from '../../../src/features/health/ConnectedHealthRow';
 import { healthSource } from '../../../src/features/health/healthSource';
 import { loadSleepHistory, saveSleepForSource } from '../../../src/features/sleepRhythm/sleepSessionSource';
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import { dayModeLabel, protocolScope, useActiveProtocol } from '../../../src/features/dailyProtocol';
@@ -83,6 +84,7 @@ function MacroTendencyDonut({ slices }: { slices: ProfileScreenModel['blueprint'
 
 export default function SettingsScreen() {
   const tabSpace = useTabBarSpace();
+  const { section } = useLocalSearchParams<{ section?: string }>();
   const { signOut, user, profile, mode, startDemo } = useAuth();
   const actualToday = useLocalToday();
   const [confirmDemoReset, setConfirmDemoReset] = useState(false);
@@ -358,6 +360,7 @@ export default function SettingsScreen() {
           </Card>
 
           </Disclosure>
+          {mode === 'account' && user?.id ? <YourDataPanel key={section ?? 'closed'} initiallyOpen={section === 'data'} userId={user.id} /> : null}
           <LegalLinks />
 
         <Disclosure title="Account and baseline" detail={model.account.label}>

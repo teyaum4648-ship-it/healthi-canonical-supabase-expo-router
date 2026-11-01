@@ -31,7 +31,8 @@ describe('Photo meal entry', () => {
     const html = renderToStaticMarkup(<PhotoEntrySheet {...defaults} available onCapture={onCapture} />);
     expect(html).toContain('Take a photo');
     expect(html).toContain('Choose a photo');
-    expect(html).toContain('Review estimated foods and portions');
+    expect(html).toContain('The photo is sent to an AI service');
+    expect(html).toContain('review the foods and portions');
     controls[0].onPress();
     controls[1].onPress();
     expect(onCapture.mock.calls).toEqual([['camera'], ['library']]);
@@ -52,6 +53,26 @@ describe('Photo meal entry', () => {
     expect(controls.every(control => control.disabled)).toBe(true);
     expect(html).toContain('Preparing your photo estimate');
     expect(html).toContain('Service is unavailable');
+  });
+
+  it('asks before the first photo goes to the AI service, and offers no camera until then', () => {
+    const onAllow = vi.fn();
+    const onSearch = vi.fn();
+    const html = renderToStaticMarkup(<PhotoEntrySheet {...defaults} available needsConsent onAllow={onAllow} onSearch={onSearch} />);
+    expect(html).toContain('Send this photo to an AI service?');
+    expect(html).toContain('Anthropic');
+    expect(html).not.toContain('Take a photo');
+    expect(html).not.toContain('Choose a photo');
+    controls[0].onPress();
+    controls[1].onPress();
+    expect(onAllow).toHaveBeenCalledOnce();
+    expect(onSearch).toHaveBeenCalledOnce();
+  });
+
+  it('shows the camera once permission is given', () => {
+    const html = renderToStaticMarkup(<PhotoEntrySheet {...defaults} available needsConsent={false} onAllow={vi.fn()} />);
+    expect(html).toContain('Take a photo');
+    expect(html).not.toContain('Send this photo to an AI service?');
   });
 
   it('wires entry to the diary and picker, and returns confirmed foods to meal review', () => {

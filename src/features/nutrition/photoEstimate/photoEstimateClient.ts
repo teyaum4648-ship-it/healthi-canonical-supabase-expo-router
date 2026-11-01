@@ -35,6 +35,8 @@ function refusalFor(code: unknown, detail: unknown): PhotoEstimateRefusal {
       return { reason: 'too_unclear', detail: text(detail, 'That photo could not be assessed. Try another angle.') };
     case 'malformed_response':
       return { reason: 'malformed_response', detail: text(detail, 'The estimate came back in a shape daywoven could not read.') };
+    case 'consent_required':
+      return { reason: 'consent_required', detail: text(detail, 'Allow photo estimates first. Nothing was sent.') };
     case 'invalid_image':
       return { reason: 'unavailable', detail: text(detail, 'That photo could not be sent.') };
     default:
@@ -93,6 +95,7 @@ export async function requestPhotoEstimate(params: {
 export function photoEstimateRefusalTitle(refusal: PhotoEstimateRefusal): string {
   switch (refusal.reason) {
     case 'not_configured': return 'Photo estimates are off';
+    case 'consent_required': return 'Permission needed';
     case 'no_food_found': return 'No food recognised';
     case 'too_unclear': return 'That photo was too unclear';
     case 'rate_limited': return 'Daily limit reached';
