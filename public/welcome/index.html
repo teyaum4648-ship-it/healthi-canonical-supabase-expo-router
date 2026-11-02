@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>daywoven — one honest read on your day</title>
+<meta name="description" content="daywoven reads your sleep, food, movement and mood, and tells you what your body likely needs today, and why. Join the waitlist.">
+<meta name="theme-color" content="#08090C">
+<link rel="canonical" href="https://daywovenapp.com/">
+<link rel="icon" href="/icons/healthi-icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="daywoven">
+<meta property="og:title" content="daywoven — one honest read on your day">
+<meta property="og:description" content="Sleep, food, movement and mood, turned into a plain answer for today. Join the waitlist.">
+<meta property="og:url" content="https://daywovenapp.com/">
+<meta property="og:image" content="https://daywovenapp.com/welcome/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="/welcome/fonts/Fraunces-400Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/welcome/fonts/Inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /*
+   * Self-hosted fonts, so loading the page sends nothing to a font CDN. Same faces as the
+   * app: Fraunces for the wordmark and headings, Inter for everything you read.
+   */
+  @font-face { font-family: "Fraunces"; src: url("/welcome/fonts/Fraunces-400Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+  @font-face { font-family: "Fraunces"; src: url("/welcome/fonts/Fraunces-400Regular_Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+  @font-face { font-family: "Fraunces"; src: url("/welcome/fonts/Fraunces-600SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+  @font-face { font-family: "Inter"; src: url("/welcome/fonts/Inter-var.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+
+  /* The app's own tokens (src/styles/tokens.ts): slate ground, four soft pillar accents. */
+  :root {
+    --base: #08090C; --middle: #0C0F14; --top: #121720;
+    --ink: #EEF1F4; --ink-soft: #C7CBD1; --muted: #A7AFB9; --faint: #8C939D;
+    --hairline: rgba(235, 240, 255, 0.08); --hairline-soft: rgba(235, 240, 255, 0.055);
+    --glass: rgba(235, 240, 255, 0.035);
+    --mint: #8FE3C4; --mint-pressed: #76CCAD; --iris: #B4A6F6; --glacier: #86C8F0; --amber: #F2C87E; --coral: #FF6B6B;
+    --on-accent: #0A0D10;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --gutter: clamp(20px, 5vw, 56px);
+    --max: 1180px;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-x: clip; }
+  body {
+    margin: 0; background: var(--base); color: var(--ink);
+    font-family: var(--sans); font-size: 17px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  img { display: block; max-width: 100%; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; border-radius: 6px; }
+  .wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---------- Nav ---------- */
+  .nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); background: rgba(8, 9, 12, 0.62); border-bottom: 1px solid transparent; transition: border-color .3s; }
+  .nav.scrolled { border-bottom-color: var(--hairline); }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .wordmark { font-family: var(--serif); font-weight: 400; font-size: 25px; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); }
+  .nav-cta { font-size: 14px; font-weight: 600; text-decoration: none; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--glass); transition: background .2s, border-color .2s; }
+  .nav-cta:hover { background: rgba(143, 227, 196, 0.1); border-color: rgba(143, 227, 196, 0.35); }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; isolation: isolate; overflow: clip; padding: clamp(40px, 8vw, 96px) 0 clamp(64px, 9vw, 120px); }
+  .hero::before { content: ""; position: absolute; inset: -64px 0 0; z-index: -2; background:
+      radial-gradient(60% 55% at 78% 30%, rgba(143, 227, 196, 0.13), transparent 70%),
+      radial-gradient(45% 45% at 15% 85%, rgba(180, 166, 246, 0.09), transparent 70%),
+      linear-gradient(180deg, var(--top), var(--middle) 55%, var(--base)); }
+  .weave { position: absolute; left: 0; width: 100%; bottom: 0; height: 170px; z-index: -1; opacity: .4; pointer-events: none; }
+  .weave path { fill: none; stroke-width: 1.6; stroke-linecap: round; }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 22px; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--ink-soft); padding: 7px 14px 7px 12px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--glass); }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(143, 227, 196, 0.16); }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 400; letter-spacing: -0.025em; margin: 0; }
+  h1 { font-size: clamp(44px, 6.2vw, 80px); line-height: 1.02; text-wrap: balance; }
+  h1 em, h2 em { font-style: italic; color: var(--mint); }
+  .lede { margin: 24px 0 32px; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.55; color: var(--muted); max-width: 33em; }
+  .lede strong { color: var(--ink); font-weight: 500; }
+
+  /* ---------- Join form ---------- */
+  .join { max-width: 480px; }
+  .join-row { display: flex; gap: 8px; padding: 6px; border-radius: 999px; background: rgba(235, 240, 255, 0.05); border: 1px solid var(--hairline); transition: border-color .2s, box-shadow .2s; }
+  .join-row:focus-within { border-color: rgba(143, 227, 196, 0.5); box-shadow: 0 0 0 4px rgba(143, 227, 196, 0.1); }
+  .join input[type="email"], .join input[type="text"] { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); background: transparent; border: 0; padding: 12px 8px 12px 18px; }
+  .join input::placeholder { color: var(--faint); }
+  .join input:focus { outline: none; }
+  .btn { flex: none; font: inherit; font-size: 15px; font-weight: 650; color: var(--on-accent); background: var(--mint); border: 0; border-radius: 999px; padding: 13px 22px; cursor: pointer; transition: background .15s, transform .15s; white-space: nowrap; }
+  .btn:hover { background: #a3ead0; }
+  .btn:active { transform: scale(.98); background: var(--mint-pressed); }
+  .btn[disabled] { opacity: .6; cursor: progress; }
+  .fine { margin: 14px 0 0 4px; font-size: 13px; line-height: 1.5; color: var(--faint); max-width: 480px; }
+  .fine a { color: var(--ink-soft); text-underline-offset: 2px; }
+  .status { margin: 12px 0 0 4px; font-size: 14px; min-height: 0; }
+  .status.error { color: #ffb4b4; }
+  .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .joined { display: none; align-items: flex-start; gap: 14px; max-width: 480px; padding: 18px 20px; border-radius: 20px; background: rgba(143, 227, 196, 0.08); border: 1px solid rgba(143, 227, 196, 0.28); }
+  .joined svg { flex: none; margin-top: 2px; }
+  .joined strong { display: block; font-weight: 600; color: var(--ink); }
+  .joined span { font-size: 15px; color: var(--muted); }
+  .is-joined .join, .is-joined .fine { display: none; }
+  .is-joined .joined { display: flex; }
+
+  /* ---------- Phones ---------- */
+  .phones { position: relative; height: clamp(500px, 52vw, 640px); }
+  .phone { position: absolute; width: clamp(220px, 21vw, 280px); aspect-ratio: 1170 / 2532; border-radius: clamp(34px, 3.4vw, 44px); padding: 9px; background: linear-gradient(160deg, #2a2f38, #14171c 40%, #0d0f13); box-shadow: 0 0 0 1px rgba(255,255,255,0.07) inset, 0 40px 80px -20px rgba(0,0,0,0.75), 0 0 0 1px rgba(0,0,0,0.6); }
+  .phone img { width: 100%; height: 100%; object-fit: cover; border-radius: clamp(26px, 2.7vw, 35px); }
+  .phone.front { right: 4%; top: 0; z-index: 2; transform: rotate(3deg); }
+  .phone.back { right: 42%; top: 9%; transform: rotate(-6deg); opacity: .9; }
+  .phone.back img { filter: saturate(.9) brightness(.85); }
+  .badge { position: absolute; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: rgba(18, 23, 32, 0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--hairline); box-shadow: 0 18px 40px -16px rgba(0,0,0,.7); font-size: 13px; color: var(--ink-soft); }
+  .badge b { display: block; color: var(--ink); font-size: 15px; font-weight: 600; }
+  .badge i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .badge.one { left: 0; bottom: 14%; }
+  .badge.two { right: 0; bottom: 3%; }
+
+  /* ---------- Sections ---------- */
+  section { position: relative; }
+  .section { padding: clamp(72px, 10vw, 132px) 0; }
+  .kicker { font-size: 13px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 0 0 18px; }
+  h2 { font-size: clamp(34px, 4.6vw, 56px); line-height: 1.06; max-width: 15em; }
+  .section-lede { color: var(--muted); font-size: 18px; max-width: 36em; margin: 20px 0 0; }
+
+  /* Day Mode */
+  .modes { border-top: 1px solid var(--hairline-soft); border-bottom: 1px solid var(--hairline-soft); background: linear-gradient(180deg, var(--base), var(--middle)); }
+  .mode-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 44px; list-style: none; padding: 0; }
+  .mode { padding: 22px 20px 24px; border-radius: 20px; background: var(--glass); border: 1px solid var(--hairline); transition: transform .3s, border-color .3s, background .3s; }
+  .mode:hover { transform: translateY(-3px); border-color: rgba(235,240,255,.14); background: rgba(235,240,255,.05); }
+  .mode .pip { width: 30px; height: 4px; border-radius: 4px; margin-bottom: 22px; }
+  .mode h3 { font-size: 26px; margin-bottom: 8px; }
+  .mode p { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.5; }
+
+  /* Features */
+  .feature { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 96px); align-items: center; padding: clamp(40px, 6vw, 72px) 0; }
+  .feature + .feature { border-top: 1px solid var(--hairline-soft); }
+  .feature:nth-child(even) .feature-art { order: -1; }
+  .pillar { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 18px; }
+  .pillar i { width: 8px; height: 8px; border-radius: 50%; }
+  .feature h3 { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.1; margin-bottom: 18px; }
+  .feature p { color: var(--muted); margin: 0; max-width: 30em; font-size: 18px; }
+  .feature-art { position: relative; display: flex; justify-content: center; }
+  .feature-art::before { content: ""; position: absolute; width: 74%; aspect-ratio: 1; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, var(--glow), transparent 68%); opacity: .55; z-index: -1; }
+  .feature-art .phone { position: relative; width: clamp(230px, 24vw, 300px); transform: none; }
+
+  /* Principles */
+  .principles { background: linear-gradient(180deg, var(--base), var(--middle) 40%, var(--base)); border-top: 1px solid var(--hairline-soft); }
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 48px; }
+  .card { padding: 30px 28px 32px; border-radius: 24px; background: var(--glass); border: 1px solid var(--hairline); }
+  .card svg { margin-bottom: 26px; }
+  .card h3 { font-size: 24px; margin-bottom: 10px; line-height: 1.2; }
+  .card p { margin: 0; color: var(--muted); font-size: 16px; }
+  .note { margin: 28px 0 0; font-size: 14px; color: var(--faint); max-width: 52em; }
+
+  /* Final CTA */
+  .final { padding: clamp(80px, 11vw, 140px) 0; text-align: center; overflow: hidden; isolation: isolate; }
+  .final::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(50% 60% at 50% 100%, rgba(143, 227, 196, 0.14), transparent 70%); }
+  .final h2 { margin: 0 auto; }
+  .final .section-lede { margin: 20px auto 40px; }
+  .final .join, .final .fine, .final .joined { margin-left: auto; margin-right: auto; text-align: left; }
+  .final .join { max-width: 520px; display: grid; gap: 10px; }
+  .field { display: block; border-radius: 18px; background: rgba(235, 240, 255, 0.05); border: 1px solid var(--hairline); transition: border-color .2s, box-shadow .2s; }
+  .field:focus-within { border-color: rgba(143, 227, 196, 0.5); box-shadow: 0 0 0 4px rgba(143, 227, 196, 0.1); }
+  .field input { width: 100%; padding: 16px 18px !important; }
+  .platforms { display: flex; gap: 8px; border: 0; padding: 0; margin: 4px 0 6px; flex-wrap: wrap; }
+  .platforms legend { font-size: 14px; color: var(--muted); padding: 0; margin-bottom: 10px; float: left; width: 100%; }
+  .chip { position: relative; }
+  .chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .chip span { display: inline-block; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--glass); font-size: 15px; color: var(--ink-soft); transition: all .15s; }
+  .chip input:checked + span { color: var(--on-accent); background: var(--mint); border-color: var(--mint); font-weight: 600; }
+  .chip input:focus-visible + span { outline: 2px solid var(--mint); outline-offset: 3px; }
+  .final .btn { width: 100%; padding: 16px 22px; font-size: 16px; margin-top: 4px; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--hairline-soft); padding: 48px 0 calc(40px + env(safe-area-inset-bottom)); color: var(--faint); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 24px 48px; justify-content: space-between; align-items: flex-start; }
+  footer nav { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+  footer nav a { text-decoration: none; color: var(--muted); }
+  footer nav a:hover { color: var(--ink); }
+  footer p { margin: 8px 0 0; max-width: 30em; }
+
+  /* Gentle reveal on scroll; everything is visible without JavaScript. */
+  .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+  .js .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 980px) {
+    .mode-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mode-list .mode:last-child { grid-column: 1 / -1; }
+    .cards { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 860px) {
+    .hero .wrap { grid-template-columns: minmax(0, 1fr); }
+    .phones { height: 520px; max-width: 460px; width: 100%; margin: 8px auto 0; }
+    .weave { opacity: .3; }
+    .phone.front { right: 6%; }
+    .phone.back { right: auto; left: 4%; }
+    .feature { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+    .feature:nth-child(even) .feature-art { order: 0; }
+  }
+  @media (max-width: 520px) {
+    body { font-size: 16px; }
+    .nav-cta { padding: 8px 13px; font-size: 13px; }
+    .join-row { flex-direction: column; border-radius: 22px; padding: 6px; }
+    .join-row input[type="email"] { padding: 14px 14px; }
+    .join-row .btn { width: 100%; padding: 15px; }
+    .phones { height: 440px; }
+    .phone { width: 200px; }
+    .badge { padding: 10px 12px; }
+    .badge.one { left: -4px; bottom: 10%; }
+    .badge.two { right: -4px; bottom: 0; }
+    .mode-list { grid-template-columns: minmax(0, 1fr); }
+    .feature p, .section-lede { font-size: 17px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .weave animate { display: none; }
+    .js .reveal { opacity: 1; transform: none; transition: none; }
+    .mode, .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js');</script>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="wordmark" href="/" aria-label="daywoven home">daywoven</a>
+    <a class="nav-cta" href="#join">Join the waitlist</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <svg class="weave" viewBox="0 0 1440 340" preserveAspectRatio="none" aria-hidden="true">
+      <path stroke="#8FE3C4" d="M-40 170 C 200 40, 400 300, 720 170 S 1240 40, 1480 170">
+        <animate attributeName="d" dur="14s" repeatCount="indefinite" values="M-40 170 C 200 40, 400 300, 720 170 S 1240 40, 1480 170;M-40 170 C 200 300, 400 40, 720 170 S 1240 300, 1480 170;M-40 170 C 200 40, 400 300, 720 170 S 1240 40, 1480 170"/>
+      </path>
+      <path stroke="#B4A6F6" stroke-opacity=".8" d="M-40 170 C 220 280, 460 60, 720 170 S 1220 280, 1480 170">
+        <animate attributeName="d" dur="17s" repeatCount="indefinite" values="M-40 170 C 220 280, 460 60, 720 170 S 1220 280, 1480 170;M-40 170 C 220 60, 460 280, 720 170 S 1220 60, 1480 170;M-40 170 C 220 280, 460 60, 720 170 S 1220 280, 1480 170"/>
+      </path>
+      <path stroke="#F2C87E" stroke-opacity=".55" d="M-40 170 C 260 90, 520 250, 720 170 S 1180 90, 1480 170">
+        <animate attributeName="d" dur="21s" repeatCount="indefinite" values="M-40 170 C 260 90, 520 250, 720 170 S 1180 90, 1480 170;M-40 170 C 260 250, 520 90, 720 170 S 1180 250, 1480 170;M-40 170 C 260 90, 520 250, 720 170 S 1180 90, 1480 170"/>
+      </path>
+      <path stroke="#86C8F0" stroke-opacity=".5" d="M-40 170 C 180 230, 480 110, 720 170 S 1260 230, 1480 170">
+        <animate attributeName="d" dur="19s" repeatCount="indefinite" values="M-40 170 C 180 230, 480 110, 720 170 S 1260 230, 1480 170;M-40 170 C 180 110, 480 230, 720 170 S 1260 110, 1480 170;M-40 170 C 180 230, 480 110, 720 170 S 1260 230, 1480 170"/>
+      </path>
+    </svg>
+
+    <div class="wrap">
+      <div class="hero-copy" data-joinable>
+        <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Coming soon to iPhone and Android</p>
+        <h1 id="hero-title">One honest read <em>on your day.</em></h1>
+        <p class="lede">daywoven reads your <strong>sleep, food, movement and mood</strong>, and turns them into a plain answer for today: what your body likely needs, and why.</p>
+
+        <form class="join" action="/api/waitlist" method="post" novalidate>
+          <div class="join-row">
+            <label class="sr" for="hero-email">Email address</label>
+            <input id="hero-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required maxlength="254">
+            <button class="btn" type="submit">Join the waitlist</button>
+          </div>
+          <div class="hp" aria-hidden="true"><label>Company <input name="company" tabindex="-1" autocomplete="off"></label></div>
+          <p class="status" role="status" aria-live="polite"></p>
+        </form>
+        <p class="fine">Free to join. We&rsquo;ll email you when it launches, and about early access before that. Unsubscribe anytime. <a href="/legal/privacy.html#waitlist">How we use your email</a>.</p>
+        <div class="joined" role="status">
+          <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="none" stroke="#8FE3C4" stroke-width="1.6"/><path d="M8 13.4l3.3 3.2L18 9.6" fill="none" stroke="#8FE3C4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div><strong>You&rsquo;re on the list.</strong><span>We&rsquo;ll be in touch before launch. Nothing else lands in your inbox.</span></div>
+        </div>
+      </div>
+
+      <div class="phones" aria-hidden="true">
+        <div class="phone back"><img src="/welcome/img/rhythm.webp" alt="" width="640" height="1385" loading="eager"></div>
+        <div class="phone front"><img src="/welcome/img/home.webp" alt="" width="640" height="1385" loading="eager" fetchpriority="high"></div>
+        <div class="badge one"><i style="background: var(--mint)"></i><div><b>Recovery +3</b>A good day for your harder session</div></div>
+        <div class="badge two"><i style="background: var(--amber)"></i><div><b>Dip ahead · ~2 PM</b>Plan the easy work there</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="modes section" aria-labelledby="modes-title">
+    <div class="wrap">
+      <p class="kicker reveal">Your Day Mode</p>
+      <h2 id="modes-title" class="reveal">Not every day is a day to push. <em>daywoven tells you which one this is.</em></h2>
+      <ul class="mode-list">
+        <li class="mode reveal"><div class="pip" style="background: var(--mint)"></div><h3>Restore</h3><p>Short night, heavy week. Recover first, and keep the rest of the day light.</p></li>
+        <li class="mode reveal"><div class="pip" style="background: var(--iris)"></div><h3>Nourish</h3><p>Running on empty. Eat well and eat on time, and the rest follows.</p></li>
+        <li class="mode reveal"><div class="pip" style="background: var(--amber)"></div><h3>Correct</h3><p>Something&rsquo;s off rhythm. One small change brings the day back.</p></li>
+        <li class="mode reveal"><div class="pip" style="background: var(--glacier)"></div><h3>Move</h3><p>Steady and ready. A good day to train well, without forcing it.</p></li>
+        <li class="mode reveal"><div class="pip" style="background: linear-gradient(90deg, var(--mint), var(--glacier))"></div><h3>Perform</h3><p>Everything lines up. Use it for the session or the work that matters.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" aria-label="What daywoven does">
+    <div class="wrap">
+      <article class="feature">
+        <div class="feature-copy reveal">
+          <p class="pillar" style="color: var(--mint)"><i style="background: var(--mint)"></i>Readiness</p>
+          <h3>One number for today, <em style="color: var(--mint)">and the reasons behind it.</em></h3>
+          <p>Recovery, nourishment, movement and load, pulled into a single score each morning. It always shows how sure it is and what moved it, so you can decide for yourself.</p>
+        </div>
+        <div class="feature-art reveal" style="--glow: rgba(143, 227, 196, 0.35)"><div class="phone"><img src="/welcome/img/home.webp" alt="The daywoven home screen showing a readiness score of 77, with recovery up 3" width="640" height="1385" loading="lazy"></div></div>
+      </article>
+
+      <article class="feature">
+        <div class="feature-copy reveal">
+          <p class="pillar" style="color: var(--glacier)"><i style="background: var(--glacier)"></i>Recovery + Rhythm</p>
+          <h3>Know when your energy peaks, <em style="color: var(--glacier)">and when the dip is coming.</em></h3>
+          <p>Your sleep window and your own rhythm map the day into focus windows and slow stretches. The afternoon slump stops being a surprise and becomes something you plan around.</p>
+        </div>
+        <div class="feature-art reveal" style="--glow: rgba(134, 200, 240, 0.32)"><div class="phone"><img src="/welcome/img/rhythm.webp" alt="The Sleep screen showing the first energy peak of the day and last night's sleep window" width="640" height="1385" loading="lazy"></div></div>
+      </article>
+
+      <article class="feature">
+        <div class="feature-copy reveal">
+          <p class="pillar" style="color: var(--iris)"><i style="background: var(--iris)"></i>Nourishment</p>
+          <h3>See how a food scores <em style="color: var(--iris)">before you eat it.</em></h3>
+          <p>Search or scan almost anything. Every score comes with its reasons, and the allergens you care about are flagged straight from the label. No calorie guilt, just clearer choices.</p>
+        </div>
+        <div class="feature-art reveal" style="--glow: rgba(180, 166, 246, 0.32)"><div class="phone"><img src="/welcome/img/food.webp" alt="Food search results for Greek yogurt, each with a score out of 100" width="640" height="1385" loading="lazy"></div></div>
+      </article>
+
+      <article class="feature">
+        <div class="feature-copy reveal">
+          <p class="pillar" style="color: var(--amber)"><i style="background: var(--amber)"></i>Mind + Life Load</p>
+          <h3>When the day gets heavy, <em style="color: var(--amber)">a minute or two to reset.</em></h3>
+          <p>Short breathing and reset practices, and a load check that makes sure a hard week isn&rsquo;t treated like an easy one. The plan bends to the day you&rsquo;re actually having.</p>
+        </div>
+        <div class="feature-art reveal" style="--glow: rgba(242, 200, 126, 0.28)"><div class="phone"><img src="/welcome/img/mood.webp" alt="The Mood screen showing today's load as manageable, with breathing and morning light practices" width="640" height="1385" loading="lazy"></div></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="principles section" aria-labelledby="principles-title">
+    <div class="wrap">
+      <p class="kicker reveal">Honest by design</p>
+      <h2 id="principles-title" class="reveal">Guidance you can check, <em>from an app that knows its limits.</em></h2>
+      <div class="cards">
+        <div class="card reveal">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#2A2E35" stroke-width="3"/><path d="M20 3a17 17 0 0 1 14.7 25.5" fill="none" stroke="#8FE3C4" stroke-width="3" stroke-linecap="round"/></svg>
+          <h3>It tells you how sure it is</h3>
+          <p>Every score carries a confidence level and its reasons. A missing night or a skipped log lowers the confidence, never your score.</p>
+        </div>
+        <div class="card reveal">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 26c5 0 6-12 11-12s6 12 11 12 6-12 10-12" fill="none" stroke="#B4A6F6" stroke-width="3" stroke-linecap="round"/></svg>
+          <h3>It learns you first</h3>
+          <p>The first one to two weeks are calibration. daywoven watches your real rhythm before it starts sounding certain, and gets sharper every week.</p>
+        </div>
+        <div class="card reveal">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="9" y="18" width="22" height="16" rx="4" fill="none" stroke="#F2C87E" stroke-width="3"/><path d="M14 18v-4a6 6 0 0 1 12 0v4" fill="none" stroke="#F2C87E" stroke-width="3"/></svg>
+          <h3>Your data stays yours</h3>
+          <p>No ads, no analytics, and your data is never sold. Export it or delete your account from inside the app, any time.</p>
+        </div>
+      </div>
+      <p class="note reveal">daywoven offers general wellness guidance. It is not a medical device and does not diagnose or treat anything. If something feels wrong, talk to a qualified professional.</p>
+    </div>
+  </section>
+
+  <section class="final" id="join" aria-labelledby="join-title">
+    <div class="wrap" data-joinable>
+      <h2 id="join-title" class="reveal">Be first <em>in line.</em></h2>
+      <p class="section-lede reveal">Join the waitlist and we&rsquo;ll let you know the moment daywoven is ready, with early access for the first people on the list.</p>
+
+      <form class="join" action="/api/waitlist" method="post" novalidate>
+        <label class="field"><span class="sr">Email address</span><input name="email" type="email" inputmode="email" autocomplete="email" placeholder="Email address" required maxlength="254"></label>
+        <label class="field"><span class="sr">First name (optional)</span><input name="first_name" type="text" autocomplete="given-name" placeholder="First name (optional)" maxlength="40"></label>
+        <fieldset class="platforms">
+          <legend>Which phone do you use?</legend>
+          <label class="chip"><input type="radio" name="platform" value="ios"><span>iPhone</span></label>
+          <label class="chip"><input type="radio" name="platform" value="android"><span>Android</span></label>
+        </fieldset>
+        <div class="hp" aria-hidden="true"><label>Company <input name="company" tabindex="-1" autocomplete="off"></label></div>
+        <button class="btn" type="submit">Join the waitlist</button>
+        <p class="status" role="status" aria-live="polite"></p>
+      </form>
+      <p class="fine">We&rsquo;ll only email you about daywoven&rsquo;s launch and early access. Unsubscribe anytime. <a href="/legal/privacy.html#waitlist">Privacy Policy</a>.</p>
+      <div class="joined" role="status">
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="none" stroke="#8FE3C4" stroke-width="1.6"/><path d="M8 13.4l3.3 3.2L18 9.6" fill="none" stroke="#8FE3C4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><strong>You&rsquo;re on the list.</strong><span>We&rsquo;ll be in touch before launch. Nothing else lands in your inbox.</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <a class="wordmark" href="/">daywoven</a>
+      <p>One honest read on your day. General wellness guidance, not medical advice.</p>
+    </div>
+    <nav aria-label="Legal">
+      <a href="/legal/privacy.html">Privacy</a>
+      <a href="/legal/terms.html">Terms</a>
+      <a href="/legal/cookies.html">Cookies</a>
+      <a href="/legal/accessibility.html">Accessibility</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(() => {
+  /*
+   * Progressive enhancement. Without JavaScript the forms post straight to /api/waitlist
+   * and come back to /?joined=1. With it, they submit in place. A source tag from the link
+   * (?src=tank-ad) is kept so we know which ad worked. Nothing is tracked, and no cookies.
+   */
+  const params = new URLSearchParams(location.search);
+  const source = (params.get('src') || params.get('utm_source') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+  const blocks = [...document.querySelectorAll('[data-joinable]')];
+  const markJoined = () => blocks.forEach((block) => block.classList.add('is-joined'));
+
+  let remembered = false;
+  try { remembered = localStorage.getItem('daywoven:waitlist') === 'joined'; } catch {}
+  if (params.get('joined') === '1' || remembered) markJoined();
+
+  const messages = {
+    invalid_email: 'That email doesn’t look right. Check it and try again.',
+    rate_limited: 'Too many tries in a row. Give it a minute and try again.',
+    default: 'Something went wrong on our side. Please try again in a moment.'
+  };
+  if (params.get('error')) {
+    const status = document.querySelector('#join .status');
+    status.textContent = messages[params.get('error')] || messages.default;
+    status.classList.add('error');
+  }
+
+  document.querySelectorAll('form.join').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const status = form.querySelector('.status');
+      const button = form.querySelector('button[type="submit"]');
+      const data = new FormData(form);
+      const email = String(data.get('email') || '').trim();
+      status.classList.remove('error');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        status.textContent = messages.invalid_email;
+        status.classList.add('error');
+        form.querySelector('input[name="email"]').focus();
+        return;
+      }
+      button.disabled = true;
+      status.textContent = 'Adding you…';
+      try {
+        const response = await fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            email,
+            first_name: String(data.get('first_name') || '').trim() || null,
+            platform: data.get('platform') || null,
+            source: source || null,
+            company: String(data.get('company') || '')
+          })
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body.ok) throw new Error(body.error || 'default');
+        try { localStorage.setItem('daywoven:waitlist', 'joined'); } catch {}
+        status.textContent = '';
+        markJoined();
+      } catch (error) {
+        status.textContent = messages[error.message] || messages.default;
+        status.classList.add('error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+  } else {
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('in'));
+  }
+})();
+</script>
+</body>
+</html>

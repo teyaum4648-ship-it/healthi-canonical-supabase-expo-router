@@ -1,7 +1,9 @@
 /** Same-origin search gateway. Only public catalog data is cached; never meals,
  * quiz answers, auth headers, or provider credentials. No arbitrary upstream URL.
  */
-type Env = { USDA_API_KEY?: string; ASSETS?: { fetch(request: Request): Promise<Response> } };
+import { handleWaitlist, type WaitlistEnv } from './waitlist';
+
+type Env = WaitlistEnv & { USDA_API_KEY?: string; ASSETS?: { fetch(request: Request): Promise<Response> } };
 type Context = { waitUntil(promise: Promise<unknown>): void };
 type CacheLike = { match(request: Request): Promise<Response | undefined>; put(request: Request, response: Response): Promise<void> };
 type RecordValue = Record<string, unknown>;
@@ -150,8 +152,13 @@ export default {
       const cache = (globalThis as unknown as { caches?: { default?: CacheLike } }).caches?.default;
       return handleFoodSearch(request, env, ctx, cache);
     }
+    if (url.pathname === '/api/waitlist') return handleWaitlist(request, env);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     if (!env.ASSETS) return new Response('App assets unavailable', { status: 503 });
+    // The front door is the waitlist page; the web app keeps every other path (/login, /food…).
+    if (url.pathname === '/' && (request.method === 'GET' || request.method === 'HEAD')) {
+      return env.ASSETS.fetch(new Request(new URL('/welcome/', url.origin), request));
+    }
     const result = await env.ASSETS.fetch(request);
     if (result.status === 404 && request.method === 'GET' && !url.pathname.split('/').pop()?.includes('.')) return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin), request));
     return result;

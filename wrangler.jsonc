@@ -1,5 +1,7 @@
 {
-  // Serves the exported web app plus the /api/food-search route from one Worker.
+  // Serves the exported web app, the waitlist page at /, and the /api/food-search and
+  // /api/waitlist routes from one Worker. /api/waitlist needs SUPABASE_URL and
+  // SUPABASE_ANON_KEY: `npx wrangler secret put SUPABASE_URL` (and the same for the key).
   //
   // The Worker only runs for /api/* — everything else is served straight from the
   // edge as a static asset, which is faster and cheaper than routing every request
@@ -13,7 +15,8 @@
     "directory": "dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    // "/" too, so the front door can be the waitlist page rather than the app shell.
+    "run_worker_first": ["/api/*", "/"]
   },
   "observability": {
     "enabled": true
