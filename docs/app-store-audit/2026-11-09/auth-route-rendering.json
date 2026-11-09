@@ -1,0 +1,36 @@
+{
+  "mode": "demo (remote service flows unavailable)",
+  "checks": [
+    {
+      "route": "/auth/callback",
+      "rendered": true,
+      "bodyExcerpt": "Link unavailable\nConfirming your email link securely.\nAccount email links are not enabled in this local demo.\nRequest a new passwo"
+    },
+    {
+      "route": "/auth/reset-password",
+      "rendered": true,
+      "bodyExcerpt": "Open your reset email\nUse the newest password-reset link to verify your account before choosing a password.\nRequest a new reset li"
+    },
+    {
+      "route": "/forgot-password",
+      "rendered": true,
+      "bodyExcerpt": "daywoven preview\nStart with your day\nExplore your sleep, nourishment, movement, and daily plan with a clean profile.\nThis demo is "
+    },
+    {
+      "route": "/login",
+      "rendered": true,
+      "bodyExcerpt": "daywoven preview\nStart with your day\nExplore your sleep, nourishment, movement, and daily plan with a clean profile.\nThis demo is "
+    },
+    {
+      "route": "/signup",
+      "rendered": true,
+      "bodyExcerpt": "daywoven preview\nStart with your day\nExplore your sleep, nourishment, movement, and daily plan with a clean profile.\nThis demo is "
+    },
+    {
+      "route": "/legal/privacy.html",
+      "rendered": true,
+      "bodyExcerpt": "Skip to the policy\ndaywoven\nPrivacy Policy\n\nVersion 1.0\n\nEffective {{EFFECTIVE_DATE}} · Last updated {{EFFECTIVE_DATE}}\n\ndaywoven "
+    }
+  ],
+  "errors": []
+}

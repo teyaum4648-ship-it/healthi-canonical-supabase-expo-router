@@ -1,0 +1,123 @@
+[
+  {
+    "route": "/",
+    "url": "http://127.0.0.1:8135/",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "Monday, November 9\n\nPlan\nGood evening\nREADINESS\n—\nNo estimate\n—\nRecovery\n—\nNourish\n—\nMovement\n—\nMind\nToday’s direction is a starting point, not a live reading of how you feel now.\n9:54 PM · No current number yet · No check-in yet · Demo\nCheck in\nWhy this estimate?\nBiomarkers\n\n\nSet your starting point\nA short load check, so readiness starts from you instead of 70.\n\n\nSleep\n\n—\nLog last night to compare it with your need\nNot logged\n\nLoad\n\n0\n0 of 7 days trained\nRest day\nResting heart rate\nLast 7 days\nNo reading yet\nNo readings yet. Add the resting heart rate your watch or ring shows for last night, or connect a health app from your profile.\nToday\n\nAdd\nYesterday\n\nAdd\nSat, Nov 7\n\nAdd\nFri, Nov 6\n\nAdd\nThu, Nov 5\n\nAdd\nWed, Nov 4\n\nAdd\nTue, Nov 3\n\nAdd\nQuick log\n\nFood\n\nWater\n\nWorkout\n\nSleep\n\nCheck-in\nDaily plan · starting point\nA steady, useful session\nKeep a moderate, practical session — no need to push for more.\n\n\nYour week in review\nFour lines and one thing for next week\n\n\nThis week\nTrends\n\nTap a card to see what to work on.\n\nSleep\n\n—\navg sleep\nNo nights logged yet\n\nDiet\n\n0 of 7\ndays logged\nSet goals to see targets hit\n\nMovement\n\n0 of 4\nsessions this week\nNo sessions yet\n\nMood\n\n0\nbreathing resets\nNone yet this week\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/food",
+    "url": "http://127.0.0.1:8135/food",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "Diet\nLocal demo mode\nOverview\nNutrients\nQuality\nNovember 2026\n\n\nSun\n8\nMon\n9\nTue\n10\nWed\n11\nThu\n12\nFri\n13\nSat\n14\nCalories logged\n—\nLog a food to begin\n\nNot logged\nProtein\n—\ng\nNo target set\n\nCarbs\n—\ng\nNo target set\n\nFat\n—\ng\nNo target set\n\nWorking targets guide your day. Rings show intake, not a health score.\n\nSet up my goals\nA one-time quiz for calorie and macro estimates\n\n\nTake the Food Pattern Test\nA short quiz about how meals tend to sit with you\n\n\nWater\nNot logged yet\n\nAdd water\nMeals\nBreakfast\n\nAdd\nNo foods logged yet\nLunch\n\nAdd\nNo foods logged yet\nDinner\n\nAdd\nNo foods logged yet\nSnacks\n\nAdd\nNo foods logged yet\n\nYour foods & meals\nSearch history, starred meals, and saved favorites\n\n\nHow good was what you ate\nGrades for everything you logged, and what earned them\n\n\nAdd meal\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/movement",
+    "url": "http://127.0.0.1:8135/movement",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "Movement\nToday\nTrain\nHistory\n\nCheck how you move\nSeven checks you can do now, in a room, with nothing.\n\n\nStart workout\nMake the lighter choice useful.\nKeep intensity modest and give movement quality more attention than output.\nRestore\nTechnique\nBuild\nPush\nSuggested effort 3–5 of 10 · readiness comes from Home\nAn easy first session helps calibrate.\nNo sessions logged this week yet.\nNo recent sleep logged yet.\nHow are you feeling?\nOptional · saved with the session so you can read it back later.\nHeavy\nSteady\nEnergized\nSore\nMore about today\nObjective, what supports today, and your recent mix\n\nThis week\nT\nW\nT\nF\nS\nS\nM\n0 sessions\n0 minutes\n0 high effort\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/rhythm",
+    "url": "http://127.0.0.1:8135/rhythm",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "Sleep\nMonday, November 9\nDemo rhythm\n\nToday\nTrends\nWind-down\nLearn\nYour rhythm now\nCalibrating\nEnergy · Steady\nAdd a confirmed sleep window to make today’s rhythm more personal.\nAdd sleep data to refine timing\n\nWhere does your clock sit?\nSix questions, then a day built around the answers.\n\nLast night\nYour sleep window\n\nEstimated\n\nToday\nMon, Nov 9\n\n10:30 PM – 6:30 AM\n8h\nEstimated from your recent rhythm\n6 PM\nMidnight\n6 AM\nNoon\n\nEstimated timing, not sleep stages. Confirm it if it looks right.\n\nLooks right\n\nAdjust\nThis morning\nHow today is likely to feel\nLog last night’s window above, then answer what you can here for today’s energy prediction.\nHow rested do you feel?\nExhausted\nTired\nOkay\nRested\nVery rested\nHow long did it take to fall asleep?\nNot sure\n5 min\n15 min\n30 min\n45 min\n1 hr+\nTime awake during the night\nNot sure\nSlept through\n~10 min\n~20 min\n~45 min\n1 hr+\nI’m not sure of my sleep times\nAnswers save as you tap. Everything here is optional.\nMorning pulse (optional)\nBefore you get up, rest two fingers on the thumb side of your wrist, count the beats for 30 seconds and double it.\nbpm\nSave\nCaffeine\nNothing logged today\nLog a drink and the energy curve below accounts for it.\nCoffee\n95 mg\nEspresso\n63 mg\nBlack tea\n47 mg\nLarge cold brew\n200 mg\nMore\nTypical servings. Your own drink may differ.\nRise\nPeak\nDip\n2nd peak\nSleep\nPredicted energy through your day\nDrag to explore →\nTonight\nSleep by 10:30 PM\n8h opportunity\nThis window supports a more repeatable rhythm tonight.\n6 PM\n11 PM\n4 AM\n9 AM\nBed 10:30 PM\n−\n+\nWake 6:30 AM\n−\n+\nIn tune with your current sleep need\nOpen wind-",
+    "errors": []
+  },
+  {
+    "route": "/mood",
+    "url": "http://127.0.0.1:8135/mood",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "Mood\nToday\nPractice\nTrends\nHow’s your head?\nOverloaded\nClear\nOne tap. It counts toward Mind + Life Load and today’s readiness.\nMind + Life Load\nNot enough to read yet. Log last night’s sleep, add today’s plan, or say how your head is.\n\nKeep one reset in the day\nA minute of Settle is enough to keep the habit easy to reach for.\n\nToday so far\n\nBreathing\n0 of 5 min\n\nMorning light\n0 of 10 min\n\nHabits\n0 of 3\n\nRelease\nNot yet\nThis week\n0 min breathing\nT\nW\nT\nF\nS\nS\nM\nNone of this is medical advice, and none of it can tell you why a number moved. If something feels wrong, ask a professional. In an emergency call 911; for crisis support in the US, call or text 988.\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/settings",
+    "url": "http://127.0.0.1:8135/settings",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "You\nYour progress, profile and preferences.\n\nTrends\nCharts for sleep, food, movement and mood\n\n\nLoad check\nSets where your readiness starts each day\n\nConnected apps\n\nApple Health\nSleep and steps come in through the iPhone and Android apps. Nights you log yourself always stay as you logged them.\nYour profile and preferences\nGoals, nourishment, sleep and movement context\n\nLegal and privacy\nPolicies, your data, and accessibility\n\nAccount and baseline\nLocal demo preview\n\ndaywoven provides general wellness guidance based on available data.\nDiary check\nFind entries filed on the wrong day\n\nDemo settings\nReset this device’s demo history\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/progress",
+    "url": "http://127.0.0.1:8135/progress",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "\nHome\nTrends\nPatterns from what you’ve logged. A day with nothing logged is left out, not counted as zero.\n7 days\n14 days\n30 days\nYour trends are still calibrating.\nLog a few more days to reveal clearer patterns.\nNothing logged in the last 7 days · Logged on this device\nNext focus\nBuild your recovery + rhythm signal\nLog a few more days to reveal a clearer pattern.\n\nRecovery + Rhythm\nCalibrating\nCalibrating\nHours asleep · nothing logged yet\n8h\nT\nW\nT\nF\nS\nS\nM\nLog a few more days to reveal a clearer pattern.\nNothing logged in the last 7 days\nNourishment\nCalibrating\nCalibrating\nCalories logged · nothing logged yet\n2,000 kcal\nT\nW\nT\nF\nS\nS\nM\nLog a few more days to reveal a clearer pattern.\nNothing logged in the last 7 days\nMovement Capacity\nCalibrating\nCalibrating\nMinutes moving · nothing logged yet\n30 min\nT\nW\nT\nF\nS\nS\nM\nLog a few more days to reveal a clearer pattern.\nNothing logged in the last 7 days\nMind + Life Load\nCalibrating\nCalibrating\nMinutes breathing · nothing logged yet\n30 min\nT\nW\nT\nF\nS\nS\nM\nLog a few more days to reveal a clearer pattern.\nNothing logged in the last 7 days\nReadiness\nCalibrating\nCalibrating\nDaily estimate · nothing logged yet\n100\nT\nW\nT\nF\nS\nS\nM\nLog a few more days to reveal a clearer pattern.\nNothing logged in the last 7 days\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/plan",
+    "url": "http://127.0.0.1:8135/plan",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "\nHome\nYour plan\nMonday, November 9\nAdd schedule blocks so daywoven can find useful openings. Local demo schedule.\nYour day\nTap a time to add a block\n\nBlock\nRecommended sections come from your sleep rhythm and stay separate from your saved commitments.\n6 AM\n7 AM\n8 AM\n9 AM\n10 AM\n11 AM\n12 PM\n1 PM\n2 PM\n3 PM\n4 PM\n5 PM\n6 PM\n7 PM\n8 PM\n9 PM\n10 PM\n11 PM\nDeep work\nExercise\nLight movement\nWind-down\nSleep rhythm shading will appear when timing data is available.\nTap an open hour to add a block. Tap an existing block to remove it.\nSchedule guidance\nSuggested windows, reasons and confidence\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+    "errors": []
+  },
+  {
+    "route": "/closeout",
+    "url": "http://127.0.0.1:8135/closeout",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "\nEvening closeout\nA short check-in to close the day. Answer what you can — anything you skip just keeps confidence lower.\nDid you follow today’s movement or restore plan?\nYes\nPartly\nNo\nHow did your body respond?\nBetter\nSame\nLower energy\nMore tense\nAny pain or discomfort during movement?\nNo\nMild discomfort\nPain\nHow was digestion today?\nComfortable\nOkay\nOff\nAny caffeine after the suggested cutoff?\nNo\nYes\nNot sure\nDid you get outdoor light or a walk?\nYes\nNo\nSave closeout",
+    "errors": []
+  },
+  {
+    "route": "/load-check",
+    "url": "http://127.0.0.1:8135/load-check",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "\nLoad check\nWhere your days start\nAbout thirty quick questions on the past month. Your answers set where readiness starts each day for you, instead of the same 70 for everyone. Skip anything you would rather not answer.\n0 of 31 answered\nSleep and rhythm\nHow your nights and mornings usually go.\nHow often do you wake up still tired?\nRarely\nSometimes\nOften\nMost days\nHow often are you still up after 11 p.m.?\nRarely\nSome nights\nMost nights\nNearly every night\nHow often do you wake in the night and struggle to get back to sleep?\nRarely\nSome nights\nMost nights\nNearly every night\nHow often does your bedtime move by more than an hour from one night to the next?\nRarely\nSome nights\nMost nights\nNearly every night\nHow often do you hit a heavy slump in the afternoon?\nRarely\nSometimes\nOften\nMost days\nHow often are you on a screen in the last half hour before sleep?\nRarely\nSome nights\nMost nights\nNearly every night\nWhat you eat\nThe usual make-up of your meals.\nHow often are your meals mostly packaged, takeaway or fast food?\nRarely\nSometimes\nOften\nMost days\nHow often do you have sugary drinks or sweets through the day?\nRarely\nSometimes\nOften\nMost days\nOn a usual day, how many servings of vegetables or fruit do you eat?\nFive or more\nThree or four\nOne or two\nHardly any\nIn the past year, how much have you cut out whole food groups or eaten far less than you needed?\nNot at all\nBriefly\nFor a few months\nMost of the year\nWhen you eat\nThe timing of meals and drinks across the day.\nHow often is your first meal after 11 a.m., or skipped?\nRarely\nSometimes\nOften\nMost days\nHow often do you go five hours",
+    "errors": []
+  },
+  {
+    "route": "/protocol",
+    "url": "http://127.0.0.1:8135/protocol",
+    "metrics": {
+      "inner": 390,
+      "scroll": 390,
+      "body": 390
+    },
+    "text": "\nDaily Protocol\nMaintain\nBalanced\nStill setting up your day\ndaywoven is still learning your baseline. Here are a few steady steps while confidence builds.\n0 of 5 done · low confidence\n\nA steady, useful session\nKeep a moderate, practical session — no need to push for more.\n\n\nProtect a calm wind-down\nGive yourself an unhurried wind-down before bed.\n\n\nFit in an easy walk\nA short outdoor walk supports energy and recovery rhythm.\n\n\nHydrate steadily\nKeep water within reach and sip through the day.\n\n\nKeep meals steady\nAim for balanced, familiar meals across the day.\n\n\nEvening closeout\nGeneral wellness guidance based on your available data.",
+    "errors": []
+  }
+]

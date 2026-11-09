@@ -74,6 +74,7 @@ export default function LoginScreen() {
           value={password}
         />
         <Button isLoading={isSubmitting} label="Log in" onPress={handleLogin} />
+        <Link href="/(auth)/forgot-password" style={styles.link}>Forgot your password?</Link>
         {feedback ? (
           <View
             accessibilityLiveRegion="polite"

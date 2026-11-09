@@ -61,6 +61,19 @@ describe('clean demo lifecycle', () => {
     }
   });
 
+  it('clears the demo practice, biomarker and routine records without touching account records', async () => {
+    const mixedKeys = ['healthi:practice:breath:v1', 'healthi:biomarkers:v1'];
+    const storage = memoryStorage(Object.fromEntries([
+      ...mixedKeys.map(key => [key, JSON.stringify({ demo: [{ id: 'old-demo' }], 'account-id': [{ id: 'keep' }] })]),
+      ['healthi:movement:routines:v1:demo', JSON.stringify([{ id: 'old-routine' }])],
+      ['healthi:movement:routines:v1:account-id', JSON.stringify([{ id: 'keep-routine' }])]
+    ]));
+    await resetDemoStorage(storage);
+    for (const key of mixedKeys) expect(JSON.parse((await storage.getItem(key))!)).toEqual({ 'account-id': [{ id: 'keep' }] });
+    expect(await storage.getItem('healthi:movement:routines:v1:demo')).toBeNull();
+    expect(await storage.getItem('healthi:movement:routines:v1:account-id')).toBe(JSON.stringify([{ id: 'keep-routine' }]));
+  });
+
   it('does not report an active fresh demo if a required storage removal fails', async () => {
     const storage = memoryStorage();
     await expect(resetDemoStorage({ ...storage, removeItem: async () => { throw new Error('Storage unavailable'); } })).rejects.toThrow('Storage unavailable');

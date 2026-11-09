@@ -1,0 +1,9 @@
+
+Cannot automatically write to dynamic config at: app.config.ts
+Add the following to your Expo config
+
+{
+  "ios": {
+    "bundleIdentifier": "com.anonymous.healthi"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "audit_date": "2026-11-09",
+  "source_commit": "282338657d1144bec2aa6c19014fc7faefa82923",
+  "branch": "codex/app-store-readiness-20261109",
+  "typecheck": "pass",
+  "tests": {
+    "passed": 1920,
+    "skipped": 6,
+    "files_passed": 201,
+    "files_skipped": 2
+  },
+  "lint": {
+    "errors": 86,
+    "warnings": 181,
+    "status": "fail"
+  },
+  "npm_audit": {
+    "critical": 0,
+    "high": 8,
+    "moderate": 20,
+    "low": 1
+  },
+  "expo_doctor": {
+    "passed": 17,
+    "total": 20,
+    "dependency_alignment": "fail",
+    "remote_checks_unavailable": 2
+  },
+  "ios_js_export": "pass (Hermes only, not a native archive)",
+  "native_prebuild": "blocked: missing bundle identifier",
+  "signed_ios_archive": "not produced",
+  "postgresql": {
+    "version": 16,
+    "isolation": "local container without published ports, synthetic auth/storage scaffolding",
+    "migrations_applied": "0001-0021, local only",
+    "passed": [
+      "nutrition_persistence_security.sql",
+      "meal_library_security.sql",
+      "account_data_integrity_security.sql"
+    ],
+    "pgtap_suites": "not run, extension absent"
+  },
+  "production_operations": "none; no commit/push/deploy/Apple upload/real-account or health writes"
+}

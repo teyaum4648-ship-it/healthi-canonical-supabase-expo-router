@@ -33,12 +33,16 @@ export const resettableDemoKeys = [
   'healthi:demo:hydration:entries',
   'healthi:demo:hydration:target',
   'healthi:demo:readiness-now:v1',
-  'healthi:demo:foundations:scores'
+  'healthi:demo:foundations:scores',
+  'healthi:movement:routines:v1:demo'
 ] as const;
 
 export async function resetDemoStorage(storage: Storage): Promise<void> {
   await Promise.all(resettableDemoKeys.map((key) => storage.removeItem(key)));
-  for (const key of ['healthi:coachingLoop:protocol:v1', 'healthi:coachingLoop:closeout:v1']) {
+  for (const key of [
+    'healthi:coachingLoop:protocol:v1', 'healthi:coachingLoop:closeout:v1',
+    'healthi:practice:breath:v1', 'healthi:biomarkers:v1'
+  ]) {
     const raw = await storage.getItem(key);
     if (!raw) continue;
     // Corrupt mixed-account storage is preserved for recovery, never erased.

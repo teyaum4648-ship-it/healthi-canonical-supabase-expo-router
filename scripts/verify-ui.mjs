@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 const DIST = path.join(ROOT, 'dist', 'client');
@@ -60,6 +61,11 @@ function serve() {
 async function chromium() {
   for (const specifier of ['playwright', 'playwright-core']) {
     try { return (await import(specifier)).chromium; } catch { /* try the next one */ }
+  }
+  // CommonJS resolution also honors NODE_PATH in managed development environments.
+  const require = createRequire(import.meta.url);
+  for (const specifier of ['playwright', 'playwright-core']) {
+    try { return require(specifier).chromium; } catch { /* try the next location */ }
   }
   try {
     const { execSync } = await import('node:child_process');

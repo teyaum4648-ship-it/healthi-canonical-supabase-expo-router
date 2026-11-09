@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { signupMetadata } from '../../../src/features/auth/AuthProvider';
+vi.mock('../../../src/features/auth/AccountUnavailable', () => ({ AccountUnavailable: () => null }));
+
+vi.mock('expo-linking', () => ({ createURL: (path: string) => `healthi://${path}` }));
 
 vi.mock('../../../src/lib/supabase', () => ({ supabase: {}, isSupabaseConfigured: false }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: async () => null, setItem: async () => undefined, removeItem: async () => undefined } }));

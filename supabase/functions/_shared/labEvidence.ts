@@ -42,10 +42,14 @@ export function identityDetailsMatch(request: LookupIdentity, registry: Record<s
 }
 
 export function validIdentity(value: unknown): value is LookupIdentity {
-  if (!value || typeof value !== 'object') return false;
-  const input = value as Partial<LookupIdentity>;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const input = value as Record<string, unknown>;
+  const nullableText = (field: string) => input[field] === null || typeof input[field] === 'string';
+  // Optional identity details are nullable strings in the wire contract. Validate
+  // all of them before lookup calls trim/normalize or parse a supplied date.
   return typeof input.barcode === 'string'
     && typeof input.productName === 'string'
+    && ['canonicalBarcode', 'brand', 'variant', 'size', 'market', 'country', 'lotNumber', 'productionDate'].every(nullableText)
     && Array.isArray(input.categoryKeys)
     && input.categoryKeys.every((item) => typeof item === 'string');
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import {
   photoEstimateRefusalTitle,
@@ -87,6 +88,40 @@ describe('every failure is a named refusal, never an exception', () => {
     const empty = await call(clientReturning('not an object'));
     expect(empty.ok).toBe(false);
     if (!empty.ok) expect(empty.refusal.reason).toBe('malformed_response');
+  });
+
+  it('reads a real Supabase HTTP error response and preserves its daily-limit reason', async () => {
+    const response = Response.json({ error: 'rate_limited', detail: 'Photo estimates are limited to 25 a day.' }, { status: 429 });
+    const result = await call(clientReturning(null, new FunctionsHttpError(response)));
+    expect(result).toEqual({ ok: false, refusal: { reason: 'rate_limited', detail: 'Photo estimates are limited to 25 a day.' } });
+    // Classification reads a clone, so callers retain the original SDK response.
+    expect(response.bodyUsed).toBe(false);
+    expect(await response.json()).toHaveProperty('error', 'rate_limited');
+  });
+
+  it('reads a non-2xx invalid-image message instead of presenting a generic transport failure', async () => {
+    const response = Response.json({ error: 'invalid_image', detail: 'Unsupported image format.' }, { status: 415 });
+    expect(await call(clientReturning(null, new FunctionsHttpError(response)))).toEqual({
+      ok: false, refusal: { reason: 'unavailable', detail: 'Unsupported image format.' }
+    });
+  });
+
+  it.each([
+    new Response('not JSON', { status: 429 }),
+    new Response(JSON.stringify({ error: 'unavailable', detail: 'x'.repeat(5000) }), { status: 429 }),
+    new Response('ignored', { status: 429, headers: { 'content-length': '9999999' } })
+  ])('maps HTTP 429 even when the body is malformed or exceeds its read bound', async (response) => {
+    const result = await call(clientReturning(null, new FunctionsHttpError(response)));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.refusal.reason).toBe('rate_limited');
+  });
+
+  it('handles a previously consumed HTTP error body without throwing', async () => {
+    const response = new Response('busy', { status: 429 });
+    await response.text();
+    const result = await call(clientReturning(null, new FunctionsHttpError(response)));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.refusal.reason).toBe('rate_limited');
   });
 
   it('reports an empty plate as no food rather than zero calories', async () => {

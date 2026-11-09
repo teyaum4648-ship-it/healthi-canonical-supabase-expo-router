@@ -47,7 +47,8 @@ export async function readMealHistory(client: MealCollectionClient, query: strin
 export async function persistMealItemEdit(client: MealCollectionClient, original: MealLog, updated: MealLog, items: MealLogItemInsert[]) {
   const { data, error } = await client.rpc('replace_meal_items', {
     meal_id: original.id, meal_patch: { name: updated.name, meal_type: updated.meal_type, quality_flags: updated.quality_flags,
-      reason_codes: updated.reason_codes, source_confidence: updated.source_confidence }, item_rows: items
+      reason_codes: updated.reason_codes, source_confidence: updated.source_confidence,
+      micronutrients: updated.micronutrients ?? null }, item_rows: items
   });
   if (error || !data) throw new Error('The meal could not be updated. Your draft is still here; try again.');
   return data as { meal: MealLogRow; items: MealLogItemRow[] };

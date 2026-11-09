@@ -1,5 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
 import {
   createContext,
   useCallback,
@@ -13,6 +14,8 @@ import {
 
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { demoSessionActiveKey, demoOnboardingCompletedKey, parseDemoOnboardingStatus, resetDemoStorage } from './demoLifecycle';
+import { authRedirectUrl, exchangeAuthCallback, parseAuthCallback } from './authLinks';
+import { AccountUnavailable } from './AccountUnavailable';
 export { parseDemoOnboardingStatus } from './demoLifecycle';
 
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
@@ -27,6 +30,11 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, consent?: SignupConsentRecord, firstName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  isPasswordRecovery: boolean;
+  authCallbackUrl: string | null;
+  requestPasswordReset: (email: string) => Promise<void>;
+  completeAuthCallback: (url: string) => Promise<'recovery' | 'signed-in'>;
+  updatePassword: (password: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -62,6 +70,10 @@ type HealthiProfile = {
   training_experience: string | null;
   onboarding_status: 'not_started' | 'in_progress' | 'completed';
 };
+
+async function unavailableInDemo(): Promise<never> {
+  throw new Error('Account recovery is not available in this local demo.');
+}
 
 const demoUser = {
   id: 'demo-user',
@@ -150,6 +162,11 @@ function DemoAuthProvider({ children }: PropsWithChildren) {
       profile: isLocalDemoSignedOut ? null : demoProfile,
       isLoading,
       mode: 'demo',
+      isPasswordRecovery: false,
+      authCallbackUrl: null,
+      requestPasswordReset: unavailableInDemo,
+      completeAuthCallback: unavailableInDemo,
+      updatePassword: unavailableInDemo,
       startDemo,
       refreshProfile,
       signIn,
@@ -168,6 +185,22 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
   const isMounted = useRef(true);
   const sessionRequestId = useRef(0);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [authCallbackUrl, setAuthCallbackUrl] = useState<string | null>(null);
+  const callbackRequest = useRef<{ url: string; promise: Promise<'recovery' | 'signed-in'> } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let receivedLiveLink = false;
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      receivedLiveLink = true;
+      if (active) setAuthCallbackUrl(url);
+    });
+    void Linking.getInitialURL().then(url => {
+      if (active && !receivedLiveLink) setAuthCallbackUrl(url);
+    }).catch(() => undefined);
+    return () => { active = false; subscription.remove(); };
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string): Promise<HealthiProfile | null> => {
     const { data, error } = await supabase
@@ -234,7 +267,9 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
         }
       });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true);
+      if (event === 'SIGNED_OUT') setIsPasswordRecovery(false);
       void synchronizeSession(nextSession);
     });
 
@@ -278,6 +313,7 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
       throw new Error('Sign in completed without an active session. Please try again.');
     }
 
+    setIsPasswordRecovery(false);
     await synchronizeSession(data.session);
   }, [synchronizeSession]);
 
@@ -291,7 +327,7 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
     const { data: result, error } = await supabase.auth.signUp({
       email,
       password,
-      options: Object.keys(data).length ? { data } : undefined
+      options: { data, emailRedirectTo: authRedirectUrl(Linking.createURL('auth/callback')) }
     });
 
     if (error) {
@@ -310,13 +346,50 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
       throw error;
     }
 
+    setIsPasswordRecovery(false);
+    callbackRequest.current = null;
     await synchronizeSession(null);
   }, [synchronizeSession]);
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: authRedirectUrl(Linking.createURL('auth/callback'), true)
+    });
+    if (error) throw error;
+  }, []);
+
+  const completeAuthCallback = useCallback((url: string): Promise<'recovery' | 'signed-in'> => {
+    // React remounts and duplicate deep-link events must not exchange a one-use code twice.
+    if (callbackRequest.current?.url === url) return callbackRequest.current.promise;
+    const promise = (async () => {
+      const callback = parseAuthCallback(url, Linking.createURL('auth/callback'));
+      const result = await exchangeAuthCallback<Session>(supabase.auth, callback);
+      setIsPasswordRecovery(result.recovery);
+      await synchronizeSession(result.session);
+      return result.recovery ? 'recovery' as const : 'signed-in' as const;
+    })();
+    callbackRequest.current = { url, promise };
+    return promise;
+  }, [synchronizeSession]);
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (!session) throw new Error('Open the newest password-reset link from your email first.');
+    if (password.length < 8) throw new Error('Choose a password with at least 8 characters.');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    setIsPasswordRecovery(false);
+    callbackRequest.current = null;
+  }, [session]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
       mode: 'account',
+      isPasswordRecovery,
+      authCallbackUrl,
+      requestPasswordReset,
+      completeAuthCallback,
+      updatePassword,
       startDemo: async () => { throw new Error('Demo reset is only available in the separate demo preview.'); },
       profile,
       user: session?.user ?? null,
@@ -326,17 +399,18 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
       signUp,
       signOut
     }),
-    [isLoading, profile, refreshProfile, session, signIn, signOut, signUp]
+    [isLoading, profile, refreshProfile, session, signIn, signOut, signUp, isPasswordRecovery, authCallbackUrl, requestPasswordReset, completeAuthCallback, updatePassword]
   );
 
   return <AuthContext.Provider key={session?.user.id ?? 'signed-out'} value={value}>{children}</AuthContext.Provider>;
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const shouldUseLocalDemoAuth = isDemoMode || !isSupabaseConfigured;
-  return shouldUseLocalDemoAuth
-    ? <DemoAuthProvider>{children}</DemoAuthProvider>
-    : <RemoteAuthProvider>{children}</RemoteAuthProvider>;
+  if (isDemoMode) return <DemoAuthProvider>{children}</DemoAuthProvider>;
+  // A misconfigured account build must never open local demo data or initialize
+  // the unavailable Supabase client. Only an explicit demo build may do that.
+  if (!isSupabaseConfigured) return <AccountUnavailable />;
+  return <RemoteAuthProvider>{children}</RemoteAuthProvider>;
 }
 
 export function useAuth() {

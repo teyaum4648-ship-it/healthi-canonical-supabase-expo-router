@@ -16,6 +16,7 @@ export function TextInput({ label, style, ...props }: TextInputProps) {
     <>
       <Text style={styles.label}>{label}</Text>
       <NativeTextInput
+        accessibilityLabel={label}
         autoCapitalize="none"
         placeholderTextColor={colors.textFaint}
         style={[styles.input, style]}

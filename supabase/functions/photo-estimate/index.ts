@@ -1,12 +1,14 @@
 import { authenticatedUser } from '../_shared/auth.ts';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
+import { BodyTooLargeError, readLimitedJson } from '../_shared/requestLimits.ts';
 
 /**
  * Estimates the foods in a meal photo.
  *
  * Runs server-side for two reasons. The API key stays out of the app bundle — the same rule
  * the USDA key follows, never in an Expo public variable or in Git — and every call costs
- * money, so the per-user ceiling lives somewhere a client cannot raise.
+ * money. The current limiter is per-instance only; a durable, atomic account quota
+ * is required before treating it as a production cost ceiling.
  *
  * Unconfigured is a first-class state. With no ANTHROPIC_API_KEY set the function reports
  * `not_configured` and spends nothing, which is how the feature ships dark: the photo path
@@ -16,10 +18,13 @@ import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 const DEFAULT_MODEL = 'claude-opus-5';
 const ANTHROPIC_VERSION = '2023-06-01';
 
-/** Cost ceiling, not a performance guard. A person cannot raise it from the client. */
+/** Best-effort per-instance guard. Restarts/parallel instances reset it; not a durable cost ceiling. */
 const DAILY_ESTIMATE_LIMIT = 25;
 /** Roughly 8 MB of base64 — larger than any sensibly downscaled photo. */
 const MAX_IMAGE_BYTES = 8_000_000;
+const MAX_REQUEST_BYTES = MAX_IMAGE_BYTES + 16_384;
+const MAX_UPSTREAM_BYTES = 256_000;
+const UPSTREAM_TIMEOUT_MS = 30_000;
 const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const dailyUsage = new Map<string, { day: string; count: number }>();
@@ -123,7 +128,10 @@ Deno.serve(async (request) => {
     return response;
   }
 
-  const body = await request.json().catch(() => null) as RequestBody | null;
+  let body: RequestBody | null = null;
+  try { body = await readLimitedJson(request, MAX_REQUEST_BYTES) as RequestBody | null; } catch (error) {
+    if (error instanceof BodyTooLargeError) return jsonResponse({ error: 'invalid_image', detail: 'That photo request is too large.' }, 413);
+  }
   const image = typeof body?.image_base64 === 'string' ? body.image_base64 : null;
   const mediaType = typeof body?.media_type === 'string' ? body.media_type : 'image/jpeg';
   if (!image) return jsonResponse({ error: 'invalid_image', detail: 'No photo was supplied.' }, 400);
@@ -140,9 +148,13 @@ Deno.serve(async (request) => {
   const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 300) : '';
 
   let upstream: Response;
+  let payload: { content?: Array<{ type?: string; text?: string }>; stop_reason?: string; model?: string } | null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
   try {
     upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
@@ -162,30 +174,28 @@ Deno.serve(async (request) => {
         }]
       })
     });
+    if (upstream.status === 429) {
+      const response = jsonResponse({ error: 'rate_limited', detail: 'The estimate service is busy. Try again shortly.' }, 429);
+      response.headers.set('Retry-After', upstream.headers.get('retry-after') ?? '30');
+      return response;
+    }
+    if (!upstream.ok) {
+      // Keep provider account details, request content and credentials out of logs.
+      console.error('photo-estimate upstream failure', upstream.status);
+      return jsonResponse({ error: 'unavailable', detail: 'The estimate service could not complete that request.' }, 502);
+    }
+    payload = await readLimitedJson(upstream, MAX_UPSTREAM_BYTES) as typeof payload;
   } catch {
-    return jsonResponse({ error: 'unavailable', detail: 'Could not reach the estimate service.' }, 502);
-  }
-
-  if (upstream.status === 429) {
-    const response = jsonResponse({ error: 'rate_limited', detail: 'The estimate service is busy. Try again shortly.' }, 429);
-    response.headers.set('Retry-After', upstream.headers.get('retry-after') ?? '30');
-    return response;
-  }
-  if (!upstream.ok) {
-    // The upstream body can carry account details; it is logged, never returned.
-    console.error('photo-estimate upstream failure', upstream.status, await upstream.text().catch(() => ''));
-    return jsonResponse({ error: 'unavailable', detail: 'The estimate service could not complete that request.' }, 502);
-  }
-
-  const payload = await upstream.json().catch(() => null) as
-    | { content?: Array<{ type?: string; text?: string }>; stop_reason?: string; model?: string }
-    | null;
+    return jsonResponse({ error: 'unavailable', detail: 'Could not reach or complete the estimate service response.' }, 502);
+  } finally { clearTimeout(timeout); }
 
   if (payload?.stop_reason === 'refusal') {
     return jsonResponse({ error: 'too_unclear', detail: 'That photo could not be assessed. Try another, or search for the food instead.' });
   }
 
-  const text = payload?.content?.find((block) => block.type === 'text')?.text ?? '';
+  const text = Array.isArray(payload?.content)
+    ? payload.content.find((block) => block && block.type === 'text' && typeof block.text === 'string')?.text ?? ''
+    : '';
   let items: unknown = null;
   try {
     items = JSON.parse(text) as unknown;

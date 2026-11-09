@@ -89,11 +89,14 @@ describe('meal library and reuse', () => {
   });
   it('uses one edit RPC without allowing a replacement owner or timestamps in the meal patch', async () => {
     const client = { rpc: vi.fn().mockResolvedValue({ data: { meal, items: [food()] }, error: null }) };
-    await persistMealItemEdit(client, meal, { ...meal, name: 'Edited' }, [food()]);
+    await persistMealItemEdit(client, meal, { ...meal, name: 'Edited', micronutrients: { calcium: 150, iron: 0 } }, [food()]);
     expect(client.rpc).toHaveBeenCalledTimes(1);
     expect(client.rpc.mock.calls[0][1].meal_patch).not.toHaveProperty('user_id');
     expect(client.rpc.mock.calls[0][1].meal_patch).not.toHaveProperty('logged_at');
     expect(client.rpc.mock.calls[0][1].meal_id).toBe(meal.id);
+    expect(client.rpc.mock.calls[0][1].meal_patch.micronutrients).toEqual({ calcium: 150, iron: 0 });
+    await persistMealItemEdit(client, meal, { ...meal, micronutrients: undefined }, [food()]);
+    expect(client.rpc.mock.calls[1][1].meal_patch.micronutrients).toBeNull();
   });
   it('searches account history server-side with bounded query and pagination', async () => {
     const page = { meals: [], items: [], foods: [], has_more: false };

@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import {
+  AuthProvider,
+  parseDemoOnboardingStatus
+} from '../../../src/features/auth/AuthProvider';
+vi.mock('../../../src/features/auth/AccountUnavailable', () => ({ AccountUnavailable: () => null }));
+
+vi.mock('expo-linking', () => ({ createURL: (path: string) => `healthi://${path}` }));
+
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: {
     getItem: vi.fn(async () => null),
@@ -13,11 +21,6 @@ vi.mock('../../../src/lib/supabase', () => ({
   supabase: {}
 }));
 
-import {
-  AuthProvider,
-  parseDemoOnboardingStatus
-} from '../../../src/features/auth/AuthProvider';
-
 describe('AuthProvider', () => {
   it('requires onboarding for a fresh demo', () => {
     expect(parseDemoOnboardingStatus(null)).toBe('not_started');
@@ -29,6 +32,7 @@ describe('AuthProvider', () => {
     const element = AuthProvider({ children: 'Healthi auth' });
 
     expect(typeof element.type).toBe('function');
-    expect(element.props.children).toBe('Healthi auth');
+    // Missing backend settings must not mount children or silently enable demo.
+    expect(element.props.children).toBeUndefined();
   });
 });

@@ -1,0 +1,1205 @@
+{
+  "report": [
+    {
+      "label": "food add water",
+      "text": "Diet\nLocal demo mode\nOverview\nNutrients\nQuality\nNovember 2026\n\n\nSun\n8\nMon\n9\nTue\n10\nWed\n11\nThu\n12\nFri\n13\nSat\n14\nCalories logged\n—\nLog a food to begin\n\nNot logged\nProtein\n—\ng\nNo target set\n\nCarbs\n—\ng\nNo target set\n\nFat\n—\ng\nNo target set\n\nWorking targets guide your day. Rings show intake, not a health score.\n\nSet up my goals\nA one-time quiz for calorie and macro estimates\n\n\nTake the Food Pattern Test\nA short quiz about how meals tend to sit with you\n\n\nWater\nNot logged yet\n\nAdd water\nMeals\nBreakfast\n\nAdd\nNo foods logged yet\nLunch\n\nAdd\nNo foods logged yet\nDinner\n\nAdd\nNo foods logged yet\nSnacks\n\nAdd\nNo foods logged yet\n\nYour foods & meals\nSearch history, starred meals, and saved favorites\n\n\nHow good was what you ate\nGrades for everything you logged, and what earned them\n\n\nAdd meal\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n\nAdd water\n\n2026-11-09 · Saved on this device\nmL\nfl oz\n+ 250 mL\n+ 500 mL\n+ 750 mL\nCustom amount\nAmounts are logged as plain water. This is an intake record, not a hydration score.\nAdd 250 mL",
+      "controls": [
+        {
+          "role": "button",
+          "label": "Previous week",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Next week",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Sunday, November 8",
+          "text": "Sun\n8",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Monday, November 9",
+          "text": "Mon\n9",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Tuesday, November 10",
+          "text": "Tue\n10",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Wednesday, November 11",
+          "text": "Wed\n11",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Thursday, November 12",
+          "text": "Thu\n12",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Friday, November 13",
+          "text": "Fri\n13",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Saturday, November 14",
+          "text": "Sat\n14",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "View calorie and nutrient details",
+          "text": "Calories logged\n—\nLog a food to begin\n\nNot logged",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Protein: not reported. View nutrients.",
+          "text": "Protein\n—\ng\nNo target set\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Carbs: not reported. View nutrients.",
+          "text": "Carbs\n—\ng\nNo target set\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Fat: not reported. View nutrients.",
+          "text": "Fat\n—\ng\nNo target set\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nSet up my goals\nA one-time quiz for calorie and macro estimates\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nTake the Food Pattern Test\nA short quiz about how meals tend to sit with you\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add water",
+          "text": "\nAdd water",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add breakfast",
+          "text": "\nAdd",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add lunch",
+          "text": "\nAdd",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add dinner",
+          "text": "\nAdd",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add snacks",
+          "text": "\nAdd",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nYour foods & meals\nSearch history, starred meals, and saved favorites\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nHow good was what you ate\nGrades for everything you logged, and what earned them\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nAdd meal",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Scan a product barcode",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Close",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "+ 250 mL",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "+ 500 mL",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "+ 750 mL",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": "Water amount in mL",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Add 250 mL",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "food entry",
+      "text": "Diet\nLocal demo mode\n\nBack to diary\nYour meal\nReview portions, then save to today.\nMeal name\nLog this meal as\nBreakfast\nLunch\nDinner\nSnack\nUnknown\n\nAdd another food\nSearch, scan, or use a saved food\n\nAdd foods to build one meal with clear totals.\nThis Meal\nNo foods added yet.\n0 items\nCalories\n-\nProtein\n-\nCarbs\n-\nFat\n-\nFiber\n-\nSodium\n-\nTotals include reported nutrients only. Missing values aren’t treated as zero. Portions are multiples of the label amount shown above.\nLog meal\nDiscard draft\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n\nAdd to breakfast\n\nSearch\nSearch\nRecent\nSaved\n\nPhoto meal\nTake or choose a photo\n\n\nYour foods & meals\nSearch all history and reuse a starred meal\n\nEnter a food or brand, then tap Search. For example: Greek yogurt or whole grain bread.\nFood data: Open Food Facts. Check the variety and package label; catalog records may be incomplete.\n\nScan a barcode\nUse the camera or type the numbers\n\n\nEnter nutrition manually\nFor a label or food you can’t find\n",
+      "controls": [
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nBack to diary",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "e.g. Lunch"
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Breakfast",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Lunch",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Dinner",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Snack",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Unknown",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nAdd another food\nSearch, scan, or use a saved food\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Log meal",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Discard draft\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Close",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": "Search foods by name or brand",
+          "text": "",
+          "placeholder": "Food or brand"
+        },
+        {
+          "role": "button",
+          "label": "Search food database",
+          "text": "Search",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nPhoto meal\nTake or choose a photo\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nYour foods & meals\nSearch all history and reuse a starred meal\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nScan a barcode\nUse the camera or type the numbers\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nEnter nutrition manually\nFor a label or food you can’t find\n",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "food manual",
+      "text": "Diet\nLocal demo mode\n\nBack to diary\nYour meal\nReview portions, then save to today.\nMeal name\nLog this meal as\nBreakfast\nLunch\nDinner\nSnack\nUnknown\n\nAdd another food\nSearch, scan, or use a saved food\n\nAdd foods to build one meal with clear totals.\nThis Meal\nNo foods added yet.\n0 items\nCalories\n-\nProtein\n-\nCarbs\n-\nFat\n-\nFiber\n-\nSodium\n-\nTotals include reported nutrients only. Missing values aren’t treated as zero. Portions are multiples of the label amount shown above.\nLog meal\nDiscard draft\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n\nEnter food\n\nAdd Manual Food\nUseful when label data is missing or you are logging a simple food.\nFood name\nBrand\nServing size\nCalories\nProtein g\nCarbs g\nFat g\nFiber g\nSugar g\nSodium mg\nAdd to Meal",
+      "controls": [
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nBack to diary",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "e.g. Lunch"
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Breakfast",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Lunch",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Dinner",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Snack",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Unknown",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nAdd another food\nSearch, scan, or use a saved food\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Log meal",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Discard draft\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Close",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "Greek yogurt"
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "170 g"
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Add to Meal",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "movement start",
+      "text": "\nStart a workout\nToday reads as a technique day · suggested effort 3–5 of 10\n1\n\nSets\n\n3\n\n\n\n\nAdd movement\nOr start from\nRoutines\nTemplates\nRecent\nFull Body Strength\n3 movements · about 45 min\nGoblet Squat · Dumbbell Row · Push-Up\n\nEasy Cardio\n1 movement · about 30 min\nEasy Cardio\n\nMobility Reset\n1 movement · about 15 min\nMobility Flow\n\nRecovery Walk\n1 movement · about 25 min\nComfortable Walk\n\nAdd a movement\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+      "controls": [
+        {
+          "role": "button",
+          "label": "Close without starting",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": "Workout name",
+          "text": "",
+          "placeholder": "Workout name"
+        },
+        {
+          "role": null,
+          "label": "Movement 1 name",
+          "text": "",
+          "placeholder": "Movement name"
+        },
+        {
+          "role": "button",
+          "label": "Remove movement 1",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "One fewer set for movement 1",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "One more set for movement 1",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Move movement 1 up",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Move movement 1 down",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nAdd movement",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Full Body Strength\n3 movements · about 45 min\nGoblet Squat · Dumbbell Row · Push-Up\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Easy Cardio\n1 movement · about 30 min\nEasy Cardio\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Mobility Reset\n1 movement · about 15 min\nMobility Flow\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Recovery Walk\n1 movement · about 25 min\nComfortable Walk\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a movement first",
+          "text": "Add a movement",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "sleep adjust",
+      "text": "Sleep\nMonday, November 9\nDemo rhythm\n\nToday\nTrends\nWind-down\nLearn\nYour rhythm now\nCalibrating\nEnergy · Steady\nAdd a confirmed sleep window to make today’s rhythm more personal.\nAdd sleep data to refine timing\n\nWhere does your clock sit?\nSix questions, then a day built around the answers.\n\nLast night\nYour sleep window\n\nEstimated\n\nToday\nMon, Nov 9\n\n10:30 PM – 6:30 AM\n8h\nEstimated from your recent rhythm\n6 PM\nMidnight\n6 AM\nNoon\n\nEstimated timing, not sleep stages. Confirm it if it looks right.\nAdjust last night\nTap a time to scroll hours, minutes, and AM or PM. Use − / + for 15-minute adjustments.\nFell asleep\n10:30 PM\n\n\n\nWoke up\n6:30 AM\n\n\n\n\nAdd awake time\nCancel\nSave window\nThis morning\nHow today is likely to feel\nLog last night’s window above, then answer what you can here for today’s energy prediction.\nHow rested do you feel?\nExhausted\nTired\nOkay\nRested\nVery rested\nHow long did it take to fall asleep?\nNot sure\n5 min\n15 min\n30 min\n45 min\n1 hr+\nTime awake during the night\nNot sure\nSlept through\n~10 min\n~20 min\n~45 min\n1 hr+\nI’m not sure of my sleep times\nAnswers save as you tap. Everything here is optional.\nMorning pulse (optional)\nBefore you get up, rest two fingers on the thumb side of your wrist, count the beats for 30 seconds and double it.\nbpm\nSave\nCaffeine\nNothing logged today\nLog a drink and the energy curve below accounts for it.\nCoffee\n95 mg\nEspresso\n63 mg\nBlack tea\n47 mg\nLarge cold brew\n200 mg\nMore\nTypical servings. Your own drink may differ.\nRise\nPeak\nDip\n2nd peak\nSleep\nPredicted energy through your day\nDrag to explore →\nTonight\nSleep by 10:30 PM\n8h opportunity\nThis window supports a more repeatable rhythm tonight.\n6 PM\n11 PM\n4 AM\n9 AM\nBed 10:30 PM\n−\n+\nWake 6:30 AM\n−\n+\nIn tune with your current sleep need\nOpen wind-down\nToday’s rhythm\n0 of 8 done\n\nMorning light\nStill calibrating\nHelps set your body clock for the day\nLater\n\nWalk / light movement\nStill calibrating\nSupports the transition into your day\nLater\n\nDeep work\nStill calibrating\nAligned with your estimated first focus peak\nLater\nShow all 8\nWhat this rhythm is based on\nLast sleep\n— – —\nSleep need\n8h\nRecent debt\nStill calibrating\nConfidence\nLow\nWhy is confidence low?\n\nYour rhythm this week\nTap to explore\n\nCompare your logged bedtimes and wake times here. More confirmed nights make the pattern clearer.\n\nAdd or correct last night\nRegenerate today’s rhythm from your real sleep\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+      "controls": [
+        {
+          "role": "button",
+          "label": "Answer six questions about your clock",
+          "text": "\nWhere does your clock sit?\nSix questions, then a day built around the answers.\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Previous day",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Next day",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Choose fell asleep time, 10:30 PM",
+          "text": "10:30 PM\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Move fell asleep fifteen minutes earlier",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Move fell asleep fifteen minutes later",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Choose woke up time, 6:30 AM",
+          "text": "6:30 AM\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Move woke up fifteen minutes earlier",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Move woke up fifteen minutes later",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nAdd awake time",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Exhausted",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Tired",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Okay",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Rested",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Very rested",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Not sure",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "5 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "15 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "30 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "45 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "1 hr+",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Not sure",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Slept through",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "~10 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "~20 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "~45 min",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "1 hr+",
+          "placeholder": null
+        },
+        {
+          "role": "switch",
+          "label": "I’m not sure of my sleep times",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": "Morning pulse in beats per minute",
+          "text": "",
+          "placeholder": "—"
+        },
+        {
+          "role": "button",
+          "label": "Save check-in",
+          "text": "Save",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add Coffee, 8 oz brewed, about 95 milligrams",
+          "text": "Coffee\n95 mg",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add Espresso, single shot, about 63 milligrams",
+          "text": "Espresso\n63 mg",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add Black tea, 8 oz, about 47 milligrams",
+          "text": "Black tea\n47 mg",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add Large cold brew, 16 oz, about 200 milligrams",
+          "text": "Large cold brew\n200 mg",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "More",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Show all 8",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "mood today",
+      "text": "Mood\nToday\nPractice\nTrends\nHow’s your head?\nOverloaded\nClear\nOne tap. It counts toward Mind + Life Load and today’s readiness.\nMind + Life Load\nNot enough to read yet. Log last night’s sleep, add today’s plan, or say how your head is.\n\nKeep one reset in the day\nA minute of Settle is enough to keep the habit easy to reach for.\n\nToday so far\n\nBreathing\n0 of 5 min\n\nMorning light\n0 of 10 min\n\nHabits\n0 of 3\n\nRelease\nNot yet\nThis week\n0 min breathing\nT\nW\nT\nF\nS\nS\nM\nNone of this is medical advice, and none of it can tell you why a number moved. If something feels wrong, ask a professional. In an emergency call 911; for crisis support in the US, call or text 988.\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+      "controls": [
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nKeep one reset in the day\nA minute of Settle is enough to keep the habit easy to reach for.\n",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "mood practice",
+      "text": "Mood\nToday\nPractice\nTrends\nSomething you can do now\nNothing yet today.\nSettle\n4 in · 8 out\nBreathe\nTap to start, and follow the circle\nA racing morning, or any moment you need to come down off something. The first thing to try.\nBefore you start: how’s your head?\nOverloaded\nClear\nOptional. Answer again after, and see what it does for you.\nTechnique\nThese are not interchangeable. Most bring you down, the last one deliberately takes you up, and picking the wrong one is most of why breathing exercises get abandoned.\n\nSettle\nin use\nIn for four, out for eight\n4 in · 8 out · 5/min\n\n\nPhysiological sigh\nTwo breaths in, one long breath out\n2 in · 1 in · 6 out · 13.5/min\n\n\nWind down\nIn, a pause at the top, then a slower way out\n4 in · 4 hold · 5 out · 4.8/min\n\nMore techniques (7)\nRoutine\nNone of your 3 done yet today.\nEdit\nMessage one friend\nOne person, by name, not a group · 2m\n\nWalk without your phone\nTen minutes, nothing in your ears · 10m\n\nStretch routine\nWhere the tension actually is · 5m\n\nHeart rate\nWhat were you just doing?\nA pulse means nothing on its own. The answer here decides whether this reading counts toward your usual range or is just noted alongside it.\nJust woke up\nThe steadiest reading you can take. Before sitting up, before your phone.\ncounts\nSitting quietly\nFive minutes still, nothing in the last half hour. The everyday reference point.\ncounts\nJust moved\nStairs, a walk, standing up quickly. Logged, but kept out of your usual range.\nHad caffeine\nCaffeine lifts heart rate for hours. Worth recording, not worth averaging in.\nWound up\nMid-moment. This is the reading the comparison below is actually useful for.\nDaylight\nI got outside\nSay how long, or when\nOne tap records about 15 minutes, marked as an estimate. It is a log, not a light meter — it cannot tell open noon from overcast dusk, so the time of day is what it weighs.\nTension\nWhere is it sitting?\nHeld tension collects in particular places rather than spreading evenly, and it tends to be the same places for the same person. Pick the one you can actually feel — one at a time does more than a list of five.\nJaw, throat and neck\nTeeth touching when you notice them. A tight throat, or a headache that starts at the temples.\n2m\nChest and front of shoulders\nShoulders that sit forward. A feeling of not being able to get a full breath in.\n2m\nBetween the shoulder blades\nAn ache between the shoulder blades by the afternoon. Turning to look behind you feels stiff.\n3m\nLow back\nStiff on standing up after sitting. A dull band across the lower back at the end of the day.\n3m\nFront of the hips\nTight at the top of the thigh when you stand. A back that feels better walking than sitting.\n3m\nNone of this is medical advice, and none of it can tell you why a number moved. If something feels wrong, ask a professional. In an emergency call 911; for crisis support in the US, call or text 988.\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n",
+      "controls": [
+        {
+          "role": "button",
+          "label": "Start Settle",
+          "text": "Breathe",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Settle. In for four, out for eight",
+          "text": "\nSettle\nin use\nIn for four, out for eight\n4 in · 8 out · 5/min\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Physiological sigh. Two breaths in, one long breath out",
+          "text": "\nPhysiological sigh\nTwo breaths in, one long breath out\n2 in · 1 in · 6 out · 13.5/min\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Wind down. In, a pause at the top, then a slower way out",
+          "text": "\nWind down\nIn, a pause at the top, then a slower way out\n4 in · 4 hold · 5 out · 4.8/min\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "More techniques (7)",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Edit",
+          "placeholder": null
+        },
+        {
+          "role": "checkbox",
+          "label": "Message one friend",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Message one friend",
+          "text": "Message one friend\nOne person, by name, not a group · 2m",
+          "placeholder": null
+        },
+        {
+          "role": "checkbox",
+          "label": "Walk without your phone",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Walk without your phone",
+          "text": "Walk without your phone\nTen minutes, nothing in your ears · 10m",
+          "placeholder": null
+        },
+        {
+          "role": "checkbox",
+          "label": "Stretch routine",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Stretch routine",
+          "text": "Stretch routine\nWhere the tension actually is · 5m",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Just woke up",
+          "text": "Just woke up\nThe steadiest reading you can take. Before sitting up, before your phone.\ncounts",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Sitting quietly",
+          "text": "Sitting quietly\nFive minutes still, nothing in the last half hour. The everyday reference point.\ncou",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Just moved",
+          "text": "Just moved\nStairs, a walk, standing up quickly. Logged, but kept out of your usual range.",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Had caffeine",
+          "text": "Had caffeine\nCaffeine lifts heart rate for hours. Worth recording, not worth averaging in.",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Wound up",
+          "text": "Wound up\nMid-moment. This is the reading the comparison below is actually useful for.",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "I got outside",
+          "text": "I got outside",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Say how long, or when",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Jaw, throat and neck",
+          "text": "Jaw, throat and neck\nTeeth touching when you notice them. A tight throat, or a headache that starts ",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Chest and front of shoulders",
+          "text": "Chest and front of shoulders\nShoulders that sit forward. A feeling of not being able to get a full b",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Between the shoulder blades",
+          "text": "Between the shoulder blades\nAn ache between the shoulder blades by the afternoon. Turning to look be",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Low back",
+          "text": "Low back\nStiff on standing up after sitting. A dull band across the lower back at the end of the day",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Front of the hips",
+          "text": "Front of the hips\nTight at the top of the thigh when you stand. A back that feels better walking tha",
+          "placeholder": null
+        }
+      ]
+    },
+    {
+      "label": "plan block",
+      "text": "\nHome\nYour plan\nMonday, November 9\nAdd schedule blocks so daywoven can find useful openings. Local demo schedule.\nYour day\nTap a time to add a block\n\nContinue\nRecommended sections come from your sleep rhythm and stay separate from your saved commitments.\n6 AM\n7 AM\n8 AM\n9 AM\n10 AM\n11 AM\n12 PM\n1 PM\n2 PM\n3 PM\n4 PM\n5 PM\n6 PM\n7 PM\n8 PM\n9 PM\n10 PM\n11 PM\nDeep work\nExercise\nLight movement\nWind-down\nSleep rhythm shading will appear when timing data is available.\nTap an open hour to add a block. Tap an existing block to remove it.\nSchedule guidance\nSuggested windows, reasons and confidence\n\n\n\nHome\n\n\nDiet\n\n\nMovement\n\n\nSleep\n\n\nMood\n\n\nAdd a schedule block\n\nAdd a block\n9:00 AM - 10:00 AM\nDiscard draft\nTitle\nDate\nStart\n:\nAM\nPM\nEnd\n:\nAM\nPM\nBlock type\nColors show where each type best fits your day.\nWork\nClass\nCommute\nExercise\nMeal\nFree Time\nRecovery\nSocial\nAppointment\nSleep\nOther\nFlexibility\nFixed\nFlexible\nMovable\nProtected block\nDescription\nLocation\nSave block",
+      "controls": [
+        {
+          "role": "button",
+          "label": null,
+          "text": "\nHome",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Continue schedule block draft",
+          "text": "\nContinue",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 6 AM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 7 AM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 8 AM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 9 AM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 10 AM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 11 AM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 12 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 1 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 2 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 3 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 4 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 5 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 6 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 7 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 8 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 9 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Add a block at 10 PM",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Schedule guidance\nSuggested windows, reasons and confidence\n",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Close",
+          "text": "",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": "Discard unsaved block draft",
+          "text": "Discard draft",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "Work block"
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "2026-07-12"
+        },
+        {
+          "role": null,
+          "label": "Start time hour",
+          "text": "",
+          "placeholder": "7"
+        },
+        {
+          "role": null,
+          "label": "Start time minute",
+          "text": "",
+          "placeholder": "00"
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "AM",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "PM",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": "End time hour",
+          "text": "",
+          "placeholder": "7"
+        },
+        {
+          "role": null,
+          "label": "End time minute",
+          "text": "",
+          "placeholder": "00"
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "AM",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "PM",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Work",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Class",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Commute",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Exercise",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Meal",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Free Time",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Recovery",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Social",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Appointment",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Sleep",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Other",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Fixed",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Flexible",
+          "placeholder": null
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Movable",
+          "placeholder": null
+        },
+        {
+          "role": null,
+          "label": null,
+          "text": "",
+          "placeholder": "Optional"
+        },
+        {
+          "role": "button",
+          "label": null,
+          "text": "Save block",
+          "placeholder": null
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

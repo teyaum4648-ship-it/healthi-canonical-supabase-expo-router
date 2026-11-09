@@ -17,7 +17,8 @@
     "lexicon:coverage": "vitest run tests/engines/nutrition/ingredientCoverage.test.ts && cat reports/lexicon-coverage.txt",
     "vocab:build": "node scripts/build-food-vocabulary.mjs",
     "verify:ui": "node scripts/verify-ui.mjs",
-    "search:quality": "vitest run tests/features/nutrition/searchQuality.test.ts && cat reports/search-quality.txt"
+    "search:quality": "vitest run tests/features/nutrition/searchQuality.test.ts && cat reports/search-quality.txt",
+    "check:ios-release-config": "node scripts/check-ios-release-config.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

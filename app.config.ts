@@ -49,6 +49,7 @@ const config: ExpoConfig = {
       {
         barcodeScannerEnabled: true,
         cameraPermission: 'daywoven uses the camera to scan product barcodes and to estimate a meal from a photo. You can also enter a barcode manually or search for a food.',
+        microphonePermission: false,
         recordAudioAndroid: false
       }
     ],
@@ -56,7 +57,8 @@ const config: ExpoConfig = {
       'expo-image-picker',
       {
         photosPermission: 'daywoven reads a photo you choose so it can estimate the foods in that meal. Photos are used for that estimate and are not stored by daywoven.',
-        cameraPermission: 'daywoven uses the camera to estimate a meal from a photo you take.'
+        cameraPermission: 'daywoven uses the camera to estimate a meal from a photo you take.',
+        microphonePermission: false
       }
     ],
     /*

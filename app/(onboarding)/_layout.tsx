@@ -5,7 +5,7 @@ import { SectionHeader } from '../../src/components/SectionHeader';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 
 export default function OnboardingLayout() {
-  const { profile, session, isLoading } = useAuth();
+  const { profile, session, isLoading, isPasswordRecovery } = useAuth();
 
   if (isLoading) {
     return (
@@ -14,6 +14,8 @@ export default function OnboardingLayout() {
       </Screen>
     );
   }
+
+  if (isPasswordRecovery && session) return <Redirect href="/auth/reset-password" />;
 
   if (!session) {
     return <Redirect href="/(auth)/login" />;

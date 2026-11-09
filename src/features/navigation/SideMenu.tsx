@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
@@ -152,7 +152,12 @@ function SideMenuContent({ onClose }: { onClose: () => void }) {
         </>
       ) : null}
 
-      <Pressable accessibilityRole="button" onPress={() => { onClose(); void signOut(); }} style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}>
+      <Pressable accessibilityRole="button" onPress={() => {
+        onClose();
+        void signOut().catch((error: unknown) => {
+          Alert.alert('Sign out failed', error instanceof Error ? error.message : 'Unable to sign out right now.');
+        });
+      }} style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}>
         <Text style={styles.signOutText}>{mode === 'demo' ? 'Leave the demo' : 'Sign out'}</Text>
       </Pressable>
       <Text style={styles.version}>{APP_NAME} {APP_VERSION} · general wellness guidance</Text>
