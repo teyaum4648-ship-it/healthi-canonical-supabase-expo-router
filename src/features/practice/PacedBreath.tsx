@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
 import { colors, type } from '../../styles/mobileTheme';
 import { BreathCircle, DEFAULT_BREATH_PALETTE, type BreathPalette } from './BreathCircle';
 import { cycleMs, phaseTarget, type BreathTechnique } from './breathTechniques';
+import { useStopOnBackground } from './useStopOnBackground';
 
 /**
  * The pacer, as a component rather than a block of one screen.
@@ -108,15 +109,19 @@ export function PacedBreath({
     return () => clearInterval(tick);
   }, [running]);
 
-  function toggle() {
-    if (running) {
+  const stop = useCallback(() => {
       const seconds = startedAt.current === null ? 0 : Math.round((Date.now() - startedAt.current) / 1000);
       startedAt.current = null;
+      if (timer.current) clearTimeout(timer.current);
+      wave.stopAnimation();
       setRunning(false);
       setElapsed(0);
       if (seconds > 0) onSession?.(seconds);
-      return;
-    }
+  }, [onSession, wave]);
+  useStopOnBackground(running, stop);
+
+  function toggle() {
+    if (running) { stop(); return; }
     startedAt.current = Date.now();
     setElapsed(0);
     setRunning(true);
@@ -151,7 +156,7 @@ export function PacedBreath({
 
       <Text style={[styles.hint, { color: palette.faint }]}>
         {running
-          ? `Tap to stop · ${Math.round(cycleMs(technique) / 1000)}s a cycle`
+          ? `Tap to stop · ${Math.round(cycleMs(technique) / 1000)}s a cycle · Stops when you leave the app`
           : reduced
             ? 'Tap to start, and follow the glow'
             : 'Tap to start, and follow the circle'}

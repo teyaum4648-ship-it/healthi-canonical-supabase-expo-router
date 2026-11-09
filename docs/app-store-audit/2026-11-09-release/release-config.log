@@ -1,0 +1,13 @@
+
+> healthi-repo-package@0.1.0 check:ios-release-config
+> node scripts/check-ios-release-config.cjs
+
+iOS release configuration is incomplete:
+- Set ios.bundleIdentifier to the identifier registered to your Apple team.
+- Explicitly set EXPO_PUBLIC_DEMO_MODE=false for the account-mode production build.
+- Set EXPO_PROJECT_ID to your actual EAS project UUID.
+- Set EXPO_PUBLIC_SUPABASE_URL to the verified production HTTPS service.
+- Set EXPO_PUBLIC_SITE_URL to the verified production HTTPS service.
+- Set EXPO_PUBLIC_FOOD_SEARCH_URL to the verified production HTTPS service.
+- Configure the public Supabase anon/publishable key.
+- Finish factual legal documents: accessibility.html, attributions.html, cookies.html, index.html, privacy.html, refunds.html, terms.html.

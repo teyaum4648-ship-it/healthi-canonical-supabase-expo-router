@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BodyTooLargeError, readLimitedJson } from '../../supabase/functions/_shared/requestLimits';
 
-function harness(fetcher: typeof fetch) {
+function harness(fetcher: typeof fetch, quota: { data: unknown; error: unknown } = { data: true, error: null }) {
   let handler: (request: Request) => Promise<Response>;
   const source = readFileSync(new URL('../../supabase/functions/photo-estimate/index.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -13,7 +13,7 @@ function harness(fetcher: typeof fetch) {
     exports: {}, Request, Response, AbortController, setTimeout, clearTimeout, console,
     Deno: { env: { get: (key: string) => key === 'ANTHROPIC_API_KEY' ? 'test-only-key' : undefined }, serve: (fn: typeof handler) => { handler = fn; } },
     fetch: fetcher,
-    require: (name: string) => name.includes('auth.ts') ? { authenticatedUser: async () => ({ id: 'synthetic-user' }) }
+    require: (name: string) => name.includes('auth.ts') ? { authenticatedUser: async () => ({ id: 'synthetic-user' }), serviceClient: () => ({ rpc: async () => quota }) }
       : name.includes('cors.ts') ? { corsHeaders: {}, jsonResponse: (data: unknown, status = 200) => Response.json(data, { status }) }
       : { BodyTooLargeError, readLimitedJson }
   });
@@ -22,6 +22,15 @@ function harness(fetcher: typeof fetch) {
 function photoRequest() { return new Request('https://edge.example.invalid/photo-estimate', { method: 'POST', body: JSON.stringify({ image_base64: 'test-image', media_type: 'image/jpeg' }) }); }
 afterEach(() => vi.useRealTimers());
 describe('photo edge input and provider boundaries without live services', () => {
+  it.each([
+    [{ data: false, error: null }, 429],
+    [{ data: null, error: new Error('missing migration') }, 503],
+    [{ data: 'true', error: null }, 503]
+  ] as const)('does not spend money when quota is denied or cannot be verified', async (quota, status) => {
+    const fetcher = vi.fn<typeof fetch>();
+    const response = await harness(fetcher, quota)(photoRequest());
+    expect(response.status).toBe(status); expect(fetcher).not.toHaveBeenCalled();
+  });
   it('rejects oversized input before any paid provider call', async () => {
     const fetcher = vi.fn<typeof fetch>();
     const response = await harness(fetcher)(new Request('https://edge.example.invalid/photo-estimate', { method: 'POST', headers: { 'content-length': '99999999' }, body: '{}' }));

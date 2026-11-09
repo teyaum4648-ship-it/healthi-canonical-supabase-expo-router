@@ -21,9 +21,9 @@ const systemFont = Platform.select({
 }) ?? fonts.body;
 
 function tabIcon(outline: TabIconName, filled: TabIconName) {
-  return ({ color, focused, size }: { color: string; focused: boolean; size: number }) => (
+  return function TabIcon({ color, focused, size }: { color: string; focused: boolean; size: number }) { return (
     <Ionicons color={color} name={focused ? filled : outline} size={size - 2} />
-  );
+  ); };
 }
 
 export default function AppTabsLayout() {

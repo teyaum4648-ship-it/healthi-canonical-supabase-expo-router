@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-09",
+  "baseline_commit": "f5f2797f6181b6ad0d65b32f430ab44d1bfcc46e",
+  "tests": {
+    "passed": 1959,
+    "skipped": 6,
+    "files_passed": 207,
+    "files_skipped": 2
+  },
+  "typecheck": "pass",
+  "npm_ci": "pass",
+  "lint": {
+    "errors": 0,
+    "warnings": 180
+  },
+  "expo_doctor": "20/20 pass using configured proxy",
+  "sdk_alignment": "pass SDK 55",
+  "deno_check": "6 Edge Functions pass",
+  "npm_audit": {
+    "critical": 0,
+    "high": 5,
+    "moderate": 16,
+    "low": 1
+  },
+  "browser": "demo five routes and mocked account deletion pass; account-to-demo cache switch verified",
+  "sql": "migrations 0001-0022 and four security scripts pass on isolated PostgreSQL16",
+  "quota_concurrency": {
+    "requests": 50,
+    "accepted": 25,
+    "rejected": 25
+  },
+  "native_prebuild": "pass, synthetic identifier only; no pods/compiler/signing",
+  "ios_export": "pass JS/Hermes only",
+  "release_config": "blocked by absent actual environment/identity and unfinished legal facts",
+  "production_backend_mutations": false,
+  "signed_ios_build": false,
+  "apple_upload_or_submission": false,
+  "secret_pattern_review": "one synthetic invalid sb_secret fixture in releaseConfiguration.test.ts; no actual credential found in changed files"
+}

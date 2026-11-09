@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Alert, Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
@@ -13,6 +13,7 @@ import { protocolScope } from '../dailyProtocol';
 import { ConnectedHealthRow } from '../health/ConnectedHealthRow';
 import { healthSource } from '../health/healthSource';
 import { legalIndexUrl } from '../legal/legalLinks';
+import { openLegalUrl } from '../legal/openLegalUrl';
 import type { SleepRhythmSupabaseClient } from '../sleepRhythm/persistence';
 import { loadSleepHistory, saveSleepForSource } from '../sleepRhythm/sleepSessionSource';
 
@@ -147,7 +148,7 @@ function SideMenuContent({ onClose }: { onClose: () => void }) {
         <>
           <Text style={styles.groupLabel}>About</Text>
           <View style={styles.group}>
-            <MenuRow detail="Privacy, terms, cookies and accessibility" icon="document-text-outline" onPress={() => void Linking.openURL(legal)} title="Legal and privacy" />
+            <MenuRow detail="Privacy, terms, cookies and accessibility" icon="document-text-outline" onPress={() => void openLegalUrl(legal)} title="Legal and privacy" />
           </View>
         </>
       ) : null}

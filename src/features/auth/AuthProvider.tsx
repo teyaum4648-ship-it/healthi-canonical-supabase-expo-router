@@ -16,6 +16,7 @@ import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { demoSessionActiveKey, demoOnboardingCompletedKey, parseDemoOnboardingStatus, resetDemoStorage } from './demoLifecycle';
 import { authRedirectUrl, exchangeAuthCallback, parseAuthCallback } from './authLinks';
 import { AccountUnavailable } from './AccountUnavailable';
+import { clearAccountData } from './accountDataCleanup';
 export { parseDemoOnboardingStatus } from './demoLifecycle';
 
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
@@ -30,6 +31,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, consent?: SignupConsentRecord, firstName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<{ localCleanupComplete: boolean }>;
   isPasswordRecovery: boolean;
   authCallbackUrl: string | null;
   requestPasswordReset: (email: string) => Promise<void>;
@@ -167,6 +169,7 @@ function DemoAuthProvider({ children }: PropsWithChildren) {
       requestPasswordReset: unavailableInDemo,
       completeAuthCallback: unavailableInDemo,
       updatePassword: unavailableInDemo,
+      deleteAccount: unavailableInDemo,
       startDemo,
       refreshProfile,
       signIn,
@@ -381,6 +384,23 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
     callbackRequest.current = null;
   }, [session]);
 
+  const deleteAccount = useCallback(async (password: string) => {
+    const userId = session?.user.id;
+    if (!userId || !password) throw new Error('Sign in and confirm your password first.');
+    const { data, error } = await supabase.functions.invoke('delete-account', { body: { confirmation: 'DELETE', password } });
+    if (error || data?.deleted !== true) throw new Error('Account deletion was not confirmed.');
+    let localCleanupComplete = true;
+    try { await clearAccountData(AsyncStorage, userId); } catch { localCleanupComplete = false; }
+    try {
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) localCleanupComplete = false;
+    } catch { localCleanupComplete = false; }
+    setIsPasswordRecovery(false);
+    callbackRequest.current = null;
+    await synchronizeSession(null);
+    return { localCleanupComplete };
+  }, [session, synchronizeSession]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -390,6 +410,7 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
       requestPasswordReset,
       completeAuthCallback,
       updatePassword,
+      deleteAccount,
       startDemo: async () => { throw new Error('Demo reset is only available in the separate demo preview.'); },
       profile,
       user: session?.user ?? null,
@@ -399,7 +420,7 @@ function RemoteAuthProvider({ children }: PropsWithChildren) {
       signUp,
       signOut
     }),
-    [isLoading, profile, refreshProfile, session, signIn, signOut, signUp, isPasswordRecovery, authCallbackUrl, requestPasswordReset, completeAuthCallback, updatePassword]
+    [isLoading, profile, refreshProfile, session, signIn, signOut, signUp, isPasswordRecovery, authCallbackUrl, requestPasswordReset, completeAuthCallback, updatePassword, deleteAccount]
   );
 
   return <AuthContext.Provider key={session?.user.id ?? 'signed-out'} value={value}>{children}</AuthContext.Provider>;

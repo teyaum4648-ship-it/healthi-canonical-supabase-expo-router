@@ -1,8 +1,9 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Disclosure } from '../../components/mobile/Disclosure';
 import { colors, spacing, type } from '../../styles/mobileTheme';
 import { LEGAL_TITLES, legalUrl, type LegalDocument } from './legalLinks';
+import { openLegalUrl } from './openLegalUrl';
 
 /**
  * The legal shelf in Settings.
@@ -29,7 +30,7 @@ const SUBTITLES: Record<LegalDocument, string> = {
   privacy: 'What we hold, and how to delete it',
   terms: 'The agreement, and the health disclaimer',
   cookies: 'We use none — here is what is on your device',
-  refunds: '14 days, no reasons needed',
+  refunds: 'Billing and refund information',
   accessibility: 'What works, and what does not yet',
   attributions: 'The open data and software behind daywoven'
 };
@@ -55,7 +56,7 @@ export function LegalLinks() {
               accessibilityLabel={`${LEGAL_TITLES[doc]}. ${SUBTITLES[doc]}`}
               accessibilityRole="link"
               key={doc}
-              onPress={() => void Linking.openURL(url)}
+              onPress={() => void openLegalUrl(url)}
               style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]}
             >
               <Text style={styles.rowTitleLink}>{LEGAL_TITLES[doc]}</Text>

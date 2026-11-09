@@ -310,7 +310,7 @@ export default function SettingsScreen() {
             <Text style={styles.cardEyebrow}>Allergens</Text>
             <Text style={styles.preferenceTitle}>Groups to watch for</Text>
             <Text style={styles.detail}>
-              daywoven flags these when a food's label declares them. It cannot tell you a food
+              daywoven flags these when a food’s label declares them. It cannot tell you a food
               is free of an allergen — many records carry no allergen statement at all — so
               always check the packet.
             </Text>
@@ -392,6 +392,7 @@ export default function SettingsScreen() {
           {model.load_error ? <Text style={styles.errorNote}>Some profile details are still calibrating while data becomes available.</Text> : null}
         </>
       )}
+      {mode === 'account' ? <Button label="Delete account" variant="secondary" onPress={() => router.push('/account/delete')} /> : null}
       {mode === 'demo' ? (
         <Disclosure title="Diary check" detail="Find entries filed on the wrong day">
           <DiaryRepairPanel today={actualToday} />

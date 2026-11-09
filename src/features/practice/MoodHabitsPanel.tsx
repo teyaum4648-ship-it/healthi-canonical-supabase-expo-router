@@ -178,7 +178,7 @@ export function MoodHabits({
           <Text style={styles.label}>Or add your own</Text>
           <Text style={styles.body}>
             Anything you already do that helps. A ritual, a walk to a particular place, a
-            record you put on — it does not have to be on anyone's list to work.
+            record you put on — it does not have to be on anyone’s list to work.
           </Text>
           <TextInput
             label="What is it"

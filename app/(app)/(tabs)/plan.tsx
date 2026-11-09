@@ -722,7 +722,7 @@ export default function PlanScreen() {
         {activeProtocol && activeProtocol.actions.length > 0 ? (
           <View style={styles.card}>
             <View style={styles.rowBetween}>
-              <Text style={styles.cardTitle}>Today's protocol</Text>
+              <Text style={styles.cardTitle}>Today’s protocol</Text>
               <Text style={styles.metaText}>{titleCase(activeProtocol.day_mode)}</Text>
             </View>
             <View style={styles.list}>

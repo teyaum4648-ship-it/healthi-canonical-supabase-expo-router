@@ -1,0 +1,6 @@
+Check supabase/functions/delete-account/index.ts
+Check supabase/functions/fda-regulatory-sync/index.ts
+Check supabase/functions/lab-evidence-lookup/index.ts
+Check supabase/functions/lab-evidence-review/index.ts
+Check supabase/functions/photo-estimate/index.ts
+Check supabase/functions/product-data-resolve/index.ts

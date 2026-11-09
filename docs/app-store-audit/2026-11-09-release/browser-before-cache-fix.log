@@ -1,0 +1,22 @@
+
+> healthi-repo-package@0.1.0 verify:ui
+> node scripts/verify-ui.mjs
+
+
+── /movement
+Welcome back daywoven Sign in to continue to your wellness dashboard. Email Password Log in Forgot your password? New to daywoven? Create an account
+
+── /rhythm
+Welcome back daywoven Sign in to continue to your wellness dashboard. Email Password Log in Forgot your password? New to daywoven? Create an account
+
+── /food
+Welcome back daywoven Sign in to continue to your wellness dashboard. Email Password Log in Forgot your password? New to daywoven? Create an account
+
+── /mood
+Welcome back daywoven Sign in to continue to your wellness dashboard. Email Password Log in Forgot your password? New to daywoven? Create an account
+
+── /home (BOUNCED TO ONBOARDING)
+healthi Adaptive wellness test Adaptive Health Coaching Your body sets the plan. Start with a short wellness test that helps daywoven understand your sleep, stress, nourishment, and movement signals before it suggests a first 2-week focus. Get started on your wellness test Sleep Stress Food Recovery Movement 14 Day Focus Calibrate first Sleep Rhythm Food Signal Load Context First: your wellness te
+
+Shots: reports/ui
+Console: clean

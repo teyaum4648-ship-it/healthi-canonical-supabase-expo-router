@@ -118,7 +118,7 @@ supabase secrets set ANTHROPIC_API_KEY=...
 ```
 
 Estimates require a signed-in account rather than the project anon key, because
-each call spends money; the current function uses a best-effort limit of 25 estimates per account per day **per running instance**. This in-memory limit resets across restarts and does not coordinate parallel instances. A durable atomic quota is a production release requirement before enabling paid estimates.
+each call spends money. Migration `0022_release_account_and_quota.sql` supplies an atomic budget of 25 attempted estimates per account per UTC day, shared across all instances. Deploy the migration before the updated function; missing/failed quota checks return 503 without contacting the paid provider. Failed upstream attempts consume a reservation. This is a per-account limit, not a global spending cap; configure provider-level budget alerts and confirm the chosen model before enabling the feature.
 Cost is dominated by the image, which the client downscales to 1024 px on its
 long edge before upload — roughly 1,000 input tokens instead of 16,000 for a
 full-resolution phone photo. Photos are sent for the estimate and are not stored

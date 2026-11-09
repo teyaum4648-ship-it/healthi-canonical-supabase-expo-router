@@ -1475,7 +1475,7 @@ export default function MovementScreen() {
           <View style={styles.protocolNote}>
             <Ionicons color={movePalette.greenMid} name="shield-checkmark-outline" size={16} />
             <Text style={styles.protocolNoteText}>
-              Today's protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
+              Today’s protocol suggests keeping training easy. Gentle movement or rest is a good use of today.
             </Text>
           </View>
         ) : null}

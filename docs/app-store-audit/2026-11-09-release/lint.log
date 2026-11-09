@@ -1,0 +1,337 @@
+
+> healthi-repo-package@0.1.0 lint
+> expo lint
+
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/(tabs)/food.tsx
+     7:34  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/nutritionGoalEngine.ts' imported multiple times  import/no-duplicates
+     8:39  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/nutritionGoalEngine.ts' imported multiple times  import/no-duplicates
+    22:8   warning  '/workspace/healthi-canonical-supabase-expo-router/node_modules/react-native/index.js' imported multiple times             import/no-duplicates
+    24:10  warning  'router' is defined but never used                                                                                         @typescript-eslint/no-unused-vars
+    25:26  warning  '/workspace/healthi-canonical-supabase-expo-router/node_modules/react-native/index.js' imported multiple times             import/no-duplicates
+    30:10  warning  'Disclosure' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+    41:38  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/mealBuilder.ts' imported multiple times          import/no-duplicates
+   127:8   warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/mealBuilder.ts' imported multiple times          import/no-duplicates
+   142:8   warning  'NutritionTargetRow' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+   150:10  warning  'searchOpenFoodFactsProducts' is defined but never used                                                                    @typescript-eslint/no-unused-vars
+   243:10  warning  'dateKey' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+   513:10  warning  'TrackerProgress' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   581:10  warning  'expandedLane' is assigned a value but never used                                                                          @typescript-eslint/no-unused-vars
+   581:24  warning  'setExpandedLane' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+   661:9   warning  'protocolNourishment' is assigned a value but never used                                                                   @typescript-eslint/no-unused-vars
+   730:9   warning  'savedProducts' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  1545:12  warning  'openAdaptiveDestination' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/(tabs)/index.tsx
+    6:10  warning  'LinearGradient' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   50:3   warning  'boundedProgress' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   66:49  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/movement/movementIntegration.ts' imported multiple times  import/no-duplicates
+   67:46  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/movement/movementIntegration.ts' imported multiple times  import/no-duplicates
+   94:3   warning  'focusLabel' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+  222:19  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                                                               @typescript-eslint/array-type
+  272:10  warning  'ProgressRail' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+  280:10  warning  'SleepSparkline' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+  323:9   warning  'isFocused' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+  493:8   warning  React Hook useCallback has an unnecessary dependency: 'today'. Either exclude it or remove the dependency array           react-hooks/exhaustive-deps
+  510:8   warning  React Hook useCallback has an unnecessary dependency: 'waterVersion'. Either exclude it or remove the dependency array    react-hooks/exhaustive-deps
+  532:8   warning  React Hook useCallback has an unnecessary dependency: 'mindVersion'. Either exclude it or remove the dependency array     react-hooks/exhaustive-deps
+  747:9   warning  'rhythmDriver' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  830:9   warning  'protocolActions' is assigned a value but never used                                                                      @typescript-eslint/no-unused-vars
+  833:9   warning  'sleepTrend' is assigned a value but never used                                                                           @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/(tabs)/movement.tsx
+   181:10  warning  'ActionRow' is defined but never used         @typescript-eslint/no-unused-vars
+   229:10  warning  'formatLoggedAt' is defined but never used    @typescript-eslint/no-unused-vars
+   352:10  warning  'status' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  1192:12  warning  'applyPreviousSet' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/(tabs)/plan.tsx
+  74:49  warning  'spacing' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/(tabs)/rhythm.tsx
+   13:33  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/SleepExperience.tsx' imported multiple times                                                                                                     import/no-duplicates
+   32:28  warning  '/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/SleepExperience.tsx' imported multiple times                                                                                                     import/no-duplicates
+  132:6   warning  React Hook useEffect has a missing dependency: 'now'. Either include it or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setSleepNeed' needs the current value of 'now'  react-hooks/exhaustive-deps
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/closeout.tsx
+   2:24  warning  '/workspace/healthi-canonical-supabase-expo-router/node_modules/expo-router/build/index.js' imported multiple times  import/no-duplicates
+   4:32  warning  '/workspace/healthi-canonical-supabase-expo-router/node_modules/expo-router/build/index.js' imported multiple times  import/no-duplicates
+  22:18  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                                                          @typescript-eslint/array-type
+  22:69  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                                                          @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/lab-evidence-review.tsx
+   9:12  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  10:19  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  11:13  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  12:21  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/app/(app)/protocol.tsx
+  2:24  warning  '/workspace/healthi-canonical-supabase-expo-router/node_modules/expo-router/build/index.js' imported multiple times  import/no-duplicates
+  4:32  warning  '/workspace/healthi-canonical-supabase-expo-router/node_modules/expo-router/build/index.js' imported multiple times  import/no-duplicates
+
+/workspace/healthi-canonical-supabase-expo-router/app/(onboarding)/index.tsx
+  28:3   warning  'DynamicScoreSheet' is defined but never used  @typescript-eslint/no-unused-vars
+  73:10  warning  'updateMultiAnswer' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/app/index.tsx
+  10:54  warning  '/workspace/healthi-canonical-supabase-expo-router/src/styles/mobileTheme.ts' imported multiple times  import/no-duplicates
+  11:46  warning  '/workspace/healthi-canonical-supabase-expo-router/src/styles/mobileTheme.ts' imported multiple times  import/no-duplicates
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/baseline/baselineTypes.ts
+  92:16  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  93:15  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/circadian/chronotypeQuiz.ts
+   38:12  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  134:14  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/circadian/energyModel.ts
+  156:21  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/circadian/generateCircadianBriefing.ts
+   2:59  warning  'CircadianPhaseEstimate' is defined but never used  @typescript-eslint/no-unused-vars
+  12:8   warning  'DayOutlook' is defined but never used              @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/circadian/types.ts
+  49:10  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/loadCheck/loadCheckItems.ts
+  44:26  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/loadCheck/scoreLoadCheck.ts
+  42:10  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                   @typescript-eslint/array-type
+  63:21  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+  63:35  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/movement/movementScreenModel.ts
+   38:12  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  141:57  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/movement/movementTypes.ts
+  136:11  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  137:12  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/calculateFoodPatternProfile.ts
+  278:78  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/archetypes.ts
+  85:31  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/categoryResolution.ts
+  205:31  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  327:59  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  332:19  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/dimensions.ts
+  237:16  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/engine.ts
+  101:24  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  635:25  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/ingredientParser.ts
+  13:32  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/kernelV5Experimental.ts
+   84:7  warning  'PROTEIN_ISOLATE' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+   85:7  warning  'ADDED_FIBER' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+   86:7  warning  'FLAVOR_SYSTEM' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   87:7  warning  'COLOR' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+   88:7  warning  'EMULSIFIER_STABILIZER' is assigned a value but never used               @typescript-eslint/no-unused-vars
+   89:7  warning  'PRESERVATIVE' is assigned a value but never used                        @typescript-eslint/no-unused-vars
+   90:7  warning  'SYNTHETIC_HIGH_INTENSITY_SWEETENER' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   91:7  warning  'PLANT_HIGH_INTENSITY_SWEETENER' is assigned a value but never used      @typescript-eslint/no-unused-vars
+   92:7  warning  'RARE_SUGAR' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+   93:7  warning  'SUGAR_ALCOHOL' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   95:7  warning  'INDUSTRIAL_FAT' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   98:7  warning  'CULINARY_SOURCE' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+   99:7  warning  'REFINED_CARB' is assigned a value but never used                        @typescript-eslint/no-unused-vars
+  100:7  warning  'WHOLE_PLANT' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/nutrientContribution.ts
+  62:14  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  63:14  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  90:13  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/types.ts
+  108:10  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/updateFoodPatternProfileFromResponse.ts
+  55:37  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/safety/safetyCopy.ts
+  51:9  warning  'restMovement' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/engines/trends/generateTrendsSummary.ts
+  64:26  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  70:28  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/auth/demoFixture.ts
+  20:36  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/dashboard/ReadinessNowCard.tsx
+  134:6  warning  React Hook useCallback has unnecessary dependencies: 'day', 'refreshKey', and 'retry'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/dashboard/dashboardComposer.ts
+   1:15  warning  'CircadianBriefing' is defined but never used                @typescript-eslint/no-unused-vars
+   1:50  warning  'SleepSession' is defined but never used                     @typescript-eslint/no-unused-vars
+  32:10  warning  'clampScore' is defined but never used                       @typescript-eslint/no-unused-vars
+  36:10  warning  'formatMinutes' is defined but never used                    @typescript-eslint/no-unused-vars
+  54:10  warning  'formatWindow' is defined but never used                     @typescript-eslint/no-unused-vars
+  59:10  warning  'phaseLabel' is defined but never used                       @typescript-eslint/no-unused-vars
+  73:10  warning  'confidenceFromSignals' is defined but never used            @typescript-eslint/no-unused-vars
+  96:33  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/foundations/foundationScorePersistence.ts
+  124:4   warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  125:18  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/movement/SessionRecapView.tsx
+  53:22  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+  55:17  warning  'SessionRecap' is already defined                                             @typescript-eslint/no-redeclare
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/movement/WorkoutSessionLogger.tsx
+  19:3  warning  'stepWeight' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/movement/routineStore.ts
+  145:14  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/movement/workoutForms.ts
+  44:14  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/movement/workoutQuickLog.ts
+   62:9   warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  326:23  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/HydrationCard.tsx
+  39:104  warning  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/MealLibrarySheet.tsx
+  67:6  warning  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/allergens.ts
+  91:23  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/foodQualityReview.ts
+   2:36  warning  '/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/index.ts' imported multiple times  import/no-duplicates
+   8:37  warning  '/workspace/healthi-canonical-supabase-expo-router/src/engines/nutrition/productScoring/index.ts' imported multiple times  import/no-duplicates
+  49:17  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                                                                @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/foodTabForms.ts
+  53:34  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/labEvidence/labEvidenceMatcher.ts
+  36:10  warning  'normalized' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/mealBuilder.ts
+   65:24  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  106:10  warning  'cloneQuality' is defined but never used                     @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/mealDiaryModel.ts
+  13:18  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/micronutrientPortion.ts
+  40:10  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/nutritionGoalStore.ts
+  8:118  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/photoEstimate/PhotoEstimateSheet.tsx
+  32:22  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/photoEstimate/photoEstimate.ts
+  78:10  warning  'emptyNutrients' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/ingredientEvidenceResolver.ts
+   17:21  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+   88:15  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  116:21  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/mergeProductEvidence.ts
+  13:3  warning  'metricServing' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/normalizeProduct.ts
+  168:27  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/nutrientEvidence.ts
+    4:3   warning  'NutrientBasis' is defined but never used                    @typescript-eslint/no-unused-vars
+  269:27  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  498:12  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/nutritionValidation.ts
+  34:15  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/productDataProvider.ts
+  46:16  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/nutrition/productLookup/productLookupTypes.ts
+  128:19  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  161:14  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/onboarding/generateBaselineProfile.ts
+  76:66  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/onboarding/generateBiweeklyFocusProfile.ts
+  64:42  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/onboarding/onboardingV2Model.ts
+  20:51  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/practice/HeadCheckCard.tsx
+  22:10  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/practice/PacedBreath.tsx
+  5:10  warning  'colors' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/practice/daylightModel.ts
+  26:29  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/practice/headCheck.ts
+  27:28  warning  Array type using 'ReadonlyArray<T>' is forbidden. Use 'readonly T[]' instead  @typescript-eslint/array-type
+  82:64  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                   @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/practice/pulseModel.ts
+  45:30  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/profile/personalBlueprint.ts
+  27:18  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/SleepEnergyChart.tsx
+  26:7   warning  'DISPLAY_FLOOR' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  56:19  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  64:28  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/SleepExperience.tsx
+   3:376    warning  'Svg' is defined but never used                              @typescript-eslint/no-unused-vars
+   3:383    warning  'Circle' is defined but never used                           @typescript-eslint/no-unused-vars
+   3:391    warning  'Defs' is defined but never used                             @typescript-eslint/no-unused-vars
+   3:397    warning  'Line' is defined but never used                             @typescript-eslint/no-unused-vars
+   3:421    warning  'SvgGradient' is defined but never used                      @typescript-eslint/no-unused-vars
+   3:434    warning  'Path' is defined but never used                             @typescript-eslint/no-unused-vars
+   3:440    warning  'Rect' is defined but never used                             @typescript-eslint/no-unused-vars
+   3:446    warning  'Stop' is defined but never used                             @typescript-eslint/no-unused-vars
+   3:542    warning  'getRecommendedActivityAt' is defined but never used         @typescript-eslint/no-unused-vars
+  10:1298   warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  81:10990  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  81:30177  warning  'protocol' is assigned a value but never used                @typescript-eslint/no-unused-vars
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/SleepWindowTracker.tsx
+  172:6  warning  React Hook useEffect has a missing dependency: 'beginEditing'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/sleepPresentation.ts
+  516:35  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/sleepRhythm/sleepWindowEngine.ts
+   51:7   warning  'DAY_MS' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+  298:40  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/features/trends/trendsComposer.ts
+   24:34  warning  'MealLogRow' is defined but never used                       @typescript-eslint/no-unused-vars
+  111:58  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+/workspace/healthi-canonical-supabase-expo-router/src/types/onboarding.ts
+   61:17  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+  188:20  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+✖ 180 problems (0 errors, 180 warnings)
+  0 errors and 91 warnings potentially fixable with the `--fix` option.

@@ -1,0 +1,12 @@
+{
+  "status": "pass",
+  "checks": [
+    "accessible before onboarding completion",
+    "confirmation required",
+    "failed deletion preserves data",
+    "success clears only owner scope",
+    "successful logout redirect"
+  ],
+  "backend": "mocked; no real accounts deleted",
+  "viewport": "390x844"
+}

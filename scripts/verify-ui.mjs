@@ -105,10 +105,11 @@ for (const route of targets) {
 
   const body = (await page.locator('body').innerText()).replace(/\s+/g, ' ').trim();
   const bouncedToOnboarding = /wellness test|STEP \d+ OF/i.test(body);
-  if (bouncedToOnboarding) failures += 1;
+  const bouncedToLogin = /\/(?:login|signup)(?:[/?#]|$)/.test(page.url()) || /Accounts unavailable/.test(body);
+  if (bouncedToOnboarding || bouncedToLogin) failures += 1;
 
   await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: true });
-  console.log(`\n── /${name} ${bouncedToOnboarding ? '(BOUNCED TO ONBOARDING)' : ''}`);
+  console.log(`\n── /${name} ${bouncedToOnboarding ? '(BOUNCED TO ONBOARDING)' : bouncedToLogin ? '(ACCOUNT ROUTE BLOCKED)' : ''}`);
   console.log(body.slice(0, 400));
 }
 

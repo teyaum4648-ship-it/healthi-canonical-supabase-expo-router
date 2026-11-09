@@ -1,0 +1,22 @@
+
+> healthi-repo-package@0.1.0 verify:ui
+> node scripts/verify-ui.mjs
+
+
+── /movement
+Movement Today Train History  Check how you move Seven checks you can do now, in a room, with nothing.   Start workout Make the lighter choice useful. Keep intensity modest and give movement quality more attention than output. Restore Technique Build Push Suggested effort 3–5 of 10 · readiness comes from Home An easy first session helps calibrate. No sessions logged this week yet. No recent sle
+
+── /rhythm
+Sleep Monday, November 9 Demo rhythm  Today Trends Wind-down Learn Your rhythm now Calibrating Energy · Steady Add a confirmed sleep window to make today’s rhythm more personal. Add sleep data to refine timing  Where does your clock sit? Six questions, then a day built around the answers.  Last night Your sleep window  Estimated  Today Mon, Nov 9  10:30 PM – 6:30 AM 8h Estimated from your re
+
+── /food
+Diet Local demo mode Overview Nutrients Quality November 2026   Sun 8 Mon 9 Tue 10 Wed 11 Thu 12 Fri 13 Sat 14 Calories logged — Log a food to begin  Not logged Protein — g No target set  Carbs — g No target set  Fat — g No target set  Working targets guide your day. Rings show intake, not a health score.  Set up my goals A one-time quiz for calorie and macro estimates   Take the Food Pat
+
+── /mood
+Mood Today Practice Trends How’s your head? Overloaded Clear One tap. It counts toward Mind + Life Load and today’s readiness. Mind + Life Load Not enough to read yet. Log last night’s sleep, add today’s plan, or say how your head is.  Keep one reset in the day A minute of Settle is enough to keep the habit easy to reach for.  Today so far  Breathing 0 of 5 min  Morning light 0 of 10 min  Hab
+
+── /home
+Monday, November 9  Plan Good evening READINESS — No estimate — Recovery — Nourish — Movement — Mind Today’s direction is a starting point, not a live reading of how you feel now. 10:55 PM · No current number yet · No check-in yet · Demo Check in Why this estimate? Biomarkers   Set your starting point A short load check, so readiness starts from you instead of 70.   Sleep  — Log last night t
+
+Shots: reports/ui
+Console: clean

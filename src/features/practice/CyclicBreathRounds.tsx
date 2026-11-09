@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CheckBox } from '../../components/CheckBox';
@@ -7,6 +7,7 @@ import { colors, type } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { BreathCircle } from './BreathCircle';
 import type { BreathTechnique } from './breathTechniques';
+import { useStopOnBackground } from './useStopOnBackground';
 
 /**
  * The rounds runner, for cyclic hyperventilation.
@@ -125,8 +126,8 @@ export function CyclicBreathRounds({
     setStage('recovery');
   }
 
-  function abandon() {
-    clear();
+  const abandon = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
     wave.stopAnimation();
     wave.setValue(0);
     const total = startedAt.current ? Math.round((Date.now() - startedAt.current) / 1000) : 0;
@@ -135,7 +136,8 @@ export function CyclicBreathRounds({
     setRound(1);
     setBreath(0);
     if (total > 0) onSession(total, retentions);
-  }
+  }, [onSession, retentions, wave]);
+  useStopOnBackground(stage === 'breathing' || stage === 'retention' || stage === 'recovery', abandon);
 
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 

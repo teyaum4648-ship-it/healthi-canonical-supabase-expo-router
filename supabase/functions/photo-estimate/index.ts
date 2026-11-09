@@ -1,4 +1,4 @@
-import { authenticatedUser } from '../_shared/auth.ts';
+import { authenticatedUser, serviceClient } from '../_shared/auth.ts';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import { BodyTooLargeError, readLimitedJson } from '../_shared/requestLimits.ts';
 
@@ -7,8 +7,8 @@ import { BodyTooLargeError, readLimitedJson } from '../_shared/requestLimits.ts'
  *
  * Runs server-side for two reasons. The API key stays out of the app bundle — the same rule
  * the USDA key follows, never in an Expo public variable or in Git — and every call costs
- * money. The current limiter is per-instance only; a durable, atomic account quota
- * is required before treating it as a production cost ceiling.
+ * money. A database transaction reserves one of 25 account requests per UTC day,
+ * shared across instances and restarts. A failed provider attempt also consumes it.
  *
  * Unconfigured is a first-class state. With no ANTHROPIC_API_KEY set the function reports
  * `not_configured` and spends nothing, which is how the feature ships dark: the photo path
@@ -18,7 +18,7 @@ import { BodyTooLargeError, readLimitedJson } from '../_shared/requestLimits.ts'
 const DEFAULT_MODEL = 'claude-opus-5';
 const ANTHROPIC_VERSION = '2023-06-01';
 
-/** Best-effort per-instance guard. Restarts/parallel instances reset it; not a durable cost ceiling. */
+/** Server-controlled durable quota; migration 0022 must be deployed first. */
 const DAILY_ESTIMATE_LIMIT = 25;
 /** Roughly 8 MB of base64 — larger than any sensibly downscaled photo. */
 const MAX_IMAGE_BYTES = 8_000_000;
@@ -26,19 +26,6 @@ const MAX_REQUEST_BYTES = MAX_IMAGE_BYTES + 16_384;
 const MAX_UPSTREAM_BYTES = 256_000;
 const UPSTREAM_TIMEOUT_MS = 30_000;
 const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-const dailyUsage = new Map<string, { day: string; count: number }>();
-
-function withinDailyLimit(userId: string, today: string): boolean {
-  const current = dailyUsage.get(userId);
-  if (!current || current.day !== today) {
-    dailyUsage.set(userId, { day: today, count: 1 });
-    return true;
-  }
-  if (current.count >= DAILY_ESTIMATE_LIMIT) return false;
-  current.count += 1;
-  return true;
-}
 
 /**
  * What the model is asked to return.
@@ -122,12 +109,6 @@ Deno.serve(async (request) => {
     });
   }
 
-  if (!withinDailyLimit(user.id, new Date().toISOString().slice(0, 10))) {
-    const response = jsonResponse({ error: 'rate_limited', detail: `Photo estimates are limited to ${DAILY_ESTIMATE_LIMIT} a day.` }, 429);
-    response.headers.set('Retry-After', '3600');
-    return response;
-  }
-
   let body: RequestBody | null = null;
   try { body = await readLimitedJson(request, MAX_REQUEST_BYTES) as RequestBody | null; } catch (error) {
     if (error instanceof BodyTooLargeError) return jsonResponse({ error: 'invalid_image', detail: 'That photo request is too large.' }, 413);
@@ -141,6 +122,17 @@ Deno.serve(async (request) => {
   if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) {
     return jsonResponse({ error: 'invalid_image', detail: 'Unsupported image format.' }, 415);
   }
+
+  // Fail closed if the database is unavailable or the quota migration is missing.
+  try {
+    const { data, error } = await serviceClient().rpc('consume_photo_estimate_quota', { account_id: user.id });
+    if (error || typeof data !== 'boolean') return jsonResponse({ error: 'unavailable', detail: 'Photo estimates are temporarily unavailable.' }, 503);
+    if (!data) {
+      const response = jsonResponse({ error: 'rate_limited', detail: `Photo estimates are limited to ${DAILY_ESTIMATE_LIMIT} a day.` }, 429);
+      response.headers.set('Retry-After', '3600');
+      return response;
+    }
+  } catch { return jsonResponse({ error: 'unavailable' }, 503); }
 
   const model = Deno.env.get('PHOTO_ESTIMATE_MODEL') ?? DEFAULT_MODEL;
   // The person's own note ("this is a half portion") is context, not instruction: it is

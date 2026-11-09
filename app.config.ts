@@ -27,8 +27,11 @@ const config: ExpoConfig = {
     preferRelatedApplications: false
   },
   ios: {
-    supportsTablet: true
+    supportsTablet: true,
+    ...(process.env.IOS_BUNDLE_IDENTIFIER ? { bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER } : {})
   },
+  ...(process.env.EXPO_OWNER ? { owner: process.env.EXPO_OWNER } : {}),
+  ...(process.env.EXPO_PROJECT_ID ? { extra: { eas: { projectId: process.env.EXPO_PROJECT_ID } } } : {}),
   android: {
     adaptiveIcon: {
       backgroundColor: '#000000'
@@ -41,7 +44,8 @@ const config: ExpoConfig = {
     [
       'expo-secure-store',
       {
-        configureAndroidBackup: true
+        configureAndroidBackup: true,
+        faceIDPermission: false
       }
     ],
     [

@@ -280,7 +280,7 @@ function renderScoreSheet(focusProfile: BiweeklyFocusProfile) {
 }
 
 export default function OnboardingScreen() {
-  const { profile, refreshProfile, user } = useAuth();
+  const { profile, refreshProfile, user, mode } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [focusProfile, setFocusProfile] = useState<BiweeklyFocusProfile | null>(null);
@@ -808,6 +808,7 @@ export default function OnboardingScreen() {
 
   return (
     <Screen>
+      {mode === 'account' ? <Button label="Delete account" variant="secondary" disabled={isSubmitting} onPress={() => router.push('/account/delete')} /> : null}
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
       </View>

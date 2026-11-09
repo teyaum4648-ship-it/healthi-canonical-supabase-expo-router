@@ -1,0 +1,20 @@
+{
+  "client": "curl with inherited proxy/CA",
+  "results": [
+    {
+      "url": "https://daywovenapp.com/legal/privacy.html",
+      "status": "404",
+      "exit": 0
+    },
+    {
+      "url": "https://daywovenapp.com/legal/terms.html",
+      "status": "404",
+      "exit": 0
+    },
+    {
+      "url": "https://healthi-demo.teyaum4648.chatgpt.site/legal/privacy.html",
+      "status": "200",
+      "exit": 0
+    }
+  ]
+}

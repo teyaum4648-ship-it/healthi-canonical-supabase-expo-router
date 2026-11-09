@@ -33,7 +33,7 @@
     <li>We run <strong>no advertising, no analytics and no tracking</strong> of any kind. There is no Google Analytics, no Meta Pixel, no TikTok tag, no session recorder.</li>
     <li>We set <strong>no cookies.</strong> See the <a href="/legal/cookies.html">Cookies &amp; Local Storage</a> page for the short list of things we do store on your device.</li>
     <li>Your health entries are visible to <strong>you</strong>. They are not visible to other users, and there is no social or sharing feature.</li>
-    <li>You can <strong>export everything</strong> and <strong>delete everything</strong> from inside the app.</li>
+    <li>You can <strong>delete your account</strong> from Settings and request a copy of your account information through the privacy contact below. Some records are stored only on your device.</li>
   </ul>
 </div>
 
@@ -87,7 +87,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
     </tr>
     <tr>
       <td><strong>Health and wellness entries</strong> <em>&mdash; the sensitive core</em></td>
-      <td>Food and drink logs, meals, portions and photos-derived estimates; hydration; sleep times, sleep quality and sleep debt; daily check-ins; stress questionnaire answers; movement, posture and breathing self-assessments; workouts, exercises, sets, loads and how sessions went; heart-rate check-ins; time spent outdoors; breathing-practice sessions; food reactions and digestion notes; allergen preferences and dietary constraints; any free text you type into a note or a chat.</td>
+      <td>Food and drink logs, meals, portions and photos-derived estimates; hydration; sleep times, sleep quality and sleep debt; daily check-ins; stress questionnaire answers; movement, posture and breathing self-assessments; workouts, exercises, sets, loads and how sessions went; heart-rate check-ins; time spent outdoors; breathing-practice sessions; food reactions and digestion notes; allergen preferences and dietary constraints; any free text you type into a note.</td>
       <td>You</td>
     </tr>
     <tr>
@@ -150,9 +150,9 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
 <p>Camera and photo-library access are requested at the moment you first use a feature that needs them, with a plain explanation, and you can refuse and still use the app: every food can be entered by search or by typing the barcode.</p>
 
 <h2 id="ai">5. Where AI is used</h2>
-<p>daywoven uses Anthropic&rsquo;s Claude models for two things: estimating the contents of a meal photo, and any assistant or chat feature you use. This is always something you trigger, never a background process.</p>
+<p>When the optional meal-photo feature is enabled, daywoven sends the photo you choose to Anthropic to estimate foods and portions. You trigger each request. The current app does not provide an AI chat service; its readiness and guidance calculations use deterministic rules.</p>
 <ul>
-  <li>We send <strong>the minimum context the task needs</strong> &mdash; a photo, or a structured summary &mdash; rather than your full history.</li>
+  <li>We send <strong>the minimum context the task needs</strong> &mdash; your chosen meal photo and optional meal note &mdash; rather than your full history.</li>
   <li>For meal photo estimates, we ask for your <strong>separate, explicit permission for each photo request</strong> before opening the camera or photo picker and sending the selected photo to Anthropic through our server. The checkbox starts unchecked each time you open the photo entry screen. You can cancel, leave it unchecked, or use food search instead. This permission is not saved as a standing opt-in in Settings.</li>
   <li>Anthropic processes these requests on our behalf as a service provider. Under their commercial API terms, inputs are not used to train their models.</li>
   <li><strong>An AI answer is not a medical opinion.</strong> It is a guess from a language model, it can be confidently wrong, and it is labelled as an estimate in the app for that reason.</li>
@@ -170,7 +170,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <tbody>
     <tr><td>Supabase</td><td>Database, login, server functions</td><td>Everything in your account. This is where your data lives.</td></tr>
     <tr><td>Cloudflare</td><td>Serving the web app; the food-search endpoint</td><td>IP address and request metadata; food search terms, with no account identifier attached.</td></tr>
-    <tr><td>Anthropic</td><td>Meal photo estimation; assistant features</td><td>Only what a task needs: a meal photo, or a structured summary you have consented to send.</td></tr>
+    <tr><td>Anthropic</td><td>Optional meal photo estimation</td><td>Only what a task needs: a meal photo and optional meal note you have consented to send.</td></tr>
     <tr><td>Open Food Facts</td><td>Packaged food and barcode database</td><td>A barcode number or a search term. No account identifier.</td></tr>
     <tr><td>USDA FoodData Central</td><td>Government food composition database</td><td>A search term. No account identifier.</td></tr>
     <tr><td>Apple, Google</td><td>App distribution and, if you subscribe, payment</td><td>Whatever their own privacy policies describe. We receive a subscription status from them, never a card number.</td></tr>
@@ -188,11 +188,10 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
   <thead><tr><th scope="col">What</th><th scope="col">Kept for</th></tr></thead>
   <tbody>
     <tr><td>Your account and health history</td><td>As long as your account is open. This is your record; deleting it on a timer would break the product.</td></tr>
-    <tr><td>Everything, after you delete your account</td><td>Erased within <strong>30 days</strong>, and removed from routine backups within <strong>90 days</strong>.</td></tr>
+    <tr><td>Account-owned database records after deletion</td><td>Removed when account deletion completes. Routine backups: <span class="fill">{{BACKUP_RETENTION}}</span>. Separately held legal records and provider logs require the retention arrangements below.</td></tr>
     <tr><td>Meal photos</td><td>Not stored. Discarded as soon as the estimate comes back.</td></tr>
-    <tr><td>AI conversation history and context snapshots</td><td><strong>90 days</strong>, then deleted automatically. You can delete it sooner.</td></tr>
-    <tr><td>Technical logs</td><td><strong>30 days</strong>.</td></tr>
-    <tr><td>Consent records, and purchase and tax records</td><td>Kept after deletion only as long as the law requires, and used for nothing else.</td></tr>
+    <tr><td>Technical logs</td><td><span class="fill">{{TECHNICAL_LOG_RETENTION}}</span></td></tr>
+    <tr><td>Account consent records</td><td>Removed with the account. Any separately retained legal records and their retention basis must be disclosed here: <span class="fill">{{LEGAL_RECORD_RETENTION}}</span>.</td></tr>
   </tbody>
 </table>
 </div>
@@ -201,11 +200,11 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
 <p>These are available to <strong>everyone who uses daywoven</strong>, not only to people in places whose laws demand them. You do not need to cite a statute at us.</p>
 <ul>
   <li><strong>See it</strong> &mdash; ask what we hold about you.</li>
-  <li><strong>Export it</strong> &mdash; get the whole thing in a machine-readable file, from Settings.</li>
+  <li><strong>Export it</strong> &mdash; request a machine-readable copy of the account information we hold by contacting the privacy address below. Device-only records are not included in a server export.</li>
   <li><strong>Correct it</strong> &mdash; fix anything wrong, mostly by editing it in the app.</li>
-  <li><strong>Delete it</strong> &mdash; erase your account and everything in it, from Settings. This cannot be undone.</li>
-  <li><strong>Delete part of it</strong> &mdash; drop your food history, or your AI chat history, without closing your account.</li>
-  <li><strong>Withdraw a consent</strong> &mdash; turn off AI features, disconnect a wearable, or switch off notifications, and keep using everything else.</li>
+  <li><strong>Delete it</strong> &mdash; use Settings &rarr; Delete account, enter your current password, and type DELETE to confirm. This removes the account and its account-owned database records. Daywoven also attempts to clear this account&rsquo;s local records on this device and reports a cleanup failure. Other devices may retain local records until you remove their app data. Original Apple Health records are not deleted. This cannot be undone.</li>
+  <li><strong>Delete part of it</strong> &mdash; edit or remove individual entries where the app provides those controls, or contact us about the records you want removed.</li>
+  <li><strong>Withdraw a consent</strong> &mdash; decline photo-AI permission or revoke camera, photo, or Apple Health permissions in your device settings. Manual entry remains available.</li>
   <li><strong>Object, or ask us to restrict processing</strong> &mdash; tell us and we will deal with it rather than sending you a form.</li>
   <li><strong>Not be discriminated against</strong> for exercising any of the above. There is no worse version of daywoven for people who ask.</li>
 </ul>
@@ -243,7 +242,7 @@ Privacy contact: <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY
 
 <h2 id="children">12. Age limit</h2>
 <p>daywoven is for adults. <strong>You must be 18 or older to create an account.</strong> We do not knowingly collect information from anyone under 18, and we do not direct the app at children.</p>
-<p>The reason is not paperwork. An app that grades food, counts calories and prescribes training is not something we are prepared to put in front of a developing body or a teenager at risk of an eating disorder without supervision we cannot provide. If you believe a minor has created an account, tell us at <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY_EMAIL}}</span></a> and we will delete it.</p>
+<p>The reason is not paperwork. An app that evaluates food, logs nutrition and suggests movement is not something we are prepared to put in front of a developing body or a teenager at risk of an eating disorder without supervision we cannot provide. If you believe a minor has created an account, tell us at <a href="mailto:{{PRIVACY_EMAIL}}"><span class="fill">{{PRIVACY_EMAIL}}</span></a> and we will delete it.</p>
 
 <h2 id="where">13. Where we operate</h2>
 <p>daywoven is operated from the United States and your information is stored and processed there, in the <span class="fill">{{SUPABASE_REGION}}</span> region. United States law does not offer the same protections as some other countries.</p>

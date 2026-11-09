@@ -1,9 +1,10 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CheckBox } from '../../components/CheckBox';
 import { colors, spacing, type, glassSurface } from '../../styles/mobileTheme';
 import { type ConsentState } from './consentModel';
 import { legalUrl, MINIMUM_AGE, type LegalDocument } from './legalLinks';
+import { openLegalUrl } from './openLegalUrl';
 
 /**
  * The consent block on the signup form.
@@ -35,7 +36,7 @@ function InlineLink({ doc, children }: { doc: LegalDocument; children: string })
       accessibilityHint="Opens in your browser"
       accessibilityRole="link"
       hitSlop={6}
-      onPress={() => void Linking.openURL(url)}
+      onPress={() => void openLegalUrl(url)}
       style={styles.linkPress}
     >
       <Text style={styles.link}>{children}</Text>

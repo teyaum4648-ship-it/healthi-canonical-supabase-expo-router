@@ -1,0 +1,1024 @@
+DROP DATABASE
+NOTICE:  database "daywoven_rls_audit" does not exist, skipping
+CREATE DATABASE
+You are now connected to database "daywoven_rls_audit" as user "postgres".
+DO
+DO
+DO
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+CREATE SCHEMA
+CREATE TABLE
+CREATE FUNCTION
+GRANT
+GRANT
+CREATE SCHEMA
+CREATE TABLE
+APPLY 0001_initial_schema.sql
+CREATE EXTENSION
+CREATE FUNCTION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TRIGGER
+CREATE FUNCTION
+NOTICE:  trigger "on_auth_user_created" for relation "auth.users" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+NOTICE:  policy "user_settings_select_own" for relation "public.user_settings" does not exist, skipping
+NOTICE:  policy "user_settings_insert_own" for relation "public.user_settings" does not exist, skipping
+NOTICE:  policy "user_settings_update_own" for relation "public.user_settings" does not exist, skipping
+NOTICE:  policy "user_settings_delete_own" for relation "public.user_settings" does not exist, skipping
+NOTICE:  policy "user_consents_select_own" for relation "public.user_consents" does not exist, skipping
+NOTICE:  policy "user_consents_insert_own" for relation "public.user_consents" does not exist, skipping
+NOTICE:  policy "user_consents_update_own" for relation "public.user_consents" does not exist, skipping
+NOTICE:  policy "user_consents_delete_own" for relation "public.user_consents" does not exist, skipping
+NOTICE:  policy "privacy_events_select_own" for relation "public.privacy_events" does not exist, skipping
+NOTICE:  policy "privacy_events_insert_own" for relation "public.privacy_events" does not exist, skipping
+NOTICE:  policy "privacy_events_update_own" for relation "public.privacy_events" does not exist, skipping
+NOTICE:  policy "privacy_events_delete_own" for relation "public.privacy_events" does not exist, skipping
+NOTICE:  policy "data_export_requests_select_own" for relation "public.data_export_requests" does not exist, skipping
+NOTICE:  policy "data_export_requests_insert_own" for relation "public.data_export_requests" does not exist, skipping
+NOTICE:  policy "data_export_requests_update_own" for relation "public.data_export_requests" does not exist, skipping
+NOTICE:  policy "data_export_requests_delete_own" for relation "public.data_export_requests" does not exist, skipping
+NOTICE:  policy "data_deletion_requests_select_own" for relation "public.data_deletion_requests" does not exist, skipping
+NOTICE:  policy "data_deletion_requests_insert_own" for relation "public.data_deletion_requests" does not exist, skipping
+NOTICE:  policy "data_deletion_requests_update_own" for relation "public.data_deletion_requests" does not exist, skipping
+NOTICE:  policy "data_deletion_requests_delete_own" for relation "public.data_deletion_requests" does not exist, skipping
+NOTICE:  policy "subscription_status_select_own" for relation "public.subscription_status" does not exist, skipping
+NOTICE:  policy "subscription_status_insert_own" for relation "public.subscription_status" does not exist, skipping
+NOTICE:  policy "subscription_status_update_own" for relation "public.subscription_status" does not exist, skipping
+NOTICE:  policy "subscription_status_delete_own" for relation "public.subscription_status" does not exist, skipping
+NOTICE:  policy "assessment_sessions_select_own" for relation "public.assessment_sessions" does not exist, skipping
+NOTICE:  policy "assessment_sessions_insert_own" for relation "public.assessment_sessions" does not exist, skipping
+NOTICE:  policy "assessment_sessions_update_own" for relation "public.assessment_sessions" does not exist, skipping
+NOTICE:  policy "assessment_sessions_delete_own" for relation "public.assessment_sessions" does not exist, skipping
+NOTICE:  policy "assessment_answers_select_own" for relation "public.assessment_answers" does not exist, skipping
+NOTICE:  policy "assessment_answers_insert_own" for relation "public.assessment_answers" does not exist, skipping
+NOTICE:  policy "assessment_answers_update_own" for relation "public.assessment_answers" does not exist, skipping
+NOTICE:  policy "assessment_answers_delete_own" for relation "public.assessment_answers" does not exist, skipping
+NOTICE:  policy "baseline_profiles_select_own" for relation "public.baseline_profiles" does not exist, skipping
+NOTICE:  policy "baseline_profiles_insert_own" for relation "public.baseline_profiles" does not exist, skipping
+NOTICE:  policy "baseline_profiles_update_own" for relation "public.baseline_profiles" does not exist, skipping
+NOTICE:  policy "baseline_profiles_delete_own" for relation "public.baseline_profiles" does not exist, skipping
+NOTICE:  policy "movement_assessments_select_own" for relation "public.movement_assessments" does not exist, skipping
+NOTICE:  policy "movement_assessments_insert_own" for relation "public.movement_assessments" does not exist, skipping
+NOTICE:  policy "movement_assessments_update_own" for relation "public.movement_assessments" does not exist, skipping
+NOTICE:  policy "movement_assessments_delete_own" for relation "public.movement_assessments" does not exist, skipping
+NOTICE:  policy "movement_screen_results_select_own" for relation "public.movement_screen_results" does not exist, skipping
+NOTICE:  policy "movement_screen_results_insert_own" for relation "public.movement_screen_results" does not exist, skipping
+NOTICE:  policy "movement_screen_results_update_own" for relation "public.movement_screen_results" does not exist, skipping
+NOTICE:  policy "movement_screen_results_delete_own" for relation "public.movement_screen_results" does not exist, skipping
+NOTICE:  policy "posture_assessments_select_own" for relation "public.posture_assessments" does not exist, skipping
+NOTICE:  policy "posture_assessments_insert_own" for relation "public.posture_assessments" does not exist, skipping
+NOTICE:  policy "posture_assessments_update_own" for relation "public.posture_assessments" does not exist, skipping
+NOTICE:  policy "posture_assessments_delete_own" for relation "public.posture_assessments" does not exist, skipping
+NOTICE:  policy "breathing_assessments_select_own" for relation "public.breathing_assessments" does not exist, skipping
+NOTICE:  policy "breathing_assessments_insert_own" for relation "public.breathing_assessments" does not exist, skipping
+NOTICE:  policy "breathing_assessments_update_own" for relation "public.breathing_assessments" does not exist, skipping
+NOTICE:  policy "breathing_assessments_delete_own" for relation "public.breathing_assessments" does not exist, skipping
+NOTICE:  policy "food_constraints_select_own" for relation "public.food_constraints" does not exist, skipping
+NOTICE:  policy "food_constraints_insert_own" for relation "public.food_constraints" does not exist, skipping
+NOTICE:  policy "food_constraints_update_own" for relation "public.food_constraints" does not exist, skipping
+NOTICE:  policy "food_constraints_delete_own" for relation "public.food_constraints" does not exist, skipping
+NOTICE:  policy "metric_sources_select_own" for relation "public.metric_sources" does not exist, skipping
+NOTICE:  policy "metric_sources_insert_own" for relation "public.metric_sources" does not exist, skipping
+NOTICE:  policy "metric_sources_update_own" for relation "public.metric_sources" does not exist, skipping
+NOTICE:  policy "metric_sources_delete_own" for relation "public.metric_sources" does not exist, skipping
+NOTICE:  policy "metric_observations_select_own" for relation "public.metric_observations" does not exist, skipping
+NOTICE:  policy "metric_observations_insert_own" for relation "public.metric_observations" does not exist, skipping
+NOTICE:  policy "metric_observations_update_own" for relation "public.metric_observations" does not exist, skipping
+NOTICE:  policy "metric_observations_delete_own" for relation "public.metric_observations" does not exist, skipping
+NOTICE:  policy "sleep_logs_select_own" for relation "public.sleep_logs" does not exist, skipping
+NOTICE:  policy "sleep_logs_insert_own" for relation "public.sleep_logs" does not exist, skipping
+NOTICE:  policy "sleep_logs_update_own" for relation "public.sleep_logs" does not exist, skipping
+NOTICE:  policy "sleep_logs_delete_own" for relation "public.sleep_logs" does not exist, skipping
+NOTICE:  policy "sleep_debt_history_select_own" for relation "public.sleep_debt_history" does not exist, skipping
+NOTICE:  policy "sleep_debt_history_insert_own" for relation "public.sleep_debt_history" does not exist, skipping
+NOTICE:  policy "sleep_debt_history_update_own" for relation "public.sleep_debt_history" does not exist, skipping
+NOTICE:  policy "sleep_debt_history_delete_own" for relation "public.sleep_debt_history" does not exist, skipping
+NOTICE:  policy "circadian_profiles_select_own" for relation "public.circadian_profiles" does not exist, skipping
+NOTICE:  policy "circadian_profiles_insert_own" for relation "public.circadian_profiles" does not exist, skipping
+NOTICE:  policy "circadian_profiles_update_own" for relation "public.circadian_profiles" does not exist, skipping
+NOTICE:  policy "circadian_profiles_delete_own" for relation "public.circadian_profiles" does not exist, skipping
+NOTICE:  policy "circadian_logs_select_own" for relation "public.circadian_logs" does not exist, skipping
+NOTICE:  policy "circadian_logs_insert_own" for relation "public.circadian_logs" does not exist, skipping
+NOTICE:  policy "circadian_logs_update_own" for relation "public.circadian_logs" does not exist, skipping
+NOTICE:  policy "circadian_logs_delete_own" for relation "public.circadian_logs" does not exist, skipping
+NOTICE:  policy "hydration_logs_select_own" for relation "public.hydration_logs" does not exist, skipping
+NOTICE:  policy "hydration_logs_insert_own" for relation "public.hydration_logs" does not exist, skipping
+NOTICE:  policy "hydration_logs_update_own" for relation "public.hydration_logs" does not exist, skipping
+NOTICE:  policy "hydration_logs_delete_own" for relation "public.hydration_logs" does not exist, skipping
+NOTICE:  policy "daily_checkins_select_own" for relation "public.daily_checkins" does not exist, skipping
+NOTICE:  policy "daily_checkins_insert_own" for relation "public.daily_checkins" does not exist, skipping
+NOTICE:  policy "daily_checkins_update_own" for relation "public.daily_checkins" does not exist, skipping
+NOTICE:  policy "daily_checkins_delete_own" for relation "public.daily_checkins" does not exist, skipping
+NOTICE:  policy "stress_assessments_select_own" for relation "public.stress_assessments" does not exist, skipping
+NOTICE:  policy "stress_assessments_insert_own" for relation "public.stress_assessments" does not exist, skipping
+NOTICE:  policy "stress_assessments_update_own" for relation "public.stress_assessments" does not exist, skipping
+NOTICE:  policy "stress_assessments_delete_own" for relation "public.stress_assessments" does not exist, skipping
+NOTICE:  policy "foundation_scores_select_own" for relation "public.foundation_scores" does not exist, skipping
+NOTICE:  policy "foundation_scores_insert_own" for relation "public.foundation_scores" does not exist, skipping
+NOTICE:  policy "foundation_scores_update_own" for relation "public.foundation_scores" does not exist, skipping
+NOTICE:  policy "foundation_scores_delete_own" for relation "public.foundation_scores" does not exist, skipping
+NOTICE:  policy "readiness_scores_select_own" for relation "public.readiness_scores" does not exist, skipping
+NOTICE:  policy "readiness_scores_insert_own" for relation "public.readiness_scores" does not exist, skipping
+NOTICE:  policy "readiness_scores_update_own" for relation "public.readiness_scores" does not exist, skipping
+NOTICE:  policy "readiness_scores_delete_own" for relation "public.readiness_scores" does not exist, skipping
+NOTICE:  policy "allostatic_load_scores_select_own" for relation "public.allostatic_load_scores" does not exist, skipping
+NOTICE:  policy "allostatic_load_scores_insert_own" for relation "public.allostatic_load_scores" does not exist, skipping
+NOTICE:  policy "allostatic_load_scores_update_own" for relation "public.allostatic_load_scores" does not exist, skipping
+NOTICE:  policy "allostatic_load_scores_delete_own" for relation "public.allostatic_load_scores" does not exist, skipping
+NOTICE:  policy "movement_pattern_permissions_select_own" for relation "public.movement_pattern_permissions" does not exist, skipping
+NOTICE:  policy "movement_pattern_permissions_insert_own" for relation "public.movement_pattern_permissions" does not exist, skipping
+NOTICE:  policy "movement_pattern_permissions_update_own" for relation "public.movement_pattern_permissions" does not exist, skipping
+NOTICE:  policy "movement_pattern_permissions_delete_own" for relation "public.movement_pattern_permissions" does not exist, skipping
+NOTICE:  policy "training_plans_select_own" for relation "public.training_plans" does not exist, skipping
+NOTICE:  policy "training_plans_insert_own" for relation "public.training_plans" does not exist, skipping
+NOTICE:  policy "training_plans_update_own" for relation "public.training_plans" does not exist, skipping
+NOTICE:  policy "training_plans_delete_own" for relation "public.training_plans" does not exist, skipping
+NOTICE:  policy "training_sessions_select_own" for relation "public.training_sessions" does not exist, skipping
+NOTICE:  policy "training_sessions_insert_own" for relation "public.training_sessions" does not exist, skipping
+NOTICE:  policy "training_sessions_update_own" for relation "public.training_sessions" does not exist, skipping
+NOTICE:  policy "training_sessions_delete_own" for relation "public.training_sessions" does not exist, skipping
+NOTICE:  policy "exercise_sets_select_own" for relation "public.exercise_sets" does not exist, skipping
+NOTICE:  policy "exercise_sets_insert_own" for relation "public.exercise_sets" does not exist, skipping
+NOTICE:  policy "exercise_sets_update_own" for relation "public.exercise_sets" does not exist, skipping
+NOTICE:  policy "exercise_sets_delete_own" for relation "public.exercise_sets" does not exist, skipping
+NOTICE:  policy "progression_targets_select_own" for relation "public.progression_targets" does not exist, skipping
+NOTICE:  policy "progression_targets_insert_own" for relation "public.progression_targets" does not exist, skipping
+NOTICE:  policy "progression_targets_update_own" for relation "public.progression_targets" does not exist, skipping
+NOTICE:  policy "progression_targets_delete_own" for relation "public.progression_targets" does not exist, skipping
+NOTICE:  policy "session_outcomes_select_own" for relation "public.session_outcomes" does not exist, skipping
+NOTICE:  policy "session_outcomes_insert_own" for relation "public.session_outcomes" does not exist, skipping
+NOTICE:  policy "session_outcomes_update_own" for relation "public.session_outcomes" does not exist, skipping
+NOTICE:  policy "session_outcomes_delete_own" for relation "public.session_outcomes" does not exist, skipping
+NOTICE:  policy "rebalancing_sessions_select_own" for relation "public.rebalancing_sessions" does not exist, skipping
+NOTICE:  policy "rebalancing_sessions_insert_own" for relation "public.rebalancing_sessions" does not exist, skipping
+NOTICE:  policy "rebalancing_sessions_update_own" for relation "public.rebalancing_sessions" does not exist, skipping
+NOTICE:  policy "rebalancing_sessions_delete_own" for relation "public.rebalancing_sessions" does not exist, skipping
+NOTICE:  policy "food_logs_select_own" for relation "public.food_logs" does not exist, skipping
+NOTICE:  policy "food_logs_insert_own" for relation "public.food_logs" does not exist, skipping
+NOTICE:  policy "food_logs_update_own" for relation "public.food_logs" does not exist, skipping
+NOTICE:  policy "food_logs_delete_own" for relation "public.food_logs" does not exist, skipping
+NOTICE:  policy "food_response_logs_select_own" for relation "public.food_response_logs" does not exist, skipping
+NOTICE:  policy "food_response_logs_insert_own" for relation "public.food_response_logs" does not exist, skipping
+NOTICE:  policy "food_response_logs_update_own" for relation "public.food_response_logs" does not exist, skipping
+NOTICE:  policy "food_response_logs_delete_own" for relation "public.food_response_logs" does not exist, skipping
+NOTICE:  policy "food_patterns_select_own" for relation "public.food_patterns" does not exist, skipping
+NOTICE:  policy "food_patterns_insert_own" for relation "public.food_patterns" does not exist, skipping
+NOTICE:  policy "food_patterns_update_own" for relation "public.food_patterns" does not exist, skipping
+NOTICE:  policy "food_patterns_delete_own" for relation "public.food_patterns" does not exist, skipping
+NOTICE:  policy "meal_plans_select_own" for relation "public.meal_plans" does not exist, skipping
+NOTICE:  policy "meal_plans_insert_own" for relation "public.meal_plans" does not exist, skipping
+NOTICE:  policy "meal_plans_update_own" for relation "public.meal_plans" does not exist, skipping
+NOTICE:  policy "meal_plans_delete_own" for relation "public.meal_plans" does not exist, skipping
+NOTICE:  policy "meal_plan_items_select_own" for relation "public.meal_plan_items" does not exist, skipping
+NOTICE:  policy "meal_plan_items_insert_own" for relation "public.meal_plan_items" does not exist, skipping
+NOTICE:  policy "meal_plan_items_update_own" for relation "public.meal_plan_items" does not exist, skipping
+NOTICE:  policy "meal_plan_items_delete_own" for relation "public.meal_plan_items" does not exist, skipping
+NOTICE:  policy "recipes_select_own" for relation "public.recipes" does not exist, skipping
+NOTICE:  policy "recipes_insert_own" for relation "public.recipes" does not exist, skipping
+NOTICE:  policy "recipes_update_own" for relation "public.recipes" does not exist, skipping
+NOTICE:  policy "recipes_delete_own" for relation "public.recipes" does not exist, skipping
+NOTICE:  policy "shopping_lists_select_own" for relation "public.shopping_lists" does not exist, skipping
+NOTICE:  policy "shopping_lists_insert_own" for relation "public.shopping_lists" does not exist, skipping
+NOTICE:  policy "shopping_lists_update_own" for relation "public.shopping_lists" does not exist, skipping
+NOTICE:  policy "shopping_lists_delete_own" for relation "public.shopping_lists" does not exist, skipping
+NOTICE:  policy "shopping_list_items_select_own" for relation "public.shopping_list_items" does not exist, skipping
+NOTICE:  policy "shopping_list_items_insert_own" for relation "public.shopping_list_items" does not exist, skipping
+NOTICE:  policy "shopping_list_items_update_own" for relation "public.shopping_list_items" does not exist, skipping
+NOTICE:  policy "shopping_list_items_delete_own" for relation "public.shopping_list_items" does not exist, skipping
+NOTICE:  policy "pantry_items_select_own" for relation "public.pantry_items" does not exist, skipping
+NOTICE:  policy "pantry_items_insert_own" for relation "public.pantry_items" does not exist, skipping
+NOTICE:  policy "pantry_items_update_own" for relation "public.pantry_items" does not exist, skipping
+NOTICE:  policy "pantry_items_delete_own" for relation "public.pantry_items" does not exist, skipping
+NOTICE:  policy "barcode_scans_select_own" for relation "public.barcode_scans" does not exist, skipping
+NOTICE:  policy "barcode_scans_insert_own" for relation "public.barcode_scans" does not exist, skipping
+NOTICE:  policy "barcode_scans_update_own" for relation "public.barcode_scans" does not exist, skipping
+NOTICE:  policy "barcode_scans_delete_own" for relation "public.barcode_scans" does not exist, skipping
+NOTICE:  policy "ai_chat_sessions_select_own" for relation "public.ai_chat_sessions" does not exist, skipping
+NOTICE:  policy "ai_chat_sessions_insert_own" for relation "public.ai_chat_sessions" does not exist, skipping
+NOTICE:  policy "ai_chat_sessions_update_own" for relation "public.ai_chat_sessions" does not exist, skipping
+NOTICE:  policy "ai_chat_sessions_delete_own" for relation "public.ai_chat_sessions" does not exist, skipping
+NOTICE:  policy "ai_messages_select_own" for relation "public.ai_messages" does not exist, skipping
+NOTICE:  policy "ai_messages_insert_own" for relation "public.ai_messages" does not exist, skipping
+NOTICE:  policy "ai_messages_update_own" for relation "public.ai_messages" does not exist, skipping
+NOTICE:  policy "ai_messages_delete_own" for relation "public.ai_messages" does not exist, skipping
+NOTICE:  policy "ai_context_snapshots_select_own" for relation "public.ai_context_snapshots" does not exist, skipping
+NOTICE:  policy "ai_context_snapshots_insert_own" for relation "public.ai_context_snapshots" does not exist, skipping
+NOTICE:  policy "ai_context_snapshots_update_own" for relation "public.ai_context_snapshots" does not exist, skipping
+NOTICE:  policy "ai_context_snapshots_delete_own" for relation "public.ai_context_snapshots" does not exist, skipping
+NOTICE:  policy "ai_safety_events_select_own" for relation "public.ai_safety_events" does not exist, skipping
+NOTICE:  policy "ai_safety_events_insert_own" for relation "public.ai_safety_events" does not exist, skipping
+NOTICE:  policy "ai_safety_events_update_own" for relation "public.ai_safety_events" does not exist, skipping
+NOTICE:  policy "ai_safety_events_delete_own" for relation "public.ai_safety_events" does not exist, skipping
+NOTICE:  policy "wearable_connections_select_own" for relation "public.wearable_connections" does not exist, skipping
+NOTICE:  policy "wearable_connections_insert_own" for relation "public.wearable_connections" does not exist, skipping
+NOTICE:  policy "wearable_connections_update_own" for relation "public.wearable_connections" does not exist, skipping
+NOTICE:  policy "wearable_connections_delete_own" for relation "public.wearable_connections" does not exist, skipping
+NOTICE:  policy "wearable_data_logs_select_own" for relation "public.wearable_data_logs" does not exist, skipping
+NOTICE:  policy "wearable_data_logs_insert_own" for relation "public.wearable_data_logs" does not exist, skipping
+NOTICE:  policy "wearable_data_logs_update_own" for relation "public.wearable_data_logs" does not exist, skipping
+NOTICE:  policy "wearable_data_logs_delete_own" for relation "public.wearable_data_logs" does not exist, skipping
+DO
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+APPLY 0002_onboarding_plan_results.sql
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE INDEX
+APPLY 0003_sleep_rhythm_persistence.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_sleep_sessions_updated_at" for relation "public.sleep_sessions" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "sleep_sessions_select_own" for relation "public.sleep_sessions" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "sleep_sessions_insert_own" for relation "public.sleep_sessions" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "sleep_sessions_update_own" for relation "public.sleep_sessions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "sleep_sessions_delete_own" for relation "public.sleep_sessions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_sleep_need_estimates_updated_at" for relation "public.sleep_need_estimates" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "sleep_need_estimates_select_own" for relation "public.sleep_need_estimates" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "sleep_need_estimates_insert_own" for relation "public.sleep_need_estimates" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "sleep_need_estimates_update_own" for relation "public.sleep_need_estimates" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "sleep_need_estimates_delete_own" for relation "public.sleep_need_estimates" does not exist, skipping
+CREATE POLICY
+APPLY 0004_nutrition_food_response_persistence.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "set_meal_logs_updated_at" for relation "public.meal_logs" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "meal_logs_select_own" for relation "public.meal_logs" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "meal_logs_insert_own" for relation "public.meal_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "meal_logs_update_own" for relation "public.meal_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "meal_logs_delete_own" for relation "public.meal_logs" does not exist, skipping
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_nutrition_targets_updated_at" for relation "public.nutrition_targets" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "nutrition_targets_select_own" for relation "public.nutrition_targets" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "nutrition_targets_insert_own" for relation "public.nutrition_targets" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "nutrition_targets_update_own" for relation "public.nutrition_targets" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "nutrition_targets_delete_own" for relation "public.nutrition_targets" does not exist, skipping
+CREATE POLICY
+APPLY 0005_food_personalization_persistence.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_food_pattern_profiles_updated_at" for relation "public.food_pattern_profiles" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "food_pattern_profiles_select_own" for relation "public.food_pattern_profiles" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "food_pattern_profiles_insert_own" for relation "public.food_pattern_profiles" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "food_pattern_profiles_update_own" for relation "public.food_pattern_profiles" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "food_pattern_profiles_delete_own" for relation "public.food_pattern_profiles" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "set_post_meal_response_logs_updated_at" for relation "public.post_meal_response_logs" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "post_meal_response_logs_select_own" for relation "public.post_meal_response_logs" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "post_meal_response_logs_insert_own" for relation "public.post_meal_response_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "post_meal_response_logs_update_own" for relation "public.post_meal_response_logs" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "post_meal_response_logs_delete_own" for relation "public.post_meal_response_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+APPLY 0006_day_schedule_blocks.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "set_day_schedule_blocks_updated_at" for relation "public.day_schedule_blocks" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "day_schedule_blocks_select_own" for relation "public.day_schedule_blocks" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "day_schedule_blocks_insert_own" for relation "public.day_schedule_blocks" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "day_schedule_blocks_update_own" for relation "public.day_schedule_blocks" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "day_schedule_blocks_delete_own" for relation "public.day_schedule_blocks" does not exist, skipping
+CREATE POLICY
+APPLY 0007_food_intelligence_v2.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "set_user_food_products_updated_at" for relation "public.user_food_products" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "user_food_products_select_own" for relation "public.user_food_products" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "user_food_products_insert_own" for relation "public.user_food_products" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "user_food_products_update_own" for relation "public.user_food_products" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "user_food_products_delete_own" for relation "public.user_food_products" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "set_meal_log_items_updated_at" for relation "public.meal_log_items" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "meal_log_items_select_own" for relation "public.meal_log_items" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "meal_log_items_insert_own" for relation "public.meal_log_items" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "meal_log_items_update_own" for relation "public.meal_log_items" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "meal_log_items_delete_own" for relation "public.meal_log_items" does not exist, skipping
+CREATE POLICY
+APPLY 0008_movement_intelligence_v1.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "set_exercise_library_items_updated_at" for relation "public.exercise_library_items" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "exercise_library_items_select_own" for relation "public.exercise_library_items" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "exercise_library_items_insert_own" for relation "public.exercise_library_items" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "exercise_library_items_update_own" for relation "public.exercise_library_items" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "exercise_library_items_delete_own" for relation "public.exercise_library_items" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_workout_sessions_updated_at" for relation "public.workout_sessions" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "workout_sessions_select_own" for relation "public.workout_sessions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "workout_sessions_insert_own" for relation "public.workout_sessions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "workout_sessions_update_own" for relation "public.workout_sessions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "workout_sessions_delete_own" for relation "public.workout_sessions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_workout_exercise_entries_updated_at" for relation "public.workout_exercise_entries" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  policy "workout_exercise_entries_select_own" for relation "public.workout_exercise_entries" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "workout_exercise_entries_insert_own" for relation "public.workout_exercise_entries" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "workout_exercise_entries_update_own" for relation "public.workout_exercise_entries" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "workout_exercise_entries_delete_own" for relation "public.workout_exercise_entries" does not exist, skipping
+CREATE POLICY
+APPLY 0009_authenticated_app_table_grants.sql
+GRANT
+APPLY 0010_lab_evidence_registry.sql
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+INSERT 0 7
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 9
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+REVOKE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+INSERT 0 1
+DO
+GRANT
+GRANT
+APPLY 0011_lab_evidence_controls.sql
+CREATE TABLE
+INSERT 0 13
+ALTER TABLE
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TABLE
+ALTER TABLE
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+GRANT
+GRANT
+GRANT
+APPLY 0012_user_product_evidence_references.sql
+ALTER TABLE
+ALTER TABLE
+COMMENT
+APPLY 0013_canonical_product_cache.sql
+CREATE TABLE
+ALTER TABLE
+REVOKE
+GRANT
+COMMENT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+APPLY 0014_movement_quick_log_sets.sql
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "set_workout_set_entries_updated_at" for relation "public.workout_set_entries" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "workout_set_entries_select_own" for relation "public.workout_set_entries" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "workout_set_entries_insert_own" for relation "public.workout_set_entries" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "workout_set_entries_update_own" for relation "public.workout_set_entries" does not exist, skipping
+CREATE POLICY
+NOTICE:  policy "workout_set_entries_delete_own" for relation "public.workout_set_entries" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+REVOKE
+GRANT
+GRANT
+APPLY 0015_nutrition_goal_setup.sql
+ALTER TABLE
+CREATE FUNCTION
+REVOKE
+GRANT
+APPLY 0016_meal_library_and_item_editing.sql
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+GRANT
+APPLY 0017_nutrition_persistence_permissions.sql
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+GRANT
+APPLY 0018_movement_weight_units.sql
+ALTER TABLE
+ALTER TABLE
+DO
+CREATE INDEX
+COMMENT
+COMMENT
+APPLY 0019_signup_consent_capture.sql
+CREATE FUNCTION
+DROP TRIGGER
+CREATE TRIGGER
+APPLY 0020_meal_micronutrients.sql
+ALTER TABLE
+COMMENT
+NOTICE:  constraint "meal_logs_micronutrients_shape" of relation "meal_logs" does not exist, skipping
+ALTER TABLE
+ALTER TABLE
+APPLY 0021_account_data_integrity.sql
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+CREATE FUNCTION
+APPLY 0022_release_account_and_quota.sql
+CREATE TABLE
+ALTER TABLE
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+TEST nutrition_persistence_security.sql
+BEGIN
+CREATE FUNCTION
+INSERT 0 2
+DO
+SET
+              set_config
+--------------------------------------
+ 40000000-0000-4000-8000-000000000001
+(1 row)
+
+ save_nutrition_goal_setup
+---------------------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ save_nutrition_goal_setup
+---------------------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+ assert_true
+-------------
+
+(1 row)
+
+INSERT 0 1
+INSERT 0 1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           replace_meal_items
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"meal": {"id": "60000000-0000-4000-8000-000000000001", "name": "USDA lunch", "fat_g": null, "source": "manual", "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "40000000-0000-4000-8000-000000000001", "calories": 200, "logged_at": "2026-09-01T12:00:00+00:00", "meal_date": "2026-09-01", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.253204+00:00", "updated_at": "2026-11-09T22:31:24.253204+00:00", "ingredients": ["USDA fixture"], "reason_codes": [], "quality_flags": [], "user_response": null, "micronutrients": null, "confirmed_by_user": true, "corrected_by_user": true, "source_confidence": "medium", "original_source_id": null, "raw_source_payload": null, "correction_of_meal_id": null}, "items": [{"id": "0f0e717b-9c38-4620-af9c-6194c99ebebb", "name": "USDA fixture", "brand": null, "fat_g": null, "source": "search", "barcode": null, "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "40000000-0000-4000-8000-000000000001", "calories": 200, "metadata": null, "provider": "usda_food_data_central", "servings": 1, "logged_at": "2026-09-01T12:00:00+00:00", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.253204+00:00", "updated_at": "2026-11-09T22:31:24.253204+00:00", "meal_log_id": "60000000-0000-4000-8000-000000000001", "reason_codes": [], "serving_size": null, "quality_label": null, "quality_score": null, "food_product_id": "50000000-0000-4000-8000-000000000001", "saturated_fat_g": null, "source_confidence": "medium", "quality_confidence": null, "serving_quantity_g": null, "provider_product_id": null}]}
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+              set_config
+--------------------------------------
+ 40000000-0000-4000-8000-000000000002
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+              set_config
+--------------------------------------
+ 40000000-0000-4000-8000-000000000001
+(1 row)
+
+ save_nutrition_goal_setup
+---------------------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+SET
+DO
+RESET
+                                                          result
+--------------------------------------------------------------------------------------------------------------------------
+ PASS: bounded grants, RLS, goal round trips/history/rollback, USDA persistence/search, owner isolation, anonymous denial
+(1 row)
+
+ROLLBACK
+TEST meal_library_security.sql
+BEGIN
+CREATE FUNCTION
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+SET
+              set_config
+--------------------------------------
+ 10000000-0000-4000-8000-000000000001
+(1 row)
+
+ save_meal_collection_entry
+----------------------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              replace_meal_items
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"meal": {"id": "20000000-0000-4000-8000-000000000001", "name": "Edited bowl", "fat_g": null, "source": "manual", "carbs_g": null, "fiber_g": null, "sugar_g": 0.00, "user_id": "10000000-0000-4000-8000-000000000001", "calories": 123, "logged_at": "2026-09-01T12:00:00+00:00", "meal_date": "2026-09-01", "meal_type": "dinner", "protein_g": 10.00, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.272412+00:00", "updated_at": "2026-11-09T22:31:24.272412+00:00", "ingredients": ["Chickpeas"], "reason_codes": [], "quality_flags": [], "user_response": null, "micronutrients": null, "confirmed_by_user": true, "corrected_by_user": true, "source_confidence": "low", "original_source_id": null, "raw_source_payload": null, "correction_of_meal_id": null}, "items": [{"id": "ed893c1c-6821-42e1-8c56-c3cc2a374bd6", "name": "Chickpeas", "brand": null, "fat_g": null, "source": "manual", "barcode": null, "carbs_g": null, "fiber_g": null, "sugar_g": 0, "user_id": "10000000-0000-4000-8000-000000000001", "calories": 123.4, "metadata": null, "provider": null, "servings": 1.5, "logged_at": "2026-09-01T12:00:00+00:00", "meal_type": "dinner", "protein_g": 10, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.272412+00:00", "updated_at": "2026-11-09T22:31:24.272412+00:00", "meal_log_id": "20000000-0000-4000-8000-000000000001", "reason_codes": [], "serving_size": null, "quality_label": null, "quality_score": null, "food_product_id": "30000000-0000-4000-8000-000000000001", "saturated_fat_g": null, "source_confidence": "medium", "quality_confidence": null, "serving_quantity_g": null, "provider_product_id": null}]}
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+              set_config
+--------------------------------------
+ 10000000-0000-4000-8000-000000000002
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+SET
+DO
+RESET
+                                                             result
+---------------------------------------------------------------------------------------------------------------------------------
+ PASS: owner persistence, cross-user isolation, literal history search, atomic edits, rollback, food ownership, anonymous denial
+(1 row)
+
+ROLLBACK
+TEST account_data_integrity_security.sql
+BEGIN
+CREATE FUNCTION
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+SET
+              set_config
+--------------------------------------
+ 71000000-0000-4000-8000-000000000001
+(1 row)
+
+INSERT 0 1
+INSERT 0 1
+ assert_true
+-------------
+
+(1 row)
+
+DO
+INSERT 0 2
+ assert_true
+-------------
+
+(1 row)
+
+DO
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            replace_meal_items
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"meal": {"id": "72000000-0000-4000-8000-000000000001", "name": "Edited meal", "fat_g": null, "source": "manual", "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "71000000-0000-4000-8000-000000000001", "calories": 150, "logged_at": "2026-09-01T12:00:00+00:00", "meal_date": "2026-09-01", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.286698+00:00", "updated_at": "2026-11-09T22:31:24.286698+00:00", "ingredients": ["Owned food"], "reason_codes": [], "quality_flags": [], "user_response": null, "micronutrients": {"iron": 0, "calcium": 150}, "confirmed_by_user": true, "corrected_by_user": true, "source_confidence": "medium", "original_source_id": null, "raw_source_payload": null, "correction_of_meal_id": null}, "items": [{"id": "204bbefc-cb46-4556-960c-7d7eb9e42a51", "name": "Owned food", "brand": null, "fat_g": null, "source": "manual", "barcode": null, "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "71000000-0000-4000-8000-000000000001", "calories": 150, "metadata": null, "provider": null, "servings": 1.5, "logged_at": "2026-09-01T12:00:00+00:00", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.286698+00:00", "updated_at": "2026-11-09T22:31:24.286698+00:00", "meal_log_id": "72000000-0000-4000-8000-000000000001", "reason_codes": [], "serving_size": null, "quality_label": null, "quality_score": null, "food_product_id": "73000000-0000-4000-8000-000000000001", "saturated_fat_g": null, "source_confidence": "medium", "quality_confidence": null, "serving_quantity_g": null, "provider_product_id": null}]}
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+DO
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   replace_meal_items
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"meal": {"id": "72000000-0000-4000-8000-000000000001", "name": "No panel", "fat_g": null, "source": "manual", "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "71000000-0000-4000-8000-000000000001", "calories": null, "logged_at": "2026-09-01T12:00:00+00:00", "meal_date": "2026-09-01", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.286698+00:00", "updated_at": "2026-11-09T22:31:24.286698+00:00", "ingredients": ["Unreported food"], "reason_codes": [], "quality_flags": [], "user_response": null, "micronutrients": null, "confirmed_by_user": true, "corrected_by_user": true, "source_confidence": "medium", "original_source_id": null, "raw_source_payload": null, "correction_of_meal_id": null}, "items": [{"id": "f4747059-ee94-4a02-b782-a6f747623342", "name": "Unreported food", "brand": null, "fat_g": null, "source": "manual", "barcode": null, "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "71000000-0000-4000-8000-000000000001", "calories": null, "metadata": null, "provider": null, "servings": 1, "logged_at": "2026-09-01T12:00:00+00:00", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.286698+00:00", "updated_at": "2026-11-09T22:31:24.286698+00:00", "meal_log_id": "72000000-0000-4000-8000-000000000001", "reason_codes": [], "serving_size": null, "quality_label": null, "quality_score": null, "food_product_id": null, "saturated_fat_g": null, "source_confidence": "medium", "quality_confidence": null, "serving_quantity_g": null, "provider_product_id": null}]}
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+UPDATE 1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     replace_meal_items
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"meal": {"id": "72000000-0000-4000-8000-000000000001", "name": "Legacy edit", "fat_g": null, "source": "manual", "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "71000000-0000-4000-8000-000000000001", "calories": null, "logged_at": "2026-09-01T12:00:00+00:00", "meal_date": "2026-09-01", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.286698+00:00", "updated_at": "2026-11-09T22:31:24.286698+00:00", "ingredients": ["Unreported food"], "reason_codes": [], "quality_flags": [], "user_response": null, "micronutrients": null, "confirmed_by_user": true, "corrected_by_user": true, "source_confidence": "medium", "original_source_id": null, "raw_source_payload": null, "correction_of_meal_id": null}, "items": [{"id": "f44c4312-16b5-4c62-940a-12bbdf3dde42", "name": "Unreported food", "brand": null, "fat_g": null, "source": "manual", "barcode": null, "carbs_g": null, "fiber_g": null, "sugar_g": null, "user_id": "71000000-0000-4000-8000-000000000001", "calories": null, "metadata": null, "provider": null, "servings": 1, "logged_at": "2026-09-01T12:00:00+00:00", "meal_type": "lunch", "protein_g": null, "sodium_mg": null, "created_at": "2026-11-09T22:31:24.286698+00:00", "updated_at": "2026-11-09T22:31:24.286698+00:00", "meal_log_id": "72000000-0000-4000-8000-000000000001", "reason_codes": [], "serving_size": null, "quality_label": null, "quality_score": null, "food_product_id": null, "saturated_fat_g": null, "source_confidence": "medium", "quality_confidence": null, "serving_quantity_g": null, "provider_product_id": null}]}
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+              set_config
+--------------------------------------
+ 71000000-0000-4000-8000-000000000002
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+SET
+DO
+RESET
+                                                                     result
+-------------------------------------------------------------------------------------------------------------------------------------------------
+ PASS: owned/null parent references, cross-owner direct insert/update denial, micronutrient edit/null/legacy behavior and transactional rollback
+(1 row)
+
+ROLLBACK
+TEST release_account_quota.sql
+BEGIN
+CREATE FUNCTION
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+SET
+DO
+RESET
+SET
+DO
+RESET
+DELETE 1
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ assert_true
+-------------
+
+(1 row)
+
+ROLLBACK

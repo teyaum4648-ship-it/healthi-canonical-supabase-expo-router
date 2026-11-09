@@ -1,291 +1,156 @@
 # Daywoven — Apple App Store readiness
 
-**Audit date:** 2026-11-09 (UTC)
+**Updated:** 2026-11-09 (UTC)
 
 **Verdict: NOT READY — MAJOR WORK REQUIRED**
 
-**Readiness score: 46/100**
+**Readiness score: 60/100**
 
-**Repository:** `teyaum4648-ship-it/healthi-canonical-supabase-expo-router`
+**Release-pass baseline:** `f5f2797f6181b6ad0d65b32f430ab44d1bfcc46e`
 
-**Audited starting commit:** `282338657d1144bec2aa6c19014fc7faefa82923`
+Daywoven is an **Expo SDK 55 / React Native native application with a web target**. It does not need Capacitor or a full rewrite. The source now has substantially stronger release preparation, including account deletion, durable photo quotas and passing compatibility/lint checks. A signed, installable iOS archive has **not** been produced or tested. The release cannot be certified for submission today without the external steps below.
 
-**Local working branch:** `codex/app-store-readiness-20261109`
+The earlier audit fixes are on GitHub `main`. This report describes the subsequent release-preparation changes; committing source does not deploy Supabase migrations/functions, create Apple signing credentials, finish legal facts, or submit a build. No real customer account or health data was deleted or modified during this work. Database deletion tests used isolated synthetic users only.
 
-The application has a substantial working codebase and a passing automated suite. It is an **Expo/React Native application with a web target**, rather than a website that needs to be wrapped for iOS. Its iOS JavaScript/Hermes bundle exports successfully. A signed, installable App Store binary has **not** been built or verified. Native project generation currently stops because the required bundle identifier is missing.
+## 1. Score and evidence
 
-At the conclusion of the initial audit, all fixes were local source changes and no deployment or publication had occurred. **Publication follow-up:** the owner subsequently authorized putting these fixes on `main`, including its previously explained automatic web-demo workflow. This commit contains the audit fixes and the explicit demo/account configuration follow-up. Backend migration/function deployment, Apple builds/uploads, TestFlight and App Store submission remain separate outstanding actions. Publishing source does not make the app ready to submit.
+This is a weighted evidence score, not a prediction of Apple approval. Mandatory blockers override the number. Unverified production and device checks earn no credit.
 
-## 1. Score calculation
-
-This is a weighted score of available release evidence, not a prediction of Apple's decision. Mandatory blockers override the number. Unverified production/device checks earn no credit.
-
-| Category | Earned / available | Basis |
+| Category | Earned / available | Evidence and limits |
 |---|---:|---|
-| Native packaging and release configuration | 8 / 20 | Native Expo architecture, valid icon and inspected permissions; no owned bundle ID, signed archive, or signing verification |
-| Functional correctness and build checks | 16 / 20 | Typecheck, unit/regression tests, web build, iOS JS export and browser route checks pass; lint and native acceptance remain unresolved |
-| Authentication and account lifecycle | 5 / 15 | Native SecureStore session path and source-tested email recovery; live account flows, deletion and export unverified/missing |
-| Backend and data security | 9 / 15 | Input fixes and isolated SQL ownership/transaction tests; deployment state, durable paid quotas and real service integration unverified |
-| Privacy, legal and data disclosures | 4 / 15 | Explicit photo-AI permission and accurate local consent wording; legal placeholders, deletion promises and App Privacy answers unfinished |
-| Dependency/security hygiene | 4 / 10 | Critical advisory removed through compatible leaf patches; 29 advisories and SDK-alignment failure remain |
-| Apple submission and device acceptance | 0 / 5 | No signed-device/TestFlight/App Store Connect evidence |
-| **Total** | **46 / 100** | Sum of earned points |
+| Native packaging/configuration | 11 / 20 | Disposable iOS prebuild succeeds with a clearly synthetic bundle ID; correct inspected permissions/HealthKit; no registered identity, native compilation, signing or archive |
+| Correctness/build checks | 18 / 20 | Typecheck, 1,959 tests, web build, browser checks and iOS JS/Hermes export; no release-device acceptance |
+| Authentication/account lifecycle | 9 / 15 | Recovery and deletion implemented/tested; real email, deployed deletion and real sessions unverified |
+| Backend/data security | 11 / 15 | Owned-parent policies, hard-delete cascades, durable concurrent quota tested on isolated PostgreSQL; deployment and live isolation unverified |
+| Privacy/legal/disclosures | 4 / 15 | Explicit photo-AI consent and corrected promises; entity/contact/retention/provider facts and public policy pages unfinished |
+| Dependency/security hygiene | 7 / 10 | SDK alignment and Expo Doctor pass; zero lint errors, zero critical advisories; 22 residual advisories require review |
+| Apple submission/device acceptance | 0 / 5 | No signed-device/TestFlight/App Store Connect evidence |
+| **Total** | **60 / 100** | Sum of earned points |
 
-## 2. What the app actually is
+## 2. Critical blockers
 
-| Layer | Verified implementation |
+### B1 — Apple/Expo identity, signed build and device testing
+
+The repository now accepts `IOS_BUNDLE_IDENTIFIER`, `EXPO_PROJECT_ID` and optional `EXPO_OWNER` from the real release environment. No real values were supplied. The disposable prebuild used `com.example.daywovenaudit` only to exercise config plugins; it is **not** the release identity and was not inserted into product configuration.
+
+Linux has no Xcode/iOS Simulator here, and no Apple/Expo signing credentials are available. CocoaPods, Swift/C++, Nitro/HealthKit linking, archive signatures/privacy aggregation, Apple processing and physical-device behavior are unverified. A successful Hermes export is not an IPA. `eas.json` provides a production-store scaffold; its new post-install gate blocks incomplete iOS production configuration.
+
+### B2 — Production backend configuration and deployment
+
+Real Supabase URL/public key, approved callback URLs, email service, deployment history and provider configuration are unverified. Missing configuration no longer silently opens demo mode. The preflight correctly fails with missing settings.
+
+Required source changes have **not** been deployed to Supabase: migration 0021, new migration 0022, `delete-account`, updated `photo-estimate`, and shared helpers. Apply only the intended migrations after reviewing hosted history/backups. Then verify signup/confirmation/reset/login/logout, onboarding writes, account isolation, deletion and quota behavior with designated test accounts. Never reset production or test deletion against an ordinary customer's account.
+
+### B3 — Legal facts and public policies
+
+Seven legal HTML documents still contain factual placeholders. The owner must supply actual legal identity/address/contact emails, infrastructure region, backup/log/legal-record retention and provider arrangements. Those facts cannot safely be invented.
+
+A direct curl check on 2026-11-09 confirmed **404** at `https://daywovenapp.com/legal/privacy.html` and `/legal/terms.html`. The older demo policy URL returned 200, but a usable body was not verified. The newsletter policy at the marketing site's `/privacy.html` covers a different data flow. Complete and publish the full application policies and test exact URLs from the signed app and an unauthenticated browser.
+
+The policy no longer promises an in-app export implementation that does not exist; it describes a privacy-contact request and distinguishes local-only records. Unsupported AI-chat/automatic retention promises were corrected. Backup/log/legal retention fields are explicitly unfinished rather than fabricated. The owner must actually be able to fulfill privacy requests.
+
+### B4 — Store disclosures, monetization and operational readiness
+
+The initial free/paid release decision is unanswered. The current source has no StoreKit/RevenueCat purchase or restore flow. A free release does not need an invented paywall; a digital-paid-feature release needs the applicable purchase implementation and testing. Existing conditional subscription/refund terms require review.
+
+Finish App Privacy, age-rating questions, support/copyright, Health & Fitness declarations, encryption/export compliance, reviewer credentials and real iPhone/iPad screenshots. The app still supports iPad. Provider retention, health-data handling and every advertised optional feature must match the deployed release. Real-device testing cannot be replaced by mock browser tests.
+
+### B5 — Residual dependency and platform risk
+
+Current npm audit: **22 findings — 0 critical, 5 high, 16 moderate, 1 low**, down from 40 initially and 29 after the first audit. Counts include transitive parent chains. See [dependency risk review](docs/DEPENDENCY_RISK_REVIEW.md) for the remaining decoder/router and Zod/Expo CLI exposure and why forced incompatible overrides were avoided. Native runtime/deep-link verification and upstream-compatible remediation remain necessary; these advisories have not been hidden.
+
+## 3. Technology and architecture
+
+- TypeScript/TSX, React 19.2, React Native **0.83.10**, Expo **55.0.32**, Expo Router **55.0.18**.
+- Supabase email/password auth, Postgres/RLS/RPCs and Deno Edge Functions.
+- Camera/barcodes, image picker/manipulation, platform secure token storage, HealthKit/Nitro read-only sleep/steps; Android Health Connect also exists.
+- Deterministic readiness/wellness/nutrition engines; optional server-side Anthropic meal-photo estimates; OFF/USDA data lookups.
+- Device-local practice/routine/biomarker/preferences/drafts coexist with account-owned backend records. Not all local records sync or export from the server.
+- Cloudflare web-demo/search gateway and GitHub Actions deployment on `main`. The previous authorized main deployment completed successfully.
+
+## 4. Fixed in this release pass
+
+| Change | Affected files |
 |---|---|
-| Language/UI | TypeScript, TSX, React 19.2, React Native 0.83.6, Expo SDK 55; Expo Router file-based navigation |
-| Native features | Camera/barcode scanning, image picker/manipulation, secure session storage, native gesture/Reanimated UI, read-only Apple Health sleep/steps integration; Android Health Connect code also exists |
-| Product | Readiness/foundation calculations, onboarding, nutrition diary/search/scoring/photo estimates, hydration, sleep/rhythm, movement sessions, mood/practices, plans and progress |
-| Data/auth | Supabase email/password auth, PostgreSQL migrations/RLS/RPCs and Deno Edge Functions; separate local demo lifecycle; some records such as routines/practices remain device-local |
-| Scoring | Deterministic engines under `src/engines`; experimental food kernel selected separately by environment flag |
-| Web/server | Metro single-page web export; Cloudflare Worker food-search gateway and static assets; Open Food Facts/optional USDA; server-only Anthropic photo estimation |
-| Delivery | `npm run build:demo` exports the web demo and Worker; `.github/workflows/deploy-demo.yml` can deploy on `main`; added `eas.json` supplies a production-store scaffold |
+| Password-verified, explicit hard account deletion; bearer-derived target; generic errors/no credential logging | `supabase/functions/delete-account/index.ts`, `tests/functions/deleteAccount.test.ts` |
+| Deletion UI reachable before onboarding completion and from Settings; failed requests preserve data; local cleanup result reported | `app/account/delete.tsx`, onboarding/settings screens, `AuthProvider.tsx` |
+| Remove only the deleted account's existing local maps/preferences/draft, preserve other accounts/demo; report corrupted/failed cleanup | `accountDataCleanup.ts`, its tests |
+| Durable 25-attempt per-account UTC-day quota; concurrent-safe reservation; no provider call if quota fails; reviewer-deletion FK fix | `0022_release_account_and_quota.sql`, `photo-estimate/index.ts`, `release_account_quota.sql`, boundary tests |
+| SDK 55 dependency alignment and compatible Vite/Vitest security patches; RN pinned and Vitest kept on major 4 | `package.json`, `package-lock.json` |
+| Fix six source lint errors without disabling rules; use the SDK-55-compatible ESLint config | tab layout, Movement/Plan/Settings, MoodHabitsPanel, SleepExperience |
+| Fail incomplete production iOS builds early; read actual identity from environment; reject privileged public keys and unfinished legal facts | `app.config.ts`, `.env.example`, release-check scripts and tests |
+| Fix Metro reusing account-test environment values in a demo export; public configuration now contributes a hashed cache key | `metro.config.js` |
+| Strengthen browser verification to reject login/account-unavailable redirects as well as onboarding bounces | `scripts/verify-ui.mjs` |
+| Stop guided breathing on inactive/background transitions, preventing unattended elapsed time/resumed holds | `useStopOnBackground.ts`, PacedBreath, CyclicBreathRounds, lifecycle tests |
+| Catch failed policy links; remove misleading blanket refund subtitle | legal URL helper/panels, SideMenu, policy-link tests |
+| Correct privacy promises and document unresolved factual retention/contact items | `public/legal/privacy.html`, release/privacy/metadata documents |
+| Remove unused Face ID purpose while preserving SecureStore | `app.config.ts`; inspected generated plist |
 
-No Capacitor migration or complete rebuild is needed. Expo's native build path is the appropriate starting point. Expo Go and browser testing cannot validate HealthKit/Nitro/CocoaPods/signing.
+The first audit also added recovery flows, photo-AI consent, bounded provider handling, demo-reset fixes, child-parent RLS/meal micronutrient integrity, accessibility labels and microphone removal. Its full report and evidence remain in [the previous commit](https://github.com/teyaum4648-ship-it/healthi-canonical-supabase-expo-router/blob/f5f2797f6181b6ad0d65b32f430ab44d1bfcc46e/APP_STORE_READINESS.md) and `docs/app-store-audit/2026-11-09/`.
 
-The audit inventoried the repository and reviewed the release configuration, auth/account flows, permissions, legal documents, backend inputs, SQL policies/RPCs and representative UI paths. Automated tests cover many engine cases. This does **not** mean every UI combination, every native hardware path, external service or historical Git commit was executed.
+## 5. Testing results and explicit limits
 
-## 3. Critical blockers, in order
-
-### B1 — No verified iOS release identity or signed archive
-
-`app.config.ts` lacks `ios.bundleIdentifier`; there is no owned Apple team/App Store record or Expo project configuration verified in this environment. A throwaway `expo prebuild --platform ios --no-install` failed requesting a bundle ID. No fake ID was inserted into the application.
-
-`eas.json` now defines a production store profile, production environment and remote build-number auto-increment. This is configuration scaffolding, **not** proof that EAS can sign/build this project. The Linux executor has no Xcode/iOS Simulator, signing certificates, provisioning profile or Apple session. Native Swift/C++ compilation, HealthKit/Nitro linking and archive validation remain untested.
-
-**Required:** choose/register the actual bundle ID and Apple team, associate the Expo project, configure the production environment, select a builder with the required Xcode/SDK, create an authorized signed build and inspect Apple's processing results.
-
-### B2 — Account creation exists; account deletion does not
-
-Signup is implemented. `app/(app)/(tabs)/settings.tsx` offers logout but no account-deletion initiation. `supabase/functions/README.md` lists `deleteUserData`/`exportUserData` as desired functions; they are not implementations. The privacy/terms/signup-consent text promises deletion/export that the current product does not provide.
-
-Apple requires in-app deletion initiation when account creation is supported; ordinary deactivation or “email support” alone is insufficient for this app. Implement authenticated ownership verification, intentional confirmation, account/data removal or a direct deletion completion flow, local-cache/session cleanup, and documented lawful retention exceptions. Test that a user cannot delete another account. Export is separately needed to reconcile this app's promises and applicable obligations; it is not asserted here as a universal App Store requirement.
-
-**No account or user data was deleted during this audit.** A destructive account service was not invented or deployed as an audit shortcut.
-
-### B3 — Legal content and native policy links are unfinished
-
-`public/legal/*.html` contains real placeholders for entity, address, effective date, contacts and infrastructure facts. Examples include `privacy.html:63–65` and the contact section of `terms.html`. Native `legalUrl()` in `src/features/legal/legalLinks.ts` returns `null` without `EXPO_PUBLIC_SITE_URL`, leaving policy labels noninteractive.
-
-Supply the true legal identity/contact details and actual retention/deletion/provider arrangements. Review unsupported promises about export, deletion, subscriptions and other planned services. Verify the exact public URLs on an unauthenticated browser **and in the signed app**. The landing page's `/privacy.html` describes its email signup list; it is not a substitute for the application's full health/account privacy policy under `/legal/`.
-
-The photo-AI paragraph was corrected locally to match the new per-opening permission behavior; other unfinished legal facts were deliberately not fabricated.
-
-### B4 — Production service/account mode has not been exercised
-
-The audit found that `AuthProvider` silently fell back to the local demo when Supabase configuration was missing, even with `EXPO_PUBLIC_DEMO_MODE=false`. **Fixed in the follow-up:** demo now requires explicit `true`; missing backend configuration renders a branded account-unavailable screen without mounting account routes or demo stores. The six-case regression matrix covers explicit/omitted mode and configured/unconfigured backend selection. Actual production settings and live account behavior remain unverified; a successful bundle export alone does not establish functioning production login or cloud persistence.
-
-Configure and verify:
-
-- `EXPO_PUBLIC_DEMO_MODE=false` intentionally for account-mode release.
-- Actual `EXPO_PUBLIC_SUPABASE_URL` and the public anon/publishable key.
-- `EXPO_PUBLIC_SITE_URL` and food-search endpoint behavior on native devices.
-- Supabase redirect allow-list and email delivery for the generated `healthi://auth/callback` and approved web callback, including the recovery query. Preserve the existing scheme.
-- Email confirmation, signup, sign-in/out, expired/wrong links, password reset, profile/onboarding writes and cross-user isolation against the deployed backend.
-- Actual deployed migration/function inventory. Repository SQL is not proof of hosted migration state.
-
-Never put an Anthropic/USDA/service-role/private signing credential in `EXPO_PUBLIC_*`. `npm run check:ios-release-config` now reports incomplete release configuration without printing values; it intentionally fails here. Its success would still not certify App Store compliance.
-
-### B5 — Backend security/data fixes must be deployed and verified separately
-
-New migration `0021_account_data_integrity.sql` strengthens child-row INSERT/UPDATE policies and fixes `replace_meal_items` micronutrient persistence. Before the fix, an owner-controlled child row could refer to another owner's known parent UUID; this was an integrity weakness, **not a demonstrated cross-user data-read exploit**. Portion/removal edits could also leave old micronutrient totals on account meal rows.
-
-The new migration preserves tables/data and checks owned meal/product/workout/exercise parents. It updates micronutrients in the same transaction as meal items/macros; absent values become unknown rather than retaining stale values. The client supplies the recomputed panel. Three isolated PostgreSQL test scripts pass after all migrations 0001–0021.
-
-**The production database remains unchanged.** After explicit deployment approval, review actual hosted schema/history and backup arrangements, apply only the intended migration, then verify RLS/RPCs using two dedicated test accounts. Do not blindly reset production or apply unrelated pending migrations.
-
-### B6 — Paid photo-estimate quota is not durable
-
-`supabase/functions/photo-estimate/index.ts` uses an in-memory Map for a 25-request per-user/day guard. Parallel isolates/restarts have separate counters. The source cannot enforce a global account/day cost ceiling. The public product-resolver limiter is also per instance.
-
-The audit added bounded request/response reads and a 30-second upstream deadline and removed raw provider error-body logging. These are useful protections, but they do not solve distributed quota enforcement. Add an atomic durable quota/abuse budget before enabling paid photo estimates at production scale. Confirm the configured model/provider is available. Leave unconfigured optional functionality accurately described to users; do not advertise unavailable functionality as working.
-
-### B7 — Dependency alignment and lint remain failing release checks
-
-- `npm audit`: **29 remaining findings: 0 critical, 8 high, 20 moderate, 1 low**. Baseline was 40, including one critical. Advisory counts include build/test dependencies and transitive chains; they are not a count of confirmed exploitable iPhone flaws.
-- Remaining high chains include Expo CLI, Expo Router/React Navigation, decode-uri-component/query-string, image-size, Vite and Zod. Document each affected use/mitigation and perform controlled compatible upgrades. Audit's suggested Expo downgrade or forced cross-major overrides were **not** applied.
-- Expo compatibility check flags nine mismatches: Expo/camera/constants/linear-gradient/linking/router/secure-store SDK-55 patches, RN 0.83.6 versus expected 0.83.10, and `eslint-config-expo` 57 versus expected 55. Stay on the approved SDK 55 unless a separate upgrade is authorized; check native compatibility after patch alignment.
-- Final lint still has **86 errors and 181 warnings**. Baseline was 86 errors/180 warnings. Most errors are React refs/effect-state/purity/immutability checks, plus display-name and unescaped JSX text. No rules were disabled to conceal failures. Refactor and verify affected behavior rather than applying a broad unsafe rewrite during the audit.
-
-## 4. Fixed issues and affected files
-
-Follow-up after the initial audit: explicit demo/account selection now fails closed on missing backend configuration. Changed `src/features/auth/AuthProvider.tsx`, added `src/features/auth/AccountUnavailable.tsx` and `tests/features/auth/authConfiguration.test.ts`, and adapted the existing auth-provider/signup-metadata tests. Typecheck and all 52 auth tests passed. Before publication, typecheck, the web-demo production build and the full suite passed again: **1,926 tests passed, six skipped; 202 files passed, two skipped**. This fix does not change the readiness score or replace the production-service/native verification requirements. The original ZIP and evidence logs below represent the initial audit snapshot, before this follow-up.
-
-| Fix | Source/test files |
-|---|---|
-| Password-reset request/new-password screens, verified callback parsing/session exchange, recovery route guards and signup redirect | `src/features/auth/authLinks.ts`, `AuthProvider.tsx`; `app/(auth)/forgot-password.tsx`, `login.tsx`, `_layout.tsx`; `app/auth/callback.tsx`, `reset-password.tsx`; protected/onboarding layouts; auth helper/provider/signup tests |
-| Fresh demo now clears its breath/biomarker scopes and saved demo routines while preserving account records | `src/features/auth/demoLifecycle.ts`, `tests/features/auth/demoLifecycle.test.ts` |
-| Catch rejected SideMenu sign-out instead of leaving an unhandled promise | `src/features/navigation/SideMenu.tsx` |
-| Explicit unchecked photo-AI permission before camera/library callbacks, with recipient/purpose/search alternative | `src/features/nutrition/photoEstimate/PhotoEntrySheet.tsx` and its tests; `public/legal/privacy.html` paragraph aligned to actual behavior |
-| Correctly classify genuine Supabase non-2xx photo errors, including 429; bounded response parsing | `photoEstimateClient.ts`, `tests/features/nutrition/photoEstimateClient.test.ts` |
-| Validate nullable lookup-identity fields before string operations | `supabase/functions/_shared/labEvidence.ts`, `tests/functions/labEvidenceInput.test.ts` |
-| Bound photo request/provider bodies, abort upstream after 30 seconds, reject malformed provider content, avoid logging raw provider bodies | `_shared/requestLimits.ts`, `photo-estimate/index.ts`; `tests/functions/requestLimits.test.ts`, `photoEstimateBoundary.test.ts`; quota limitation documented in `docs/source-and-deployment.md` |
-| Strengthen child-parent ownership and atomically persist edited micronutrients | `supabase/migrations/0021_account_data_integrity.sql`, `supabase/tests/account_data_integrity_security.sql`, `src/features/nutrition/mealCollectionStore.ts`, meal-library tests |
-| Shared fields expose their visible label to assistive technology; callers can override it | `src/components/TextInput.tsx`, `tests/features/accessibility/TextInput.test.tsx` |
-| Remove fabricated personalized sleep-pattern conclusion when no history exists | `src/features/sleepRhythm/SleepExperience.tsx`; neutral logged-times guidance replaces the unconditional comparison |
-| Remove unused microphone permission from both camera/photo plugins | `app.config.ts`; Expo introspection confirms microphone key absent, camera/photos/HealthKit retained |
-| Production build scaffold and read-only configuration gate | `eas.json`, `scripts/check-ios-release-config.cjs`, `package.json` script |
-| Portable resolution of available Playwright for existing UI verifier | `scripts/verify-ui.mjs`; existing command now runs with the installed browser |
-| Compatible transitive security patches, including critical shell-quote fix | `package-lock.json`: 21 leaf updates; no direct dependency ranges or Expo major version changed |
-
-The source changes preserve the existing app design/branding, scheme and production values. No old migrations were rewritten. Deployment is still required before server/SQL changes affect a hosted service. Recovery UI is implemented and source-tested; real email links remain an external verification task.
-
-## 5. Testing results and limits
+Current raw logs and structured results are saved under [`docs/app-store-audit/2026-11-09-release/`](docs/app-store-audit/2026-11-09-release/). They include the initially failed checks' resolved outcomes and explicitly identify mock/synthetic verification.
 
 | Check | Result |
 |---|---|
-| Clean dependency installation, `npm ci --no-audit --no-fund` | PASS on the starting locked tree |
-| `npm run typecheck` | PASS after fixes |
-| `npm test` | PASS: **1,920 tests passed, six skipped** across 201 passing/two skipped files; skipped live-provider tests are not counted as verified |
-| `npm run calibrate` | PASS command; its illustrative corpus reports 34/52 in target bands and rank correlation 0.932—this is **not clinical validation** |
-| `npm run lexicon:coverage`, `npm run search:quality` | PASS; fixture coverage does not guarantee current upstream catalogue responses |
-| `npm run build:demo` | PASS: web export and Worker build |
-| `EXPO_NO_DOTENV=1 EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform ios ...` | PASS: approximately 11 MB Hermes bundle; no signed IPA/native compilation and no configured remote-service acceptance |
-| `CHROMIUM_PATH=/usr/bin/chromium VERIFY_UI_PORT=8136 npm run verify:ui` | PASS on built demo routes: Home/Food/Movement/Sleep/Mood; browser console clean |
-| Additional local browser route audit | 11 routes rendered at 390×844 with no JS page errors or horizontal document overflow: Home, Food, Movement, Sleep, Mood, Settings, Progress, Plan, Closeout, Load Check, Protocol |
-| Entry-form browser checks | Water/food entry, manual food path, workout start, sleep adjustment, mood practices and schedule block entry opened; no page errors. Checks exercised entry surfaces, not every save/network/permutation |
-| Callback/recovery/legal route rendering | PASS in local demo mode; does not verify remote auth or actual email delivery |
-| PostgreSQL 16 isolated tests | PASS: all 0001–0021 migrations applied with minimal synthetic Supabase auth/storage schema; nutrition persistence, meal library and new account-integrity fixtures pass with synthetic users and rollback |
-| pgTAP-only SQL suites | NOT RUN: pgTAP unavailable in the isolated PostgreSQL image; this does not replace real Supabase integration testing |
-| Expo config introspection | PASS after permission changes; 1024×1024 RGB icon source valid; HealthKit entitlement/read-purpose present |
-| Expo doctor | 17/20 checks passed; dependency alignment fails; two remote schema/React Native Directory checks could not complete. Those two are verification limits, not confirmed source defects |
-| iOS prebuild | BLOCKED in throwaway directory by missing bundle identifier; no canonical `ios/` tree generated |
-| Lint | FAIL: 86 errors/181 warnings; not suppressed |
-| `npm audit --json` | FAIL: 29 remaining advisories, zero critical |
-| `npm run check:ios-release-config` | EXPECTED FAIL: missing identity/production config and unfinished legal facts |
-| Published-demo source parity checker | FAIL already on baseline: many files differ from frozen Sites version 14 manifest; later app history has evolved. It is not an iOS build gate; frozen historical hashes were not falsified to make it green |
-| Current tracked-source credential-pattern scan | No high-confidence private-key/token-pattern hits in 821 text files; only `.env.example` tracked. Limited regex scan, not full-history/remote-secret assurance |
+| Typecheck | PASS |
+| Clean locked install | PASS: `npm ci --no-audit --no-fund` |
+| Deno backend type-check | PASS: all six Edge Function entry points, including shared imports; not a deployment/live-service test |
+| Full tests | **1,959 passed, six skipped**; 207 files passed/two skipped. Skipped live-provider tests are not verified |
+| Lint | PASS command: **0 errors, 180 warnings**. Expo config 57 was corrected to compatible 55; this does not mean every previously reported compiler-style concern was behaviorally repaired |
+| Expo compatibility | PASS, dependencies up to date for SDK 55 |
+| Expo Doctor | **20/20 PASS** using the configured environment proxy. Initial direct-fetch failures were resolved with `NODE_USE_ENV_PROXY=1` |
+| npm audit | 22 residual advisories, zero critical; not a clean security certification |
+| Web production export | PASS; separate demo/account environments checked after cache fix |
+| Account deletion browser test | PASS at 390×844: available before onboarding, disabled without confirmation, failure preserves data, success removes owner-only local scope and logs out. Backend mocked |
+| Demo browser routes | PASS after fixing stale environment cache; Home/Food/Movement/Sleep/Mood, no page errors. Initial cache-contaminated export failed and was corrected |
+| SQL migrations and security fixtures | PASS on isolated PostgreSQL 16 with synthetic auth/storage scaffolding; migrations 0001–0022, prior integrity fixtures and new deletion/quota tests |
+| Quota concurrency | **50 simultaneous requests: 25 accepted, 25 rejected**; isolated synthetic user |
+| iOS native prebuild | PASS in disposable copy using synthetic identity, `--no-install`; no CocoaPods/native compiler/signing |
+| Generated native settings | HealthKit enabled/read-purpose present, camera/photos purposes present, microphone/Face ID absent, arbitrary HTTP loads false; AsyncStorage source defaults to excluding its iOS storage from iCloud backup |
+| iOS JS/Hermes export | PASS; not native compilation or an installable App Store build |
+| iOS production config gate | EXPECTED FAIL: real identity/environment and legal facts missing |
+| Live privacy URLs | Marketing-domain `/legal/privacy.html` and `/legal/terms.html` return 404 |
+| Real Supabase auth/deletion, email, AI provider, wearable imports | NOT VERIFIED against production |
+| Signed release/device/TestFlight/App Store checks | NOT RUN: required account access, native tools/binary and device absent |
 
-No real login/signup/reset email, account deletion, payment, photo-AI request, wearable import, cloud database write or native permission dialog was performed. No signed-device crash/memory/thermal/network/keyboard/background test was possible here. No simulator screenshots or native archive privacy report were produced. Optional generation/server-start scripts are not acceptance tests; data vocabulary was not regenerated as an audit side effect.
+The original calibration/search/coverage fixtures passed in the earlier audit; those are not clinical validation or live-provider guarantees. The pgTAP-only suites were not run because the isolated image lacks pgTAP. Source parity against the repository's frozen Sites v14 manifest already failed on the baseline and was not falsified to hide drift.
 
-## 6. Warnings and required product decisions
+## 6. Remaining warnings
 
-- **Native UX:** `supportsTablet:true`; test iPhone small/large/Dynamic Island and iPad layouts, safe areas, modals, keyboard dismissal/avoidance, Dynamic Type and VoiceOver. Web viewport checks cannot establish these.
-- **Background behavior:** paced breathing uses elapsed wall-clock time without an AppState pause; background time can be included. Test interruptions/locking and define intended session behavior before release.
-- **Data lifecycle:** some practice/routine/biomarker features are device-local. Explain sync/export/deletion scope accurately; do not promise all records sync across devices.
-- **Performance:** web entry is about 4.7 MB and a generated food/menu chunk about 2.2 MB; iOS Hermes export about 11 MB. These are bundle observations, not measured native memory/launch-time results. Profile a release build on an older supported iPhone.
-- **Native hardening:** inspected generation includes broad ATS configuration and unused Face ID purpose text. Review actual production Info.plist, HTTPS-only behavior, backup/data-protection behavior and unused permissions before changing them; no ATS vulnerability was demonstrated here.
-- **Food/lab accuracy:** scoring is general wellness, not clinical validation. Experimental scoring, inferred ingredient shares and limited confidence must remain disclosed. The disabled-by-default lab registry has a sync-review-state concern: FDA upsert can revert matches to pending; test the reviewer workflow before enabling it.
-- **Free versus paid:** no working IAP/paywall/restore/entitlement implementation was found. A free release does not need invented subscriptions. Paid digital access requires a separate reviewed StoreKit/IAP design and policy check; prospective legal subscription language must match the shipped product.
-- **Login:** own email/password auth alone does not trigger Sign in with Apple; adding qualifying social login can change that obligation.
-- **Privacy:** no tracking SDK was established by this audit. Do not add ATT just because health data exists; determine whether actual production behavior meets Apple's definition of tracking. App Privacy, permission strings and SDK privacy manifests are separate requirements.
+- EAS identity settings are only plumbing until the owner supplies registered values. The audit's synthetic bundle ID must never be used for the actual app.
+- The durable photo quota is per account, not a global business spending budget. Set provider limits/alerts and confirm model availability.
+- Local records on other devices cannot be deleted by the current server endpoint. Cleanup errors are explicitly reported; corrupt mixed-account maps are preserved to avoid deleting another account's data. Test this on a device.
+- Reviewer-owned storage objects may prevent Supabase hard deletion and need separately reviewed handling; current consumer meal photos are not retained in storage.
+- No automatic Settings export exists. Privacy-contact exports require an actual operational process.
+- Full native UX, safe areas/keyboards, VoiceOver, HealthKit denied/empty states, performance/crashes and memory still require signed-device tests.
+- Existing 180 lint warnings include hook dependencies and unused code. Passing lint is not proof that all runtime risks disappeared.
+- Optional FDA ingestion can reset match status to pending on repeated upserts. Keep the existing disabled release flag until review-state behavior and provider permissions are intentionally validated.
+- Legal content is still a draft. The source cannot establish business facts, regulatory classification, contractual retention or Apple account eligibility.
 
-## 7. Current Apple requirements checked
+## 7. Exact next steps for the owner
 
-Official sources were consulted on 2026-11-09. Recheck immediately before upload.
+1. Supply active Apple Developer/App Store Connect status, registered bundle ID, Expo project/owner and production configuration through the appropriate secure account/environment settings. Do not send credentials in chat.
+2. Supply legal identity/address/public contact emails, provider/region/retention facts, and free versus paid launch intent. Finish and publish working full-app legal pages.
+3. Authorize and execute the reviewed Supabase deployment, then test two disposable accounts and every live integration. Follow the exact order in [IOS_RELEASE_HANDOFF.md](docs/IOS_RELEASE_HANDOFF.md).
+4. Build a signed production iOS binary with a current supported Xcode/SDK, inspect its archive and test it on a physical iPhone (and iPad while supported).
+5. Finish [metadata draft](docs/APP_STORE_METADATA_DRAFT.md) and [privacy inventory](docs/APP_PRIVACY_INVENTORY.md), screenshots and reviewer access.
+6. After those pass, separately authorize upload/TestFlight and App Store submission. A source push is not an Apple submission.
 
-- Uploads currently require **Xcode 26+ and the iOS 26 SDK+**; SDK version is separate from minimum supported iOS. Current uploads must target iOS 13+; installed RN's native minimum is newer. [Apple upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)
-- In-app account-deletion initiation, accurate policy/data handling, explicit permission before personal data goes to third-party AI, applicable IAP rules, app completeness and truthful functionality apply. This native feature set is substantial, but a successful demo does not prove completeness. [Review guidelines](https://developer.apple.com/app-store/review/guidelines/) · [Account deletion](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion/)
-- App Privacy answers must reflect the real account-mode release and third parties, not only the device-local demo. [App Privacy Details](https://developer.apple.com/app-store/app-privacy-details/)
-- HealthKit purpose/capability/denied-data behavior and native SDK privacy manifests/signatures must be reviewed in the actual archive. React-Core/AsyncStorage include manifests; Hermes is on Apple's covered SDK list. Missing a handwritten top-level manifest alone was not treated as a proven rejection. [HealthKit privacy](https://developer.apple.com/documentation/healthkit/protecting-user-privacy) · [SDK requirements](https://developer.apple.com/support/third-party-SDK-requirements/)
-- Prepare screenshots in the current App Store Connect required device slots. Apple's current table includes iPhone Dynamic Island medium portrait 1179×2556 or 1206×2622 and 13-inch iPad requirements when iPad is supported. Verify the slots actually presented for the app; the landing's 780×1688 web captures are not verified native submission assets. [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
-- Complete the age-rating questionnaire and applicable Health & Fitness regulated-medical-device declaration accurately. The latter does not itself establish that Daywoven is a regulated device. Future age descriptors announced for Nov 16, 2026 / Jan 12, 2027 are not already-past requirements on this audit date. [App information](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information/) · [Age-rating announcement](https://developer.apple.com/news/?id=yxkh08us)
+The linked handoff contains beginner-friendly commands, account locations, deployment order, device acceptance and submission instructions specific to this app.
 
-Extended official-source notes: [apple-requirements.md](docs/app-store-audit/2026-11-09/apple-requirements.md).
+## 8. Current official requirements consulted
 
-## 8. Owner's step-by-step release path
+- [Apple upcoming requirements](https://developer.apple.com/news/upcoming-requirements/): current uploads require Xcode 26+/iOS 26 SDK+; minimum deployment target is a separate requirement.
+- [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/): completeness, account deletion, privacy, health claims, third-party AI permission and applicable payments/login rules.
+- [Account deletion](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion/).
+- [App Privacy](https://developer.apple.com/app-store/app-privacy-details/) and [HealthKit privacy](https://developer.apple.com/documentation/healthkit/protecting-user-privacy).
+- [Third-party SDK requirements](https://developer.apple.com/support/third-party-SDK-requirements/): inspect the actual archive's manifests/reasons/signatures.
+- [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/), [app information](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information/) and [TestFlight](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/).
 
-### A. Finish the release blockers
-
-1. Review the local diff/report. Keep the app on SDK 55 for this task. Approve a controlled patch-alignment/lint-remediation task and resolve/document remaining advisories; repeat tests and native checks.
-2. Implement and test account deletion and reconcile export/retention promises. Finish true entity/contact/legal content. Decide which optional services are actually included in v1; preserve existing functionality while making unavailable paths honest.
-3. Review migration 0021 against the actual hosted migration inventory, backup and test-account plan. Only after separate approval deploy the needed migration/function fixes and verify them on the intended backend. Do not run `supabase db reset` against production.
-4. Choose free versus paid v1. Implement proper purchases only if monetization is in scope; finish durable paid-AI quotas before enabling paid estimates broadly.
-
-### B. Establish Apple/Expo identity and production settings
-
-5. Enroll/verify your Apple Developer Program membership. Choose the correct individual/organization legal seller identity. In Apple Developer/App Store Connect register your real unique Bundle ID and create the app record; use exactly the same ID in `app.config.ts`.
-6. Set the public release name/version deliberately (`daywoven`, currently `0.1.0`). The existing 1024px source icon is valid in size/alpha; visually approve icon/splash in an actual build. Do not rename `healthi` scheme/storage keys casually. Decide whether iPad support stays enabled, with corresponding QA/screenshots.
-7. Sign in to your Expo account and associate this project (`eas login`, `eas init` through the approved CLI). Keep the returned project ID; do not copy IDs from another app. `eas.json` is already scaffolded.
-8. Configure the Expo production environment and backend endpoints. The Supabase URL/anon key are public app configuration; privileged backend/API keys remain in server secret stores. Set `EXPO_PUBLIC_DEMO_MODE=false`; set actual site/search URL and test it on a phone. Do not copy a developer's entire `.env` or expose private values in chat/Git.
-9. Configure Supabase's approved native/web redirect URLs and real transactional email; test confirmation/recovery/logout with dedicated accounts. Run `npm run check:ios-release-config`; resolve each output. This command never creates a build or changes services.
-
-### C. Build and validate a real iOS app — requires your approval/account
-
-10. After the blockers and environment are addressed, authorize `eas build --platform ios --profile production` (or a macOS/Xcode build). Allow EAS/Apple to manage signing only under your account's approval. Verify the selected image uses Apple's current required Xcode/SDK. A Linux Metro export is not a replacement for this step. [Expo production build guide](https://docs.expo.dev/deploy/build-project/) · [iOS build process](https://docs.expo.dev/build-reference/ios-builds/)
-11. Inspect the signed archive/build logs: Bundle ID, version/build number, deployment target, HealthKit entitlement, camera/photo purposes, microphone absence, ATS, required-reason manifests, covered SDK signatures, export-compliance declarations and provider configuration. Resolve any native compiler/CocoaPods/Nitro issues rather than assuming Expo Go success is sufficient.
-12. On a signed physical iPhone, test new/returning accounts, deletion and reset, offline/slow/failing networks, persistence/reinstall expectations, denied camera/photos/Health permissions, manual alternatives, real barcode/photo flow, sleep/steps denial/empty states, keyboard/safe areas, large text/VoiceOver, background/locking interruptions and launch/crash/memory behavior. Add iPad tests while support remains enabled. Use a release build, not only debug mode.
-
-### D. Prepare App Store Connect and TestFlight
-
-13. Prepare name/subtitle/description/keywords, category, copyright, support URL and the full app privacy URL, content rights, territories/pricing, age-rating answers, encryption/export compliance and applicable medical-device declaration. Describe shipped capabilities only. Current signup minimum-age constant is 18; reconcile onboarding/terms and age-rating answers intentionally rather than claiming a child audience.
-14. Complete App Privacy from the actual data flow. Likely review categories include account email/name/user ID; health/fitness/profile and nutrition records; photos/other submitted content; diagnostics/request metadata. Decide linkage, purpose, retention and third-party handling factually. Do not select “Data Not Collected” merely because a demo is local. Confirm Anthropic's actual current terms/retention before making vendor guarantees.
-15. Capture genuine signed-build iPhone/iPad screens in required current sizes. Use controlled demo data and truthful screens; do not present unsupported functionality. Capture permission/empty/error states for internal QA as well.
-16. Separately authorize upload using EAS Submit or Transporter. An upload goes to App Store Connect/TestFlight processing; it is not automatically a public release. Check processing, compliance and capability warnings. Test internally, then authorize external TestFlight testing if desired; external testing may need Beta App Review. Keep backend services available.
-
-### E. Submit only after the evidence is complete
-
-17. Provide a stable reviewer account and instructions for login, optional permissions and non-obvious features. Use controlled review data and working external services. Explain health estimates/limitations and third-party AI permission clearly. Supply privacy/support/deletion URLs and any relevant evidence.
-18. Select the tested processed build, finish all metadata/privacy/compliance fields and App Review notes, choose a deliberate release method, and obtain explicit submission approval. Only then submit for review. Address actual review feedback and retest any replacement build. [Apple before-submission guidance](https://developer.apple.com/help/app-review/before-submitting-for-review/complete-review/) · [TestFlight](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/)
+Email/password alone does not itself trigger mandatory Sign in with Apple; qualifying social login would change the analysis. Do not claim “Data Not Collected” for the account-mode release. Existing age minimum 18 must be reconciled with the actual questionnaire and target audience. See the dated official-source notes in `docs/app-store-audit/2026-11-09/apple-requirements.md`.
 
 ## Final decision
 
-**NOT READY — MAJOR WORK REQUIRED.** The native app foundation is viable and several source defects are fixed, but account deletion, legal/production configuration, security/lint remediation, signed native compilation, real-device acceptance and Apple submission evidence remain. No successful App Store submission or approval can be claimed from this audit.
-
-## Appendix — source and audit file inventory
-
-The grouped fixes above correspond to these files (including report/evidence):
-
-- `APP_STORE_READINESS.md`
-- `app.config.ts`
-- `app/(app)/_layout.tsx`
-- `app/(auth)/_layout.tsx`
-- `app/(auth)/forgot-password.tsx`
-- `app/(auth)/login.tsx`
-- `app/(onboarding)/_layout.tsx`
-- `app/auth/callback.tsx`
-- `app/auth/reset-password.tsx`
-- `docs/app-store-audit/2026-11-09/apple-requirements.md`
-- `docs/app-store-audit/2026-11-09/auth-route-rendering.json`
-- `docs/app-store-audit/2026-11-09/browser-interactions.json`
-- `docs/app-store-audit/2026-11-09/browser-routes.json`
-- `docs/app-store-audit/2026-11-09/browser-verifier.log`
-- `docs/app-store-audit/2026-11-09/ios-export.log`
-- `docs/app-store-audit/2026-11-09/ios-prebuild.log`
-- `docs/app-store-audit/2026-11-09/native-readiness.md`
-- `docs/app-store-audit/2026-11-09/npm-audit.json`
-- `docs/app-store-audit/2026-11-09/release-config.log`
-- `docs/app-store-audit/2026-11-09/secret-scan.json`
-- `docs/app-store-audit/2026-11-09/sql-tests.log`
-- `docs/app-store-audit/2026-11-09/tests.log`
-- `docs/app-store-audit/2026-11-09/typecheck.log`
-- `docs/app-store-audit/2026-11-09/verification.json`
-- `docs/app-store-audit/2026-11-09/web-build.log`
-- `docs/source-and-deployment.md`
-- `eas.json`
-- `package-lock.json`
-- `package.json`
-- `public/legal/privacy.html`
-- `scripts/check-ios-release-config.cjs`
-- `scripts/verify-ui.mjs`
-- `src/components/TextInput.tsx`
-- `src/features/auth/AuthProvider.tsx`
-- `src/features/auth/AccountUnavailable.tsx`
-- `src/features/auth/authLinks.ts`
-- `src/features/auth/demoLifecycle.ts`
-- `src/features/navigation/SideMenu.tsx`
-- `src/features/nutrition/mealCollectionStore.ts`
-- `src/features/nutrition/photoEstimate/PhotoEntrySheet.tsx`
-- `src/features/nutrition/photoEstimate/photoEstimateClient.ts`
-- `src/features/sleepRhythm/SleepExperience.tsx`
-- `supabase/functions/_shared/labEvidence.ts`
-- `supabase/functions/_shared/requestLimits.ts`
-- `supabase/functions/photo-estimate/index.ts`
-- `supabase/migrations/0021_account_data_integrity.sql`
-- `supabase/tests/account_data_integrity_security.sql`
-- `tests/features/accessibility/TextInput.test.tsx`
-- `tests/features/auth/authLinks.test.ts`
-- `tests/features/auth/authConfiguration.test.ts`
-- `tests/features/auth/authProvider.test.ts`
-- `tests/features/auth/demoLifecycle.test.ts`
-- `tests/features/auth/signupMetadata.test.ts`
-- `tests/features/nutrition/PhotoEntrySheet.test.tsx`
-- `tests/features/nutrition/mealLibrary.test.ts`
-- `tests/features/nutrition/photoEstimateClient.test.ts`
-- `tests/functions/labEvidenceInput.test.ts`
-- `tests/functions/photoEstimateBoundary.test.ts`
-- `tests/functions/requestLimits.test.ts`
-
-Publication commit message: `Prepare Daywoven iOS release audit and fix verified security and account-flow defects`.
+**NOT READY — MAJOR WORK REQUIRED.** Source fixes and automated evidence have improved substantially. Remaining blockers include actual production/Apple configuration, deployed account deletion/quota/security changes, factual published legal policies, residual risk review, signed native compilation and real-device acceptance. No successful submission, native build or Apple approval is claimed.
