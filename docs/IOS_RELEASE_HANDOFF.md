@@ -22,7 +22,7 @@ Do not put secret values in Git or chat.
 |---|---|---|
 | Active Apple Developer membership and correct seller identity | developer.apple.com/account | Signing and App Store Connect |
 | Registered bundle ID | Apple Developer → Certificates, Identifiers & Profiles → Identifiers | `IOS_BUNDLE_IDENTIFIER` |
-| Actual Expo project UUID and owner | expo.dev → your project → Settings | `EXPO_PROJECT_ID`, optional `EXPO_OWNER` |
+| Expo project UUID and owner | Confirmed through `eas whoami` and `eas init --id` | Defaults in `app.config.ts` to `@tiamshinkais-team/daywoven` and project `333c1832-f0a3-48e9-93a5-ae893e3bf6bd`; environment variables can override |
 | Supabase project URL and public anon/publishable key | Supabase project settings | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
 | Public full-app policy host and search endpoint | Verify your real deployment | `EXPO_PUBLIC_SITE_URL`, `EXPO_PUBLIC_FOOD_SEARCH_URL` (relative search paths can use the HTTPS site origin) |
 | Legal person/company, business/contact address, public support/privacy/security/legal/accessibility email(s) | Your actual business details | Remaining `public/legal/*.html` placeholders |
@@ -44,6 +44,8 @@ The current source contains no implemented paid subscription checkout, StoreKit 
 9. With production `EXPO_PUBLIC_SITE_URL` and `EXPO_PUBLIC_FOOD_SEARCH_URL` loaded, run `npm run check:ios-public-services`. This read-only probe checks the published **full-app** privacy and terms pages for 200/HTML/no unfinished placeholders. It also checks that the food-search API responds with its known validation error to an empty query, without calling paid providers. A marketing-site homepage or a generic 404 must not count as a working API. If the public policies and food-search Worker live on different domains, set the food-search URL to an absolute HTTPS endpoint.
 
 ## Build and submission steps
+
+The existing Expo project is `@tiamshinkais-team/daywoven` (`333c1832-f0a3-48e9-93a5-ae893e3bf6bd`). Its Expo slug is `daywoven`; the native auth URL scheme intentionally stays `healthi`. After syncing this config, run `npx eas-cli@latest project:info` from the repository to confirm the link. Do not run `eas init --force` or create a replacement project.
 
 1. Finish the owner facts above. Set EAS production environment values; set `EXPO_PUBLIC_DEMO_MODE=false`. Use the registered identifiers, never the disposable test identifier from the audit.
 2. Run `npm ci`, `npm run typecheck`, `npm test`, `npm run lint`, `npx expo install --check`, `npm run check:ios-release-config`, and `npm run check:ios-public-services` with the production environment loaded. The two iOS preflight checks currently fail intentionally until required facts/settings are supplied and the public services are actually deployed.
