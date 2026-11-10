@@ -1,0 +1,31 @@
+# Verify native-app source changes before merging. No Apple or production secrets are needed.
+name: iOS release code checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Lint
+        run: npm run lint
+      - name: Expo SDK compatibility
+        run: npx expo install --check
+      - name: Public service preflight tests (mocked)
+        run: node --test tests/scripts/check-ios-public-services.test.cjs
