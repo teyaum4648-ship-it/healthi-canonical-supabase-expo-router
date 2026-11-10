@@ -1,9 +1,9 @@
 import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  // What people see. slug and scheme stay 'healthi' so the Expo project and sign-in links keep working.
+  // EAS project is @tiamshinkais-team/daywoven; keep the 'healthi' URL scheme for auth deep links.
   name: 'daywoven',
-  slug: 'healthi',
+  slug: 'daywoven',
   scheme: 'healthi',
   version: '0.1.0',
   icon: './public/icons/healthi-icon-1024.png',
@@ -30,8 +30,8 @@ const config: ExpoConfig = {
     supportsTablet: true,
     ...(process.env.IOS_BUNDLE_IDENTIFIER ? { bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER } : {})
   },
-  ...(process.env.EXPO_OWNER ? { owner: process.env.EXPO_OWNER } : {}),
-  ...(process.env.EXPO_PROJECT_ID ? { extra: { eas: { projectId: process.env.EXPO_PROJECT_ID } } } : {}),
+  owner: process.env.EXPO_OWNER || 'tiamshinkais-team',
+  extra: { eas: { projectId: process.env.EXPO_PROJECT_ID || '333c1832-f0a3-48e9-93a5-ae893e3bf6bd' } },
   android: {
     adaptiveIcon: {
       backgroundColor: '#000000'
