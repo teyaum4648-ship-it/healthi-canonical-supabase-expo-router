@@ -19,6 +19,7 @@
     "verify:ui": "node scripts/verify-ui.mjs",
     "search:quality": "vitest run tests/features/nutrition/searchQuality.test.ts && cat reports/search-quality.txt",
     "check:ios-release-config": "node scripts/check-ios-release-config.cjs",
+    "check:ios-public-services": "node scripts/check-ios-public-services.cjs",
     "eas-build-post-install": "node scripts/check-eas-release.cjs"
   },
   "dependencies": {
