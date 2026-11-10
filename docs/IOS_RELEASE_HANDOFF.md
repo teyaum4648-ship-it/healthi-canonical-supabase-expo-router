@@ -21,7 +21,7 @@ Do not put secret values in Git or chat.
 | Item | Where to obtain it | Where it is used |
 |---|---|---|
 | Active Apple Developer membership and correct seller identity | developer.apple.com/account | Signing and App Store Connect |
-| Registered bundle ID | Apple Developer → Certificates, Identifiers & Profiles → Identifiers | `IOS_BUNDLE_IDENTIFIER` |
+| Apple-registered bundle ID | Apple Developer → Certificates, Identifiers & Profiles → Identifiers | `com.daywovenapp.daywoven` is the default in `app.config.ts`, assuming this is the identifier registered; override with `IOS_BUNDLE_IDENTIFIER` only if the Apple record differs |
 | Expo project UUID and owner | Confirmed through `eas whoami` and `eas init --id` | Defaults in `app.config.ts` to `@tiamshinkais-team/daywoven` and project `333c1832-f0a3-48e9-93a5-ae893e3bf6bd`; environment variables can override |
 | Supabase project URL and public anon/publishable key | Supabase project settings | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
 | Public full-app policy host and search endpoint | Verify your real deployment | `EXPO_PUBLIC_SITE_URL`, `EXPO_PUBLIC_FOOD_SEARCH_URL` (relative search paths can use the HTTPS site origin) |
