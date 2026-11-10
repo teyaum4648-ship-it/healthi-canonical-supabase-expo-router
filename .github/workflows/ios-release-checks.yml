@@ -28,4 +28,4 @@ jobs:
       - name: Expo SDK compatibility
         run: npx expo install --check
       - name: Public service preflight tests (mocked)
-        run: node --test tests/scripts/check-ios-public-services.test.cjs
+        run: node --test tests/scripts/check-ios-public-services.nodecheck.cjs
