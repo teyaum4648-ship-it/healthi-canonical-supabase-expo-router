@@ -28,7 +28,7 @@ const config: ExpoConfig = {
   },
   ios: {
     supportsTablet: true,
-    ...(process.env.IOS_BUNDLE_IDENTIFIER ? { bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER } : {})
+    bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER || 'com.daywovenapp.daywoven'
   },
   owner: process.env.EXPO_OWNER || 'tiamshinkais-team',
   extra: { eas: { projectId: process.env.EXPO_PROJECT_ID || '333c1832-f0a3-48e9-93a5-ae893e3bf6bd' } },
