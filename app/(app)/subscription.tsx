@@ -147,12 +147,12 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
       {webCheckoutAvailable && !active ? (
         <View style={styles.webPanel}>
           <Text style={styles.heading}>Subscribe on our website</Text>
-          <Text style={styles.body}>Choose a monthly or annual plan on Daywoven's secure website. Your purchase will be linked to this account and unlock Premium here after verification.</Text>
+          <Text style={styles.body}>Choose a monthly or annual plan on Daywoven’s secure website. Your purchase will be linked to this account and unlock Premium here after verification.</Text>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void startWebsiteCheckout()} style={[styles.button, busy && styles.buttonDisabled]}>
             <Text style={styles.buttonText}>{busy ? 'Opening…' : 'Choose plans on daywovenapp.com'}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void checkWebsitePurchase()} style={styles.secondary}>
-            <Text style={styles.link}>I've paid on the website · Check my access</Text>
+            <Text style={styles.link}>I’ve paid on the website · Check my access</Text>
           </Pressable>
         </View>
       ) : null}
@@ -195,7 +195,7 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
         <Text style={styles.link}>Manage Apple-billed subscription</Text>
       </Pressable>
       <View style={styles.footer}>
-        {webCheckoutAvailable ? <Text style={styles.body}>Subscriptions purchased on our website are billed and managed through our web checkout provider, not Apple's subscription settings. Use the billing-management link in your purchase confirmation.</Text> : null}
+        {webCheckoutAvailable ? <Text style={styles.body}>Subscriptions purchased on our website are billed and managed through our web checkout provider, not Apple’s subscription settings. Use the billing-management link in your purchase confirmation.</Text> : null}
         <Text style={styles.body}>Auto-renewing subscriptions continue until cancelled. Subscription pricing, duration, and applicable terms are shown before purchase. You can cancel in Apple Account settings.</Text>
         <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://daywovenapp.com/legal/terms.html')}><Text style={styles.link}>Terms of Service</Text></Pressable>
         <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://daywovenapp.com/legal/privacy.html')}><Text style={styles.link}>Privacy Policy</Text></Pressable>
