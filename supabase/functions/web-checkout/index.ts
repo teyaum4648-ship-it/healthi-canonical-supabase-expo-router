@@ -7,7 +7,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 const SITE = 'https://daywovenapp.com';
 const TTL_SECONDS = 15 * 60;
 const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const PAY_LINK = /^https:\/\/pay\.rev\.cat\/[A-Za-z0-9_-]{6,}\/??$/;
+const PAY_LINK = /^https:\/\/pay\.rev\.cat\/[A-Za-z0-9_-]{6,}\/?$/;
 
 type Ticket = { user: string; exp: number; nonce: string };
 const enc = new TextEncoder();
