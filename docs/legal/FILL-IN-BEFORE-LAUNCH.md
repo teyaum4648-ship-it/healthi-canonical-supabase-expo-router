@@ -15,8 +15,8 @@ Last reviewed: November 10, 2026. These pages are **drafts**, not published poli
 
 ## Unresolved placeholders and facts
 
-- `{{BUSINESS_ADDRESS}}` — a public mailing address approved for publication. Do not casually publish a personal residential address.
-- `{{EFFECTIVE_DATE}}` — set consistently on the actual publication date, not before.
+- `{{BUSINESS_ADDRESS}}` — owner provided a postal address for public use; intentionally withheld from **public Git**. Store it in an EAS Sensitive variable named `DAYWOVEN_PUBLIC_MAILING_ADDRESS`. Replace the placeholder only during direct publication to the dedicated Cloudflare legal Worker. Public policy visitors will see it.
+- Effective date is now prepared as **November 10, 2026** for the initial publication. Update if actual publication occurs on a later date.
 - `{{BACKUP_RETENTION}}` — real provider backup lifecycle and deletion limitations.
 - `{{TECHNICAL_LOG_RETENTION}}` — actual log retention and any third-party log processing.
 - `{{LEGAL_RECORD_RETENTION}}` — factual legal-record retention process and duration.
