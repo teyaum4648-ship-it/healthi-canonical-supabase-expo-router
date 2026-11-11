@@ -1,62 +1,43 @@
-# Fill these in before the policies go live
+# Daywoven legal publication handoff
 
-Every placeholder below appears in `public/legal/*.html` wrapped in `{{ }}` and is styled
-with an orange `.fill` highlight, so an unfilled one is impossible to miss on the page.
-Nothing here can be guessed for you: an invented address or an entity that does not exist
-is worse than no policy at all, because it is a false statement in a document people rely
-on.
+Last reviewed: November 10, 2026. These pages are **drafts**, not published policies or legal advice. Public website routes must not serve them with unresolved placeholders or inaccurate statements.
 
-Find them all: `grep -ro '{{[A-Z_]*}}' public/legal/ | sort -u`
+## Facts provided by owner
 
-## Minimum public iOS v1 launch decisions (verified 2026-11-10)
-
-- **Confirmed:** Supabase project `lhqpexnepgvuohmhltnr` is hosted in AWS `us-east-2` (Ohio). The privacy draft now states this directly.
-- **Not confirmed:** the actual legal operator and safe public mailing address. Individual Apple Developer enrollment is not proof that an LLC operates the service. Use the actual operator and a postal address you're comfortable publishing, and check what law requires.
-- **Not confirmed:** working public support/privacy/security/legal/accessibility inboxes. They can route to one inbox, but test delivery. Do not invent email aliases.
-- **Not confirmed:** backup, technical-log, and legal-record retention periods. Confirm these before making a retention promise.
-- **Not decided:** first-release pricing. The current terms/refunds describe subscriptions and direct web sales even though the repository has no subscription checkout. If v1 is a paid App Store download, revise those statements to match that model and Apple's actual refund process before publishing.
-- **Publishing destination:** `https://daywovenapp.com/legal/privacy.html` and `/legal/terms.html`. They must resolve to these *full app* policies, not just the newsletter privacy page.
-- **Release gate:** do not deploy these drafts or submit the app with `{{PLACEHOLDERS}}` or unverified claims. Review health-data privacy obligations and Apple disclosures for the actual launch territory.
-
-## The placeholders
-
-| Placeholder | What it is | Notes |
+| Item | Value | Status |
 | --- | --- | --- |
-| `{{LEGAL_ENTITY}}` | The name that is actually liable | If you have not formed an LLC, this is your own legal name and you are personally liable. For a health app, forming an entity is the single cheapest risk reduction available. California LLC: ~$70 filing, plus the $800 annual franchise tax. |
-| `{{BUSINESS_ADDRESS}}` | A postal address | **Do not use your home address.** It ends up in App Store listings, WHOIS and every policy page. Use a registered agent, a virtual mailbox, or a PO box. |
-| `{{EFFECTIVE_DATE}}` | The date the policies take effect | Use one date across all six pages. Format: `January 1, 2027`. |
-| `{{PRIVACY_EMAIL}}` | Privacy requests | A real monitored inbox. `privacy@` is conventional. |
-| `{{SUPPORT_EMAIL}}` | Support and refunds | `support@` |
-| `{{SECURITY_EMAIL}}` | Vulnerability reports | `security@` |
-| `{{LEGAL_EMAIL}}` | Legal notices, arbitration opt-outs | `legal@` |
-| `{{ACCESSIBILITY_EMAIL}}` | Accessibility barrier reports | Can alias to support, but it must be listed separately — that it exists is part of the defence. |
-| `{{SUPABASE_REGION}}` | Where the data physically sits | **Verified:** the connected Daywoven Supabase project is in AWS `us-east-2` (Ohio). This is already filled in within the privacy draft. Recheck if hosting changes. |
-| `{{PAYMENT_PROCESSOR}}` | Only if you sell directly from the web | Delete the clause entirely if you only sell through Apple and Google. |
+| Operator name | Tiam Anderson | Added throughout the legal drafts. Confirm that this is the actual operating legal person; do not imply an unformed LLC. |
+| Contact inbox | admin@daywoven.com | Added as the single contact for support, privacy, security, legal, and accessibility. **Not delivery-tested**; ensure it receives messages. |
+| Mailing address | Privately supplied | **Not placed into GitHub or public pages.** Confirm a publicly publishable business/postal address before replacing `{{BUSINESS_ADDRESS}}`. |
+| Initial app model | Free App Store download + optional paid in-app subscription | Adjusted Terms and Refunds to Apple billing. The current app does **not** yet implement StoreKit subscription checkout, entitlements, or restore purchases; do not sell or claim working paid access until implemented/tested. |
+| Initial market | United States | Privacy draft remains US-only. Canada was discussed as a potential later expansion, not authorized for launch yet. |
+| Data hosting | Supabase AWS us-east-2 (Ohio) | Verified from connected production project and filled into privacy draft. |
 
-All five addresses may forward to one inbox. They must all actually receive mail — a
-bounced privacy request is a compliance failure on its own.
+## Unresolved placeholders and facts
 
-## Also set
+- `{{BUSINESS_ADDRESS}}` — a public mailing address approved for publication. Do not casually publish a personal residential address.
+- `{{EFFECTIVE_DATE}}` — set consistently on the actual publication date, not before.
+- `{{BACKUP_RETENTION}}` — real provider backup lifecycle and deletion limitations.
+- `{{TECHNICAL_LOG_RETENTION}}` — actual log retention and any third-party log processing.
+- `{{LEGAL_RECORD_RETENTION}}` — factual legal-record retention process and duration.
+- Verify that `admin@daywoven.com` accepts and is monitored for mail, and that the user owns/controls that domain.
+- Confirm actual data processors, third-party AI processing, health-data consent and account-deletion behavior; the policy must describe deployed behavior, not aspirational features.
+- Decide and review the arbitration clause in `terms.html`, and have qualified counsel assess applicable California health-privacy and consumer terms before public launch.
 
-- `EXPO_PUBLIC_SITE_URL` in your environment (see `.env.example`). Without it, the
-  in-app links on a **native** build degrade to plain text. The web export is fine either way.
+Check for remaining literal placeholders:
 
-## Two decisions only you can make
+```sh
+grep -ro '{{[A-Z_]*}}' public/legal/ | sort -u
+```
 
-1. **Do you want the arbitration clause?** `terms.html` §14 has one, consumer-friendly by
-   the standards of these things: a 30-day opt-out, a small-claims carve-out, we pay fees
-   under $10,000, and a *McGill* carve-out for public injunctive relief (without which the
-   whole clause is unenforceable in California). It is standard and it protects you from
-   class actions. Some founders dislike it on principle. Deleting §14 leaves §14.6 —
-   San Diego courts — as the fallback, which is a coherent position.
-2. **Where will you sell?** See the EEA/UK question in `RISK-REGISTER.md`. The answer
-   changes how much work launch is by a large factor.
+## US first, Canadian expansion later
 
-## Before you publish
+Apple App Store Connect can add Canada to app and subscription availability after launch. There is no separate Canadian iOS codebase required. However, because Daywoven processes wellness/health information, launching to Canadian consumers requires reviewing Canadian privacy/consent rules (including PIPEDA and provincial statutes), cross-border US hosting disclosures, and applicable provincial consumer protections. Quebec adds potential French-language commercial/contract requirements and its own privacy regime. App Store territory selection does not provide a Quebec-only exclusion. Obtain jurisdiction-specific legal review and revise the privacy policy before enabling Canadian availability.
 
-- [ ] Every `{{PLACEHOLDER}}` replaced — the grep above returns nothing
-- [ ] All five email addresses receive mail
-- [ ] A lawyer has read `terms.html` §§2, 3, 13 and 14 and `privacy.html` — see the
-      register for why these specifically
-- [ ] `EXPO_PUBLIC_SITE_URL` set in the build environment
-- [ ] `docs/legal/RISK-REGISTER.md` items L1 and L2 resolved
+## Before making the policies live
+
+- Confirm every factual entry, remove all placeholders, verify customer contact and retention details.
+- Update Terms, Privacy and Refunds if the paid subscription implementation or launch territory changes.
+- Deploy full app policies to `https://daywovenapp.com/legal/privacy.html` and `https://daywovenapp.com/legal/terms.html` without breaking the existing newsletter site.
+- Verify live HTTPS responses with `npm run check:ios-public-services` after EAS `EXPO_PUBLIC_SITE_URL` and the food-search API are configured.
+- Complete Apple's App Privacy disclosures using actual connected provider behavior. A public policy URL is not itself an App Review approval.
