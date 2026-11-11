@@ -19,7 +19,7 @@
   </div>
   <h1>Privacy Policy</h1>
   <p class="meta">Version 1.0</p>
-  <p class="meta">Effective <span class="fill">{{EFFECTIVE_DATE}}</span> · Last updated <span class="fill">{{EFFECTIVE_DATE}}</span></p>
+  <p class="meta">Effective <span class="fill">November 10, 2026</span> · Last updated <span class="fill">November 10, 2026</span></p>
 </header>
 
 <main id="main">
@@ -30,7 +30,7 @@
   <h2>The short version</h2>
   <ul>
     <li>We <strong>do not sell or share your personal information</strong>, and never have.</li>
-    <li>We run <strong>no advertising, no analytics and no tracking</strong> of any kind. There is no Google Analytics, no Meta Pixel, no TikTok tag, no session recorder.</li>
+    <li>We use <strong>no advertising trackers, ad pixels or behavioral analytics</strong>. When optional subscriptions are enabled, Apple and the subscription service process purchase and entitlement events as described below.</li>
     <li>We set <strong>no cookies.</strong> See the <a href="/legal/cookies.html">Cookies &amp; Local Storage</a> page for the short list of things we do store on your device.</li>
     <li>Your health entries are visible to <strong>you</strong>. They are not visible to other users, and there is no social or sharing feature.</li>
     <li>You can <strong>delete your account</strong> from Settings and request a copy of your account information through the privacy contact below. Some records are stored only on your device.</li>
@@ -107,7 +107,7 @@ Privacy contact: <a href="mailto:admin@daywoven.com"><span class="fill">admin@da
     </tr>
     <tr>
       <td><strong>Purchase records</strong></td>
-      <td>If you buy a subscription: your plan, its status and renewal dates. <strong>We never receive your card number.</strong> For iOS subscriptions, payments are processed through Apple's In-App Purchase system. We do not receive your card number.</td>
+      <td>If you purchase an optional iOS subscription, Apple handles payment and RevenueCat processes purchase status, receipts and entitlements associated with your app account identifier. We never receive your card number.</td>
       <td>The app store or payment processor</td>
     </tr>
     <tr>
@@ -173,7 +173,8 @@ Privacy contact: <a href="mailto:admin@daywoven.com"><span class="fill">admin@da
     <tr><td>Anthropic</td><td>Optional meal photo estimation</td><td>Only what a task needs: a meal photo and optional meal note you have consented to send.</td></tr>
     <tr><td>Open Food Facts</td><td>Packaged food and barcode database</td><td>A barcode number or a search term. No account identifier.</td></tr>
     <tr><td>USDA FoodData Central</td><td>Government food composition database</td><td>A search term. No account identifier.</td></tr>
-    <tr><td>Apple, Google</td><td>App distribution and, if you subscribe, payment</td><td>Whatever their own privacy policies describe. We receive a subscription status from them, never a card number.</td></tr>
+    <tr><td>Apple</td><td>iOS distribution and subscription billing</td><td>Apple handles purchase, tax and billing records under its own policies. Daywoven does not receive card details.</td></tr>
+    <tr><td>RevenueCat (when in-app subscriptions are enabled)</td><td>Subscription receipt validation, renewal status and entitlement management</td><td>App account identifier, purchase, receipt and entitlement information, and technical request information, subject to RevenueCat's privacy policy.</td></tr>
   </tbody>
 </table>
 </div>
@@ -188,10 +189,10 @@ Privacy contact: <a href="mailto:admin@daywoven.com"><span class="fill">admin@da
   <thead><tr><th scope="col">What</th><th scope="col">Kept for</th></tr></thead>
   <tbody>
     <tr><td>Your account and health history</td><td>As long as your account is open. This is your record; deleting it on a timer would break the product.</td></tr>
-    <tr><td>Account-owned database records after deletion</td><td>Removed when account deletion completes. Routine backups: <span class="fill">{{BACKUP_RETENTION}}</span>. Separately held legal records and provider logs require the retention arrangements below.</td></tr>
-    <tr><td>Meal photos</td><td>Not stored. Discarded as soon as the estimate comes back.</td></tr>
-    <tr><td>Technical logs</td><td><span class="fill">{{TECHNICAL_LOG_RETENTION}}</span></td></tr>
-    <tr><td>Account consent records</td><td>Removed with the account. Any separately retained legal records and their retention basis must be disclosed here: <span class="fill">{{LEGAL_RECORD_RETENTION}}</span>.</td></tr>
+    <tr><td>Account-owned database records after deletion</td><td>Removed when account deletion completes. The current Supabase Free plan does not include automated daily database backups. Any provider-side copies or separately created backups have their own lifecycle. We will update this notice if we enable additional backup systems.</td></tr>
+    <tr><td>Meal photos</td><td>Not stored as image files in our app database. If AI photo estimates are enabled and you consent, the selected image is transmitted to the model provider and may be temporarily processed or retained under that provider's applicable terms.</td></tr>
+    <tr><td>Technical logs</td><td>Supabase API and database log history is accessible for 1 day on the current Free plan. Cloudflare Workers Logs, when enabled on a Free plan, are retained for up to 3 days. Other infrastructure, security and processor records can have separate retention schedules.</td></tr>
+    <tr><td>Account consent records</td><td>Removed with the account. Any legally required records are retained only as needed to comply with the relevant obligation or resolve a dispute, then removed or de-identified when no longer needed.</td></tr>
   </tbody>
 </table>
 </div>
