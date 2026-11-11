@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BodyTooLargeError, readLimitedJson } from '../../supabase/functions/_shared/requestLimits';
 
-function harness(fetcher: typeof fetch, quota: { data: unknown; error: unknown } = { data: true, error: null }) {
+function harness(fetcher: typeof fetch, quota: { data: unknown; error: unknown } = { data: true, error: null }, membership: 'free_launch' | 'active' | 'subscription_required' | 'unavailable' = 'free_launch') {
   let handler: (request: Request) => Promise<Response>;
   const source = readFileSync(new URL('../../supabase/functions/photo-estimate/index.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -14,6 +14,7 @@ function harness(fetcher: typeof fetch, quota: { data: unknown; error: unknown }
     Deno: { env: { get: (key: string) => key === 'ANTHROPIC_API_KEY' ? 'test-only-key' : undefined }, serve: (fn: typeof handler) => { handler = fn; } },
     fetch: fetcher,
     require: (name: string) => name.includes('auth.ts') ? { authenticatedUser: async () => ({ id: 'synthetic-user' }), serviceClient: () => ({ rpc: async () => quota }) }
+      : name.includes('premiumAccess.ts') ? { premiumAccessForUser: async () => membership }
       : name.includes('cors.ts') ? { corsHeaders: {}, jsonResponse: (data: unknown, status = 200) => Response.json(data, { status }) }
       : { BodyTooLargeError, readLimitedJson }
   });
@@ -30,6 +31,15 @@ describe('photo edge input and provider boundaries without live services', () =>
     const fetcher = vi.fn<typeof fetch>();
     const response = await harness(fetcher, quota)(photoRequest());
     expect(response.status).toBe(status); expect(fetcher).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['subscription_required', 402],
+    ['unavailable', 503]
+  ] as const)('blocks expensive photo requests without server-approved membership', async (membership, status) => {
+    const fetcher = vi.fn<typeof fetch>();
+    const response = await harness(fetcher, { data: true, error: null }, membership)(photoRequest());
+    expect(response.status).toBe(status);
+    expect(fetcher).not.toHaveBeenCalled();
   });
   it('rejects oversized input before any paid provider call', async () => {
     const fetcher = vi.fn<typeof fetch>();
