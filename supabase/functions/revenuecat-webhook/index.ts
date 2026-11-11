@@ -60,6 +60,15 @@ Deno.serve(async request => {
   const uid = event?.app_user_id;
   if (typeof uid !== 'string' || !UUID.test(uid)) return jsonResponse({ error: 'invalid_event' }, 400);
 
+  // A customer may have deleted their Daywoven account before Apple or
+  // RevenueCat delivers a delayed renewal/cancellation event. Acknowledge it
+  // without re-creating an account or retrying forever on its deleted FK.
+  const admin = serviceClient();
+  const { data: profile, error: profileError } = await admin.from('profiles')
+    .select('id').eq('id', uid).maybeSingle();
+  if (profileError) return jsonResponse({ error: 'sync_unavailable' }, 503);
+  if (!profile) return jsonResponse({ received: true });
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT);
   try {
@@ -80,7 +89,7 @@ Deno.serve(async request => {
       result = verified;
     }
 
-    const { error } = await serviceClient().from('subscription_status').upsert({
+    const { error } = await admin.from('subscription_status').upsert({
       user_id: uid,
       revenuecat_customer_id: uid,
       entitlement: result.active ? entitlementId : null,
