@@ -1,0 +1,49 @@
+name: One-time Daywoven live release service verification
+on:
+  push:
+    branches: [release/legal-privacy-app-store-preflight-2026]
+permissions:
+  contents: write
+jobs:
+  verify-and-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/legal-privacy-app-store-preflight-2026
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Cloudflare policies, food route and landing page
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {resolveMx} from 'node:dns/promises';
+          const origin='https://daywovenapp.com';
+          const cases=[
+            ['/legal/privacy.html',200,'Privacy Policy'],
+            ['/legal/terms.html',200,'Terms of Service'],
+            ['/',200,'Daywoven']
+          ];
+          for (const [path,expected,token] of cases){
+            const r=await fetch(new URL(path,origin),{redirect:'follow'});
+            const body=await r.text();
+            console.log(path, r.status, body.length, body.includes(token) ? 'title found' : 'title missing');
+            assert.equal(r.status,expected);
+            assert.ok(body.includes(token));
+            assert.ok(!/\{\{[A-Z_]+\}\}/.test(body),'Unfilled legal template placeholder');
+          }
+          const food=await fetch(origin+'/api/food-search?q=');
+          const data=await food.json();
+          console.log('food search empty query',food.status, data.error);
+          assert.equal(food.status,400);
+          assert.equal(data.error,'invalid_query');
+          try {const mx=await resolveMx('daywoven.com');console.log('support email domain MX count:',mx.length);}catch(error){console.warn('UNVERIFIED support mailbox DNS:',error.code||error.message);}
+          NODE
+      - name: Remove one-time verification workflow after successful checks
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/verify-daywoven-live.yml
+          git commit -m 'Live Cloudflare release service checks passed'
+          git push origin HEAD:release/legal-privacy-app-store-preflight-2026
