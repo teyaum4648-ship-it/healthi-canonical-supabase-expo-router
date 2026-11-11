@@ -30,3 +30,6 @@ The marketing newsletter privacy page covers a different data flow. It cannot re
 Do not select “Data Not Collected” for account mode based on the local demo. Do not claim automated export from Settings; the current build provides deletion and describes export as a privacy-contact request. Operational fulfillment of such requests remains the owner's responsibility.
 
 SDK privacy manifests and App Privacy questionnaire answers are separate obligations. Generated native settings were inspected; final CocoaPods aggregation, archive manifests and SDK signatures still need a real native build.
+
+## Planned subscription data flow (RevenueCat, gated off until configured)
+The iOS purchase integration adds RevenueCat as the processor of App Store transaction receipts, entitlement identifiers, app user identifiers (Supabase UID), offering/product identifiers and subscription status. Before activating billing, update the published Privacy Policy and App Privacy disclosures to describe RevenueCat's role, user linkage, retention and data-handling. No customer payment-card data should be collected by Daywoven. RevenueCat SDK installation is not evidence that actual transactions have begun.

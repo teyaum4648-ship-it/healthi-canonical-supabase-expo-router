@@ -358,6 +358,11 @@ export default function SettingsScreen() {
           </Card>
 
           </Disclosure>
+          {mode === 'account' ? (
+            <View style={styles.trendsLink}>
+              <ActionRow title="Membership" detail="Plans, subscription status and restore purchases" icon="card-outline" onPress={() => router.push('/subscription')} last />
+            </View>
+          ) : null}
           <LegalLinks />
 
         <Disclosure title="Account and baseline" detail={model.account.label}>
