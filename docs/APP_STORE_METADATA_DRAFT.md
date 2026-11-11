@@ -44,3 +44,9 @@ Password recovery begins from the login screen. A reset email opens the app usin
 Only mention optional AI photo estimates in final metadata if the service/model is actually deployed and tested. The flow asks explicit permission before sending the chosen photo and optional note to Anthropic; users review estimates before saving.
 
 Owner must supply working review credentials through App Store Connect's private Review Information fields, never through this repository. Verify the backend is available throughout review.
+
+## November 10 launch update
+
+Planned launch territory: **United States** (Canada deferred). Seller/operator is an individual, not an assumed LLC. Contact inbox supplied by owner is `admin@daywoven.com`, but receiving mail has not been independently tested. Initial app is free to download; optional Apple IAP subscriptions require products, entitlements and purchase tests before launch. The postal address is intentionally withheld from this public repository and must be published through Cloudflare legal pages, with its EAS Sensitive verification variable configured.
+
+App Store Connect owner fields still must be completed: screenshots, demo login, export declaration, App Privacy (including RevenueCat purchase history/user ID **when enabled**), Paid Apps Agreement, bank/tax information, territories, pricing, subscription group and first subscription review alongside an app version. Draft is not an approved submission.
