@@ -75,7 +75,7 @@ const config: ExpoConfig = {
       '@kingstinct/react-native-healthkit',
       {
         NSHealthShareUsageDescription: 'daywoven reads your sleep and steps so your sleep rhythm and readiness can use what your phone already knows. Nights you log yourself always stay as you logged them.',
-        NSHealthUpdateUsageDescription: false,
+        NSHealthUpdateUsageDescription: 'daywoven uses Apple Health to read sleep and step data for personalized wellness insights. daywoven does not add to or change your Apple Health records.',
         background: false
       }
     ],
