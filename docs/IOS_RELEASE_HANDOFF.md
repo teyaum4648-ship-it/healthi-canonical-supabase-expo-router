@@ -29,7 +29,7 @@ Do not put secret values in Git or chat.
 | Hosting region, actual backup/log/legal-record retention, provider contracts | Supabase/Cloudflare/provider configuration and operating policy | Privacy policy and App Privacy answers |
 | Free or paid initial release | Product decision | Store pricing; digital paid features require the applicable purchase implementation |
 
-The current source contains no implemented paid subscription checkout, StoreKit purchase or restore flow. A paid-feature release needs that work; do not describe it as already available. The existing legal payment/refund text requires owner review.
+An optional RevenueCat-based iOS subscription screen and purchase/restore client are prepared in the release PR, with a disabled-by-default production toggle. **They are not yet a sellable offering**: Apple products and subscription group, RevenueCat app/offering/entitlement, native StoreKit testing, and real premium-feature enforcement remain required. Subscription activation without delivered paid benefits is prohibited. The existing legal payment/refund text requires owner review.
 
 ## Backend deployment order — separate approval and credentials required
 
@@ -69,3 +69,13 @@ The existing Expo project is `@tiamshinkais-team/daywoven` (`333c1832-f0a3-48e9-
 - Launch/crash/memory behavior in the release build; policy links and support email reachable from the actual device.
 
 These checks require a signed binary/device. They cannot be certified by browser or unit tests.
+
+## RevenueCat iOS subscription release checklist (not yet completed)
+
+- Sign up at RevenueCat, add Apple app bundle `com.daywovenapp.daywoven`, attach App Store Connect API credentials as requested, and create entitlement ID `pro`. Never add App Store Connect credentials or RevenueCat secret API keys to Expo public env variables.
+- In App Store Connect create subscription group and subscription products, pricing, territories, product descriptions and purchase review screenshots. Sign Apple's Paid Apps Agreement and complete applicable tax/banking forms.
+- Connect products to RevenueCat offering and entitlement. Add **public** Apple RevenueCat SDK key to EAS as `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` and `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=pro`.
+- Determine the paid feature benefits and implement their entitlement gates. Check any premium Edge Functions on the **server** against authoritative entitlements rather than trusting client-side flags. Free access must continue to work.
+- Only after all of the above and a successful physical iPhone purchase/restore/refund/expiry sandbox test: set `EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED=true` in EAS production and run a fresh signed native build. In Expo Go the mock RevenueCat SDK cannot process actual Apple payments.
+- Check purchase, declined purchase, cancellation, refund, restore, second-account sign-in, subscription expiration and airplane mode. Ensure not to show false paid status without a verified entitlement.
+- FIRST subscription/group submission must accompany a new app version in App Review per Apple. Release territory currently US only. Update data-processor and privacy disclosures to name RevenueCat when it is enabled.
