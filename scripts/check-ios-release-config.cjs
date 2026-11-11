@@ -42,8 +42,8 @@ if (!publicMailingAddress || publicMailingAddress.length < 10 || /placeholder|ex
 const unfinished = fs.readdirSync(legalDir).filter(file => {
   if (!file.endsWith('.html')) return false;
   const content = fs.readFileSync(path.join(legalDir, file), 'utf8');
-  const sanitized = content.replace(/\\{\\{BUSINESS_ADDRESS\\}\\}/g, publicMailingAddress);
-  return /\\{\\{[A-Z_]+\\}\\}/.test(sanitized);
+  const sanitized = content.replace(/\{\{BUSINESS_ADDRESS\}\}/g, publicMailingAddress);
+  return /\{\{[A-Z_]+\}\}/.test(sanitized);
 });
 if (unfinished.length) failures.push(`Finish factual legal documents: ${unfinished.join(', ')}.`);
 if (process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED === 'true') {
