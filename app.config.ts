@@ -28,7 +28,9 @@ const config: ExpoConfig = {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER || 'com.daywovenapp.daywoven'
+    bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER || 'com.daywovenapp.daywoven',
+    // Uses standard/exempt HTTPS/TLS encryption only; no custom non-exempt cryptography.
+    infoPlist: { ITSAppUsesNonExemptEncryption: false }
   },
   owner: process.env.EXPO_OWNER || 'tiamshinkais-team',
   extra: { eas: { projectId: process.env.EXPO_PROJECT_ID || '333c1832-f0a3-48e9-93a5-ae893e3bf6bd' } },
