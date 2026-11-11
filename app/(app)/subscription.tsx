@@ -149,7 +149,7 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
           <Text style={styles.heading}>Subscribe on our website</Text>
           <Text style={styles.body}>Choose a monthly or annual plan on Daywoven's secure website. Your purchase will be linked to this account and unlock Premium here after verification.</Text>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void startWebsiteCheckout()} style={[styles.button, busy && styles.buttonDisabled]}>
-            <Text style={styles.buttonText}>{busy ? 'Opening…' : 'See plans on Daywoven.com'}</Text>
+            <Text style={styles.buttonText}>{busy ? 'Opening…' : 'Choose plans on daywovenapp.com'}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void checkWebsitePurchase()} style={styles.secondary}>
             <Text style={styles.link}>I've paid on the website · Check my access</Text>
