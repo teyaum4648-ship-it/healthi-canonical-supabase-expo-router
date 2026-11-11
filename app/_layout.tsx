@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '../src/features/auth/AuthProvider';
+import { MembershipProvider } from '../src/features/subscriptions/MembershipProvider';
 import { colors } from '../src/styles/mobileTheme';
 
 /**
@@ -60,8 +61,10 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={navigationTheme}>
           <AuthProvider>
-            <Slot />
-            <StatusBar style="light" />
+            <MembershipProvider>
+              <Slot />
+              <StatusBar style="light" />
+            </MembershipProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

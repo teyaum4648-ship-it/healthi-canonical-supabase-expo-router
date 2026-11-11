@@ -22,6 +22,7 @@ import { onboardingV2FocusLabels, onboardingV2Welcome } from '../../src/features
 import { generateOnboardingV2Result } from '../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2Result } from '../../src/features/onboarding/onboardingV2Types';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
+import { subscriptionsEnabled } from '../../src/features/subscriptions/revenuecat';
 import { colors, fonts, radii, spacing, glassSurface } from '../../src/styles/mobileTheme';
 import type {
   BiweeklyFocusProfile,
@@ -285,6 +286,7 @@ export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [focusProfile, setFocusProfile] = useState<BiweeklyFocusProfile | null>(null);
   const [setupResult, setSetupResult] = useState<OnboardingV2Result | null>(null);
+  const [resultStage, setResultStage] = useState<'baseline' | 'focus'>('baseline');
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const step = onboardingSteps[Math.min(currentIndex, onboardingSteps.length - 1)];
@@ -526,7 +528,7 @@ export default function OnboardingScreen() {
 
   async function handleContinueFromFocus() {
     await refreshProfile();
-    router.replace('/(app)/(tabs)');
+    router.replace(subscriptionsEnabled && mode === 'account' ? '/paywall' : '/(app)/(tabs)');
   }
 
   function renderAnswerControl(question: OnboardingQuestion) {
@@ -679,7 +681,7 @@ export default function OnboardingScreen() {
     );
   }
 
-  if (focusProfile && !setupResult) {
+  if (focusProfile && resultStage === 'focus') {
     const topReasons =
       focusProfile.top_limiting_factors.length > 0
         ? focusProfile.top_limiting_factors
@@ -746,7 +748,7 @@ export default function OnboardingScreen() {
           </Text>
         </Card>
 
-        <Button label="Continue" onPress={handleContinueFromFocus} />
+        <Button label={subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'} onPress={handleContinueFromFocus} />
       </Screen>
     );
   }
@@ -801,7 +803,7 @@ export default function OnboardingScreen() {
           </Text>
         </Card>
 
-        <Button label="Continue to daywoven" onPress={handleContinueFromFocus} />
+        <Button label="See my full score and two-week focus" onPress={() => setResultStage('focus')} />
       </Screen>
     );
   }

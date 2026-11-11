@@ -8,7 +8,7 @@ import { useAuth } from '../../src/features/auth/AuthProvider';
 import { getSubscriptionCatalog, buySubscription, restoreSubscriptions } from '../../src/features/subscriptions/revenuecat';
 import { colors, fonts, spacing } from '../../src/styles/mobileTheme';
 
-export default function SubscriptionScreen() {
+export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolean; onUnlocked?: () => Promise<boolean> }) {
   const { user, mode } = useAuth();
   const [enabled, setEnabled] = useState(false);
   const [active, setActive] = useState(false);
@@ -49,7 +49,10 @@ export default function SubscriptionScreen() {
     setError('');
     try {
       const unlocked = await buySubscription(user.id, selectedPackage);
-      if (unlocked) setActive(true);
+      if (unlocked) {
+        setActive(true);
+        if (onUnlocked && !(await onUnlocked())) setError('Your Apple purchase is recorded, but access has not been verified by the server yet. Retry Restore purchases.');
+      }
       else setError('The purchase was not confirmed. No premium access has been granted.');
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : 'Payment was not completed.';
@@ -65,7 +68,11 @@ export default function SubscriptionScreen() {
     try {
       const unlocked = await restoreSubscriptions(user.id);
       setActive(unlocked);
-      Alert.alert('Restore purchases', unlocked ? 'Your active subscription was restored.' : 'No active subscription was found for this Apple Account.');
+      if (unlocked && onUnlocked && !(await onUnlocked())) {
+        setError('Your subscription was restored with Apple, but server verification has not completed. Please retry.');
+      } else {
+        Alert.alert('Restore purchases', unlocked ? 'Your active subscription was restored.' : 'No active subscription was found for this Apple Account.');
+      }
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not restore purchases.');
     } finally { setBusy(false); }
@@ -73,12 +80,12 @@ export default function SubscriptionScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
+      {!gated ? <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
         <Text style={styles.link}>‹ Back to settings</Text>
-      </Pressable>
+      </Pressable> : null}
       <Text style={styles.eyebrow}>DAYWOVEN</Text>
-      <Text style={styles.title}>Membership</Text>
-      <Text style={styles.body}>Daywoven is free to download. An optional membership may unlock additional features once they are announced in the app.</Text>
+      <Text style={styles.title}>{gated ? 'Your next chapter starts here' : 'Membership'}</Text>
+      <Text style={styles.body}>{gated ? 'You’ve completed your free baseline and seen your personal results. Subscribe to continue with your day-by-day wellness plan, meal and sleep tracking, movement tools and progress insights.' : 'Daywoven is free to download. Membership gives access to your personalized daily wellness tools.'}</Text>
 
       {loading ? <ActivityIndicator color={colors.accent} /> : null}
       {active ? <View style={styles.panel}><Text style={styles.heading}>Premium active</Text><Text style={styles.body}>Your Apple subscription is active.</Text></View> : null}
@@ -149,3 +156,7 @@ const styles = StyleSheet.create({
   link: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 15 },
   footer: { gap: 10, marginTop: 16 }
 });
+
+export default function SubscriptionScreen() {
+  return <MembershipScreen />;
+}
