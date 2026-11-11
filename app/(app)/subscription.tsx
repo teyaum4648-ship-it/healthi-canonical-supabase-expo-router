@@ -5,11 +5,20 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 
 import { useAuth } from '../../src/features/auth/AuthProvider';
+import { supabase } from '../../src/lib/supabase';
+import { useMembership } from '../../src/features/subscriptions/MembershipProvider';
 import { getSubscriptionCatalog, buySubscription, restoreSubscriptions } from '../../src/features/subscriptions/revenuecat';
 import { colors, fonts, spacing } from '../../src/styles/mobileTheme';
 
+// This is a US-first release; enable external web checkout only for a reviewed
+// US App Store distribution. Storefront-specific policy must be revisited before
+// releasing the iOS app in any additional country.
+const websiteCheckoutEnabled = process.env.EXPO_PUBLIC_WEB_CHECKOUT_ENABLED === 'true'
+  && process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED === 'true';
+
 export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolean; onUnlocked?: () => Promise<boolean> }) {
   const { user, mode } = useAuth();
+  const { refreshMembership } = useMembership();
   const [enabled, setEnabled] = useState(false);
   const [active, setActive] = useState(false);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
@@ -18,6 +27,7 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const canBuyNative = Constants.appOwnership !== 'expo';
+  const webCheckoutAvailable = websiteCheckoutEnabled && mode === 'account' && Boolean(user?.id);
 
   useEffect(() => {
     let live = true;
@@ -42,6 +52,50 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
   }, [mode, user?.id]);
 
   const selectedPackage = packages.find(item => item.identifier === selected);
+
+  async function startWebsiteCheckout() {
+    if (!webCheckoutAvailable || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      // The server authenticates the actual logged-in Supabase user, then
+      // mints a short-lived signed browser session. It never accepts a user ID
+      // supplied by this button or generates a checkout URL in the app.
+      const { data, error: checkoutError } = await supabase.functions.invoke('web-checkout', {
+        method: 'POST',
+        body: {}
+      });
+      if (checkoutError || typeof data?.url !== 'string') {
+        throw new Error('Website checkout is not activated yet. Please try again later.');
+      }
+      const checkoutUrl = new URL(data.url);
+      if (checkoutUrl.origin !== 'https://daywovenapp.com'
+          || checkoutUrl.pathname !== '/pricing'
+          || !checkoutUrl.searchParams.get('session')) {
+        throw new Error('The checkout link could not be verified.');
+      }
+      await Linking.openURL(checkoutUrl.toString());
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could not open website checkout.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function checkWebsitePurchase() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const unlocked = await (onUnlocked ? onUnlocked() : refreshMembership());
+      setActive(unlocked);
+      if (!unlocked) setError('We have not verified an active Daywoven membership yet. If you just paid, return to the app after checkout and try again.');
+    } catch {
+      setError('Unable to verify your subscription. Please try again when connected.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function purchase() {
     if (!user?.id || !selectedPackage || busy || !canBuyNative) return;
@@ -88,13 +142,26 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
       <Text style={styles.body}>{gated ? 'You’ve completed your free baseline and seen your personal results. Subscribe to continue with your day-by-day wellness plan, meal and sleep tracking, movement tools and progress insights.' : 'Daywoven is free to download. Membership gives access to your personalized daily wellness tools.'}</Text>
 
       {loading ? <ActivityIndicator color={colors.accent} /> : null}
-      {active ? <View style={styles.panel}><Text style={styles.heading}>Premium active</Text><Text style={styles.body}>Your Apple subscription is active.</Text></View> : null}
+      {active ? <View style={styles.panel}><Text style={styles.heading}>Premium active</Text><Text style={styles.body}>Your Daywoven subscription is active.</Text></View> : null}
+
+      {webCheckoutAvailable && !active ? (
+        <View style={styles.webPanel}>
+          <Text style={styles.heading}>Subscribe on our website</Text>
+          <Text style={styles.body}>Choose a monthly or annual plan on Daywoven’s secure website. Your purchase will be linked to this account and unlock Premium here after verification.</Text>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => void startWebsiteCheckout()} style={[styles.button, busy && styles.buttonDisabled]}>
+            <Text style={styles.buttonText}>{busy ? 'Opening…' : 'Choose plans on daywovenapp.com'}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => void checkWebsitePurchase()} style={styles.secondary}>
+            <Text style={styles.link}>I’ve paid on the website · Check my access</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {!enabled ? <Text style={styles.notice}>In-app subscriptions are not available yet. Your free features remain available.</Text> : null}
       {enabled && !packages.length && !active && !loading ? <Text style={styles.notice}>No subscription plans are available to purchase right now.</Text> : null}
 
       {enabled && packages.length > 0 && !active ? (
         <View style={styles.panel}>
-          <Text style={styles.heading}>Available plans</Text>
+          <Text style={styles.heading}>{webCheckoutAvailable ? 'Or subscribe through Apple' : 'Available plans'}</Text>
           <Text style={styles.body}>Review the benefits, price, and renewal terms before subscribing. Payments are processed by Apple.</Text>
           {packages.map(item => (
             <Pressable
@@ -125,9 +192,10 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
         <Text style={styles.link}>Restore purchases</Text>
       </Pressable>
       <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')} style={styles.secondary}>
-        <Text style={styles.link}>Manage subscription with Apple</Text>
+        <Text style={styles.link}>Manage Apple-billed subscription</Text>
       </Pressable>
       <View style={styles.footer}>
+        {webCheckoutAvailable ? <Text style={styles.body}>Subscriptions purchased on our website are billed and managed through our web checkout provider, not Apple’s subscription settings. Use the billing-management link in your purchase confirmation.</Text> : null}
         <Text style={styles.body}>Auto-renewing subscriptions continue until cancelled. Subscription pricing, duration, and applicable terms are shown before purchase. You can cancel in Apple Account settings.</Text>
         <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://daywovenapp.com/legal/terms.html')}><Text style={styles.link}>Terms of Service</Text></Pressable>
         <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://daywovenapp.com/legal/privacy.html')}><Text style={styles.link}>Privacy Policy</Text></Pressable>
@@ -143,6 +211,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontFamily: fonts.display, fontSize: 35 },
   body: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   panel: { backgroundColor: colors.surfaceInset, borderRadius: 16, gap: 12, padding: 20 },
+  webPanel: { backgroundColor: colors.surfaceInset, borderRadius: 16, gap: 14, padding: 20, borderColor: colors.accent, borderWidth: 1 },
   heading: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 19 },
   plan: { borderColor: colors.borderStrong, borderRadius: 12, borderWidth: 1, gap: 4, padding: 12 },
   planSelected: { borderColor: colors.accent },

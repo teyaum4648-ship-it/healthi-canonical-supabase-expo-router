@@ -51,6 +51,10 @@ if (process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED === 'true') {
   if (!/^appl_[A-Za-z0-9]+$/.test(publicRevenueCatKey)) failures.push('Enabled iOS subscriptions require a platform-specific public RevenueCat Apple SDK key.');
   if (!process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID) failures.push('Set EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID for enabled subscriptions.');
 }
+if (process.env.EXPO_PUBLIC_WEB_CHECKOUT_ENABLED === 'true') {
+  if (process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'true') failures.push('Web checkout needs EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED=true and server-authorized premium access.');
+  if (!['https://daywovenapp.com', 'https://daywovenapp.com/'].includes(process.env.EXPO_PUBLIC_SITE_URL || '')) failures.push('Web checkout is restricted to the verified daywovenapp.com pricing host.');
+}
 if (failures.length) {
   console.error('iOS release configuration is incomplete:');
   failures.forEach(message => console.error(`- ${message}`));

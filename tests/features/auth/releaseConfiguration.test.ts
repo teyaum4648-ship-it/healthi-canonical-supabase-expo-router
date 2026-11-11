@@ -32,5 +32,21 @@ describe('iOS release configuration guard (synthetic configuration only)', () =>
   it('accepts a supplied mailing address for a policy-only placeholder', () => {
     expect(check({}, '<p>{{BUSINESS_ADDRESS}}</p>').status).toBe(0);
   });
+  it('does not allow website checkout without active subscription enforcement', () => {
+    const result = check({ EXPO_PUBLIC_WEB_CHECKOUT_ENABLED: 'true', EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED: 'false' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Web checkout needs');
+  });
+  it('rejects a website checkout switch pointed at a different host', () => {
+    const result = check({
+      EXPO_PUBLIC_WEB_CHECKOUT_ENABLED: 'true',
+      EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true',
+      EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: 'appl_fixturepublickey12345',
+      EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID: 'pro',
+      EXPO_PUBLIC_SITE_URL: 'https://other.example.org'
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('daywovenapp.com');
+  });
   it('blocks unfinished legal facts', () => { const result = check({}, '{{LEGAL_ENTITY}}'); expect(result.status).toBe(1); expect(result.stderr).toContain('privacy.html'); });
 });
