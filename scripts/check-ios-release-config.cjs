@@ -33,8 +33,24 @@ try {
 if (!publicKey || /your-public|placeholder/i.test(key)) failures.push('Configure the public Supabase anon/publishable key.');
 if (privileged) failures.push('A privileged Supabase credential must never be an EXPO_PUBLIC value. Remove it and rotate it through your backend provider.');
 const legalDir = path.join(process.cwd(), 'public/legal');
-const unfinished = fs.readdirSync(legalDir).filter(file => file.endsWith('.html') && /\{\{[A-Z_]+\}\}/.test(fs.readFileSync(path.join(legalDir, file), 'utf8')));
+// The public mailing address is intentionally excluded from public Git history.
+// EAS receives it as a Sensitive build variable; the completed policy is served by Cloudflare.
+const publicMailingAddress = process.env.DAYWOVEN_PUBLIC_MAILING_ADDRESS?.trim() || '';
+if (!publicMailingAddress || publicMailingAddress.length < 10 || /placeholder|example/i.test(publicMailingAddress)) {
+  failures.push('Configure DAYWOVEN_PUBLIC_MAILING_ADDRESS as a Sensitive EAS production variable; it must match the public legal policy.');
+}
+const unfinished = fs.readdirSync(legalDir).filter(file => {
+  if (!file.endsWith('.html')) return false;
+  const content = fs.readFileSync(path.join(legalDir, file), 'utf8');
+  const sanitized = content.replace(/\\{\\{BUSINESS_ADDRESS\\}\\}/g, publicMailingAddress);
+  return /\\{\\{[A-Z_]+\\}\\}/.test(sanitized);
+});
 if (unfinished.length) failures.push(`Finish factual legal documents: ${unfinished.join(', ')}.`);
+if (process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED === 'true') {
+  const publicRevenueCatKey = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY || '';
+  if (!/^appl_[A-Za-z0-9]+$/.test(publicRevenueCatKey)) failures.push('Enabled iOS subscriptions require a platform-specific public RevenueCat Apple SDK key.');
+  if (!process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID) failures.push('Set EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID for enabled subscriptions.');
+}
 if (failures.length) {
   console.error('iOS release configuration is incomplete:');
   failures.forEach(message => console.error(`- ${message}`));
