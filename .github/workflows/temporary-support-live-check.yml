@@ -1,0 +1,40 @@
+name: Temporary live support page verification
+on:
+  push:
+    branches:
+      - verify/support-live-20261111
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live support, existing pages, and contact email
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const origin = 'https://daywovenapp.com';
+          async function get(path) {
+            const res = await fetch(origin + path);
+            const text = await res.text();
+            console.log(path, res.status, res.headers.get('content-type'), text.length);
+            return { res, text };
+          }
+          const support = await get('/support');
+          assert.equal(support.res.status, 200);
+          assert.match(support.res.headers.get('content-type'), /text\/html/i);
+          for (const s of ['Support | Daywoven', 'How can we', 'id="delete-account"', 'id="cancel"', 'id="refund"', 'id="restore"', 'id="help-query"', 'admin@daywovenapp.com', 'support-hero']) assert.ok(support.text.includes(s), 'Missing '+s);
+          assert.ok(!support.text.includes('admin@daywoven.com'), 'Old email persists');
+          assert.ok(!support.text.includes('src="/support.js"'), 'Script is not inline');
+          assert.ok(!support.text.includes('href="/style.css"'), 'CSS is not inline');
+          for (const path of ['/support/','/support.html']) assert.equal((await get(path)).res.status, 200);
+          const www = await fetch('https://www.daywovenapp.com/support');
+          assert.equal(www.status, 200);
+          assert.ok((await www.text()).includes('admin@daywovenapp.com'));
+          for (const path of ['/', '/pricing', '/legal/privacy.html', '/legal/terms.html']) assert.equal((await get(path)).res.status, 200, path);
+          const food = await get('/api/food-search?q=');
+          assert.equal(food.res.status, 400);
+          const payload = JSON.parse(food.text);
+          assert.equal(payload.error, 'invalid_query');
+          console.log('PASS: live support page and existing Daywoven routes');
+          NODE
