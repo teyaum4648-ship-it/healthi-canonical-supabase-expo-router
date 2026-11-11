@@ -1,6 +1,7 @@
 import { authenticatedUser, serviceClient } from '../_shared/auth.ts';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import { BodyTooLargeError, readLimitedJson } from '../_shared/requestLimits.ts';
+import { premiumAccessForUser } from '../_shared/premiumAccess.ts';
 
 /**
  * Estimates the foods in a meal photo.
@@ -108,6 +109,16 @@ Deno.serve(async (request) => {
       detail: 'Photo estimates are not switched on for this deployment.'
     });
   }
+
+  // Premium API costs are authorized on the server, not by a client-provided
+  // entitlement flag. When billing launches, expired/free accounts cannot spend
+  // provider quota. While billing is disabled, the existing demo behavior stays.
+  const premium = await premiumAccessForUser(user.id);
+  if (premium === 'unavailable') return jsonResponse({ error: 'billing_temporarily_unavailable' }, 503);
+  if (premium === 'subscription_required') return jsonResponse({
+    error: 'subscription_required',
+    detail: 'An active Daywoven subscription is required for photo estimates.'
+  }, 402);
 
   let body: RequestBody | null = null;
   try { body = await readLimitedJson(request, MAX_REQUEST_BYTES) as RequestBody | null; } catch (error) {
