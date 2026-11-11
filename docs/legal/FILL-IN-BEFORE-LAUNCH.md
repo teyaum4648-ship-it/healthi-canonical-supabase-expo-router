@@ -8,6 +8,16 @@ on.
 
 Find them all: `grep -ro '{{[A-Z_]*}}' public/legal/ | sort -u`
 
+## Minimum public iOS v1 launch decisions (verified 2026-11-10)
+
+- **Confirmed:** Supabase project `lhqpexnepgvuohmhltnr` is hosted in AWS `us-east-2` (Ohio). The privacy draft now states this directly.
+- **Not confirmed:** the actual legal operator and safe public mailing address. Individual Apple Developer enrollment is not proof that an LLC operates the service. Use the actual operator and a postal address you're comfortable publishing, and check what law requires.
+- **Not confirmed:** working public support/privacy/security/legal/accessibility inboxes. They can route to one inbox, but test delivery. Do not invent email aliases.
+- **Not confirmed:** backup, technical-log, and legal-record retention periods. Confirm these before making a retention promise.
+- **Not decided:** first-release pricing. The current terms/refunds describe subscriptions and direct web sales even though the repository has no subscription checkout. If v1 is a paid App Store download, revise those statements to match that model and Apple's actual refund process before publishing.
+- **Publishing destination:** `https://daywovenapp.com/legal/privacy.html` and `/legal/terms.html`. They must resolve to these *full app* policies, not just the newsletter privacy page.
+- **Release gate:** do not deploy these drafts or submit the app with `{{PLACEHOLDERS}}` or unverified claims. Review health-data privacy obligations and Apple disclosures for the actual launch territory.
+
 ## The placeholders
 
 | Placeholder | What it is | Notes |
@@ -20,7 +30,7 @@ Find them all: `grep -ro '{{[A-Z_]*}}' public/legal/ | sort -u`
 | `{{SECURITY_EMAIL}}` | Vulnerability reports | `security@` |
 | `{{LEGAL_EMAIL}}` | Legal notices, arbitration opt-outs | `legal@` |
 | `{{ACCESSIBILITY_EMAIL}}` | Accessibility barrier reports | Can alias to support, but it must be listed separately — that it exists is part of the defence. |
-| `{{SUPABASE_REGION}}` | Where the data physically sits | Read it off your Supabase project settings, e.g. `us-west-1`. |
+| `{{SUPABASE_REGION}}` | Where the data physically sits | **Verified:** the connected Daywoven Supabase project is in AWS `us-east-2` (Ohio). This is already filled in within the privacy draft. Recheck if hosting changes. |
 | `{{PAYMENT_PROCESSOR}}` | Only if you sell directly from the web | Delete the clause entirely if you only sell through Apple and Google. |
 
 All five addresses may forward to one inbox. They must all actually receive mail — a
