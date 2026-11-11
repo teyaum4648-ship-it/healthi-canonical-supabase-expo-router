@@ -80,7 +80,19 @@ header.masthead {
   gap: 12px;
   margin-bottom: 20px;
 }
-.brand img { border-radius: 9px; height: 32px; width: 32px; }
+/* Inline Daywoven monogram: no missing /icons asset dependency. */
+.brandmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #283243;
+  color: #F3DBCA;
+  border-radius: 9px;
+  height: 32px;
+  width: 32px;
+  font: 28px/1 Georgia, serif;
+  flex-shrink: 0;
+}
 .brand a {
   color: var(--ink);
   font-size: 17px;
