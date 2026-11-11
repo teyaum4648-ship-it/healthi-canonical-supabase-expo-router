@@ -53,7 +53,7 @@ if (process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED === 'true') {
 }
 if (process.env.EXPO_PUBLIC_WEB_CHECKOUT_ENABLED === 'true') {
   if (process.env.EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'true') failures.push('Web checkout needs EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED=true and server-authorized premium access.');
-  if ((process.env.EXPO_PUBLIC_SITE_URL || '').replace(/\\/$/, '') !== 'https://daywovenapp.com') failures.push('Web checkout is restricted to the verified daywovenapp.com pricing host.');
+  if (!['https://daywovenapp.com', 'https://daywovenapp.com/'].includes(process.env.EXPO_PUBLIC_SITE_URL || '')) failures.push('Web checkout is restricted to the verified daywovenapp.com pricing host.');
 }
 if (failures.length) {
   console.error('iOS release configuration is incomplete:');
