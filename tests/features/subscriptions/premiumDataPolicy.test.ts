@@ -17,7 +17,7 @@ describe('premium write policies and safe billing launch', () => {
     expect(migration).toContain("s.entitlement = 'pro'");
     expect(migration).toContain("s.status = 'active'");
     expect(migration).toContain('s.current_period_end > now()');
-    expect(migration).not.toContain('raw_user_meta_data');
+    expect(migration).not.toContain('auth.jwt()');
   });
 
   it('protects all primary logged experiences without locking onboarding, privacy, or account data', () => {
