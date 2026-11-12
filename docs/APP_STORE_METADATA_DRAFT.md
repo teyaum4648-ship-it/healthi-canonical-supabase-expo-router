@@ -1,6 +1,6 @@
 # App Store Connect draft — owner review required
 
-Name: **Daywoven**
+Name: **Daywoven: Daily Wellness**
 
 Subtitle: **Your daily wellness rhythm**
 
@@ -33,6 +33,12 @@ Daywoven provides general wellness guidance, not diagnosis or treatment. Estimat
 - Export compliance: verify the final binary and applicable encryption exemptions. Source uses HTTPS and platform secure storage; no completed Apple declaration is verified here.
 - Screenshots: signed-app iPhone and iPad captures in the current required slots. No final submission screenshots were produced here.
 
+## Reviewer account and test status (November 12, 2026)
+
+- Supabase reviewer email: `apple-review@daywovenapp.com`. Email is confirmed, user is not banned, and onboarding has not started. A successful real-device login is **not yet verified**. Enter the password privately in App Store Connect only, never in GitHub.
+- The installed RevenueCat SDK is **not** evidence that subscriptions are live. Keep billing switches disabled until purchase and restore testing passes.
+- A signed iOS build succeeded, but the first Apple upload was rejected for a missing HealthKit purpose string. The source now contains the correction; Apple acceptance of the replacement binary is not independently confirmed.
+
 ## Reviewer notes draft
 
 Daywoven is a general wellness app. Its readiness and guidance calculations use deterministic rules and display uncertainty when inputs are incomplete. Camera, photo library and Apple Health access are optional; manual entry is available. Health integration reads sleep and steps and does not write Health data.
@@ -47,6 +53,6 @@ Owner must supply working review credentials through App Store Connect's private
 
 ## November 10 launch update
 
-Planned launch territory: **United States** (Canada deferred). Seller/operator is an individual, not an assumed LLC. Contact inbox supplied by owner is `admin@daywoven.com`, but receiving mail has not been independently tested. Initial app is free to download; optional Apple IAP subscriptions require products, entitlements and purchase tests before launch. The postal address is intentionally withheld from this public repository and must be published through Cloudflare legal pages, with its EAS Sensitive verification variable configured.
+Planned launch territory: **United States** (Canada deferred). Seller/operator is an individual, not an assumed LLC. The current public support route lists `admin@daywovenapp.com`, but successful receipt of messages has not been independently tested. Initial app is free to download; optional Apple IAP subscriptions require products, entitlements and purchase tests before launch. The postal address is intentionally withheld from this public repository and must be published through Cloudflare legal pages, with its EAS Sensitive verification variable configured.
 
 App Store Connect owner fields still must be completed: screenshots, demo login, export declaration, App Privacy (including RevenueCat purchase history/user ID **when enabled**), Paid Apps Agreement, bank/tax information, territories, pricing, subscription group and first subscription review alongside an app version. Draft is not an approved submission.
