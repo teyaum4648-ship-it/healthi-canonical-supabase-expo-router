@@ -63,7 +63,7 @@ For premium database writes, the trusted-admin setting `public.billing_gate_sett
 - On a disposable real signed iPhone/RevenueCat test account, verify month/year web checkout, web return, user identity link, customer portal cancellation, renewal, refund, second-device sign-in and expired entitlements. Confirm Apple fallback checkout still works.
 - Validate purchase success does **not** silently grant access from a client flag: `subscription-access` must verify it from RevenueCat. A delayed webhook should not recreate deleted accounts.
 - Don't paste Stripe credentials, RevenueCat secret keys, or the short-lived checkout URL into bug reports or source control. A signed session is a temporary bearer credential.
-- Real payments may require business identity verification, bank details, tax configuration and owner review of the final refund and privacy terms. The provided support email `admin@daywoven.com` was **not** verified as accepting messages and remains a separate public launch blocker.
+- Real payments may require business identity verification, bank details, tax configuration and owner review of the final refund and privacy terms. The support email used by the current public support route, `admin@daywovenapp.com`, has **not** been verified as accepting messages and remains a separate public launch blocker.
 
 Official docs: https://www.revenuecat.com/docs/web/web-billing/web-purchase-links ; https://www.revenuecat.com/docs/web/web-billing/customer-portal ; https://developer.apple.com/app-store/review/guidelines/
 
