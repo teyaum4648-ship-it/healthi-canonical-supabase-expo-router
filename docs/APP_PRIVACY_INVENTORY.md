@@ -14,7 +14,7 @@ Based on current source, 2026-11-09. These are facts to reconcile with deployed 
 | Durable photo quota | Identifiers / Usage Data as applicable | Account UUID, UTC day, attempted request count. Backend-only access; removed by account deletion |
 | Hosting/auth/provider operational logs | Diagnostics / Identifiers as applicable | Confirm fields, retention and linkage in actual service configurations |
 
-No advertising identifier, ad SDK, cross-app tracking flow or implemented payment SDK was found in the reviewed source. This does not prove the absence of provider-side collection or future configuration. ATT is required if tracking is introduced; do not add a tracking prompt solely because HealthKit is used.
+No advertising identifier, ad SDK, or cross-app tracking flow was found in the reviewed source. The RevenueCat purchase SDK is now installed but billing remains disabled by default. Its presence must be reflected in the App Privacy review before subscriptions are activated. This does not prove the absence of provider-side collection or future configuration. ATT is required if tracking is introduced; do not add a tracking prompt solely because HealthKit is used.
 
 The marketing newsletter privacy page covers a different data flow. It cannot replace this application's full policy.
 
