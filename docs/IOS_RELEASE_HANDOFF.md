@@ -1,6 +1,6 @@
 # Daywoven iOS release handoff
 
-Updated 2026-11-09. This is a release worksheet, not submission approval.
+Updated 2026-11-12. This is a release worksheet, not submission approval.
 
 ## What is ready in source
 
@@ -40,7 +40,7 @@ An optional RevenueCat-based iOS subscription screen and purchase/restore client
 5. With two expendable test accounts, test signup, confirmation, password reset, login/logout, onboarding persistence, and account isolation. Test wrong-password deletion first; only then explicitly delete the designated test account and verify the other account survives. This procedure has not been run against production.
 6. Check that no consumer upload/storage ownership can block hard deletion. Current meal-photo flow does not upload retained photo files. Internal reviewer-owned storage objects may need separate handling.
 7. Confirm the photo provider model exists for your account, configure provider-level spend alerts/budget, and verify quota failure paths. The quota is per account; it does not cap global spending across newly created accounts.
-8. Publish completed legal documents to the actual policy host and check them without authentication. A curl check confirmed `https://daywovenapp.com/legal/privacy.html` and `/legal/terms.html` return 404. The older demo URL returned 200 but no usable policy body was verified. Do not configure a missing page as the App Store privacy URL.
+8. Publish completed legal documents to the actual policy host and check them without authentication. Cloudflare now has active `daywoven-legal` Worker routes for `daywovenapp.com/legal*` (including www). This verifies routing configuration, **not** the actual public HTTP response or finished content. Do not enter the privacy URL into App Store Connect until the live HTML returns correctly.
 9. With production `EXPO_PUBLIC_SITE_URL` and `EXPO_PUBLIC_FOOD_SEARCH_URL` loaded, run `npm run check:ios-public-services`. This read-only probe checks the published **full-app** privacy and terms pages for 200/HTML/no unfinished placeholders. It also checks that the food-search API responds with its known validation error to an empty query, without calling paid providers. A marketing-site homepage or a generic 404 must not count as a working API. If the public policies and food-search Worker live on different domains, set the food-search URL to an absolute HTTPS endpoint.
 
 ## Build and submission steps
@@ -48,11 +48,11 @@ An optional RevenueCat-based iOS subscription screen and purchase/restore client
 The existing Expo project is `@tiamshinkais-team/daywoven` (`333c1832-f0a3-48e9-93a5-ae893e3bf6bd`). Its Expo slug is `daywoven`; the native auth URL scheme intentionally stays `healthi`. After syncing this config, run `npx eas-cli@latest project:info` from the repository to confirm the link. Do not run `eas init --force` or create a replacement project.
 
 1. Finish the owner facts above. Set EAS production environment values; set `EXPO_PUBLIC_DEMO_MODE=false`. Use the registered identifiers, never the disposable test identifier from the audit.
-2. Run `npm ci`, `npm run typecheck`, `npm test`, `npm run lint`, `npx expo install --check`, `npm run check:ios-release-config`, and `npm run check:ios-public-services` with the production environment loaded. The two iOS preflight checks currently fail intentionally until required facts/settings are supplied and the public services are actually deployed.
-3. Sign into your actual Expo account, associate the project, and authorize a production iOS EAS build: `eas build --platform ios --profile production`. No such build was started here. Apple requires Xcode 26+/iOS 26 SDK+ for current uploads; verify the selected builder's actual version.
+2. Run `npm ci`, `npm run typecheck`, `npm test`, `npm run lint`, `npx expo install --check`, `npm run check:ios-release-config`, and `npm run check:ios-public-services` with the production environment loaded. The local release-configuration preflight passed with the six EAS production variables on November 11. The public-services preflight remains to be verified against the live site.
+3. Sign into your actual Expo account, associate the project, and authorize a production iOS EAS build: `eas build --platform ios --profile production`. A production EAS iOS IPA build succeeded. Apple rejected the first upload due to a missing HealthKit update usage description (ITMS-90683). The source fix was committed in `e54ee6ed7eeeddc32342b7cd06f8c569e8907c10`; a replacement build must be uploaded and processed by Apple before calling TestFlight ready. Verify the selected builder's actual Xcode/iOS SDK.
 4. Inspect native build logs and the archive: correct bundle/version/team, HealthKit capability, camera/photos purpose strings, SDK privacy manifests and required reasons, SDK signatures, export-compliance answers and entitlements. A prebuild or Hermes export is not an archive.
 5. Install a signed release build on a real iPhone. Test the checklist below. Test iPad while `supportsTablet` remains true.
-6. Create/finish App Store Connect metadata using `APP_STORE_METADATA_DRAFT.md` as a draft. Finish App Privacy using `APP_PRIVACY_INVENTORY.md` and real provider settings.
+6. Create/finish App Store Connect metadata for the current record **Daywoven: Daily Wellness** using `APP_STORE_METADATA_DRAFT.md` as a draft. Finish App Privacy using `APP_PRIVACY_INVENTORY.md` and real provider settings.
 7. Capture screenshots from the signed app using test data at Apple's current required iPhone/iPad sizes. Browser captures are not signed-device evidence.
 8. After upload approval, use EAS Submit or Transporter to upload the tested binary. Wait for Apple's processing and address errors. TestFlight upload is separate from public release.
 9. Provide a stable reviewer test account and working backend, add review notes, choose manual release if desired, and explicitly authorize submission. Submit only after the required checks and fields are complete.
