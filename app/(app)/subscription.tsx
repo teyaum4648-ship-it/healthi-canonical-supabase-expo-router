@@ -18,22 +18,27 @@ const websiteCheckoutEnabled = process.env.EXPO_PUBLIC_WEB_CHECKOUT_ENABLED === 
 
 export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolean; onUnlocked?: () => Promise<boolean> }) {
   const { user, mode } = useAuth();
-  const { refreshMembership } = useMembership();
+  const { status, billingRequired, refreshMembership } = useMembership();
   const [enabled, setEnabled] = useState(false);
-  const [active, setActive] = useState(false);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  // Never display premium access based only on a local StoreKit/RevenueCat result.
+  // The server-verified MembershipProvider is the authority.
+  const active = billingRequired && status === 'active';
   const canBuyNative = Constants.appOwnership !== 'expo';
   const webCheckoutAvailable = websiteCheckoutEnabled && mode === 'account' && Boolean(user?.id);
 
   useEffect(() => {
     let live = true;
     const userId = mode === 'account' ? user?.id : undefined;
+    setEnabled(false);
+    setPackages([]);
+    setSelected(null);
+    setError('');
     if (!userId) {
-      setEnabled(false);
       setLoading(false);
       return;
     }
@@ -42,7 +47,6 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
       .then(result => {
         if (!live) return;
         setEnabled(result.enabled);
-        setActive(result.active);
         setPackages(result.packages);
         setSelected(result.packages[0]?.identifier ?? null);
       })
@@ -88,7 +92,6 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
     setError('');
     try {
       const unlocked = await (onUnlocked ? onUnlocked() : refreshMembership());
-      setActive(unlocked);
       if (!unlocked) setError('We have not verified an active Daywoven membership yet. If you just paid, return to the app after checkout and try again.');
     } catch {
       setError('Unable to verify your subscription. Please try again when connected.');
@@ -102,12 +105,13 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
     setBusy(true);
     setError('');
     try {
-      const unlocked = await buySubscription(user.id, selectedPackage);
-      if (unlocked) {
-        setActive(true);
-        if (onUnlocked && !(await onUnlocked())) setError('Your Apple purchase is recorded, but access has not been verified by the server yet. Retry Restore purchases.');
+      const purchased = await buySubscription(user.id, selectedPackage);
+      if (purchased) {
+        const verified = await (onUnlocked ? onUnlocked() : refreshMembership());
+        if (!verified) setError('Your Apple purchase is recorded, but access has not been verified by the server yet. Retry Restore purchases.');
+      } else {
+        setError('The purchase was not confirmed. No premium access has been granted.');
       }
-      else setError('The purchase was not confirmed. No premium access has been granted.');
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : 'Payment was not completed.';
       // Payment cancellations are common and must not be treated as an account error.
@@ -120,12 +124,16 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
     setBusy(true);
     setError('');
     try {
-      const unlocked = await restoreSubscriptions(user.id);
-      setActive(unlocked);
-      if (unlocked && onUnlocked && !(await onUnlocked())) {
-        setError('Your subscription was restored with Apple, but server verification has not completed. Please retry.');
+      const restored = await restoreSubscriptions(user.id);
+      if (restored) {
+        const verified = await (onUnlocked ? onUnlocked() : refreshMembership());
+        if (!verified) {
+          setError('Your subscription was restored with Apple, but server verification has not completed. Please retry.');
+        } else {
+          Alert.alert('Restore purchases', 'Your active subscription was restored.');
+        }
       } else {
-        Alert.alert('Restore purchases', unlocked ? 'Your active subscription was restored.' : 'No active subscription was found for this Apple Account.');
+        Alert.alert('Restore purchases', 'No active subscription was found for this Apple Account.');
       }
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not restore purchases.');
