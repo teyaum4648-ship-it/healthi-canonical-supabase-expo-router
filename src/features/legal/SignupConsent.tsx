@@ -82,9 +82,10 @@ export function SignupConsent({
       </CheckBox>
 
       <Text style={styles.footnote}>
-        We never sell or share this, and there is no advertising or analytics in daywoven. You can
-        export or delete all of it at any time. Withdraw this consent and the app has nothing to
-        work from, so withdrawing it means closing your account.
+        We do not sell your health information or use it for advertising. Service providers
+        process some data to run daywoven, and an optional meal photo is sent for AI estimation
+        only with your permission. Request a copy through our privacy contact or delete your
+        account in Settings. Withdrawing health-data consent requires closing your account.
       </Text>
 
       {showError ? (
