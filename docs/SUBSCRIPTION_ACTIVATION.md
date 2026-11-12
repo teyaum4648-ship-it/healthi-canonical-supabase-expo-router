@@ -28,7 +28,7 @@ The product IDs above are **proposed configuration IDs**, not already created Ap
 - `0025_premium_data_write_enforcement.sql` adds a separate **server-owned OFF-by-default** billing switch, and restrictive INSERT/UPDATE policies across 54 premium tables. Premium histories remain readable and deletable to their owners after expiry.
 - The `photo-estimate` Edge Function checks the server-side membership state before spending AI quota once paid access is enabled.
 - The `revenuecat-webhook` Edge Function has been deployed with `verify_jwt=false` and an **independent high-entropy bearer authorization token** requirement. It does not trust webhook payloads to award access: it re-queries RevenueCat before updating the account state. Until the private secrets are configured it fails closed.
-- Public legal URLs: https://daywovenapp.com/legal/privacy.html and https://daywovenapp.com/legal/terms.html. Support email `admin@daywoven.com` **must be made operational** before public launch.
+- Public legal URLs: https://daywovenapp.com/legal/privacy.html and https://daywovenapp.com/legal/terms.html. Support email `admin@daywovenapp.com` **must be confirmed to receive mail** before public launch.
 
 ## Actions in accounts the owner controls
 
