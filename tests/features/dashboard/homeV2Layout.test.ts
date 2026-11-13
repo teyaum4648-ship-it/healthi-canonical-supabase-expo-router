@@ -5,15 +5,17 @@ const home = readFileSync('app/(app)/(tabs)/index.tsx', 'utf8');
 const card = readFileSync('src/features/dashboard/TodayDirectionCard.tsx', 'utf8');
 
 describe('Daywoven V2 Home information hierarchy', () => {
-  it('puts the daily direction and logging before the advanced readiness display', () => {
+  it('places live readiness first, followed by the daily direction and quick logging', () => {
+    const readiness = home.indexOf('<ReadinessNowCard');
+    const accountReadiness = home.indexOf('<ReadinessHub');
     const direction = home.indexOf('<TodayDirectionCard');
     const quickLog = home.indexOf('<QuickLog actions={quickLogActions}');
     const analysisToggle = home.indexOf('accessibilityLabel={showExtendedHome');
-    const readinessHub = home.indexOf('<ReadinessHub');
-    expect(direction).toBeGreaterThan(0);
+    expect(readiness).toBeGreaterThan(0);
+    expect(accountReadiness).toBeGreaterThan(readiness);
+    expect(direction).toBeGreaterThan(accountReadiness);
     expect(quickLog).toBeGreaterThan(direction);
     expect(analysisToggle).toBeGreaterThan(quickLog);
-    expect(readinessHub).toBeGreaterThan(analysisToggle);
   });
 
   it('keeps safety guidance above optional expansion and does not fake a first-day number', () => {
@@ -41,13 +43,15 @@ describe('Daywoven V2 Home information hierarchy', () => {
     expect(home).toContain("onPress={() => router.navigate('/protocol')}");
   });
 
-  it('mounts the demo readiness check-in before requesting its embedded sheet', () => {
+  it('keeps the real demo readiness card mounted so its check-in opens immediately', () => {
     const open = home.indexOf("const openCheckin = () => {");
-    const expand = home.indexOf('setShowExtendedHome(true);', open);
     const request = home.indexOf('setReadinessCheckinRequest(n => n + 1);', open);
+    const readiness = home.indexOf('<ReadinessNowCard');
+    const toggle = home.indexOf('accessibilityLabel={showExtendedHome');
     expect(open).toBeGreaterThan(0);
-    expect(expand).toBeGreaterThan(open);
-    expect(request).toBeGreaterThan(expand);
+    expect(request).toBeGreaterThan(open);
+    expect(readiness).toBeLessThan(toggle);
+    expect(home).not.toContain('setShowExtendedHome(true);');
   });
 
   it('offers full explanations and existing feature destinations instead of replacing engines', () => {

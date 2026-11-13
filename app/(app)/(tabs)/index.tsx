@@ -841,8 +841,7 @@ export default function DashboardScreen() {
   const greeting = greetingForHour(new Date().getHours());
   const openCheckin = () => {
     if (mode === 'demo') {
-      // The readiness demo sheet lives in the expandable analysis; mount it before opening.
-      setShowExtendedHome(true);
+      // The readiness card is always mounted at the top of Home.
       setReadinessCheckinRequest(n => n + 1);
     } else {
       router.push('/closeout');
@@ -951,6 +950,28 @@ export default function DashboardScreen() {
         <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
 
 
+        {/* Readiness is the first Home insight; the existing live/demo cards keep their own calculations and drilldowns. */}
+        {/*
+          Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
+          The demo's card owns its check-in and "Why this estimate?" sheets; an account
+          reads the morning briefing and checks in through the evening closeout.
+        */}
+        {mode === 'demo' ? (
+          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
+        ) : (
+          <ReadinessHub
+            score={visibleReadinessScore}
+            zone={accountZone}
+            word={accountHeadline.word}
+            insight={accountHeadline.insight}
+            meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
+            primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Check in'}
+            onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : openCheckin}
+            details={biomarkerBreakdown}
+            pillars={morningBriefing.driver_cards}
+          />
+        )}
+
         <TodayDirectionCard
           headline={needsEntry ? 'Start with last night’s sleep' : primaryAction?.title ?? dashboardHero.top_action}
           explanation={needsEntry ? 'Your sleep entry helps Daywoven build a more useful picture of today. Add it to get started.' : primaryAction?.detail ?? protocol.summary}
@@ -987,32 +1008,12 @@ export default function DashboardScreen() {
         >
           <View style={styles.primaryActionCopy}>
             <Text style={styles.analysisTitle}>{showExtendedHome ? 'Hide the detailed picture' : 'Explore your analysis'}</Text>
-            <Text style={styles.analysisDetail}>Readiness, biomarker trends, your starting point and the reasons behind your plan</Text>
+            <Text style={styles.analysisDetail}>Biomarker trends, your starting point and the detailed reasons behind your plan</Text>
           </View>
           <Ionicons accessible={false} name={showExtendedHome ? 'chevron-up' : 'chevron-down'} color={daywovenV2.blue} size={20} />
         </Pressable>
         {showExtendedHome ? (
           <View style={styles.analysisContents}>
-        {/*
-          Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
-          The demo's card owns its check-in and "Why this estimate?" sheets; an account
-          reads the morning briefing and checks in through the evening closeout.
-        */}
-        {mode === 'demo' ? (
-          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
-        ) : (
-          <ReadinessHub
-            score={visibleReadinessScore}
-            zone={accountZone}
-            word={accountHeadline.word}
-            insight={accountHeadline.insight}
-            meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
-            primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Check in'}
-            onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : openCheckin}
-            details={biomarkerBreakdown}
-            pillars={morningBriefing.driver_cards}
-          />
-        )}
         <Pressable
           accessibilityHint="Opens the load check"
           accessibilityRole="button"
