@@ -17,9 +17,8 @@ export default function OnboardingLayout() {
 
   if (isPasswordRecovery && session) return <Redirect href="/auth/reset-password" />;
 
-  if (!session) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  // The wellness questionnaire is previewable without an account.
+  // The screen stores answers only on this device until signup consent is granted.
 
   if (profile?.onboarding_status === 'completed') {
     return <Redirect href="/(app)/(tabs)" />;
