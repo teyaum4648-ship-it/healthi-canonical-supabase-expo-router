@@ -148,6 +148,10 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
       <Text style={styles.eyebrow}>DAYWOVEN</Text>
       <Text style={styles.title}>{gated ? 'Your next chapter starts here' : 'Membership'}</Text>
       <Text style={styles.body}>{gated ? 'You’ve completed your free baseline and seen your personal results. Subscribe to continue with your day-by-day wellness plan, meal and sleep tracking, movement tools and progress insights.' : 'Daywoven is free to download. Membership gives access to your personalized daily wellness tools.'}</Text>
+      <Pressable accessibilityRole="link" accessibilityLabel="Preview the app" onPress={() => router.push('/app-preview')} style={styles.previewLink}>
+        <Text style={styles.previewLinkText}>Preview the app</Text>
+        <Text style={styles.previewLinkArrow}>↗</Text>
+      </Pressable>
 
       {loading ? <ActivityIndicator color={colors.accent} /> : null}
       {active ? <View style={styles.panel}><Text style={styles.heading}>Premium active</Text><Text style={styles.body}>Your Daywoven subscription is active.</Text></View> : null}
@@ -215,6 +219,9 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flexGrow: 1, gap: spacing.md, padding: 24, paddingTop: 64 },
   back: { minHeight: 42, justifyContent: 'center' },
+  previewLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderRadius: 22, borderColor: 'rgba(200,241,140,0.35)', backgroundColor: 'rgba(200,241,140,0.07)' },
+  previewLinkText: { color: '#C8F18C', fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '700' },
+  previewLinkArrow: { color: '#C8F18C', fontSize: 17 },
   eyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 2 },
   title: { color: colors.text, fontFamily: fonts.display, fontSize: 35 },
   body: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
