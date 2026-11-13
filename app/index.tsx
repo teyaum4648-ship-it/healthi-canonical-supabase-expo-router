@@ -49,7 +49,7 @@ export default function IndexRoute() {
       }
 
       if (!session) {
-        router.push('/(auth)/signup');
+        router.push('/(onboarding)');
         return;
       }
 
@@ -72,8 +72,8 @@ export default function IndexRoute() {
   return (
     <Screen contentStyle={styles.screen}>
       <View style={styles.nav}>
-        <Text style={styles.logo}>healthi</Text>
-        <Text style={styles.navLabel}>Adaptive wellness test</Text>
+        <Text style={styles.logo}>daywoven<Text style={{ color: '#C8F18C' }}>.</Text></Text>
+        <Text style={styles.navLabel}>YOUR STARTING POINT</Text>
       </View>
 
       <View style={[styles.hero, isWide ? styles.heroWide : null]}>
@@ -90,10 +90,14 @@ export default function IndexRoute() {
 
           <Button
             disabled={isLoading}
-            label="Get started on your wellness test"
+            label="Explore your wellness baseline"
             onPress={() => void handleStart()}
             style={styles.cta}
           />
+
+          {!session && mode === 'account' ? (
+            <Text onPress={() => router.push('/(auth)/login')} accessibilityRole="link" style={styles.signInLink}>Already have an account? Sign in</Text>
+          ) : null}
 
           {startError ? (
             <Text accessibilityRole="alert" style={styles.startError}>{startError}</Text>
@@ -154,6 +158,7 @@ export default function IndexRoute() {
 }
 
 const styles = StyleSheet.create({
+  signInLink: { color: '#C8F18C', fontSize: 14, fontWeight: '600', textAlign: 'center', paddingVertical: 14 },
   startError: {
     color: colors.danger,
     fontFamily: fonts.body,
