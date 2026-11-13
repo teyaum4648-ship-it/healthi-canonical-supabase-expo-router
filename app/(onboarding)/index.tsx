@@ -290,6 +290,7 @@ export default function OnboardingScreen() {
   const [setupResult, setSetupResult] = useState<OnboardingV2Result | null>(null);
   const [resultStage, setResultStage] = useState<'baseline' | 'focus'>('baseline');
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+  const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewNeedsSave, setPreviewNeedsSave] = useState(false);
   const step = onboardingSteps[Math.min(currentIndex, onboardingSteps.length - 1)];
@@ -303,6 +304,13 @@ export default function OnboardingScreen() {
   useEffect(() => {
     let active = true;
     setIsDraftLoaded(false);
+    setLoadedDraftKey(null);
+    setAnswers({});
+    setCurrentIndex(0);
+    setSetupResult(null);
+    setFocusProfile(null);
+    setPreviewNeedsSave(false);
+    setResultStage('baseline');
     // An existing user's private draft takes precedence over an anonymous preview.
     // Never upload a guest preview automatically: the user must choose to save it.
     void (async () => {
@@ -334,21 +342,24 @@ export default function OnboardingScreen() {
       } catch {
         if (active) Alert.alert('Draft unavailable', 'Your saved setup draft could not be loaded.');
       } finally {
-        if (active) setIsDraftLoaded(true);
+        if (active) {
+          setLoadedDraftKey(draftKey);
+          setIsDraftLoaded(true);
+        }
       }
     })();
     return () => { active = false; };
   }, [draftKey, user?.id]);
 
   useEffect(() => {
-    if (!draftKey || !isDraftLoaded) {
+    if (!draftKey || !isDraftLoaded || loadedDraftKey !== draftKey) {
       return;
     }
 
     AsyncStorage.setItem(draftKey, JSON.stringify({ answers, currentIndex })).catch(() => {
       // Local draft failure should not block the user from continuing.
     });
-  }, [answers, currentIndex, draftKey, isDraftLoaded]);
+  }, [answers, currentIndex, draftKey, isDraftLoaded, loadedDraftKey]);
 
   useEffect(() => {
     if (!user?.id || profile?.onboarding_status !== 'not_started') {
