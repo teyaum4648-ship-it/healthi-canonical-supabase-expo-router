@@ -12,13 +12,17 @@ describe('Sleep V2 progressive disclosure and feature preservation', () => {
     const heroAt = experience.indexOf('<SleepTodayHero', start);
     const energyAt = experience.indexOf('<EnergyField', start);
     const nextAt = experience.indexOf('{next ? (', start);
+    const rhythmAt = experience.indexOf('>Today’s rhythm</SectionLabel>', start);
     const tonightAt = experience.indexOf('>Tonight</SectionLabel>', start);
     const detailsAt = experience.indexOf('<SleepSectionToggle', start);
     expect(heroAt).toBeGreaterThan(start);
     expect(energyAt).toBeGreaterThan(heroAt);
     expect(nextAt).toBeGreaterThan(energyAt);
-    expect(tonightAt).toBeGreaterThan(nextAt);
+    expect(rhythmAt).toBeGreaterThan(nextAt);
+    expect(tonightAt).toBeGreaterThan(rhythmAt);
     expect(detailsAt).toBeGreaterThan(tonightAt);
+    expect(experience).toContain('rhythmStepsToShow(protocol,');
+    expect(experience).toContain('onToggleProtocol(item.id)');
   });
 
   it('keeps detailed tools and history accessible without deleting the underlying features', () => {
