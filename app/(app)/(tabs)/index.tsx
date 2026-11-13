@@ -3,7 +3,6 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { localDay, wallClockIso } from '../../../src/utils/localDay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -30,6 +29,7 @@ import { localBiomarkerStore, saveManualReading } from '../../../src/features/bi
 import { BIOMARKER_KINDS, summarizeBiomarker, type BiomarkerKind, type BiomarkerReading } from '../../../src/engines/biomarkers';
 import { summarizeLoad } from '../../../src/engines/load';
 import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPromptsPanel';
+import { TodayDirectionCard, InsightShortcuts, daywovenV2 } from '../../../src/features/dashboard/TodayDirectionCard';
 import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
 import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
 import { WeeklyRecapRow, WeeklyRecapSheet } from '../../../src/features/dashboard/WeeklyRecap';
@@ -50,8 +50,7 @@ import {
   boundedProgress,
   greetingForHour,
   greetingName,
-  homeGreeting,
-  recentSleepTrend
+  homeGreeting
 } from '../../../src/features/dashboard/homeDashboardPresentation';
 import { readOnboardingV2Setup } from '../../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2BaselineSetup } from '../../../src/features/onboarding/onboardingV2Types';
@@ -100,7 +99,7 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
+import { fonts, glass, glassSurface, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -112,24 +111,24 @@ const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 const recapDismissedKey = 'healthi:recap:dismissed:v1';
 const waterColor = dietAccents.water;
 const homePalette = {
-  background: '#08090C',
-  surface: '#15171B',
-  surfaceRaised: '#1E2126',
-  surfaceSoft: '#272A30',
+  background: '#0C0E13',
+  surface: '#151920',
+  surfaceRaised: '#1A1F28',
+  surfaceSoft: '#202632',
   border: 'rgba(255, 255, 255, 0.075)',
   borderStrong: 'rgba(255, 255, 255, 0.12)',
-  blue: '#8FE3C4',
-  blueBright: '#8FFFD6',
-  blueSoft: '#A6EAD2',
-  cyan: '#A6EAD2',
-  violet: '#B4A6F6',
-  amber: '#F2C87E',
-  text: '#F5F7FA',
-  textMuted: '#A9B0BA',
-  textFaint: '#8C939D',
-  track: '#2A2E35',
-  white: '#F5F7FA',
-  onAccent: '#0A0D13'
+  blue: '#9FCCFF',
+  blueBright: '#9FCCFF',
+  blueSoft: '#9FCCFF',
+  cyan: '#8DDAE3',
+  violet: '#B6B2FA',
+  amber: '#FFC6A6',
+  text: '#F0F3F7',
+  textMuted: '#B5BDCC',
+  textFaint: '#929EAD',
+  track: '#2B303C',
+  white: '#F0F3F7',
+  onAccent: '#0C0E13'
 } as const;
 
 const homeFont = Platform.select({
@@ -323,6 +322,7 @@ export default function DashboardScreen() {
   const isFocused = useIsFocused();
   const today = useLocalToday();
   const [readinessCheckinRequest, setReadinessCheckinRequest] = useState(0);
+  const [showExtendedHome, setShowExtendedHome] = useState(false);
   const [recapOpen, setRecapOpen] = useState(false);
   const [waterNotice, setWaterNotice] = useState<{ id: string | null; text: string } | null>(null);
   const [waterVersion, setWaterVersion] = useState(0);
@@ -830,7 +830,6 @@ export default function DashboardScreen() {
   const protocolActions = protocol.actions.slice(0, 3);
   const primaryAction = protocol.actions.find((action) => action.status === 'pending') ?? protocol.actions[0];
   const mealTimes = useMemo(() => nutritionMeals.map((meal) => meal.logged_at), [nutritionMeals]);
-  const sleepTrend = recentSleepTrend(sleepSessions);
   const foundationSourceCount = [rhythmSource, nutritionSource, movementSource, scheduleSource]
     .filter((source) => source !== 'calibrating').length;
   const visibleReadinessScore = dashboardHero.source_label === 'calibrating' ? null : dashboardHero.score;
@@ -840,7 +839,15 @@ export default function DashboardScreen() {
       ? 'Demo signals'
       : 'Signals calibrating';
   const greeting = greetingForHour(new Date().getHours());
-  const openCheckin = () => mode === 'demo' ? setReadinessCheckinRequest(n => n + 1) : router.push('/closeout');
+  const openCheckin = () => {
+    if (mode === 'demo') {
+      // The readiness demo sheet lives in the expandable analysis; mount it before opening.
+      setShowExtendedHome(true);
+      setReadinessCheckinRequest(n => n + 1);
+    } else {
+      router.push('/closeout');
+    }
+  };
   const waterTarget = { demo: mode === 'demo', userId: user?.id ?? null, client: mode === 'demo' ? null : (supabase as unknown as HydrationClient), storage: AsyncStorage };
   useEffect(() => {
     if (!waterNotice) return;
@@ -943,6 +950,49 @@ export default function DashboardScreen() {
         </View>
         <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
 
+
+        <TodayDirectionCard
+          headline={needsEntry ? 'Start with last night’s sleep' : primaryAction?.title ?? dashboardHero.top_action}
+          explanation={needsEntry ? 'Your sleep entry helps Daywoven build a more useful picture of today. Add it to get started.' : primaryAction?.detail ?? protocol.summary}
+          source={sourceLabel}
+          confidence={dashboardHero.confidence}
+          availableFoundationCount={foundationSourceCount}
+          drivers={morningBriefing.driver_cards}
+          primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Open today’s plan'}
+          onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : () => router.navigate('/protocol')}
+          onFullPlan={() => router.navigate('/protocol')}
+        />
+        {shouldSurfaceSafety(protocol.safety.status) ? (
+          <View style={styles.safetyRow}>
+            <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={18} />
+            <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
+          </View>
+        ) : null}
+
+
+        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
+
+        <InsightShortcuts shortcuts={[
+          { label: 'Energy outlook', description: 'Sleep rhythm and timing guidance', icon: 'moon-outline', color: daywovenV2.lavender, onPress: () => router.navigate('/rhythm') },
+          { label: 'Food quality', description: 'Beyond macros and calorie counts', icon: 'nutrition-outline', color: daywovenV2.peach, onPress: () => router.navigate('/food') },
+          { label: 'Movement guidance', description: 'Match activity to your current load', icon: 'walk-outline', color: daywovenV2.blue, onPress: () => router.navigate('/movement') }
+        ]} />
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showExtendedHome }}
+          accessibilityLabel={showExtendedHome ? 'Hide detailed wellness analysis' : 'Explore your detailed wellness analysis'}
+          onPress={() => setShowExtendedHome(value => !value)}
+          style={({ pressed }) => [styles.analysisToggle, pressed && styles.pressed]}
+        >
+          <View style={styles.primaryActionCopy}>
+            <Text style={styles.analysisTitle}>{showExtendedHome ? 'Hide the detailed picture' : 'Explore your analysis'}</Text>
+            <Text style={styles.analysisDetail}>Readiness, biomarker trends, your starting point and the reasons behind your plan</Text>
+          </View>
+          <Ionicons accessible={false} name={showExtendedHome ? 'chevron-up' : 'chevron-down'} color={daywovenV2.blue} size={20} />
+        </Pressable>
+        {showExtendedHome ? (
+          <View style={styles.analysisContents}>
         {/*
           Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
           The demo's card owns its check-in and "Why this estimate?" sheets; an account
@@ -963,13 +1013,6 @@ export default function DashboardScreen() {
             pillars={morningBriefing.driver_cards}
           />
         )}
-        {shouldSurfaceSafety(protocol.safety.status) ? (
-          <View style={styles.safetyRow}>
-            <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={18} />
-            <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
-          </View>
-        ) : null}
-
         <Pressable
           accessibilityHint="Opens the load check"
           accessibilityRole="button"
@@ -990,8 +1033,6 @@ export default function DashboardScreen() {
         {/* Component C: the week's resting heart rate, a line and a day-by-day log. */}
         <BiomarkerTimeline summary={restingHeartRate} today={today} color={homePalette.blueBright} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
 
-        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
-
         <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.homeNextAction, pressed && styles.pressed]}>
           <View style={styles.primaryActionCopy}>
             <Text style={styles.homeEyebrow}>{mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}</Text>
@@ -1011,6 +1052,10 @@ export default function DashboardScreen() {
           ))}
           <ActionRow title="See the full daily protocol" detail="Reasons, confidence and your next steps" icon="list-outline" onPress={() => router.navigate('/protocol')} last />
         </Disclosure>
+        ) : null}
+
+
+          </View>
         ) : null}
 
         {showRecap ? <WeeklyRecapRow onOpen={() => setRecapOpen(true)} onDismiss={dismissRecap} /> : null}
@@ -1046,6 +1091,10 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  analysisToggle: { backgroundColor: daywovenV2.surface, borderColor: daywovenV2.border, borderWidth: 1, borderRadius: 18, paddingVertical: 17, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 74 },
+  analysisTitle: { color: daywovenV2.text, fontFamily: homeFont, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  analysisDetail: { color: daywovenV2.muted, fontFamily: homeFont, fontSize: 12, lineHeight: 18 },
+  analysisContents: { gap: 16 },
   weekSection: { gap: 10, marginTop: 4 },
   weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   weekTitle: { fontFamily: homeFont, fontSize: 19, fontWeight: '600', letterSpacing: -0.3, color: homePalette.text },
@@ -1058,11 +1107,11 @@ const styles = StyleSheet.create({
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
   homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
-  homeNextAction: { ...tintedGlass(hues.mint), flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 24 },
+  homeNextAction: { backgroundColor: daywovenV2.elevated, borderColor: daywovenV2.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 24 },
   homeEyebrow: { fontFamily: homeFont, fontSize: 14, fontWeight: '500', color: homePalette.blueSoft, marginBottom: 6 },
   homeDetail: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 4 },
   safe: {
-    backgroundColor: 'transparent',
+    backgroundColor: homePalette.background,
     flex: 1
   },
   scroll: {
@@ -1121,8 +1170,8 @@ const styles = StyleSheet.create({
   quickUndo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 6 },
   quickUndoText: { fontFamily: homeFont, fontSize: 15, fontWeight: '600', color: homePalette.blueSoft },
   quickLogSection: {
-    ...glassSurface,
-    borderColor: glass.edge,
+    backgroundColor: daywovenV2.surface,
+    borderColor: daywovenV2.border,
     borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 13,
