@@ -927,117 +927,44 @@ const styles = StyleSheet.create({
   domainRow: { gap: 8, paddingVertical: 7 },
   domainTrack: { height: 6, overflow: 'hidden', borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.11)' },
   domainBar: { height: '100%', borderRadius: 5 },
-  questionCard: {
-    gap: spacing.sm
-  },
-  questionPrompt: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 17,
-    lineHeight: 24
-  },
+  questionCard: { gap: 16, backgroundColor: '#1D3526', borderColor: 'rgba(200,241,140,0.16)', borderWidth: 1, borderRadius: 22, padding: 21 },
+  questionPrompt: { color: '#F6F8F4', fontFamily: fonts.bodyMedium, fontSize: 21, lineHeight: 29, fontWeight: '700', letterSpacing: -0.45 },
   optionalTag: {
     color: colors.textFaint,
     fontFamily: fonts.body,
     fontSize: 13
   },
-  progressTrack: {
-    height: 4,
-    overflow: 'hidden',
-    borderRadius: radii.sm,
-    backgroundColor: '#2B5037'
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: radii.sm,
-    backgroundColor: '#C8F18C'
-  },
-  helper: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 22
-  },
+  progressTrack: { height: 5, overflow: 'hidden', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.14)' },
+  progressFill: { height: '100%', borderRadius: 10, backgroundColor: '#C8F18C' },
+  helper: { color: '#B8CAB5', fontFamily: fonts.body, fontSize: 14, lineHeight: 22 },
   timeHint: {
     color: colors.signalAmber,
     fontFamily: fonts.body,
     fontSize: 12,
     lineHeight: 18
   },
-  options: {
-    gap: spacing.sm
-  },
+  options: { gap: 10 },
   scaleGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm
   },
-  scaleOption: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    ...glassSurface
-  },
-  scaleOptionSelected: {
-    borderColor: '#C8F18C',
-    backgroundColor: '#2B5037'
-  },
-  scaleOptionLabel: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 18,
-    fontWeight: '400'
-  },
-  option: {
-    minHeight: 48,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    ...glassSurface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
-  },
-  optionSelected: {
-    borderColor: '#C8F18C',
-    backgroundColor: '#2B5037'
-  },
+  scaleOption: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(246,248,244,0.16)', borderRadius: 14, backgroundColor: '#172D20' },
+  scaleOptionSelected: { borderColor: '#C8F18C', backgroundColor: '#2D4934' },
+  scaleOptionLabel: { color: '#F6F8F4', fontSize: 18, fontWeight: '700' },
+  option: { minHeight: 58, justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(246,248,244,0.15)', borderRadius: 14, backgroundColor: '#14281C', paddingHorizontal: 18, paddingVertical: 14 },
+  optionSelected: { borderColor: '#C8F18C', backgroundColor: '#2D4934' },
   optionPressed: {
     opacity: 0.82
   },
-  optionLabel: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 21
-  },
-  optionLabelSelected: {
-    color: '#C8F18C'
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm
-  },
+  optionLabel: { color: '#E8F2E4', fontFamily: fonts.body, fontSize: 15, fontWeight: '600', lineHeight: 23 },
+  optionLabelSelected: { color: '#D9FBAF' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   actionButton: {
     flex: 1
   },
-  resultScreen: {
-    backgroundColor: 'transparent'
-  },
-  scoreSheet: {
-    position: 'relative',
-    gap: spacing.lg,
-    overflow: 'hidden',
-    borderColor: 'rgba(200, 241, 140, 0.18)',
-    borderRadius: radii.xl,
-    backgroundColor: '#1C3627',
-    padding: spacing.lg
-  },
+  resultScreen: { backgroundColor: 'transparent', gap: 18, paddingTop: 24, paddingBottom: 42 },
+  scoreSheet: { gap: 22, borderColor: 'rgba(200,241,140,0.16)', borderRadius: 24, borderWidth: 1, backgroundColor: '#152D1F', padding: 22 },
   scoreGlowOne: {
     position: 'absolute',
     top: -64,
@@ -1060,26 +987,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     position: 'relative'
   },
-  scoreSheetEyebrow: {
-    color: '#C8F18C',
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0
-  },
-  scoreSheetTitle: {
-    color: '#F6F8F4',
-    fontFamily: fonts.display,
-    fontSize: 42,
-    fontWeight: '400',
-    lineHeight: 46
-  },
-  scoreSheetSubtitle: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 23
-  },
+  scoreSheetEyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
+  scoreSheetTitle: { color: '#F6F8F4', fontSize: 37, fontWeight: '700', lineHeight: 43, letterSpacing: -1.4 },
+  scoreSheetSubtitle: { color: '#B8CAB5', fontSize: 14, lineHeight: 22 },
   scoreSummary: {
     gap: spacing.md,
     position: 'relative'
@@ -1152,12 +1062,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1C3627',
     padding: spacing.md
   },
-  domainTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm
-  },
+  domainTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   domainIndicator: {
     width: 9,
     height: 9,
@@ -1177,94 +1082,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '400'
   },
-  domainLabel: {
-    color: '#F6F8F4',
-    fontFamily: fonts.display,
-    fontSize: 19,
-    fontWeight: '400',
-    lineHeight: 22
-  },
-  domainSignal: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0
-  },
-  domainReason: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 17
-  },
+  domainLabel: { color: '#F6F8F4', fontFamily: fonts.body, fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  domainSignal: { color: '#C8F18C', fontFamily: fonts.body, fontSize: 12, fontWeight: '700' },
+  domainReason: { color: '#AEBEAC', fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },
   domainPriority: {
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0
   },
-  scoreSection: {
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(200, 241, 140, 0.14)',
-    paddingTop: spacing.md
-  },
-  scoreSectionTitle: {
-    color: '#F6F8F4',
-    fontFamily: fonts.display,
-    fontSize: 24,
-    fontWeight: '400'
-  },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(200, 241, 140, 0.14)',
-    borderRadius: radii.lg,
-    backgroundColor: '#1C3627',
-    padding: spacing.sm
-  },
-  rankNumber: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(248, 245, 255, 0.13)'
-  },
-  rankNumberText: {
-    color: '#FFFFFF',
-    fontFamily: fonts.body,
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center'
-  },
-  rankTextWrap: {
-    flex: 1,
-    gap: 2
-  },
-  rankDomain: {
-    color: '#C8F18C',
-    fontFamily: fonts.body,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0
-  },
-  rankLabel: {
-    color: '#F6F8F4',
-    fontFamily: fonts.body,
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 19
-  },
-  rankExplanation: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 19
-  },
+  scoreSection: { gap: 14, borderTopWidth: 1, borderTopColor: 'rgba(200,241,140,0.14)', paddingTop: 18 },
+  scoreSectionTitle: { color: '#F6F8F4', fontFamily: fonts.display, fontSize: 21, fontWeight: '700' },
+  rankRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 7 },
+  rankNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: 'rgba(200,241,140,0.12)' },
+  rankNumberText: { color: '#C8F18C', fontSize: 12, fontWeight: '800' },
+  rankTextWrap: { flex: 1, gap: 4 },
+  rankDomain: { color: '#B8D69D', fontSize: 11, fontWeight: '700' },
+  rankLabel: { color: '#F6F8F4', fontSize: 15, fontWeight: '700', lineHeight: 21 },
+  rankExplanation: { color: '#B8CAB5', fontSize: 13, lineHeight: 20 },
   rankImpact: {
     minWidth: 54,
     color: '#B8CAB5',
@@ -1280,79 +1115,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23
   },
-  focusHeader: {
-    gap: spacing.xs,
-    paddingTop: spacing.sm
-  },
-  focusHeaderEyebrow: {
-    color: '#C8F18C',
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0
-  },
-  focusHeaderTitle: {
-    color: '#F6F8F4',
-    fontFamily: fonts.display,
-    fontSize: 36,
-    fontWeight: '400',
-    lineHeight: 40
-  },
-  focusHeaderBody: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 24
-  },
-  focusCard: {
-    gap: spacing.xs,
-    borderRadius: radii.lg,
-    borderColor: 'rgba(200, 241, 140, 0.14)',
-    backgroundColor: '#264932'
-  },
-  resultPanel: {
-    borderRadius: radii.lg,
-    borderColor: 'rgba(200, 241, 140, 0.14)',
-    backgroundColor: '#1C3627'
-  },
-  focusLabel: {
-    color: '#C8F18C',
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0
-  },
-  focusTitle: {
-    color: '#F6F8F4',
-    fontFamily: fonts.display,
-    fontSize: 38,
-    fontWeight: '400',
-    lineHeight: 42
-  },
-  focusSecondary: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 21
-  },
-  cardTitle: {
-    color: '#F6F8F4',
-    fontFamily: fonts.display,
-    fontSize: 22,
-    fontWeight: '400'
-  },
+  focusHeader: { gap: 10, paddingTop: 9 },
+  focusHeaderEyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  focusHeaderTitle: { color: '#F6F8F4', fontSize: 31, fontWeight: '700', lineHeight: 38, letterSpacing: -0.9 },
+  focusHeaderBody: { color: '#B8CAB5', fontSize: 15, lineHeight: 24 },
+  focusCard: { gap: 10, borderRadius: 20, borderColor: 'rgba(200,241,140,0.22)', backgroundColor: '#264932' },
+  resultPanel: { gap: 14, borderRadius: 20, borderColor: 'rgba(200,241,140,0.13)', backgroundColor: '#1B3526', padding: 20 },
+  focusLabel: { color: '#B9D69D', fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
+  focusTitle: { color: '#F6F8F4', fontSize: 33, fontWeight: '700', lineHeight: 40 },
+  focusSecondary: { color: '#B8CAB5', fontSize: 15, lineHeight: 22 },
+  cardTitle: { color: '#F6F8F4', fontSize: 20, fontWeight: '700' },
   reasonRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm
   },
-  reasonDot: {
-    width: 7,
-    height: 7,
-    marginTop: 7,
-    borderRadius: 4,
-    backgroundColor: '#C8F18C'
-  },
+  reasonDot: { width: 7, height: 7, marginTop: 7, borderRadius: 4, backgroundColor: '#C8F18C' },
   reasonDotHigh: {
     backgroundColor: colors.signalAmber
   },
@@ -1362,42 +1140,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xs
   },
-  reasonText: {
-    flex: 1,
-    color: '#F6F8F4',
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 21
-  },
-  changeRow: {
-    gap: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(200, 241, 140, 0.14)',
-    paddingTop: spacing.sm
-  },
-  changeLabel: {
-    color: '#C8F18C',
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0
-  },
-  changeText: {
-    color: '#F6F8F4',
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 21
-  },
-  confidenceText: {
-    color: '#F6F8F4',
-    fontFamily: fonts.body,
-    fontSize: 16,
-    fontWeight: '800'
-  },
-  reassessmentText: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 20
-  }
+  reasonText: { flex: 1, color: '#E8F2E4', fontSize: 14, lineHeight: 22 },
+  changeRow: { gap: 6, borderTopWidth: 1, borderTopColor: 'rgba(200,241,140,0.12)', paddingTop: 13 },
+  changeLabel: { color: '#B9D69D', fontSize: 11, fontWeight: '700' },
+  changeText: { color: '#E8F2E4', fontSize: 15, lineHeight: 22 },
+  confidenceText: { color: '#F6F8F4', fontSize: 15, fontWeight: '700' },
+  reassessmentText: { color: '#B8CAB5', fontSize: 13, lineHeight: 21 },
 });
