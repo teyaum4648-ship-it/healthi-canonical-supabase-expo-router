@@ -1,4 +1,5 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,6 +34,11 @@ describe('installed app root screen', () => {
     const html = renderToStaticMarkup(<IndexRoute />);
     expect(html).toContain('Opening daywoven');
     expect(html).not.toContain('data-destination');
+  });
+  it('starts the questionnaire before account creation', () => {
+    const source = readFileSync('app/index.tsx', 'utf8');
+    expect(source).toContain("router.push('/(onboarding)')");
+    expect(source).not.toContain("router.push('/(auth)/signup')");
   });
   it('keeps the account welcome flow separate from local demo entry', () => {
     auth.current = { ...auth.current, mode: 'account' };
