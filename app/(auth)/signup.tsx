@@ -76,13 +76,20 @@ export default function SignupScreen() {
 
   if (mode === 'demo') return <DemoEntry />;
   return (
-    <Screen contentStyle={styles.screen}>
-      <SectionHeader
-        title="Start with daywoven"
-        body="Create your account, set your baseline, and begin with your own daily entries."
-      />
+    <Screen backgroundStyle={styles.brandBackground} contentStyle={styles.screen}>
+      <View style={styles.brandRow}>
+        <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
+        <Text style={styles.brandSide}>SAVE YOUR BASELINE</Text>
+      </View>
+      <View style={styles.hero}>
+        <Text style={styles.eyebrow}>ONE LAST STEP</Text>
+        <Text accessibilityRole="header" style={styles.heroTitle}>Make your progress yours.</Text>
+        <Text style={styles.heroBody}>
+          Create an account to securely save your wellness starting point and keep building from it. Your preview answers stay on your device until you agree to save them.
+        </Text>
+      </View>
 
-      <Card>
+      <Card style={styles.brandCard}>
         <TextInput
           autoCapitalize="words"
           autoComplete="given-name"
@@ -109,7 +116,7 @@ export default function SignupScreen() {
           value={password}
         />
         <SignupConsent onChange={setConsent} showError={consentError} value={consent} />
-        <Button isLoading={isSubmitting} label="Create account" onPress={handleSignup} />
+        <Button style={styles.brandButton} isLoading={isSubmitting} label="Save my baseline · create account" onPress={handleSignup} />
         {feedback ? (
           <View
             accessibilityLiveRegion="polite"
@@ -138,9 +145,18 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    justifyContent: 'center'
-  },
+  screen: { justifyContent: 'center', gap: 18, paddingTop: 26, paddingBottom: 40 },
+  brandBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
+  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12 },
+  brandMark: { color: '#F6F8F4', fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
+  brandDot: { color: '#C8F18C' },
+  brandSide: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  hero: { gap: 10, paddingBottom: 10 },
+  eyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
+  heroTitle: { color: '#F6F8F4', fontSize: 37, fontWeight: '700', lineHeight: 43, letterSpacing: -1.4 },
+  heroBody: { color: '#B8CAB5', fontSize: 15, lineHeight: 24 },
+  brandCard: { borderColor: 'rgba(200,241,140,0.16)', backgroundColor: '#1B3526', padding: 20, borderRadius: 22 },
+  brandButton: { backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 55 },
   footer: {
     alignItems: 'center',
     gap: spacing.xs
@@ -150,7 +166,7 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   link: {
-    color: colors.deepViolet,
+    color: '#C8F18C',
     fontSize: 16,
     fontWeight: '800'
   },
