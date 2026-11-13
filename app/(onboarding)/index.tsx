@@ -38,6 +38,8 @@ const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 const shouldUseLocalOnboarding = isDemoMode || !isSupabaseConfigured;
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
+// Anonymous answers never leave the device. They are only uploaded after signup consent.
+const guestOnboardingDraftKey = 'daywoven:onboarding:guest-preview';
 
 function isStringArray(value: OnboardingAnswerValue | undefined): value is string[] {
   return Array.isArray(value);
@@ -289,8 +291,9 @@ export default function OnboardingScreen() {
   const [resultStage, setResultStage] = useState<'baseline' | 'focus'>('baseline');
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewNeedsSave, setPreviewNeedsSave] = useState(false);
   const step = onboardingSteps[Math.min(currentIndex, onboardingSteps.length - 1)];
-  const draftKey = user ? `healthi:onboarding:${user.id}` : null;
+  const draftKey = user ? `healthi:onboarding:${user.id}` : guestOnboardingDraftKey;
   const progressPercent = ((currentIndex + 1) / onboardingSteps.length) * 100;
   // A step advances once its required questions are answered; optional detail can be left.
   const unanswered = requiredQuestions(step).filter((item) => !isAnswered(item, answers[item.key]));
@@ -298,33 +301,44 @@ export default function OnboardingScreen() {
   const isLastStep = currentIndex === onboardingSteps.length - 1;
 
   useEffect(() => {
-    if (!draftKey) {
-      return;
-    }
+    let active = true;
+    setIsDraftLoaded(false);
+    // An existing user's private draft takes precedence over an anonymous preview.
+    // Never upload a guest preview automatically: the user must choose to save it.
+    void (async () => {
+      try {
+        const ownDraft = await AsyncStorage.getItem(draftKey);
+        const guestDraft = user?.id ? await AsyncStorage.getItem(guestOnboardingDraftKey) : null;
+        const rawDraft = ownDraft ?? guestDraft;
+        if (!rawDraft || !active) return;
 
-    AsyncStorage.getItem(draftKey)
-      .then((draft) => {
-        if (!draft) {
-          return;
-        }
-
-        const parsed = JSON.parse(draft) as {
+        const parsed = JSON.parse(rawDraft) as {
           answers?: OnboardingAnswers;
           currentIndex?: number;
+          previewComplete?: boolean;
         };
+        const restoredAnswers = parsed.answers ?? {};
+        if (!active) return;
+        setAnswers(restoredAnswers);
+        setCurrentIndex(Math.max(0, Math.min(parsed.currentIndex ?? 0, onboardingSteps.length - 1)));
 
-        setAnswers(parsed.answers ?? {});
-        setCurrentIndex(
-          Math.min(parsed.currentIndex ?? 0, Math.max(onboardingSteps.length - 1, 0))
-        );
-      })
-      .catch(() => {
-        Alert.alert('Draft unavailable', 'Your saved setup draft could not be loaded.');
-      })
-      .finally(() => {
-        setIsDraftLoaded(true);
-      });
-  }, [draftKey]);
+        if (user?.id && !ownDraft && parsed.previewComplete) {
+          setSetupResult(generateOnboardingV2Result({ answers: restoredAnswers }));
+          setFocusProfile(generateBiweeklyFocusProfile({ userId: user.id, answers: restoredAnswers }));
+          setResultStage('focus');
+          setPreviewNeedsSave(true);
+        } else if (!user?.id && parsed.previewComplete) {
+          setSetupResult(generateOnboardingV2Result({ answers: restoredAnswers }));
+          setFocusProfile(generateBiweeklyFocusProfile({ userId: 'local-preview', answers: restoredAnswers }));
+        }
+      } catch {
+        if (active) Alert.alert('Draft unavailable', 'Your saved setup draft could not be loaded.');
+      } finally {
+        if (active) setIsDraftLoaded(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [draftKey, user?.id]);
 
   useEffect(() => {
     if (!draftKey || !isDraftLoaded) {
@@ -387,23 +401,32 @@ export default function OnboardingScreen() {
   }
 
   async function submitOnboarding() {
-    if (!user?.id || !draftKey) {
-      return;
-    }
+    if (!draftKey || isSubmitting) return;
 
     setIsSubmitting(true);
 
     try {
       const baselineProfile = generateBaselineProfile({
-        userId: user.id,
+        userId: user?.id ?? 'local-preview',
         answers
       });
       const onboardingV2Result = generateOnboardingV2Result({ answers });
       const lifestylePlanResult = generateLifestylePlan(answers);
       const biweeklyFocusProfile = generateBiweeklyFocusProfile({
-        userId: user.id,
+        userId: user?.id ?? 'local-preview',
         answers
       });
+
+      if (!user?.id) {
+        // Preview only: nothing is transmitted before creating an account.
+        await AsyncStorage.setItem(guestOnboardingDraftKey, JSON.stringify({
+          answers, currentIndex, previewComplete: true
+        }));
+        setSetupResult(onboardingV2Result);
+        setFocusProfile(biweeklyFocusProfile);
+        setResultStage('baseline');
+        return;
+      }
 
       if (shouldUseLocalOnboarding) {
         await AsyncStorage.setItem(
@@ -514,7 +537,8 @@ export default function OnboardingScreen() {
         throw profileError;
       }
 
-      await AsyncStorage.removeItem(draftKey);
+      await AsyncStorage.multiRemove([draftKey, guestOnboardingDraftKey]);
+      setPreviewNeedsSave(false);
       setSetupResult(onboardingV2Result);
       setFocusProfile(biweeklyFocusProfile);
     } catch (error) {
@@ -527,6 +551,18 @@ export default function OnboardingScreen() {
   }
 
   async function handleContinueFromFocus() {
+    if (!user?.id && mode === 'account') {
+      await AsyncStorage.setItem(guestOnboardingDraftKey, JSON.stringify({
+        answers, currentIndex, previewComplete: true
+      }));
+      router.push('/(auth)/signup');
+      return;
+    }
+    if (previewNeedsSave) {
+      // Explicitly save only after authentication and the signup health-consent step.
+      await submitOnboarding();
+      return;
+    }
     await refreshProfile();
     router.replace(subscriptionsEnabled && mode === 'account' ? '/paywall' : '/(app)/(tabs)');
   }
@@ -748,7 +784,16 @@ export default function OnboardingScreen() {
           </Text>
         </Card>
 
-        <Button label={subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'} onPress={handleContinueFromFocus} />
+        {!user?.id && mode === 'account' ? <Text style={styles.privatePreviewNote}>Your answers are stored on this device only. Create an account to save them securely to Daywoven.</Text> : null}
+        <Button
+          disabled={isSubmitting}
+          isLoading={isSubmitting}
+          label={!user?.id && mode === 'account'
+            ? 'Create account to save my plan'
+            : previewNeedsSave ? 'Save these answers to my account'
+            : subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'}
+          onPress={() => void handleContinueFromFocus()}
+        />
       </Screen>
     );
   }
@@ -810,7 +855,7 @@ export default function OnboardingScreen() {
 
   return (
     <Screen>
-      {mode === 'account' ? <Button label="Delete account" variant="secondary" disabled={isSubmitting} onPress={() => router.push('/account/delete')} /> : null}
+      {mode === 'account' && user?.id ? <Button label="Delete account" variant="secondary" disabled={isSubmitting} onPress={() => router.push('/account/delete')} /> : null}
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
       </View>
