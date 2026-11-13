@@ -1499,8 +1499,6 @@ export default function MovementScreen() {
         ) : null}
 
         <View style={styles.verdictBlock}>
-          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
-          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
           <View style={styles.capacityLabels}>
             {['Restore', 'Technique', 'Build', 'Push'].map((label, index) => (
               <Text key={label} style={[styles.capacityLabel, index === capacityIndex && styles.capacityLabelActive]}>{label}</Text>
@@ -2144,8 +2142,6 @@ const styles = StyleSheet.create({
   },
   editorialDivider: { backgroundColor: movePalette.line, height: hairlineWidth, marginVertical: 2 },
   verdictBlock: { paddingTop: 4 },
-  verdict: { ...type.voice, color: movePalette.ink, fontSize: 28, lineHeight: 35, marginTop: 14 },
-  lede: { ...type.body, color: 'rgba(255, 255, 255, 0.70)', lineHeight: 22, marginTop: 10 },
   whyTitle: { ...type.label, color: movePalette.ink, marginTop: 22 },
   reasonList: { gap: 9, marginTop: 11 },
   reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
