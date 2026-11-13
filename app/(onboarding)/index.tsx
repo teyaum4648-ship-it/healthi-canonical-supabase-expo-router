@@ -898,6 +898,35 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  onboardingBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
+  onboardingContent: { gap: 18, paddingTop: 24, paddingBottom: 42 },
+  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8 },
+  brandMark: { color: '#F6F8F4', fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
+  brandDot: { color: '#C8F18C' },
+  brandSide: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  progressHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  stepCount: { color: '#F6F8F4', fontSize: 12, fontWeight: '700' },
+  stepPercent: { color: '#B8D69D', fontSize: 11, fontWeight: '700' },
+  introBlock: { gap: 11, paddingVertical: 18 },
+  stageEyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
+  stageTitle: { color: '#F6F8F4', fontSize: 37, lineHeight: 43, fontWeight: '700', letterSpacing: -1.4 },
+  stageIntro: { color: '#B8CAB5', fontSize: 16, lineHeight: 26 },
+  welcomeNote: { color: '#C9DDC4', fontSize: 13, lineHeight: 21 },
+  questionEyebrow: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.15 },
+  brandButton: { backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 56 },
+  brandSecondaryButton: { borderColor: 'rgba(200,241,140,0.32)', borderRadius: 14, minHeight: 56 },
+  privatePreviewNote: { color: '#AFC6AD', textAlign: 'center', fontSize: 12, lineHeight: 19 },
+  scoreHero: { gap: 12, padding: 22, borderRadius: 20, backgroundColor: '#2B5037', borderColor: 'rgba(200,241,140,0.20)', borderWidth: 1 },
+  scoreHeroKicker: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
+  scoreHeroTitle: { color: '#F7FBEF', fontSize: 30, fontWeight: '700', lineHeight: 36, letterSpacing: -0.9 },
+  scoreHeroSummary: { color: '#D4E6CF', fontSize: 14, lineHeight: 23 },
+  scorePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(200,241,140,0.12)', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 12 },
+  scorePillDot: { width: 7, height: 7, backgroundColor: '#C8F18C', borderRadius: 4 },
+  scorePillText: { color: '#E4F7C9', fontSize: 12, fontWeight: '700' },
+  scoreSectionBody: { color: '#AEC6AB', fontSize: 12, lineHeight: 20 },
+  domainRow: { gap: 8, paddingVertical: 7 },
+  domainTrack: { height: 6, overflow: 'hidden', borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.11)' },
+  domainBar: { height: '100%', borderRadius: 5 },
   questionCard: {
     gap: spacing.sm
   },
@@ -916,12 +945,12 @@ const styles = StyleSheet.create({
     height: 4,
     overflow: 'hidden',
     borderRadius: radii.sm,
-    backgroundColor: colors.surfaceMuted
+    backgroundColor: '#2B5037'
   },
   progressFill: {
     height: '100%',
     borderRadius: radii.sm,
-    backgroundColor: colors.primary
+    backgroundColor: '#C8F18C'
   },
   helper: {
     color: colors.textMuted,
@@ -954,8 +983,8 @@ const styles = StyleSheet.create({
     ...glassSurface
   },
   scaleOptionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceMuted
+    borderColor: '#C8F18C',
+    backgroundColor: '#2B5037'
   },
   scaleOptionLabel: {
     color: colors.text,
@@ -974,8 +1003,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm
   },
   optionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceMuted
+    borderColor: '#C8F18C',
+    backgroundColor: '#2B5037'
   },
   optionPressed: {
     opacity: 0.82
@@ -988,7 +1017,7 @@ const styles = StyleSheet.create({
     lineHeight: 21
   },
   optionLabelSelected: {
-    color: colors.deepViolet
+    color: '#C8F18C'
   },
   actions: {
     flexDirection: 'row',
@@ -998,15 +1027,15 @@ const styles = StyleSheet.create({
     flex: 1
   },
   resultScreen: {
-    backgroundColor: colors.midnightPlum
+    backgroundColor: 'transparent'
   },
   scoreSheet: {
     position: 'relative',
     gap: spacing.lg,
     overflow: 'hidden',
-    borderColor: 'rgba(239, 232, 255, 0.12)',
+    borderColor: 'rgba(200, 241, 140, 0.18)',
     borderRadius: radii.xl,
-    backgroundColor: colors.plum,
+    backgroundColor: '#1C3627',
     padding: spacing.lg
   },
   scoreGlowOne: {
@@ -1016,7 +1045,7 @@ const styles = StyleSheet.create({
     width: 168,
     height: 168,
     borderRadius: 84,
-    backgroundColor: 'rgba(111, 97, 168, 0.22)'
+    backgroundColor: 'rgba(124,181,103,0.16)'
   },
   scoreGlowTwo: {
     position: 'absolute',
@@ -1032,21 +1061,21 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   scoreSheetEyebrow: {
-    color: colors.signalGold,
+    color: '#C8F18C',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0
   },
   scoreSheetTitle: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 42,
     fontWeight: '400',
     lineHeight: 46
   },
   scoreSheetSubtitle: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 23
@@ -1076,7 +1105,7 @@ const styles = StyleSheet.create({
     opacity: 0.13
   },
   scoreValue: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 11,
     fontWeight: '800',
@@ -1090,7 +1119,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0
   },
   scoreFocus: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 28,
     fontWeight: '400',
@@ -1098,7 +1127,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   scoreCalibration: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 12,
     lineHeight: 17,
@@ -1118,9 +1147,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(239, 232, 255, 0.1)',
+    borderColor: 'rgba(200, 241, 140, 0.14)',
     borderRadius: radii.lg,
-    backgroundColor: 'rgba(248, 245, 255, 0.07)',
+    backgroundColor: '#1C3627',
     padding: spacing.md
   },
   domainTopRow: {
@@ -1143,27 +1172,27 @@ const styles = StyleSheet.create({
     borderRadius: 24
   },
   domainScore: {
-    color: colors.deepViolet,
+    color: '#C8F18C',
     fontFamily: fonts.display,
     fontSize: 20,
     fontWeight: '400'
   },
   domainLabel: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 19,
     fontWeight: '400',
     lineHeight: 22
   },
   domainSignal: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0
   },
   domainReason: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 12,
     lineHeight: 17
@@ -1177,11 +1206,11 @@ const styles = StyleSheet.create({
   scoreSection: {
     gap: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(239, 232, 255, 0.1)',
+    borderTopColor: 'rgba(200, 241, 140, 0.14)',
     paddingTop: spacing.md
   },
   scoreSectionTitle: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 24,
     fontWeight: '400'
@@ -1191,9 +1220,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(239, 232, 255, 0.1)',
+    borderColor: 'rgba(200, 241, 140, 0.14)',
     borderRadius: radii.lg,
-    backgroundColor: 'rgba(248, 245, 255, 0.07)',
+    backgroundColor: '#1C3627',
     padding: spacing.sm
   },
   rankNumber: {
@@ -1217,28 +1246,28 @@ const styles = StyleSheet.create({
     gap: 2
   },
   rankDomain: {
-    color: colors.signalGold,
+    color: '#C8F18C',
     fontFamily: fonts.body,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0
   },
   rankLabel: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.body,
     fontSize: 14,
     fontWeight: '800',
     lineHeight: 19
   },
   rankExplanation: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 19
   },
   rankImpact: {
     minWidth: 54,
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '800',
@@ -1246,7 +1275,7 @@ const styles = StyleSheet.create({
     textAlign: 'right'
   },
   scoreMeaning: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 23
@@ -1256,21 +1285,21 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm
   },
   focusHeaderEyebrow: {
-    color: colors.signalGold,
+    color: '#C8F18C',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0
   },
   focusHeaderTitle: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 36,
     fontWeight: '400',
     lineHeight: 40
   },
   focusHeaderBody: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 24
@@ -1278,36 +1307,36 @@ const styles = StyleSheet.create({
   focusCard: {
     gap: spacing.xs,
     borderRadius: radii.lg,
-    borderColor: 'rgba(239, 232, 255, 0.1)',
-    backgroundColor: 'rgba(248, 245, 255, 0.08)'
+    borderColor: 'rgba(200, 241, 140, 0.14)',
+    backgroundColor: '#264932'
   },
   resultPanel: {
     borderRadius: radii.lg,
-    borderColor: 'rgba(239, 232, 255, 0.1)',
-    backgroundColor: 'rgba(248, 245, 255, 0.07)'
+    borderColor: 'rgba(200, 241, 140, 0.14)',
+    backgroundColor: '#1C3627'
   },
   focusLabel: {
-    color: colors.signalGold,
+    color: '#C8F18C',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0
   },
   focusTitle: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 38,
     fontWeight: '400',
     lineHeight: 42
   },
   focusSecondary: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 21
   },
   cardTitle: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.display,
     fontSize: 22,
     fontWeight: '400'
@@ -1322,7 +1351,7 @@ const styles = StyleSheet.create({
     height: 7,
     marginTop: 7,
     borderRadius: 4,
-    backgroundColor: colors.primary
+    backgroundColor: '#C8F18C'
   },
   reasonDotHigh: {
     backgroundColor: colors.signalAmber
@@ -1335,7 +1364,7 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     flex: 1,
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 21
@@ -1343,30 +1372,30 @@ const styles = StyleSheet.create({
   changeRow: {
     gap: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(239, 232, 255, 0.1)',
+    borderTopColor: 'rgba(200, 241, 140, 0.14)',
     paddingTop: spacing.sm
   },
   changeLabel: {
-    color: colors.signalGold,
+    color: '#C8F18C',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0
   },
   changeText: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 21
   },
   confidenceText: {
-    color: colors.cosmicWhite,
+    color: '#F6F8F4',
     fontFamily: fonts.body,
     fontSize: 16,
     fontWeight: '800'
   },
   reassessmentText: {
-    color: colors.mutedViolet,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 14,
     lineHeight: 20
