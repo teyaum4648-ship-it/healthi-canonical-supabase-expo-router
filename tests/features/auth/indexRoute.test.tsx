@@ -37,7 +37,7 @@ describe('installed app root screen', () => {
   it('keeps the account welcome flow separate from local demo entry', () => {
     auth.current = { ...auth.current, mode: 'account' };
     const html = renderToStaticMarkup(<IndexRoute />);
-    expect(html).toContain('Get started on your wellness test');
+    expect(html).toContain('Explore your wellness baseline');
     expect(html).not.toContain('Continue demo');
   });
 });
