@@ -194,91 +194,70 @@ function focusCopyLabel(focus: FoundationDomain) {
 }
 
 function renderScoreSheet(focusProfile: BiweeklyFocusProfile) {
-  const scoreSheet = focusProfile.dynamic_score_sheet;
-  const scoreColor = priorityColor(scoreSheet.overall_priority);
-  const domainScores = [
-    scoreSheet.domain_scores.recovery_rhythm,
-    scoreSheet.domain_scores.nourishment,
-    scoreSheet.domain_scores.mind_life_load,
-    scoreSheet.domain_scores.movement_capacity
+  const sheet = focusProfile.dynamic_score_sheet;
+  const domains = [
+    sheet.domain_scores.recovery_rhythm,
+    sheet.domain_scores.nourishment,
+    sheet.domain_scores.mind_life_load,
+    sheet.domain_scores.movement_capacity
   ];
+  const topSignals = sheet.ranked_reasons.slice(0, 3);
 
   return (
-    <Card style={styles.scoreSheet}>
-      <View style={styles.scoreGlowOne} />
-      <View style={styles.scoreGlowTwo} />
+    <View style={styles.scoreSheet}>
+      <Text style={styles.scoreSheetEyebrow}>DAYWOVEN / YOUR PERSONAL REVIEW</Text>
+      <Text accessibilityRole="header" style={styles.scoreSheetTitle}>A clearer place to start.</Text>
+      <Text style={styles.scoreSheetSubtitle}>
+        A first look at the patterns in your answers, not a diagnosis or a fixed label.
+      </Text>
 
-      <View style={styles.scoreSheetHeader}>
-        <Text style={styles.scoreSheetEyebrow}>daywoven Review</Text>
-        <Text style={styles.scoreSheetTitle}>Your Score Sheet</Text>
-        <Text style={styles.scoreSheetSubtitle}>
-          Your answers were weighted to identify the strongest signals shaping your next 2-week
-          focus.
-        </Text>
+      <View style={styles.scoreHero}>
+        <Text style={styles.scoreHeroKicker}>YOUR 14-DAY FOCUS</Text>
+        <Text style={styles.scoreHeroTitle}>{focusCopyLabel(focusProfile.primary_focus)}</Text>
+        <Text style={styles.scoreHeroSummary}>{sheet.summary}</Text>
+        <View style={styles.scorePill}>
+          <View style={styles.scorePillDot} />
+          <Text style={styles.scorePillText}>{formatPriority(sheet.overall_priority)} · provisional</Text>
+        </View>
       </View>
 
-      <View style={styles.scoreSummary}>
-        <View style={[styles.scoreCircle, { borderColor: scoreColor }]}>
-          <View style={[styles.scoreAura, { backgroundColor: scoreColor }]} />
-          <Text style={[styles.scorePriority, { color: scoreColor }]}>
-            {formatPriority(scoreSheet.overall_priority)}
-          </Text>
-          <Text style={styles.scoreFocus}>{focusCopyLabel(focusProfile.primary_focus)}</Text>
-          <Text style={styles.scoreCalibration}>Strongest signal for your next 2 weeks</Text>
-          <Text style={styles.scoreValue}>Signal {scoreSheet.overall_score}</Text>
-        </View>
-
-        <View style={styles.domainGrid}>
-          {domainScores.map((domain) => {
-            const domainColor = priorityColor(domain.priority);
-            const leadReason = domain.reasons[0]?.label ?? 'Calibration signal is still forming.';
-
-            return (
-              <View key={domain.label} style={styles.domainCard}>
-                <View style={styles.domainTopRow}>
-                  <View style={[styles.domainIndicator, { backgroundColor: domainColor }]} />
-                  <Text style={[styles.domainPriority, { color: domainColor }]}>
-                    {domain.priority}
-                  </Text>
-                </View>
+      <View style={styles.scoreSection}>
+        <Text style={styles.scoreSectionTitle}>Your four foundations</Text>
+        <Text style={styles.scoreSectionBody}>Higher signals suggest areas worth paying more attention to, not a judgment about your health.</Text>
+        {domains.map((domain) => {
+          const leadReason = domain.reasons[0]?.label ?? 'Your baseline is still forming.';
+          const width = `${Math.max(3, Math.min(100, domain.score))}%` as `${number}%`;
+          return (
+            <View key={domain.label} style={styles.domainRow}>
+              <View style={styles.domainTopRow}>
                 <Text style={styles.domainLabel}>{domain.label}</Text>
                 <Text style={styles.domainSignal}>Signal {domain.score}</Text>
-                <Text style={styles.domainReason}>{leadReason}</Text>
               </View>
-            );
-          })}
-        </View>
+              <View style={styles.domainTrack}>
+                <View style={[styles.domainBar, { width, backgroundColor: priorityColor(domain.priority) }]} />
+              </View>
+              <Text style={styles.domainReason}>{leadReason}</Text>
+            </View>
+          );
+        })}
       </View>
 
       <View style={styles.scoreSection}>
-        <Text style={styles.scoreSectionTitle}>Top Signals</Text>
-        {scoreSheet.ranked_reasons.length > 0 ? (
-          scoreSheet.ranked_reasons.slice(0, 4).map((reason, index) => (
-            <View key={`${reason.domain}-${reason.reason_code}-${index}`} style={styles.rankRow}>
-              <View style={styles.rankNumber}>
-                <Text style={styles.rankNumberText}>{index + 1}</Text>
-              </View>
-              <View style={styles.rankTextWrap}>
-                <Text style={styles.rankDomain}>{focusLabels[reason.domain]}</Text>
-                <Text style={styles.rankLabel}>{reason.label}</Text>
-                <Text style={styles.rankExplanation}>{reason.explanation}</Text>
-              </View>
-              <Text style={styles.rankImpact}>Impact {reason.impact_score}</Text>
+        <Text style={styles.scoreSectionTitle}>What stood out</Text>
+        {topSignals.length ? topSignals.map((reason, index) => (
+          <View key={`${reason.domain}-${reason.reason_code}-${index}`} style={styles.rankRow}>
+            <View style={styles.rankNumber}><Text style={styles.rankNumberText}>0{index + 1}</Text></View>
+            <View style={styles.rankTextWrap}>
+              <Text style={styles.rankDomain}>{focusLabels[reason.domain]}</Text>
+              <Text style={styles.rankLabel}>{reason.label}</Text>
+              <Text style={styles.rankExplanation}>{reason.explanation}</Text>
             </View>
-          ))
-        ) : (
-          <Text style={styles.rankExplanation}>
-            No single signal strongly dominated. daywoven will keep the first cycle balanced while
-            calibration continues.
-          </Text>
+          </View>
+        )) : (
+          <Text style={styles.scoreSectionBody}>Your starting signals are balanced. A few logged days will help make the picture clearer.</Text>
         )}
       </View>
-
-      <View style={styles.scoreSection}>
-        <Text style={styles.scoreSectionTitle}>What daywoven will prioritize</Text>
-        <Text style={styles.scoreMeaning}>{scoreSheet.summary}</Text>
-      </View>
-    </Card>
+    </View>
   );
 }
 
@@ -707,6 +686,7 @@ export default function OnboardingScreen() {
 
     return (
       <Card key={question.key} style={styles.questionCard}>
+        <Text style={styles.questionEyebrow}>A LITTLE ABOUT YOU</Text>
         <Text style={styles.questionPrompt}>
           {question.prompt}
           {question.optional ? <Text style={styles.optionalTag}>  Optional</Text> : null}
@@ -735,7 +715,8 @@ export default function OnboardingScreen() {
         : ['daywoven is still calibrating from your first answers.'];
 
     return (
-      <Screen contentStyle={styles.resultScreen}>
+      <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
+        <View style={styles.brandRow}><Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandSide}>YOUR BASELINE</Text></View>
         {renderScoreSheet(focusProfile)}
 
         <View style={styles.focusHeader}>
@@ -804,6 +785,7 @@ export default function OnboardingScreen() {
             : previewNeedsSave ? 'Save these answers to my account'
             : subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'}
           onPress={() => void handleContinueFromFocus()}
+          style={styles.brandButton}
         />
       </Screen>
     );
@@ -811,7 +793,8 @@ export default function OnboardingScreen() {
 
   if (setupResult) {
     return (
-      <Screen contentStyle={styles.resultScreen}>
+      <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
+        <View style={styles.brandRow}><Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandSide}>YOUR BASELINE</Text></View>
         <View style={styles.focusHeader}>
           <Text style={styles.focusHeaderEyebrow}>Baseline setup complete</Text>
           <Text style={styles.focusHeaderTitle}>Your starting point</Text>
@@ -859,22 +842,30 @@ export default function OnboardingScreen() {
           </Text>
         </Card>
 
-        <Button label="See my full score and two-week focus" onPress={() => setResultStage('focus')} />
+        <Button style={styles.brandButton} label="See my full score and two-week focus" onPress={() => setResultStage('focus')} />
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      {mode === 'account' && user?.id ? <Button label="Delete account" variant="secondary" disabled={isSubmitting} onPress={() => router.push('/account/delete')} /> : null}
+    <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.onboardingContent}>
+      <View style={styles.brandRow}>
+        <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
+        <Text style={styles.brandSide}>YOUR BASELINE</Text>
+      </View>
+      <View style={styles.progressHeading}>
+        <Text style={styles.stepCount}>{sectionLabel.toUpperCase()}</Text>
+        <Text style={styles.stepPercent}>{Math.round(progressPercent)}% COMPLETE</Text>
+      </View>
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
       </View>
-
-      <SectionHeader eyebrow={sectionLabel} title={step.title} body={step.intro} />
-
-      {currentIndex === 0 ? <Text style={styles.helper}>{onboardingV2Welcome}</Text> : null}
-
+      <View style={styles.introBlock}>
+        <Text style={styles.stageEyebrow}>LET'S GET TO KNOW YOUR RHYTHM</Text>
+        <Text accessibilityRole="header" style={styles.stageTitle}>{step.title}</Text>
+        <Text style={styles.stageIntro}>{step.intro}</Text>
+      </View>
+      {currentIndex === 0 ? <Text style={styles.welcomeNote}>{onboardingV2Welcome}</Text> : null}
       {step.questions.map(renderQuestion)}
 
       {unanswered.length > 0 ? (
@@ -883,12 +874,15 @@ export default function OnboardingScreen() {
         </Text>
       ) : null}
 
+      {!user?.id && mode === 'account' ? (
+        <Text style={styles.privatePreviewNote}>Private preview · your answers stay on this device until you create an account and agree to save them.</Text>
+      ) : null}
       <View style={styles.actions}>
         <Button
           disabled={currentIndex === 0 || isSubmitting}
           label="Back"
           onPress={handleBack}
-          style={styles.actionButton}
+          style={[styles.actionButton, styles.brandSecondaryButton]}
           variant="secondary"
         />
         <Button
@@ -896,7 +890,7 @@ export default function OnboardingScreen() {
           isLoading={isSubmitting}
           label={isLastStep ? 'Review your baseline' : 'Next'}
           onPress={handleNext}
-          style={styles.actionButton}
+          style={[styles.actionButton, styles.brandButton]}
         />
       </View>
     </Screen>
