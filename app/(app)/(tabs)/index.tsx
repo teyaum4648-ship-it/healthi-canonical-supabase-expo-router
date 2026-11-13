@@ -3,7 +3,6 @@ import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { localDay, wallClockIso } from '../../../src/utils/localDay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -51,8 +50,7 @@ import {
   boundedProgress,
   greetingForHour,
   greetingName,
-  homeGreeting,
-  recentSleepTrend
+  homeGreeting
 } from '../../../src/features/dashboard/homeDashboardPresentation';
 import { readOnboardingV2Setup } from '../../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2BaselineSetup } from '../../../src/features/onboarding/onboardingV2Types';
@@ -101,7 +99,7 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
+import { fonts, glass, glassSurface, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -832,7 +830,6 @@ export default function DashboardScreen() {
   const protocolActions = protocol.actions.slice(0, 3);
   const primaryAction = protocol.actions.find((action) => action.status === 'pending') ?? protocol.actions[0];
   const mealTimes = useMemo(() => nutritionMeals.map((meal) => meal.logged_at), [nutritionMeals]);
-  const sleepTrend = recentSleepTrend(sleepSessions);
   const foundationSourceCount = [rhythmSource, nutritionSource, movementSource, scheduleSource]
     .filter((source) => source !== 'calibrating').length;
   const visibleReadinessScore = dashboardHero.source_label === 'calibrating' ? null : dashboardHero.score;
