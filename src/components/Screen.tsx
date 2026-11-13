@@ -7,13 +7,14 @@ import { groundStyle, spacing } from '../styles/mobileTheme';
 type ScreenProps = PropsWithChildren<{
   scroll?: boolean;
   contentStyle?: ViewStyle;
+  backgroundStyle?: ViewStyle;
 }>;
 
-export function Screen({ children, scroll = true, contentStyle }: ScreenProps) {
+export function Screen({ children, scroll = true, contentStyle, backgroundStyle }: ScreenProps) {
   const content = <View style={[styles.content, contentStyle]}>{children}</View>;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, backgroundStyle]}>
       {scroll ? (
         <ScrollView
           contentContainerStyle={styles.scroll}
