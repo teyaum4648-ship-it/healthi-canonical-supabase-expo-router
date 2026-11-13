@@ -18,7 +18,7 @@ Updated November 10, 2026. **Billing is NOT live.** Use this checklist to prepar
 
 The product IDs above are **proposed configuration IDs**, not already created Apple products. Decide and enter real monthly and annual prices in App Store Connect. Start with no trial unless the introductory-offer wording, eligibility and testing are ready.
 
-**Paywall sequence:** signup → free 16-question onboarding in three stages → free baseline results → free detailed score sheet/two-week focus → optional monthly/annual subscription purchase → verified access to ongoing Daywoven tracking, planning, and insights. Restore purchase and account deletion remain accessible without a current subscription.
+**Paywall sequence:** anonymous 16-question questionnaire (locally stored) → free baseline results and two-week focus → signup with health-data consent → explicit save of the preview answers → optional monthly/annual subscription purchase → verified access to ongoing Daywoven tracking, planning, and insights. Restore purchase and account deletion remain accessible without a current subscription.
 
 ## Already implemented in GitHub / production
 
