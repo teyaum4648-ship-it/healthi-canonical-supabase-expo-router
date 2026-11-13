@@ -861,7 +861,7 @@ export default function OnboardingScreen() {
         <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
       </View>
       <View style={styles.introBlock}>
-        <Text style={styles.stageEyebrow}>LET'S GET TO KNOW YOUR RHYTHM</Text>
+        <Text style={styles.stageEyebrow}>GET TO KNOW YOUR RHYTHM</Text>
         <Text accessibilityRole="header" style={styles.stageTitle}>{step.title}</Text>
         <Text style={styles.stageIntro}>{step.intro}</Text>
       </View>
