@@ -21,7 +21,10 @@ describe('Sleep V2 progressive disclosure and feature preservation', () => {
     expect(rhythmAt).toBeGreaterThan(nextAt);
     expect(tonightAt).toBeGreaterThan(rhythmAt);
     expect(detailsAt).toBeGreaterThan(tonightAt);
-    expect(experience).toContain('rhythmStepsToShow(protocol,');
+    expect(experience).toContain('{protocol.map((item) => {');
+    expect(experience).not.toContain('Show all ${protocol.length}');
+    expect(experience).not.toContain('setAllSteps');
+    expect(experience).not.toContain('rhythmStepsToShow(protocol,');
     expect(experience).toContain('onToggleProtocol(item.id)');
   });
 
