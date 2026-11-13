@@ -133,7 +133,7 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
   return (
     <View>
       <View style={styles.shell}>
-        <LinearGradient colors={['#141A2E', '#1C1A1F', '#10201B', '#1D1722', '#0A0C16']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#161A2B', '#171923', '#1B1B2D', '#121720', '#0E111A']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
         <SleepChartSurface height={height} ratio={ratio} onSelect={setRatio} onWidth={setWidth} valueLabel={scrub ? `${scrub.time}, ${scrub.label}, ${scrub.energy}% estimated energy` : 'Current time. Drag horizontally or use the arrow keys to inspect.'}>
           {chart ? <Svg height={height} width={width}>
             <Defs><SvgGradient id="sleep-energy-area" x1="0" x2="0" y1="0" y2="1"><Stop offset="0" stopColor={palette.accent} stopOpacity={0.34} /><Stop offset="1" stopColor={palette.accent} stopOpacity={0.02} /></SvgGradient></Defs>
@@ -219,7 +219,7 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
 }
 
 const styles = StyleSheet.create({
-  shell: { height: 244, marginTop: 15, overflow: 'hidden' },
+  shell: { height: 244, marginTop: 15, overflow: 'hidden', borderRadius: 0 },
   phases: { flexDirection: 'row', justifyContent: 'space-around', left: 10, position: 'absolute', right: 10, top: 14 },
   phase: { color: 'rgba(235,240,255,0.55)', fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 0 },
   bandMark: {
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   axis: { bottom: 10, flexDirection: 'row', justifyContent: 'space-between', left: 22, position: 'absolute', right: 22 },
   axisText: { color: 'rgba(235,240,255,0.6)', fontFamily: fonts.body, fontSize: 10 },
-  tooltip: { borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38 },
+  tooltip: { borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38, backgroundColor: '#202637' },
   time: { fontFamily: fonts.bodyMedium, fontSize: 14 },
   activity: { fontFamily: fonts.bodyMedium, fontSize: 13, marginTop: 2 },
   detail: { fontFamily: fonts.body, fontSize: 12, marginTop: 3 },
