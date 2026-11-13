@@ -55,7 +55,7 @@ export function TodayDirectionCard({
       <View style={styles.topline}>
         <View style={styles.eyebrowWrap}>
           <View style={styles.signalDot} />
-          <Text style={styles.eyebrow}>TODAY'S DIRECTION</Text>
+          <Text style={styles.eyebrow}>TODAY · DIRECTION</Text>
         </View>
         <Text style={styles.source}>{source}</Text>
       </View>
