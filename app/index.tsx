@@ -70,7 +70,7 @@ export default function IndexRoute() {
   }
 
   return (
-    <Screen contentStyle={styles.screen}>
+    <Screen backgroundStyle={styles.brandBackground} contentStyle={styles.screen}>
       <View style={styles.nav}>
         <Text style={styles.logo}>daywoven<Text style={{ color: '#C8F18C' }}>.</Text></Text>
         <Text style={styles.navLabel}>YOUR STARTING POINT</Text>
@@ -80,12 +80,12 @@ export default function IndexRoute() {
         <View style={[styles.heroText, isWide ? styles.heroTextWide : null]}>
           <Text style={styles.eyebrow}>Adaptive Health Coaching</Text>
           <Text style={styles.headline}>
-            Your body{'\n'}
-            <Text style={styles.headlineAccent}>sets the plan.</Text>
+            Know what your body{'\n'}
+            <Text style={styles.headlineAccent}>needs today.</Text>
           </Text>
           <Text style={styles.subcopy}>
-            Start with a short wellness test that helps daywoven understand your sleep, stress,
-            nourishment, and movement signals before it suggests a first 2-week focus.
+            Sleep, food, movement and stress tell different parts of your story. Explore your
+            starting point first, see a clear focus, and create an account only when you're ready to save.
           </Text>
 
           <Button
@@ -158,6 +158,7 @@ export default function IndexRoute() {
 }
 
 const styles = StyleSheet.create({
+  brandBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
   signInLink: { color: '#C8F18C', fontSize: 14, fontWeight: '600', textAlign: 'center', paddingVertical: 14 },
   startError: {
     color: colors.danger,
@@ -178,16 +179,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  logo: {
-    color: colors.deepViolet,
-    fontFamily: fonts.display,
-    fontSize: 24,
-    fontWeight: '400',
-    letterSpacing: 3,
-    textTransform: 'lowercase'
-  },
+  logo: { color: '#F6F8F4', fontFamily: fonts.display, fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
   navLabel: {
-    color: colors.textMuted,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
@@ -211,51 +205,24 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 520
   },
-  eyebrow: {
-    color: colors.deepViolet,
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0
-  },
-  headline: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 68,
-    fontWeight: '300',
-    lineHeight: 72
-  },
-  headlineAccent: {
-    color: colors.deepViolet,
-    fontStyle: 'italic'
-  },
+  eyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  headline: { color: '#F6F8F4', fontFamily: fonts.display, fontSize: 46, fontWeight: '700', lineHeight: 50, letterSpacing: -1.8 },
+  headlineAccent: { color: '#C8F18C', fontWeight: '700' },
   subcopy: {
     maxWidth: 430,
-    color: colors.textMuted,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 15,
     fontWeight: '400',
     lineHeight: 27
   },
-  cta: {
-    alignSelf: 'flex-start'
-  },
+  cta: { alignSelf: 'stretch', backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 56 },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm
   },
-  tag: {
-    borderWidth: 1,
-    borderColor: 'rgba(155, 165, 148, 0.24)',
-    color: colors.dim,
-    fontFamily: fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 6
-  },
+  tag: { borderWidth: 1, borderColor: 'rgba(200,241,140,0.25)', color: '#C9D7C2', borderRadius: 18, fontSize: 11, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 8 },
   visual: {
     alignItems: 'center',
     gap: spacing.lg
@@ -290,7 +257,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: colors.primary,
+    borderColor: '#C8F18C',
     borderRadius: 36
   },
   ringAccentTwo: {
@@ -300,8 +267,8 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
+    backgroundColor: '#C8F18C',
+    shadowColor: '#C8F18C',
     shadowOpacity: 0.6,
     shadowRadius: 12
   },
@@ -317,27 +284,18 @@ const styles = StyleSheet.create({
     lineHeight: 78
   },
   ringLabel: {
-    color: colors.deepViolet,
+    color: '#C8F18C',
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0
   },
   ringVerdict: {
-    color: colors.textMuted,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 12
   },
-  metrics: {
-    width: 300,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...glassSurface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md
-  },
+  metrics: { width: 300, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(200,241,140,0.16)', borderRadius: 20, backgroundColor: '#1B3526', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
   metric: {
     flex: 1,
     alignItems: 'center',
@@ -349,7 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 18
   },
   metricLabel: {
-    color: colors.textMuted,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 9,
     fontWeight: '700',
@@ -358,26 +316,14 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 30,
-    backgroundColor: colors.border
+    backgroundColor: 'rgba(200,241,140,0.20)'
   },
-  protocol: {
-    width: 300,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderLeftWidth: 2,
-    borderColor: colors.border,
-    borderLeftColor: colors.primary,
-    ...glassSurface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
-  },
+  protocol: { width: 300, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: 'rgba(200,241,140,0.16)', borderLeftWidth: 3, borderLeftColor: '#C8F18C', borderRadius: 18, backgroundColor: '#1B3526', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   protocolDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: colors.primary
+    backgroundColor: '#C8F18C'
   },
   protocolTextWrap: {
     flex: 1
@@ -389,7 +335,7 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   protocolText: {
-    color: colors.textMuted,
+    color: '#B8CAB5',
     fontFamily: fonts.body,
     fontSize: 11,
     lineHeight: 16
