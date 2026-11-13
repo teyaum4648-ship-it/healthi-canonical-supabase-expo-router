@@ -85,7 +85,7 @@ export default function IndexRoute() {
           </Text>
           <Text style={styles.subcopy}>
             Sleep, food, movement and stress tell different parts of your story. Explore your
-            starting point first, see a clear focus, and create an account only when you're ready to save.
+            starting point first, see a clear focus, and create an account only when you are ready to save.
           </Text>
 
           <Button
