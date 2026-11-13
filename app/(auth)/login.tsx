@@ -94,8 +94,8 @@ export default function LoginScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>New to daywoven?</Text>
-        <Link href="/(auth)/signup" style={styles.link}>
-          Create an account
+        <Link href="/(onboarding)" style={styles.link}>
+          Try the wellness questionnaire first
         </Link>
       </View>
     </Screen>
