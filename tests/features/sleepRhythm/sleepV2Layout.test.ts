@@ -7,7 +7,7 @@ const graph = readFileSync('src/features/sleepRhythm/SleepEnergyChart.tsx', 'utf
 const route = readFileSync('app/(app)/(tabs)/rhythm.tsx', 'utf8');
 
 describe('Sleep V2 progressive disclosure and feature preservation', () => {
-  it('prioritizes today's direction, interactive energy forecast and next useful time', () => {
+  it('prioritizes the daily direction, interactive energy forecast and next useful time', () => {
     const start = experience.indexOf('function TodayTab(');
     const heroAt = experience.indexOf('<SleepTodayHero', start);
     const energyAt = experience.indexOf('<EnergyField', start);
