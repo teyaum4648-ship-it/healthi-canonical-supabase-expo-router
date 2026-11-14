@@ -202,6 +202,7 @@ import {
   hues
 } from '../../../src/styles/mobileTheme';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
+import { ScreenHeader, headerDate } from '../../../src/components/mobile/ScreenHeader';
 
 const C = {
   bg: themeColors.background,
@@ -2544,10 +2545,7 @@ export default function FoodScreen() {
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.adaptiveTopBar}>
-              <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Diet</Text>
-              <Text style={styles.diaryDetail}>{modeLabel}</Text>
-            </View>
+            <View style={styles.adaptiveTopBar}><ScreenHeader title="Diet" eyebrow={`${headerDate()} · ${modeLabel}`} /></View>
             {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
               <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
                 <Ionicons name="chevron-back" size={20} color={tabAccent.food} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
@@ -2717,13 +2715,8 @@ const styles = StyleSheet.create({
     paddingBottom: 28
   },
   adaptiveTopBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
-    gap: 12,
-    flexWrap: 'wrap',
-    paddingTop: 18
+    paddingHorizontal: 20,
+    paddingTop: 12
   },
   adaptivePageLabel: {
     ...themeType.largeTitle,

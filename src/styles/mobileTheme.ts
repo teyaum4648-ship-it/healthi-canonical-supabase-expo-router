@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { glass, ground, motion, zones, type ZoneTone } from './tokens';
+import { colors, glass, ground, motion, zones, type ZoneTone } from './tokens';
 
 const systemFont =
   Platform.select({
@@ -22,11 +22,13 @@ export const fonts = {
 export const hairlineWidth = StyleSheet.hairlineWidth;
 
 export const type = {
+  /* The one big number on a screen: semibold and tight, so it reads as a figure. */
   hero: {
-    fontFamily: fonts.displayLight,
+    fontFamily: fonts.display,
     fontSize: 58,
+    fontWeight: '600',
     lineHeight: 62,
-    letterSpacing: -1.8,
+    letterSpacing: -2.4,
     fontVariant: ['tabular-nums']
   },
   title: {
@@ -39,10 +41,10 @@ export const type = {
   /** Every screen's name, the same size everywhere, like a large navigation title on iOS. */
   largeTitle: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '700',
-    lineHeight: 38,
-    letterSpacing: -0.6
+    lineHeight: 36,
+    letterSpacing: -0.7
   },
   heading: {
     fontFamily: fonts.display,
@@ -56,13 +58,14 @@ export const type = {
     fontSize: 16,
     lineHeight: 23
   },
-  /* A section label in sentence case, the way iOS labels a group — not tracked-out capitals. */
+  /* A small label above a group or a figure: quiet capitals, lightly tracked. */
   eyebrow: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    lineHeight: 18,
-    letterSpacing: 0
+    lineHeight: 16,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase'
   },
   label: {
     fontFamily: fonts.bodyMedium,
@@ -85,7 +88,7 @@ export const type = {
     fontSize: 28,
     fontWeight: '600',
     lineHeight: 34,
-    letterSpacing: -0.4,
+    letterSpacing: -0.8,
     fontVariant: ['tabular-nums']
   },
   number: {
@@ -97,47 +100,24 @@ export const type = {
   }
 } as const satisfies Record<string, TextStyle>;
 
-const glassGradient = `linear-gradient(180deg, ${glass.gradient[0]} 0%, ${glass.gradient[1]} 100%)`;
-
 /**
- * The surface every card sits on: a gradient lit from above over a base a shade darker
- * than colors.surface, so it averages out to the same tone, with a one-pixel highlight on
- * the top edge. A drop shadow would be invisible on true black, so there is none.
- *
- * Native draws the gradient itself; the web takes the same string as backgroundImage.
+ * The surface every card sits on: one flat charcoal on true black. No gradient, edge or
+ * glow, so a screen reads as a few calm blocks and the colour is left for the data.
  */
 export const glassSurface: ViewStyle = {
-  backgroundColor: '#0F1114',
-  boxShadow: glass.highlight,
-  ...(Platform.OS === 'web'
-    ? ({ backgroundImage: glassGradient } as ViewStyle)
-    : { experimental_backgroundImage: glassGradient })
+  backgroundColor: colors.surface
 };
 
-/** A floating control's frosted chrome: the tab bar and anything that sits over content. */
+/** Chrome that sits over content, such as the tab bar: solid, a step darker than a card. */
 export const glassChrome: ViewStyle = {
   backgroundColor: glass.chrome,
-  borderColor: glass.edge,
-  borderWidth: StyleSheet.hairlineWidth,
-  boxShadow: `${glass.highlight}, 0 18px 40px rgba(0, 0, 0, 0.55)`,
-  ...(Platform.OS === 'web'
-    ? ({ backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' } as ViewStyle)
-    : null)
+  borderColor: colors.hairline,
+  borderWidth: StyleSheet.hairlineWidth
 };
 
-/**
- * A filled button's sheen: the fill colour lit from above, a highlight along the top edge
- * and a glow in its own colour beneath, which is the one place a shadow shows on black.
- */
-export function accentFill(fill: string, top = 'rgba(255, 255, 255, 0.22)'): ViewStyle {
-  const sheen = `linear-gradient(180deg, ${top} 0%, rgba(255, 255, 255, 0) 60%)`;
-  return {
-    backgroundColor: fill,
-    boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 22px ${withAlpha(fill, 0.26)}`,
-    ...(Platform.OS === 'web'
-      ? ({ backgroundImage: sheen } as ViewStyle)
-      : { experimental_backgroundImage: sheen })
-  };
+/** A filled button: the accent, flat. The `top` argument is kept for callers that pass it. */
+export function accentFill(fill: string, _top?: string): ViewStyle {
+  return { backgroundColor: fill };
 }
 
 /** #RRGGBB at an alpha, for glows and washes. */
@@ -147,61 +127,19 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** Navy-charcoal at the top, settling to near-black: the design's ground, as a CSS gradient. */
-const GROUND_GRADIENT = `linear-gradient(180deg, ${ground.top} 0%, ${ground.middle} 34%, ${ground.base} 100%)`;
-
-/**
- * A diffused glow: an ellipse of colour that fades through several steps to nothing, so it
- * reads as light spreading rather than a shape with an edge.
- */
-function diffuse(rgb: string, peak: number, size: string, at: string): string {
-  const stops = [[1, 0], [0.62, 22], [0.3, 45], [0.1, 68], [0, 100]] as const;
-  return `radial-gradient(${size} at ${at}, ${stops.map(([share, offset]) => `rgba(${rgb}, ${+(peak * share).toFixed(4)}) ${offset}%`).join(', ')})`;
-}
-
-const NAVY = '96, 128, 196';
-const DEEP_NAVY = '70, 96, 160';
-
-/** The cool navy light that sits in the ground on every screen. */
-const NAVY_GLOWS = [
-  diffuse(NAVY, 0.16, '75% 40%', '95% 0%'),
-  diffuse(DEEP_NAVY, 0.08, '85% 40%', '0% 88%')
-];
-
-/** The ground with no accent: for screens outside the tabs, such as sign-in and settings. */
+/** The ground every screen stands on: true black, the way the health and wearable apps do it. */
 export function groundStyle(): ViewStyle {
-  const image = [...NAVY_GLOWS, GROUND_GRADIENT].join(', ');
-  return {
-    backgroundColor: ground.base,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: image } as ViewStyle) : { experimental_backgroundImage: image })
-  };
+  return { backgroundColor: ground.base };
 }
 
-/**
- * A tab's ambient light on the ground: its accent diffused behind the upper middle of the
- * screen, where the main content sits, with the ground's navy light at the top right and
- * lower left. It sits behind everything and carries no information. React Native 0.83
- * draws the same radial layers natively, so phone and web match.
- */
-export function ambientGlow(hex: string): ViewStyle {
-  const rgb = withAlpha(hex, 1).slice(5, -4);
-  const image = [diffuse(rgb, 0.12, '90% 42%', '50% 22%'), ...NAVY_GLOWS, GROUND_GRADIENT].join(', ');
-  return {
-    backgroundColor: ground.base,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: image } as ViewStyle) : { experimental_backgroundImage: image })
-  };
+/** A tab's ground. Plain black now: the tab's colour lives in its data, not behind it. */
+export function ambientGlow(_hex: string): ViewStyle {
+  return groundStyle();
 }
 
-/** Glass washed with one accent from its top-left corner: the day's single most important card. */
-export function tintedGlass(hex: string): ViewStyle {
-  const wash = `linear-gradient(160deg, ${withAlpha(hex, 0.13)} 0%, rgba(235, 240, 255, 0.045) 48%, rgba(235, 240, 255, 0.025) 100%)`;
-  return {
-    backgroundColor: '#0F1114',
-    borderColor: glass.edge,
-    borderWidth: StyleSheet.hairlineWidth,
-    boxShadow: glass.highlight,
-    ...(Platform.OS === 'web' ? ({ backgroundImage: wash } as ViewStyle) : { experimental_backgroundImage: wash })
-  };
+/** The day's single most important card. Flat like the rest; the accent marks it in its content. */
+export function tintedGlass(_hex: string): ViewStyle {
+  return { backgroundColor: colors.surface };
 }
 
 /** The glass card under the name newer components use. */

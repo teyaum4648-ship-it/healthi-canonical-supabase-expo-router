@@ -93,6 +93,7 @@ import {
 import { colors, hairlineWidth, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
+import { ScreenHeader } from '../../../src/components/mobile/ScreenHeader';
 
 /**
  * Mood — the fourth pillar, and the one that does something rather than reporting.
@@ -370,9 +371,7 @@ export default function MoodScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text accessibilityRole="header" style={styles.title}>Mood</Text>
-        </View>
+        <ScreenHeader title="Mood" />
         <SegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} />
 
         {segment === 'Today' ? <HeadCheckCard helps={helps} latest={latestHead} onAnswer={(rating) => void recordHead(rating, 'now')} /> : null}

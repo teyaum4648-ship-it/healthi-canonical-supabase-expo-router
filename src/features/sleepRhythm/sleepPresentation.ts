@@ -534,3 +534,76 @@ export function rhythmStepsToShow<T>(items: T[], statusOf: (item: T) => string, 
   return { shown, hidden: items.length - shown.length };
 }
 
+
+export type EnergyInsight = {
+  /** One short line: what kind of day it is likely to be. */
+  headline: string;
+  /** When to lean on it and when to go easy, from the curve's own peaks and dip. */
+  detail: string;
+  calibrating: boolean;
+};
+
+/**
+ * The line under the Sleep score: what the night and the morning's answers mean for
+ * energy today, in words a person can plan around. Built only from the briefing, so it
+ * says the same thing as the curve and the score beside it and never invents a time.
+ */
+export function describeEnergyInsight(briefing: CircadianBriefing): EnergyInsight | null {
+  const outlook = briefing.day_outlook;
+  if (!outlook) return null;
+  const recovery = briefing.sleep_recovery ?? null;
+  const calibrating = briefing.input_coverage < THIN_COVERAGE;
+
+  const band = outlookLabel(outlook.band);
+  const strength = recovery ? `, about ${Math.round(recovery.multiplier * 100)}% of a fully rested day` : '';
+  const headline = `${band} energy today${strength}.`;
+
+  const ordered = [...briefing.energy_extrema].sort((left, right) => left.time.localeCompare(right.time));
+  const firstPeak = ordered.find((extreme) => extreme.type === 'peak');
+  const dip = firstPeak ? ordered.find((extreme) => extreme.type === 'low' && extreme.time > firstPeak.time) : undefined;
+  const secondPeak = dip ? ordered.find((extreme) => extreme.type === 'peak' && extreme.time > dip.time) : undefined;
+
+  const parts: string[] = [];
+  if (firstPeak) parts.push(`Plan focused work around ${formatSleepTime(firstPeak.time)}`);
+  if (dip) parts.push(`keep ${formatSleepTime(dip.time)} light`);
+  if (secondPeak) parts.push(`expect a second wind near ${formatSleepTime(secondPeak.time)}`);
+  let detail = parts.length > 0 ? `${parts.join(', ')}.` : `Energy peaks at about ${outlook.peakEnergy}% today.`;
+  if (parts.length > 1) detail = detail.replace(/, (?=[^,]*\.$)/, ', and ');
+
+  const limiter = briefing.limiter ? LIMITER_SHORT[briefing.limiter] : undefined;
+  if (limiter) detail = `${detail} ${limiter}`;
+  if (calibrating) detail = `${detail} Still calibrating, so treat the times loosely.`;
+
+  return { headline, detail, calibrating };
+}
+
+/** The main limiter in a clause short enough to follow the timing line. */
+const LIMITER_SHORT: Record<string, string> = {
+  refreshment: 'Waking unrefreshed is holding it back most.',
+  quality: 'Sleep quality is holding it back most.',
+  duration: 'A short night is holding it back most.',
+  debt: 'Recent sleep debt is holding it back most.',
+  regularity: 'An irregular schedule is holding it back most.',
+  misalignment: 'Last night’s timing is holding it back most.',
+  fragmentation: 'Time awake overnight is holding it back most.',
+  heart_rate: 'A higher morning pulse is holding it back most.'
+};
+
+/**
+ * One line under the week's sleep windows, read from the nights themselves: which end of
+ * the night moved more, so the suggestion is about the anchor that actually drifted.
+ */
+export function describeWeekPattern(nights: SleepNightSummary[]): string {
+  const complete = nights.filter(
+    (night): night is SleepNightSummary & { bedtime_minutes: number; wake_minutes: number } =>
+      night.bedtime_minutes !== null && night.wake_minutes !== null
+  );
+  if (complete.length < 3) return 'Log a few more nights to see your weekly pattern.';
+  const spread = (values: number[]) => Math.max(...values) - Math.min(...values);
+  const bedSpread = spread(complete.map((night) => night.bedtime_minutes));
+  const wakeSpread = spread(complete.map((night) => night.wake_minutes));
+  if (bedSpread <= 45 && wakeSpread <= 45) return 'Bedtime and wake time held steady this week.';
+  if (bedSpread > wakeSpread + 20) return `Bedtime moved across ${formatSleepMinutes(bedSpread)} this week. A steadier evening anchor may help.`;
+  if (wakeSpread > bedSpread + 20) return `Wake time moved across ${formatSleepMinutes(wakeSpread)} this week. A steady wake time anchors the rest of the day.`;
+  return `Both ends of the night moved this week, by up to ${formatSleepMinutes(Math.max(bedSpread, wakeSpread))}.`;
+}

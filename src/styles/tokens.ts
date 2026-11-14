@@ -35,21 +35,21 @@ export const hues = {
  * deepest at the bottom. From the Healthi Premium Direction design.
  */
 export const ground = {
-  top: '#121720',
-  middle: '#0C0F14',
-  base: '#08090C'
+  top: '#000000',
+  middle: '#000000',
+  base: '#000000'
 } as const;
 
 export const palette = {
-  ink: '#EEF1F4',
-  inkSoft: '#C7CBD1',
+  ink: '#F5F6F7',
+  inkSoft: '#C9CDD2',
   ivory: ground.base,
-  paper: '#15171B',
-  muted: '#A7AFB9',
-  faint: '#8C939D',
-  hairline: 'rgba(235, 240, 255, 0.08)',
-  hairlineSoft: 'rgba(235, 240, 255, 0.055)',
-  sand: '#2A2E35',
+  paper: '#111214',
+  muted: '#9EA3AA',
+  faint: '#8E949C',
+  hairline: 'rgba(255, 255, 255, 0.08)',
+  hairlineSoft: 'rgba(255, 255, 255, 0.06)',
+  sand: '#26282C',
   forest: hues.mint,
   forestMid: hues.mintSoft,
   forestFill: hues.mintFill,
@@ -63,8 +63,8 @@ export const palette = {
 export const colors = {
   background: palette.ivory,
   surface: palette.paper,
-  surfaceInset: '#1E2126',
-  surfaceMuted: '#272A30',
+  surfaceInset: '#1A1B1E',
+  surfaceMuted: '#232428',
   text: palette.ink,
   textMuted: palette.muted,
   textFaint: palette.faint,
@@ -130,16 +130,16 @@ export const radii = {
 } as const;
 
 /**
- * Glass: a card is a faint top-lit gradient over black, a hairline edge and a highlight
- * along its top, with a soft shadow under it. Written once here so every card agrees.
+ * Cards are flat: one charcoal fill on true black, no gradient, edge or shadow. The names
+ * stay from when they were glass so the many screens that read them change together.
  */
 export const glass = {
-  gradient: ['rgba(235, 240, 255, 0.075)', 'rgba(235, 240, 255, 0.03)'] as const,
-  gradientRaised: ['rgba(235, 240, 255, 0.11)', 'rgba(235, 240, 255, 0.05)'] as const,
-  edge: 'rgba(235, 240, 255, 0.09)',
-  highlight: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-  shadow: '0 14px 34px rgba(0, 0, 0, 0.45)',
-  chrome: 'rgba(22, 25, 30, 0.86)'
+  gradient: ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)'] as const,
+  gradientRaised: ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)'] as const,
+  edge: 'rgba(255, 255, 255, 0.05)',
+  highlight: 'inset 0 0 0 rgba(0, 0, 0, 0)',
+  shadow: 'none',
+  chrome: '#050506'
 } as const;
 
 

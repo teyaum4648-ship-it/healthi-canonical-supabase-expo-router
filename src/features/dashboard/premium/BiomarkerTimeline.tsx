@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
@@ -72,6 +73,9 @@ export function BiomarkerTimeline({ summary, today, color, onEditDay }: {
   const spec = BIOMARKER_SPECS[summary.kind];
   const baseline = summary.baseline;
   const days = [...summary.series].reverse();
+  /* Today's row is the one that matters most mornings; the rest of the week opens on a tap. */
+  const [allDays, setAllDays] = useState(false);
+  const shownDays = allDays ? days : days.slice(0, 1);
 
   return (
     <View style={styles.card}>
@@ -97,7 +101,7 @@ export function BiomarkerTimeline({ summary, today, color, onEditDay }: {
       )}
 
       <View style={styles.log}>
-        {days.map((day, index) => {
+        {shownDays.map((day, index) => {
           const comparison = day.value !== null && baseline !== null ? compareToUsual(summary.kind, day.value, baseline) : null;
           const delta = comparison?.delta ?? null;
           const tone = comparison?.zone ?? null;
@@ -109,7 +113,7 @@ export function BiomarkerTimeline({ summary, today, color, onEditDay }: {
               accessibilityLabel={`${dayLabel(day.date, today)}: ${day.value === null ? 'no reading' : `${formatBiomarkerValue(summary.kind, day.value)} ${spec.unit}`}. ${day.value === null ? 'Add' : 'Edit'} reading`}
               onPress={() => onEditDay(day.date)}
               pressedScale={0.99}
-              style={[styles.row, index < days.length - 1 && styles.rowDivider]}
+              style={[styles.row, styles.rowDivider]}
               hoverStyle={styles.rowHover}
             >
               <Text style={[styles.rowDay, day.date === today && styles.rowDayToday]}>{dayLabel(day.date, today)}</Text>
@@ -130,6 +134,12 @@ export function BiomarkerTimeline({ summary, today, color, onEditDay }: {
             </FluidPressable>
           );
         })}
+        {days.length > 1 ? (
+          <Pressable accessibilityRole="button" accessibilityState={{ expanded: allDays }} onPress={() => setAllDays((open) => !open)} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+            <Text style={styles.toggleText}>{allDays ? 'Show today only' : 'Earlier days'}</Text>
+            <Ionicons accessible={false} color={colors.textFaint} name={allDays ? 'chevron-up' : 'chevron-down'} size={17} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -138,9 +148,7 @@ export function BiomarkerTimeline({ summary, today, color, onEditDay }: {
 const styles = StyleSheet.create({
   card: {
     ...cardSurface,
-    borderColor: surfaces.edge,
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 20,
     gap: 14,
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -165,5 +173,7 @@ const styles = StyleSheet.create({
   rowValue: { color: colors.text, fontFamily: fonts.display, fontSize: 17, fontVariant: ['tabular-nums'], fontWeight: '600' },
   rowUnit: { ...type.caption, color: colors.textMuted, fontSize: 12, width: 28 },
   rowAdd: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-  rowAddText: { ...type.label, color: colors.accent }
+  rowAddText: { ...type.label, color: colors.accent },
+  rowPressed: { opacity: 0.65 },
+  toggleText: { ...type.body, color: colors.textMuted, fontSize: 15 }
 });

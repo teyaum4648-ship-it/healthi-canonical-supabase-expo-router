@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
-  summary: { ...type.heading, color: colors.text, marginTop: 4 },
+  summary: { ...type.heading, color: colors.text, fontSize: 20, letterSpacing: -0.3, lineHeight: 26, marginTop: 4 },
   scoreBlock: { alignItems: 'flex-end' },
   score: { ...type.numberLg, color: accent },
   scoreUnit: { ...type.caption, color: colors.textMuted },

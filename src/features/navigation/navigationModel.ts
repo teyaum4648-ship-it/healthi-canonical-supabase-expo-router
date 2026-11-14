@@ -8,9 +8,9 @@
  * deserve equal standing and six tabs at phone width reads as a menu.
  */
 export const mainTabs = [
-  { route: 'index', label: 'Home', outline: 'home-outline', filled: 'home' },
+  { route: 'index', label: 'Today', outline: 'home-outline', filled: 'home' },
   { route: 'food', label: 'Diet', outline: 'nutrition-outline', filled: 'nutrition' },
-  { route: 'movement', label: 'Movement', outline: 'body-outline', filled: 'body' },
+  { route: 'movement', label: 'Move', outline: 'body-outline', filled: 'body' },
   { route: 'rhythm', label: 'Sleep', outline: 'moon-outline', filled: 'moon' },
   { route: 'mood', label: 'Mood', outline: 'happy-outline', filled: 'happy' }
 ] as const;

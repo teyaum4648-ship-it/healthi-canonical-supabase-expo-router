@@ -192,6 +192,7 @@ import {
 } from '../../../src/features/movement/movementScreenStore';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
+import { ScreenHeader } from '../../../src/components/mobile/ScreenHeader';
 
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
@@ -2057,7 +2058,7 @@ export default function MovementScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Movement</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Movement · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
+        <View style={styles.navigationHeader}><ScreenHeader title="Move" />{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Movement · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
 
         {usePreviewFixture ? (
           <View style={styles.previewBanner}>
@@ -2144,7 +2145,7 @@ const styles = StyleSheet.create({
   },
   editorialDivider: { backgroundColor: movePalette.line, height: hairlineWidth, marginVertical: 2 },
   verdictBlock: { paddingTop: 4 },
-  verdict: { ...type.voice, color: movePalette.ink, fontSize: 28, lineHeight: 35, marginTop: 14 },
+  verdict: { ...type.voice, color: movePalette.ink, fontSize: 24, fontWeight: '700', letterSpacing: -0.5, lineHeight: 30, marginTop: 14 },
   lede: { ...type.body, color: 'rgba(255, 255, 255, 0.70)', lineHeight: 22, marginTop: 10 },
   whyTitle: { ...type.label, color: movePalette.ink, marginTop: 22 },
   reasonList: { gap: 9, marginTop: 11 },

@@ -16,7 +16,7 @@ const FIRST_ROW = 4;
  * was counted as. The lift it gives the curve is real and borrowed, and the copy says
  * that rather than letting a coffee pass for a good night.
  */
-export function CaffeineLog({ palette, entries, today, onBoardMg, cutoff, onAdd, onUndo }: {
+export function CaffeineLog({ palette, entries, today, onBoardMg, cutoff, onAdd, onUndo, embedded = false }: {
   palette: MorningCheckInPalette;
   entries: readonly CaffeineEntry[];
   today: string;
@@ -25,6 +25,8 @@ export function CaffeineLog({ palette, entries, today, onBoardMg, cutoff, onAdd,
   cutoff: string | null;
   onAdd: (drink: CaffeineDrink) => void;
   onUndo: (entry: CaffeineEntry) => void;
+  /** Inside a box that already names it: the drinks and notes only. */
+  embedded?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   const day = caffeineDay(entries, today);
@@ -33,20 +35,22 @@ export function CaffeineLog({ palette, entries, today, onBoardMg, cutoff, onAdd,
   const lastName = day.last ? drinkById(day.last.drinkId)?.name ?? 'drink' : null;
 
   return (
-    <View style={styles.pad}>
-      <View style={[styles.card, { borderColor: palette.border }]}>
-        <View>
-          <Text style={[styles.eyebrow, { color: palette.faint }]}>Caffeine</Text>
-          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
-            {day.count ? `${day.totalMg} mg today` : 'Nothing logged today'}
-          </Text>
-        </View>
+    <View style={embedded ? null : styles.pad}>
+      <View style={embedded ? styles.embedded : [styles.card, { borderColor: palette.border }]}>
+        {embedded ? null : (
+          <View>
+            <Text style={[styles.eyebrow, { color: palette.faint }]}>Caffeine</Text>
+            <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+              {day.count ? `${day.totalMg} mg today` : 'Nothing logged today'}
+            </Text>
+          </View>
+        )}
         {onBoardMg >= 10 ? (
           <Text style={[styles.body, { color: palette.muted }]}>
-            About {onBoardMg} mg still with you. It lifts the curve below for a while; it does not stand in for sleep.
+            About {onBoardMg} mg still with you. It lifts your energy curve for a while; it does not stand in for sleep.
           </Text>
         ) : (
-          <Text style={[styles.body, { color: palette.muted }]}>Log a drink and the energy curve below accounts for it.</Text>
+          <Text style={[styles.body, { color: palette.muted }]}>Log a drink and your energy curve accounts for it.</Text>
         )}
         {late && cutoff ? (
           <Text style={[styles.note, { color: palette.muted }]}>
@@ -89,14 +93,15 @@ export function CaffeineLog({ palette, entries, today, onBoardMg, cutoff, onAdd,
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingTop: 16 },
   card: { ...cardSurface, borderRadius: 22, borderWidth: 1, gap: 10, padding: 18 },
+  embedded: { gap: 10 },
   eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0, lineHeight: 15 },
   title: { fontFamily: fonts.bodyMedium, fontSize: 20, fontVariant: ['tabular-nums'], letterSpacing: -0.35, lineHeight: 25, marginTop: 3 },
   body: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
-  note: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 17 },
+  note: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { alignItems: 'center', borderCurve: 'continuous', borderRadius: 18, flexDirection: 'row', gap: 6, minHeight: 36, paddingHorizontal: 12, paddingVertical: 8 },
+  chip: { alignItems: 'center', borderCurve: 'continuous', borderRadius: 14, flexDirection: 'row', gap: 6, minHeight: 44, paddingHorizontal: 14, paddingVertical: 8 },
   more: { backgroundColor: 'transparent' },
-  chipText: { fontFamily: fonts.bodyMedium, fontSize: 13 },
+  chipText: { fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '500' },
   chipMg: { fontFamily: fonts.body, fontSize: 12, fontVariant: ['tabular-nums'] },
   footer: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
   undo: { fontFamily: fonts.bodyMedium, fontSize: 13 }

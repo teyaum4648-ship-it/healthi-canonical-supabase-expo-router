@@ -357,6 +357,12 @@ export default function RhythmScreen() {
     }
   }
 
+  const checkInSummary = morningReport?.morningRestedness ? 'Answered' : 'Not yet';
+  const caffeineToday = caffeine.filter((entry) => entry.date === today);
+  const caffeineSummary = caffeineToday.length === 0
+    ? 'None today'
+    : `${caffeineToday.reduce((sum, entry) => sum + entry.mg, 0)} mg`;
+
   if (quizOpen) {
     return (
       <ChronotypeQuiz
@@ -390,9 +396,10 @@ export default function RhythmScreen() {
       sleepSessions={briefingSessions}
       sleepStartTime={sleepStartTime}
       wakeTime={wakeTime}
-      morningSlot={
-        <>
+      checkInSummary={checkInSummary}
+      checkInSlot={
         <MorningCheckIn
+          embedded
           palette={paletteFor(clock)}
           hasNight={lastNight !== null}
           report={morningReport}
@@ -402,7 +409,11 @@ export default function RhythmScreen() {
           onChange={(patch) => { void updateMorningReport(patch); }}
           onSavePulse={saveMorningPulse}
         />
+      }
+      caffeineSummary={caffeineSummary}
+      caffeineSlot={
         <CaffeineLog
+          embedded
           cutoff={briefing.rhythm_plan.caffeine_cutoff ?? null}
           entries={caffeine}
           onAdd={(drink) => { void addCaffeine(drink); }}
@@ -411,7 +422,6 @@ export default function RhythmScreen() {
           palette={paletteFor(clock)}
           today={today}
         />
-        </>
       }
     />
   );

@@ -100,10 +100,12 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
+import { colors, fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
-import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { Disclosure, DisclosureGroup, LinkRow } from '../../../src/components/mobile/Disclosure';
+import { ScreenHeader } from '../../../src/components/mobile/ScreenHeader';
+import { buildSleepPhasePresentation, describeEnergyInsight } from '../../../src/features/sleepRhythm/sleepPresentation';
 import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
@@ -912,6 +914,8 @@ export default function DashboardScreen() {
     setRecapDismissedWeek(recapKey);
     void AsyncStorage.setItem(recapDismissedKey, recapKey).catch(() => undefined);
   }
+  const energyInsight = describeEnergyInsight(circadianBriefing);
+  const energyPhase = buildSleepPhasePresentation(circadianBriefing, wallClockIso());
   const accountZone = readinessZone(visibleReadinessScore, shouldSurfaceSafety(protocol.safety.status));
   const accountHeadline = readinessHeadline(accountZone, dashboardHero.summary);
   /* With nothing logged there is no number to check in against, so the button asks for an entry. */
@@ -929,19 +933,16 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* The date shares a line with the buttons so the greeting gets the full width, like a large title. */}
-        <View style={styles.header}>
-          <View style={styles.headerCopy}>
-            <Text style={styles.date}>{displayDate(today)}</Text>
-          </View>
-          <View style={styles.headerActions}>
+        {/* The date over the greeting, the plan, and the profile button that opens the menu. */}
+        <ScreenHeader
+          title={homeGreeting(greeting, firstName)}
+          eyebrow={displayDate(today)}
+          actions={
             <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
-              <Ionicons name="calendar-outline" color={homePalette.blueSoft} size={22} />
-              <Text style={styles.calendarLabel}>Plan</Text>
+              <Ionicons name="calendar-outline" color={homePalette.white} size={19} />
             </Pressable>
-          </View>
-        </View>
-        <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
+          }
+        />
 
         {/*
           Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
@@ -970,19 +971,38 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
-        <Pressable
-          accessibilityHint="Opens the load check"
-          accessibilityRole="button"
-          onPress={() => router.navigate('/load-check')}
-          style={({ pressed }) => [styles.startingPoint, pressed && styles.pressed]}
-        >
-          <Ionicons accessible={false} color={homePalette.blueSoft} name={personalBaseline ? 'flag-outline' : 'compass-outline'} size={18} />
-          <View style={styles.primaryActionCopy}>
-            <Text style={styles.startingPointTitle}>{personalBaseline ? `Your days start at ${personalBaseline.score}` : 'Set your starting point'}</Text>
-            <Text style={styles.startingPointDetail}>{personalBaseline ? 'From your load check. Retake it any time.' : 'A short load check, so readiness starts from you instead of 70.'}</Text>
-          </View>
-          <Ionicons accessible={false} color={homePalette.textFaint} name="chevron-forward" size={17} />
-        </Pressable>
+        {/* What the day's energy looks like, from the same rhythm the Sleep tab draws. */}
+        {energyInsight ? (
+          <Pressable accessibilityRole="button" accessibilityHint="Opens Sleep" onPress={() => router.navigate('/rhythm')} style={({ pressed }) => [styles.energyCard, pressed && styles.pressed]}>
+            <View style={styles.energyCardTop}>
+              <Text style={styles.sectionEyebrow}>Today’s energy</Text>
+              <Text style={styles.energyPhase}>{energyPhase.label} · {energyPhase.energy}</Text>
+            </View>
+            <Text style={styles.energyHeadline}>{energyInsight.headline}</Text>
+            <Text style={styles.energyDetail}>{energyInsight.detail}</Text>
+            <View style={styles.energyLink}>
+              <Text style={styles.energyLinkText}>See today’s rhythm</Text>
+              <Ionicons accessible={false} color={homePalette.textFaint} name="chevron-forward" size={15} />
+            </View>
+          </Pressable>
+        ) : null}
+
+        <View style={styles.todayGroup}>
+          <Text style={styles.sectionEyebrow}>Today</Text>
+          <DisclosureGroup>
+            <LinkRow
+              title={primaryAction?.title ?? dashboardHero.top_action}
+              detail={mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}
+              onPress={() => router.navigate('/protocol')}
+            />
+            <LinkRow
+              title={personalBaseline ? `Your days start at ${personalBaseline.score}` : 'Set your starting point'}
+              detail={personalBaseline ? 'From your load check. Retake it any time.' : 'A short load check, so readiness starts from you instead of 70.'}
+              onPress={() => router.navigate('/load-check')}
+              last
+            />
+          </DisclosureGroup>
+        </View>
 
         {/* Component B: last night and today's load, side by side. */}
         <MetricGrid sleep={sleepAtGlance} load={loadToday} onOpenSleep={() => router.navigate('/rhythm')} onOpenLoad={() => router.navigate('/movement')} />
@@ -991,15 +1011,6 @@ export default function DashboardScreen() {
         <BiomarkerTimeline summary={restingHeartRate} today={today} color={homePalette.blueBright} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
 
         <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
-
-        <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.homeNextAction, pressed && styles.pressed]}>
-          <View style={styles.primaryActionCopy}>
-            <Text style={styles.homeEyebrow}>{mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}</Text>
-            <Text style={styles.primaryActionTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
-            <Text style={styles.homeDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
-          </View>
-          <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={20} />
-        </Pressable>
 
         {/* In the demo the readiness card has its own "Why this estimate?"; one is enough. */}
         {mode !== 'demo' ? (
@@ -1054,7 +1065,16 @@ const styles = StyleSheet.create({
   weekLinkText: { fontFamily: homeFont, fontSize: 15, fontWeight: '500', color: homePalette.blueSoft },
   weekRow: { flexDirection: 'row', gap: 10 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  calendarButton: { ...glassSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
+  calendarButton: { alignItems: 'center', backgroundColor: colors.surfaceInset, borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
+  energyCard: { ...glassSurface, borderRadius: 20, gap: 6, padding: 16 },
+  energyCardTop: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' },
+  sectionEyebrow: { ...type.eyebrow, color: homePalette.textMuted, marginBottom: 4 },
+  energyPhase: { fontFamily: homeFont, fontSize: 13, color: homePalette.textMuted },
+  energyHeadline: { fontFamily: homeFont, fontSize: 19, fontWeight: '700', letterSpacing: -0.3, lineHeight: 24, color: homePalette.white },
+  energyDetail: { fontFamily: homeFont, fontSize: 15, lineHeight: 21, color: homePalette.textMuted },
+  energyLink: { alignItems: 'center', flexDirection: 'row', gap: 2, marginTop: 6 },
+  energyLinkText: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.white },
+  todayGroup: { gap: 6 },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
   homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
@@ -1068,7 +1088,8 @@ const styles = StyleSheet.create({
   scroll: {
     gap: 16,
     paddingBottom: 28,
-    paddingHorizontal: 20
+    paddingHorizontal: 16,
+    paddingTop: 12
   },
   header: {
     alignItems: 'center',

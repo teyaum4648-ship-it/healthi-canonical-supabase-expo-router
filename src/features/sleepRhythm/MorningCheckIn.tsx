@@ -77,7 +77,7 @@ function Chip({ label, selected, onPress, palette }: { label: string; selected: 
  * to make it sharper. Every question can be skipped, and the confidence line says what
  * skipping costs.
  */
-export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, recovery, savedPulse, onChange, onSavePulse }: {
+export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, recovery, savedPulse, onChange, onSavePulse, embedded = false }: {
   palette: MorningCheckInPalette;
   hasNight: boolean;
   report: MorningReport | null;
@@ -87,6 +87,8 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
   savedPulse: number | null;
   onChange: (patch: MorningReport) => void;
   onSavePulse: (bpm: number) => Promise<void>;
+  /** Inside a box that already names it and shows the score: questions and pulse only. */
+  embedded?: boolean;
 }) {
   const [pulseText, setPulseText] = useState('');
   const [pulseError, setPulseError] = useState<string | null>(null);
@@ -120,8 +122,9 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
   const words = recovery ? recoveryWords(recovery.score) : null;
 
   return (
-    <View style={styles.pad}>
-      <View style={[styles.card, { borderColor: palette.border }]}>
+    <View style={embedded ? null : styles.pad}>
+      <View style={embedded ? styles.embedded : [styles.card, { borderColor: palette.border }]}>
+        {embedded ? null : <>
         <View>
           <Text style={[styles.eyebrow, { color: palette.faint }]}>This morning</Text>
           <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>How today is likely to feel</Text>
@@ -157,6 +160,7 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
         )}
 
         <View style={[styles.rule, { backgroundColor: palette.border }]} />
+        </>}
 
         <Text style={[styles.question, { color: palette.text }]}>How rested do you feel?</Text>
         <View style={styles.chips}>
@@ -244,6 +248,7 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingTop: 16 },
   card: { ...cardSurface, borderRadius: 22, borderWidth: 1, gap: 10, padding: 18 },
+  embedded: { gap: 10 },
   /* Set like the window card above it: regular weights, a small eyebrow, a 20px title. */
   eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0, lineHeight: 15 },
   title: { fontFamily: fonts.bodyMedium, fontSize: 20, letterSpacing: -0.35, lineHeight: 25, marginTop: 3 },
@@ -258,16 +263,16 @@ const styles = StyleSheet.create({
   contributor: { alignItems: 'flex-start', flexDirection: 'row', gap: 8 },
   dot: { borderRadius: 3, height: 6, marginTop: 7, width: 6 },
   contributorText: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
-  note: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 17 },
+  note: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
   rule: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
-  question: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, marginTop: 4 },
+  question: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600', lineHeight: 21, marginTop: 4 },
   subQuestion: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderCurve: 'continuous', borderRadius: 18, justifyContent: 'center', minHeight: 36, paddingHorizontal: 12, paddingVertical: 8 },
-  chipText: { fontFamily: fonts.bodyMedium, fontSize: 13 },
+  chip: { borderCurve: 'continuous', borderRadius: 14, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14, paddingVertical: 8 },
+  chipText: { fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '500' },
   switchRow: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between', marginTop: 6 },
   switchLabel: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
   pulseRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   pulseInput: { borderRadius: 14, fontFamily: fonts.bodyMedium, fontSize: 18, fontVariant: ['tabular-nums'], minHeight: 44, paddingHorizontal: 14, width: 90 },
-  pulseSave: { alignItems: 'center', borderRadius: 14, justifyContent: 'center', marginLeft: 'auto', minHeight: 40, paddingHorizontal: 16 }
+  pulseSave: { alignItems: 'center', borderRadius: 14, justifyContent: 'center', marginLeft: 'auto', minHeight: 44, paddingHorizontal: 20 }
 });

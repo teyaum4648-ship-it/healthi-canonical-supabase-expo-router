@@ -1,12 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { SleepSession } from '../../engines/circadian';
 import { fonts, glassSurface } from '../../styles/mobileTheme';
 import { SleepTimePicker } from './SleepTimePicker';
-import { DayNavigator } from '../../components/mobile/DayNavigator';
-import { shiftDay } from '../navigation/navigationModel';
+import { dayTitle, shiftDay } from '../navigation/navigationModel';
 import {
   SLEEP_WINDOW_TIMELINE,
   adjustSleepWindowClock,
@@ -46,6 +45,10 @@ type SleepWindowTrackerProps = {
   palette: SleepWindowTrackerPalette;
   isSaving: boolean;
   onSave: (record: SleepWindowRecord) => Promise<boolean>;
+  /** Shown beside last night's duration: the Sleep score. */
+  aside?: ReactNode;
+  /** Shown under the duration: what the night means for today's energy. */
+  footer?: ReactNode;
 };
 
 function formatTime(value: string): string {
@@ -235,68 +238,56 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
     setError(null);
   }
 
+  const confirmed = record.status === 'confirmed' || record.status === 'corrected';
+  const hours = Math.floor(record.asleep_minutes / 60);
+  const minutes = record.asleep_minutes % 60;
   return (
-    <View style={styles.sectionPad}>
-      <View style={[styles.card, { ...glassSurface, borderColor: props.palette.border }]}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.eyebrow, { color: props.palette.faint }]}>{viewDate === props.date ? 'Last night' : 'Sleep history'}</Text>
-            <Text style={[styles.cardTitle, { color: props.palette.text }]}>Your sleep window</Text>
+    <View style={styles.hero}>
+      <View style={styles.heroRow}>
+        <View style={styles.heroCopy}>
+          {/* Earlier nights are a tap away on either side of the label, as the day picker was. */}
+          <View style={styles.dayRow}>
+            <Pressable accessibilityLabel="Previous night" accessibilityRole="button" disabled={editing || busy || viewDate <= shiftDay(props.date, -13)} hitSlop={12} onPress={() => setViewDate(shiftDay(viewDate, -1))} style={({ pressed }) => [styles.dayArrow, (editing || busy || viewDate <= shiftDay(props.date, -13)) && styles.disabled, pressed && styles.pressed]}>
+              <Ionicons color={props.palette.muted} name="chevron-back" size={15} />
+            </Pressable>
+            <Text style={[styles.eyebrow, { color: props.palette.muted }]}>{viewDate === props.date ? 'Last night' : dayTitle(viewDate, props.date)}</Text>
+            {viewDate !== props.date ? (
+              <Pressable accessibilityLabel="Back to last night" accessibilityRole="button" disabled={editing || busy} hitSlop={12} onPress={() => setViewDate(props.date)} style={({ pressed }) => [styles.dayArrow, pressed && styles.pressed]}>
+                <Ionicons color={props.palette.muted} name="chevron-forward" size={15} />
+              </Pressable>
+            ) : null}
           </View>
-          <View style={[styles.statusChip, { backgroundColor: props.palette.accentSoft }]}>
-            <Ionicons
-              color={props.palette.accent}
-              name={record.status === 'confirmed' || record.status === 'corrected' ? 'checkmark-circle' : 'sparkles'}
-              size={14}
-            />
-            <Text style={[styles.statusText, { color: props.palette.accent }]}>{statusLabel}</Text>
+          <Text accessibilityLabel={`${formatMinutes(record.asleep_minutes)} asleep`} style={[styles.bigDuration, { color: props.palette.text }]}>
+            {hours}<Text style={[styles.bigUnit, { color: props.palette.muted }]}>h </Text>{String(minutes).padStart(2, '0')}<Text style={[styles.bigUnit, { color: props.palette.muted }]}>m</Text>
+          </Text>
+          <View style={styles.rangeLine}>
+            <Text style={[styles.rangeText, { color: props.palette.muted }]}>{formatTime(record.start_at)} – {formatTime(record.end_at)}</Text>
+            <View style={styles.statusInline}>
+              <Ionicons color={confirmed ? props.palette.accent : props.palette.amber} name={confirmed ? 'checkmark' : 'sparkles'} size={14} />
+              <Text style={[styles.statusInlineText, { color: confirmed ? props.palette.accent : props.palette.amber }]}>{statusLabel}</Text>
+            </View>
           </View>
         </View>
-
-        <DayNavigator date={viewDate} today={props.date} earliest={shiftDay(props.date, -13)} onChange={setViewDate} disabled={editing || localSaving || props.isSaving} palette={props.palette} />
-
-        <View style={styles.rangeRow}>
-          <Text style={[styles.range, { color: props.palette.text }]}>
-            {formatTime(record.start_at)} <Text style={{ color: props.palette.faint }}>–</Text> {formatTime(record.end_at)}
-          </Text>
-          <Text style={[styles.duration, { color: props.palette.accent }]}>{formatMinutes(record.asleep_minutes)}</Text>
-        </View>
-        <Text style={[styles.source, { color: props.palette.muted }]}>{sleepWindowSourceLabel(record)}</Text>
-
-        <View style={[styles.timelineShell, { backgroundColor: props.palette.chip }]}>
-          <View style={[styles.timelineBaseline, { backgroundColor: props.palette.hairline }]} />
-          {record.intervals.map((interval) => (
-            <View
-              key={interval.id}
-              style={[
-                styles.timelineInterval,
-                {
-                  backgroundColor: interval.state === 'awake' ? props.palette.amber : props.palette.accent,
-                  left: timelinePercent(interval.start_at),
-                  width: intervalWidth(interval.start_at, interval.end_at)
-                }
-              ]}
-            />
-          ))}
-        </View>
-        <View style={styles.timelineLabels}>
-          {['6 PM', 'Midnight', '6 AM', 'Noon'].map((label) => (
-            <Text key={label} style={[styles.timelineLabel, { color: props.palette.faint }]}>{label}</Text>
-          ))}
-        </View>
-
-        <View style={[styles.contextRow, { borderTopColor: props.palette.hairline }]}>
-          <Ionicons color={props.palette.faint} name="information-circle-outline" size={17} />
-          <Text style={[styles.contextText, { color: props.palette.muted }]}>
-            {/* One confidence on this screen, the rhythm's; this line says what the window is instead. */}
-            {record.status === 'confirmed' || record.status === 'corrected'
-              ? 'Timing you confirmed. It shows when you slept, not sleep stages.'
-              : 'Estimated timing, not sleep stages. Confirm it if it looks right.'}
-          </Text>
-        </View>
+        {props.aside}
+      </View>
+      {props.footer}
 
         {editing ? (
-          <View style={[styles.editor, { borderTopColor: props.palette.hairline }]}>
+          <View style={[styles.editor, { backgroundColor: props.palette.surface }]}>
+            <View style={[styles.timelineShell, { backgroundColor: props.palette.chip }]}>
+              <View style={[styles.timelineBaseline, { backgroundColor: props.palette.hairline }]} />
+              {record.intervals.map((interval) => (
+                <View
+                  key={interval.id}
+                  style={[styles.timelineInterval, { backgroundColor: interval.state === 'awake' ? props.palette.amber : props.palette.accent, left: timelinePercent(interval.start_at), width: intervalWidth(interval.start_at, interval.end_at) }]}
+                />
+              ))}
+            </View>
+            <View style={styles.timelineLabels}>
+              {['6 PM', 'Midnight', '6 AM', 'Noon'].map((label) => (
+                <Text key={label} style={[styles.timelineLabel, { color: props.palette.faint }]}>{label}</Text>
+              ))}
+            </View>
             <Text style={[styles.editorTitle, { color: props.palette.text }]}>Adjust last night</Text>
             <Text style={[styles.editorSupport, { color: props.palette.muted }]}>Tap a time to scroll hours, minutes, and AM or PM. Use − / + for 15-minute adjustments.</Text>
             <View style={styles.timeGrid}>
@@ -363,7 +354,7 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
               </Pressable>
             </View>
           </View>
-        ) : (
+        ) : canConfirm ? (
           <View style={styles.actionRow}>
             {canConfirm ? (
               <Pressable
@@ -388,18 +379,34 @@ export function SleepWindowTracker(props: SleepWindowTrackerProps) {
               <Text style={[styles.secondaryActionText, { color: props.palette.accent }]}>{canConfirm ? 'Adjust' : 'Edit window'}</Text>
             </Pressable>
           </View>
+        ) : (
+          <Pressable accessibilityRole="button" disabled={busy} hitSlop={6} onPress={beginEditing} style={({ pressed }) => [styles.editLink, pressed && styles.pressed]}>
+            <Ionicons color={props.palette.accent} name="options-outline" size={16} />
+            <Text style={[styles.editLinkText, { color: props.palette.accent }]}>Edit last night’s window</Text>
+          </Pressable>
         )}
         {!editing && error ? <Text accessibilityRole="alert" style={[styles.errorText, { color: props.palette.amber }]}>{error}</Text> : null}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionPad: { paddingHorizontal: 22, paddingTop: 18 },
+  hero: { paddingHorizontal: 20, paddingTop: 18 },
+  heroRow: { alignItems: 'center', flexDirection: 'row', gap: 16 },
+  heroCopy: { flex: 1, gap: 2, minWidth: 0 },
+  dayRow: { alignItems: 'center', flexDirection: 'row', gap: 6, marginLeft: -2 },
+  dayArrow: { alignItems: 'center', height: 22, justifyContent: 'center', width: 18 },
+  bigDuration: { fontFamily: fonts.display, fontSize: 64, fontVariant: ['tabular-nums'], fontWeight: '600', letterSpacing: -3, lineHeight: 70 },
+  bigUnit: { fontSize: 24, fontWeight: '500', letterSpacing: 0 },
+  rangeLine: { alignItems: 'center', columnGap: 10, flexDirection: 'row', flexWrap: 'wrap' },
+  rangeText: { fontFamily: fonts.body, fontSize: 14, fontVariant: ['tabular-nums'], lineHeight: 20 },
+  statusInline: { alignItems: 'center', flexDirection: 'row', gap: 3 },
+  statusInlineText: { fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  editLink: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 6, marginTop: 6, minHeight: 44 },
+  editLinkText: { fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '600' },
   card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 18 },
   headerRow: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between' },
-  eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 0, lineHeight: 15 },
+  eyebrow: { fontFamily: fonts.bodyMedium, fontSize: 12, fontWeight: '600', letterSpacing: 0.8, lineHeight: 16, textTransform: 'uppercase' },
   cardTitle: { fontFamily: fonts.bodyMedium, fontSize: 20, letterSpacing: -0.35, lineHeight: 25, marginTop: 3 },
   statusChip: { alignItems: 'center', borderRadius: 999, flexDirection: 'row', gap: 5, minHeight: 30, paddingHorizontal: 10 },
   statusText: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16 },
@@ -407,15 +414,15 @@ const styles = StyleSheet.create({
   range: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 24, fontVariant: ['tabular-nums'], letterSpacing: -0.6, lineHeight: 30 },
   duration: { fontFamily: fonts.bodyMedium, fontSize: 15, fontVariant: ['tabular-nums'], lineHeight: 20 },
   source: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, marginTop: 3 },
-  timelineShell: { borderRadius: 999, height: 18, marginTop: 20, overflow: 'hidden', position: 'relative' },
+  timelineShell: { borderRadius: 999, height: 18, marginTop: 0, overflow: 'hidden', position: 'relative' },
   timelineBaseline: { height: 2, left: 9, position: 'absolute', right: 9, top: 8 },
   timelineInterval: { borderRadius: 999, bottom: 3, minWidth: 3, position: 'absolute', top: 3 },
   timelineLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 7 },
   timelineLabel: { fontFamily: fonts.body, fontSize: 11, fontVariant: ['tabular-nums'], lineHeight: 15 },
   contextRow: { alignItems: 'flex-start', borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 8, marginTop: 18, paddingTop: 14 },
   contextText: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
-  editor: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 18, paddingTop: 18 },
-  editorTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, letterSpacing: -0.2, lineHeight: 22 },
+  editor: { borderRadius: 20, marginTop: 14, padding: 16 },
+  editorTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, fontWeight: '600', letterSpacing: -0.2, lineHeight: 22, marginTop: 16 },
   editorSupport: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, marginTop: 3 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 13 },
   timeAdjuster: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, flex: 1, minWidth: 130, padding: 10 },
@@ -431,13 +438,13 @@ const styles = StyleSheet.create({
   awakeTitle: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19 },
   removeButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   addAwakeButton: { alignItems: 'center', borderRadius: 14, borderStyle: 'dashed', borderWidth: 1, flexDirection: 'row', gap: 7, justifyContent: 'center', marginTop: 12, minHeight: 48 },
-  addAwakeText: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19 },
+  addAwakeText: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600', lineHeight: 20 },
   errorText: { fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 19, marginTop: 10 },
-  actionRow: { flexDirection: 'row', gap: 9, marginTop: 18 },
+  actionRow: { flexDirection: 'row', gap: 9, marginTop: 14 },
   primaryAction: { alignItems: 'center', borderRadius: 14, flex: 1, flexDirection: 'row', gap: 7, justifyContent: 'center', minHeight: 50, paddingHorizontal: 14 },
-  primaryActionText: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19 },
+  primaryActionText: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600', lineHeight: 20 },
   secondaryAction: { alignItems: 'center', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, flex: 1, flexDirection: 'row', gap: 7, justifyContent: 'center', minHeight: 50, paddingHorizontal: 14 },
-  secondaryActionText: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19 },
+  secondaryActionText: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600', lineHeight: 20 },
   fullAction: { alignItems: 'center', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, flex: 1, flexDirection: 'row', gap: 7, justifyContent: 'center', minHeight: 50, paddingHorizontal: 14 },
   pressed: { opacity: 0.72 },
   disabled: { opacity: 0.5 }

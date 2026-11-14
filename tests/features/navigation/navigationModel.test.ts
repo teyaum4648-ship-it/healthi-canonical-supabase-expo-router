@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { dayTitle, firstRouteParam, mainTabs, quickEntryHref, quickEntryRequest, shiftDay } from '../../../src/features/navigation/navigationModel';
 
 describe('mobile navigation contract', () => {
-  it('is the four pillars plus a way home, and nothing else', () => {
+  it('is the four pillars plus Today, and nothing else', () => {
     // Diet, Movement and Sleep were already Chek's Dr. Diet, Dr. Movement and Dr. Quiet
     // under other names. Mood is the fourth, which the app had never had.
-    expect(mainTabs.map((tab) => tab.label)).toEqual(['Home', 'Diet', 'Movement', 'Sleep', 'Mood']);
+    expect(mainTabs.map((tab) => tab.label)).toEqual(['Today', 'Diet', 'Move', 'Sleep', 'Mood']);
     expect(new Set(mainTabs.map((tab) => tab.route)).size).toBe(5);
-    // Plan and the profile are reached from the Home header; neither is a pillar.
+    // Plan and the profile are reached from the screen headers; neither is a pillar.
     expect(mainTabs.some((tab) => String(tab.route) === 'plan')).toBe(false);
     expect(mainTabs.some((tab) => String(tab.route) === 'settings')).toBe(false);
   });
@@ -17,7 +17,7 @@ describe('mobile navigation contract', () => {
     // still Movement, which is what quickEntryHref and every saved link depend on.
     const byLabel = new Map(mainTabs.map((tab) => [tab.label, String(tab.route)]));
     expect(byLabel.get('Diet')).toBe('food');
-    expect(byLabel.get('Movement')).toBe('movement');
+    expect(byLabel.get('Move')).toBe('movement');
     expect(byLabel.get('Sleep')).toBe('rhythm');
     expect(byLabel.get('Mood')).toBe('mood');
   });
