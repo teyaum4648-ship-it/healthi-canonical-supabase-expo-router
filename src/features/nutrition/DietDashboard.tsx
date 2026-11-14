@@ -6,6 +6,7 @@ import { colors, type, glassSurface } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { shiftDay } from '../navigation/navigationModel';
 import { dietWeek, intakeProgress } from './dietDashboardModel';
+import { MetricRow, MiniProgress, RowGroup, ScoreDial, SectionLabel } from '../../components/mobile/kit';
 
 export const dietAccents = { energy: '#AA8AF8', protein: '#EE829E', carbs: '#E9B06A', fat: '#77AEFA', water: '#63CBEF' };
 const rounded = (value: number | null) => value === null ? '—' : Math.round(value).toLocaleString();
@@ -52,7 +53,6 @@ export function DietIntakeSummary({ summary, targets, onNutrients }: {
 }) {
   const energy = intakeProgress(summary.calories, targets.calories_target);
   const partial = summary.reason_codes.includes('partial_nutrition_data');
-  const { fontScale } = useWindowDimensions();
   const macros = [
     /*
      * Ionicons names are not descriptions. "fitness-outline" is a heart with a pulse
@@ -65,30 +65,44 @@ export function DietIntakeSummary({ summary, targets, onNutrients }: {
   ] as const;
   const energyDetail = energy.amount === null ? 'Log a food to begin' : energy.target === null ? 'No working calorie target set' : partial ? 'Includes partial nutrition entries' : energy.remaining! >= 0 ? `${rounded(energy.remaining)} kcal to working target` : `${rounded(-energy.remaining!)} kcal above working target`;
   return <View style={styles.summary}>
-    <Pressable accessibilityRole="button" accessibilityLabel="View calorie and nutrient details" onPress={onNutrients} style={[styles.energy, { flexWrap: 'wrap' }]}>
-      <View style={styles.energyCopy}>
-        <Text style={styles.caption}>Calories logged</Text>
-        <View style={styles.valueRow}><Text style={styles.energyNumber}>{rounded(energy.amount)}</Text>{energy.target !== null ? <Text style={styles.target}>/ {rounded(energy.target)}</Text> : null}</View>
-        <Text style={styles.detail}>{energyDetail}</Text>
-      </View>
-      <View style={styles.energyRing}><IntakeRing fraction={energy.fraction} color={dietAccents.energy} size={98} icon="flame" /><Text style={[styles.percent, { color: dietAccents.energy }]}>{energy.amount === null ? 'Not logged' : energy.fraction === null ? 'No target' : `${Math.round(energy.fraction * 100)}% of target`}</Text></View>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Calories ${rounded(energy.amount)}${energy.target !== null ? ` of ${rounded(energy.target)}` : ''}. View nutrient details`} onPress={onNutrients} style={styles.dialWrap}>
+      <ScoreDial
+        color={dietAccents.energy}
+        fraction={energy.amount === null ? null : energy.fraction}
+        label="Calories"
+        value={rounded(energy.amount)}
+        word={energy.amount === null ? 'Not logged' : energy.target !== null ? `of ${rounded(energy.target)} kcal` : 'kcal'}
+        wordColor={colors.textMuted}
+        size={196}
+      />
+      <Text style={styles.detail}>{energyDetail}</Text>
     </Pressable>
-    <View style={styles.macros}>{macros.map(macro => {
-      const progress = intakeProgress(macro.amount, macro.target);
-      return <Pressable key={macro.label} accessibilityRole="button" accessibilityLabel={`${macro.label}: ${progress.amount === null ? 'not reported' : `${rounded(progress.amount)} grams`}${progress.target !== null ? `, target ${rounded(progress.target)} grams` : ''}. View nutrients.`} onPress={onNutrients} style={[styles.macro, fontScale > 1.4 && { flexBasis: '100%' }]}>
-        <Text style={styles.macroLabel}>{macro.label}</Text>
-        <View style={styles.valueRow}><Text style={styles.macroNumber}>{rounded(progress.amount)}</Text><Text style={styles.macroUnit}>g</Text></View>
-        <Text style={styles.macroTarget}>{progress.target !== null ? `of ${rounded(progress.target)} g` : 'No target set'}</Text>
-        <View style={styles.macroRing}><IntakeRing fraction={progress.fraction} color={macro.color} size={54} icon={macro.icon} /></View>
-      </Pressable>;
-    })}</View>
-    <Text style={styles.footnote}>{partial ? 'Some label values are missing. Totals show reported amounts only.' : 'Working targets guide your day. Rings show intake, not a health score.'}</Text>
+    <View>
+      <SectionLabel>Macros</SectionLabel>
+      <RowGroup>
+        {macros.map((macro, index) => {
+          const progress = intakeProgress(macro.amount, macro.target);
+          return <MetricRow
+            key={macro.label}
+            accessibilityLabel={`${macro.label}: ${progress.amount === null ? 'not reported' : `${rounded(progress.amount)} grams`}${progress.target !== null ? `, target ${rounded(progress.target)} grams` : ''}. View nutrients.`}
+            color={macro.color}
+            title={macro.label}
+            visual={<MiniProgress color={macro.color} fraction={progress.fraction} />}
+            value={progress.amount === null ? '—' : rounded(progress.amount)}
+            unit={progress.target !== null ? `/ ${rounded(progress.target)} g` : 'g'}
+            onPress={onNutrients}
+            last={index === macros.length - 1}
+          />;
+        })}
+      </RowGroup>
+    </View>
+    <Text style={styles.footnote}>{partial ? 'Some label values are missing. Totals show reported amounts only.' : 'Working targets guide your day. Bars show intake, not a health score.'}</Text>
   </View>;
 }
 
 const styles = StyleSheet.create({
   week: { gap: 4 }, weekHeader: { flexDirection: 'row', alignItems: 'center' }, month: { ...type.label, color: colors.textMuted, flex: 1 }, weekButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, today: { ...type.label, color: tabAccent.food },
-  days: { flexDirection: 'row', gap: 3 }, day: { flex: 1, minHeight: 74, alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 16, borderWidth: 1, borderColor: 'transparent' }, selectedDay: { backgroundColor: colors.surfaceInset, borderColor: dietAccents.energy }, weekday: { ...type.caption, color: colors.textMuted }, date: { ...type.number, color: colors.text }, selectedText: { color: colors.text }, todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: dietAccents.energy }, dim: { opacity: 0.3 },
-  summary: { gap: 12 }, energy: { ...glassSurface, borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong }, energyCopy: { flex: 1, minWidth: 140, gap: 9 }, energyRing: { alignItems: 'center', gap: 8 }, caption: { ...type.label, color: colors.textMuted }, valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 4 }, energyNumber: { ...type.numberLg, fontSize: 40, lineHeight: 48, letterSpacing: -1.4, color: colors.text }, target: { ...type.label, color: colors.textMuted }, detail: { ...type.caption, color: colors.textMuted }, percent: { ...type.caption, fontWeight: '500' },
+  days: { flexDirection: 'row', gap: 3 }, day: { flex: 1, minHeight: 74, alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 16, borderWidth: 1, borderColor: 'transparent' }, selectedDay: { backgroundColor: colors.surface, borderColor: 'transparent' }, weekday: { ...type.caption, color: colors.textMuted }, date: { ...type.number, color: colors.text }, selectedText: { color: colors.text }, todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: dietAccents.energy }, dim: { opacity: 0.3 },
+  summary: { gap: 16 }, dialWrap: { alignItems: 'center', gap: 4 }, energy: { ...glassSurface, borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong }, energyCopy: { flex: 1, minWidth: 140, gap: 9 }, energyRing: { alignItems: 'center', gap: 8 }, caption: { ...type.label, color: colors.textMuted }, valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 4 }, energyNumber: { ...type.numberLg, fontSize: 40, lineHeight: 48, letterSpacing: -1.4, color: colors.text }, target: { ...type.label, color: colors.textMuted }, detail: { ...type.caption, color: colors.textMuted, textAlign: 'center' }, percent: { ...type.caption, fontWeight: '500' },
   macros: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, macro: { flex: 1, flexBasis: '28%', minWidth: 88, ...glassSurface, borderRadius: 20, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.hairline, gap: 3 }, macroLabel: { ...type.label, color: colors.textMuted, marginBottom: 5 }, macroNumber: { ...type.numberLg, fontSize: 26, lineHeight: 32, color: colors.text }, macroUnit: { ...type.label, color: colors.textMuted }, macroTarget: { ...type.caption, color: colors.textMuted }, macroRing: { alignItems: 'center', paddingTop: 12, paddingBottom: 2 }, footnote: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4 }
 });

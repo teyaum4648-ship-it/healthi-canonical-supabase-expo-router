@@ -14,6 +14,9 @@ import { SleepTimePicker } from '../sleepRhythm/SleepTimePicker';
 import { readinessHeadline, readinessZone } from './dashboardZones';
 import { LoggingPrompts } from './LoggingPromptsPanel';
 import { ReadinessHub } from './premium/ReadinessHub';
+import type { PillarReading } from './premium/pillarRingModel';
+import type { ZoneTone } from '../../styles/mobileTheme';
+import type { DataConfidence } from '../../types/common';
 import { loggingPrompts, type LoggingPromptId } from './loggingPrompts';
 import {
   domainNames, evaluateReadinessNow, localWakeTimestamp, READINESS_NOW_POLICY, shouldRemindAboutLunch,
@@ -94,7 +97,7 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
 }
 
 /** Device-local demo only. The account Home continues using its existing daily briefing. */
-export function ReadinessNowCard({ base, mealTimes, safetyActive, details, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0, onCheckinSaved }: {
+export function ReadinessNowCard({ base, mealTimes, safetyActive, details, checkinRequest = 0, sleepMissing, sessionsThisWeek, refreshKey = 0, onCheckinSaved, trendFor, onOpenDetail, onReading }: {
   base: DailyReadinessResult; mealTimes: string[]; safetyActive: boolean;
   /** The biomarker breakdown, revealed under the ring with what moved the estimate. */
   details?: ReactNode; checkinRequest?: number;
@@ -104,6 +107,11 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
   refreshKey?: number;
   /** Called after a check-in is saved, so Home can read its answers into readiness. */
   onCheckinSaved?: () => void;
+  /** Today against the person's own recent days, for whatever number this card settles on. */
+  trendFor?: (score: number | null) => { text: string; direction: 'up' | 'down' | 'flat' } | null;
+  onOpenDetail?: () => void;
+  /** Reports the number shown, so the week strip and the breakdown screen match it. */
+  onReading?: (reading: { score: number | null; zone: ZoneTone; word: string; insight: string; pillars: readonly PillarReading[]; confidence: DataConfidence }) => void;
 }) {
   const focused = useIsFocused();
   const [now, setNow] = useState(() => new Date().toISOString());
@@ -134,6 +142,12 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
   }, [day, retry, refreshKey]));
   const result = useMemo(() => evaluateReadinessNow({ now, base, mealTimes, waterTimes: water.map(w => w.logged_at), checkins: data?.checkins ?? [], safetyActive }), [now, base, mealTimes, water, data, safetyActive]);
   const waterToday = useMemo(() => water.filter(w => localDay(w.logged_at) === day).length, [water, day]);
+  const shownZone = readinessZone(result.publicScore, safetyActive);
+  const shownHeadline = readinessHeadline(shownZone, result.attention[0]?.text ?? result.summary);
+  useEffect(() => {
+    if (!data) return;
+    onReading?.({ score: result.publicScore, zone: shownZone, word: shownHeadline.word, insight: shownHeadline.insight, pillars: result.ledger, confidence: result.confidence });
+  }, [data, onReading, result.confidence, result.ledger, result.publicScore, shownHeadline.insight, shownHeadline.word, shownZone]);
   const promptRows = useMemo(() => data ? loggingPrompts({
     sleepMissing,
     checkin: result.checkin ? { at: result.checkin.at, stale: (result.ageMinutes ?? 0) > READINESS_NOW_POLICY.freshnessMinutes } : null,
@@ -158,8 +172,8 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
   }
   if (!data) return <View style={styles.card}><Text style={styles.heading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.muted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><Button secondary title="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={colors.accentMid} />}</View>;
   const remind = focused && shouldRemindAboutLunch(now, data.reminders, mealTimes, data.checkins);
-  const zone = readinessZone(result.publicScore, safetyActive);
-  const headline = readinessHeadline(zone, result.attention[0]?.text ?? result.summary);
+  const zone = shownZone;
+  const headline = shownHeadline;
   return <>
     {/*
       The estimate stands on the page rather than in a box: the ring, what it means, what
@@ -177,6 +191,8 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
       onWhy={() => setSheet('why')}
       details={details}
       pillars={result.ledger}
+      trend={trendFor?.(result.publicScore) ?? null}
+      onOpenDetail={onOpenDetail}
     />
     {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); onCheckinSaved?.(); }} /> : null}

@@ -1,13 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { MindScore, MindSuggestion } from '../../engines/mind';
-import { colors, glassSurface, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
-import { IntakeRing } from '../nutrition/DietDashboard';
+import { MetricRow, MiniProgress, RowGroup, ScoreDial, SectionLabel } from '../../components/mobile/kit';
 import type { MoodRing, MoodWeekDay } from './moodDashboardModel';
 
-const RING_ICONS = { breathing: 'leaf-outline', light: 'sunny-outline', habits: 'checkmark-done-outline', release: 'body-outline' } as const;
 const accent = tabAccent.mood;
 
 /**
@@ -26,79 +24,73 @@ export function MoodToday({ score, rings, week, onSuggestion }: {
 }) {
   const busiest = Math.max(5, ...week.map((day) => day.minutes));
   const weekMinutes = week.reduce((sum, day) => sum + day.minutes, 0);
+  const confidenceWord = `${score.confidence[0]!.toUpperCase()}${score.confidence.slice(1)} confidence`;
   return (
     <>
-      <View style={styles.panel}>
-        <View style={styles.header}>
-          <View style={styles.flex}>
-            <Text style={styles.eyebrow}>Mind + Life Load</Text>
-            <Text style={styles.summary}>{score.summary}</Text>
-          </View>
-          {score.score !== null ? (
-            <View accessible accessibilityLabel={`Mind and life load ${score.score} out of 100`} style={styles.scoreBlock}>
-              <Text style={styles.score}>{score.score}</Text>
-              <Text style={styles.scoreUnit}>/ 100</Text>
-            </View>
-          ) : null}
+      <View style={styles.lead}>
+        <ScoreDial
+          color={accent}
+          fraction={score.score === null ? null : score.score / 100}
+          label="Mind + Life Load"
+          value={score.score === null ? '—' : String(score.score)}
+          word={score.score === null ? 'Calibrating' : confidenceWord}
+          wordColor={score.score === null ? colors.textMuted : accent}
+          accessibilityLabel={score.score === null ? 'Mind and life load: not enough to read yet' : `Mind and life load ${score.score} out of 100, ${confidenceWord}`}
+        />
+        <Text style={styles.summary}>{score.summary}</Text>
+        {score.score !== null ? <Text style={styles.meta}>{Math.round(score.coverage * 100)}% of the signals we look at</Text> : null}
+      </View>
+
+      <RowGroup>
+        <MetricRow
+          last
+          title={score.suggestion.title}
+          detail={score.suggestion.detail}
+          onPress={() => onSuggestion(score.suggestion)}
+          accessibilityLabel={`${score.suggestion.title}. ${score.suggestion.detail}`}
+        />
+      </RowGroup>
+
+      {score.limiters.length ? (
+        <View>
+          <SectionLabel>Weighing on it</SectionLabel>
+          <RowGroup>
+            {score.limiters.map((limiter, index) => (
+              <MetricRow key={limiter.id} color={colors.textFaint} title={limiter.label} detail={limiter.detail} last={index === score.limiters.length - 1} />
+            ))}
+          </RowGroup>
         </View>
-        {score.score !== null ? (
-          <Text style={styles.meta}>{score.confidence} confidence · {Math.round(score.coverage * 100)}% of the signals we look at</Text>
-        ) : null}
-        {score.limiters.length ? (
-          <View style={styles.limiters}>
-            {score.limiters.map((limiter) => (
-              <View key={limiter.id} style={styles.limiterRow}>
-                <View style={styles.dot} />
-                <View style={styles.flex}>
-                  <Text style={styles.limiterLabel}>{limiter.label}</Text>
-                  <Text style={styles.limiterDetail}>{limiter.detail}</Text>
+      ) : null}
+
+      <View>
+        <SectionLabel>Today so far</SectionLabel>
+        <RowGroup>
+          {rings.map((ring, index) => (
+            <MetricRow
+              key={ring.id}
+              color={accent}
+              title={ring.label}
+              visual={<MiniProgress color={accent} fraction={ring.fraction} />}
+              value={ring.value}
+              last={index === rings.length - 1}
+            />
+          ))}
+        </RowGroup>
+      </View>
+
+      <View>
+        <SectionLabel right={`${weekMinutes} min breathing`}>This week</SectionLabel>
+        <View style={styles.panel}>
+          <View accessible accessibilityLabel={week.map((day) => `${day.letter} ${day.minutes} minutes`).join(', ')} style={styles.bars}>
+            {week.map((day) => (
+              <View key={day.day} style={styles.barColumn}>
+                <View style={styles.barTrack}>
+                  {day.minutes > 0 ? <View style={[styles.bar, { height: `${Math.max(12, (day.minutes / busiest) * 100)}%`, backgroundColor: day.isToday ? accent : pillarTint('mind_life_load', 0.55) }]} /> : null}
                 </View>
+                <Text style={[styles.barLetter, day.isToday && styles.barLetterToday]}>{day.letter}</Text>
               </View>
             ))}
           </View>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint={score.suggestion.techniqueId ? 'Opens the breathing practice' : 'Opens Practice'}
-          onPress={() => onSuggestion(score.suggestion)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-        >
-          <View style={styles.actionIcon}><Ionicons accessible={false} color={accent} name="sparkles-outline" size={18} /></View>
-          <View style={styles.flex}>
-            <Text style={styles.actionTitle}>{score.suggestion.title}</Text>
-            <Text style={styles.actionDetail}>{score.suggestion.detail}</Text>
-          </View>
-          <Ionicons accessible={false} color={colors.textFaint} name="chevron-forward" size={17} />
-        </Pressable>
-      </View>
-
-      <View style={styles.panel}>
-        <Text style={styles.eyebrow}>Today so far</Text>
-        <View style={styles.rings}>
-          {rings.map((ring) => (
-            <View key={ring.id} accessible accessibilityLabel={`${ring.label}: ${ring.value}`} style={styles.ringCell}>
-              <IntakeRing color={accent} fraction={ring.fraction} icon={RING_ICONS[ring.id]} size={58} />
-              <Text style={styles.ringLabel}>{ring.label}</Text>
-              <Text style={styles.ringValue}>{ring.value}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.panel}>
-        <View style={styles.weekHead}>
-          <Text style={styles.eyebrow}>This week</Text>
-          <Text style={styles.weekTotal}>{weekMinutes} min breathing</Text>
-        </View>
-        <View accessible accessibilityLabel={week.map((day) => `${day.letter} ${day.minutes} minutes`).join(', ')} style={styles.bars}>
-          {week.map((day) => (
-            <View key={day.day} style={styles.barColumn}>
-              <View style={styles.barTrack}>
-                {day.minutes > 0 ? <View style={[styles.bar, { height: `${Math.max(12, (day.minutes / busiest) * 100)}%`, backgroundColor: day.isToday ? accent : pillarTint('mind_life_load', 0.55) }]} /> : null}
-              </View>
-              <Text style={[styles.barLetter, day.isToday && styles.barLetterToday]}>{day.letter}</Text>
-            </View>
-          ))}
         </View>
       </View>
     </>
@@ -106,11 +98,12 @@ export function MoodToday({ score, rings, week, onSuggestion }: {
 }
 
 const styles = StyleSheet.create({
-  panel: { ...glassSurface, borderColor: colors.border, borderRadius: 18, borderWidth: hairlineWidth, gap: 12, padding: 18 },
+  panel: { backgroundColor: colors.surface, borderRadius: 20, gap: 12, padding: 16 },
+  lead: { alignItems: 'center', gap: 4 },
   flex: { flex: 1, minWidth: 0 },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
-  summary: { ...type.heading, color: colors.text, fontSize: 20, letterSpacing: -0.3, lineHeight: 26, marginTop: 4 },
+  summary: { ...type.body, color: colors.text, fontSize: 16, fontWeight: '500', lineHeight: 22, paddingHorizontal: 12, textAlign: 'center' },
   scoreBlock: { alignItems: 'flex-end' },
   score: { ...type.numberLg, color: accent },
   scoreUnit: { ...type.caption, color: colors.textMuted },

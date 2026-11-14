@@ -64,6 +64,7 @@ function AppTabs() {
       {/* Reached from the side menu rather than the bar; see mainTabs. */}
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="progress" options={{ href: null }} />
+      <Tabs.Screen name="readiness" options={{ href: null }} />
     </Tabs>
   );
 }

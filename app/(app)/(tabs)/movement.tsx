@@ -3,7 +3,7 @@ import { wallClockIso } from '../../../src/utils/localDay';
 import { movementReasonLines } from '../../../src/features/movement/movementReasonCopy';
 import { useLocalToday } from '../../../src/features/navigation/useLocalToday';
 import { StepsToday } from '../../../src/features/health/StepsToday';
-import { onPillar, tabAccent } from '../../../src/styles/pillarColors';
+import { onPillar, pillarColors, tabAccent } from '../../../src/styles/pillarColors';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
@@ -177,7 +177,7 @@ import {
   type WorkoutExerciseDraft
 } from '../../../src/features/movement/workoutForms';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, hairlineWidth, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, fonts, hairlineWidth, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -193,6 +193,8 @@ import {
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 import { ScreenHeader } from '../../../src/components/mobile/ScreenHeader';
+import { MetricRow, MiniDots, MiniProgress, ProgressBar, RowGroup, ScoreDial, SectionLabel } from '../../../src/components/mobile/kit';
+import { SESSION_TARGET } from '../../../src/engines/movement/calculateMovementScore';
 
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
@@ -1456,7 +1458,56 @@ export default function MovementScreen() {
   function renderToday() {
     return (
       <View style={styles.page}>
-        {/* No page heading: the navigation title reads "Move" and the segment above reads "Today". */}
+        {/* The one number this tab is about, what it means today, and the week so far. */}
+        <View style={styles.lead}>
+          <ScoreDial
+            color={pillarColors.movement_capacity}
+            fraction={movementPillar.score === null ? null : movementPillar.score / 100}
+            label="Capacity"
+            value={movementPillar.score === null ? '—' : String(Math.round(movementPillar.score))}
+            word={titleCase(adaptivePlan.capacity)}
+            wordColor={pillarColors.movement_capacity}
+          />
+        </View>
+        <View style={styles.verdictBlock}>
+          <Text style={styles.leadVerdict}>{adaptivePlan.verdict}</Text>
+          <Text style={styles.leadLede}>{adaptivePlan.explanation}</Text>
+        </View>
+
+        <View>
+          <SectionLabel>Today</SectionLabel>
+          <RowGroup>
+            <MetricRow
+              color={pillarColors.movement_capacity}
+              title="Suggested effort"
+              visual={<MiniProgress color={pillarColors.movement_capacity} fraction={adaptivePlan.effort_range.max / 10} />}
+              value={`${adaptivePlan.effort_range.min}–${adaptivePlan.effort_range.max}`}
+              unit="/ 10"
+            />
+            <MetricRow
+              color={pillarColors.movement_capacity}
+              title="Sessions this week"
+              visual={<MiniDots color={pillarColors.movement_capacity} done={summary.workout_count} total={SESSION_TARGET} />}
+              value={`${summary.workout_count} of ${SESSION_TARGET}`}
+              onPress={() => setActiveSegment('History')}
+            />
+            <MetricRow
+              color={pillarColors.movement_capacity}
+              title="Minutes this week"
+              value={String(summary.total_minutes)}
+              unit="min"
+              onPress={() => setActiveSegment('History')}
+            />
+            <MetricRow
+              last
+              color={pillarColors.movement_capacity}
+              title="High effort"
+              value={String(summary.recent_high_effort_count)}
+              unit={summary.recent_high_effort_count === 1 ? 'session' : 'sessions'}
+            />
+          </RowGroup>
+        </View>
+
         <MovementPillarCard
           causes={movementPillar.limiter_causes}
           hasScreen={movementScreens.length > 0}
@@ -1499,9 +1550,9 @@ export default function MovementScreen() {
           </Pressable>
         ) : null}
 
-        <View style={styles.verdictBlock}>
-          <Text style={styles.verdict}>{adaptivePlan.verdict}</Text>
-          <Text style={styles.lede}>{adaptivePlan.explanation}</Text>
+        <View>
+          <SectionLabel>Today’s capacity</SectionLabel>
+        <View style={styles.capacityCard}>
           <View style={styles.capacityLabels}>
             {['Restore', 'Technique', 'Build', 'Push'].map((label, index) => (
               <Text key={label} style={[styles.capacityLabel, index === capacityIndex && styles.capacityLabelActive]}>{label}</Text>
@@ -1520,7 +1571,25 @@ export default function MovementScreen() {
             ))}
           </View>
         </View>
-        <Divider />
+        </View>
+
+        {movementPillar.contributors.length ? (
+          <View>
+            <SectionLabel>Contributors</SectionLabel>
+            <View style={styles.contributorCard}>
+              {movementPillar.contributors.map((item, index) => (
+                <View key={item.id} style={[styles.contributor, index === movementPillar.contributors.length - 1 && styles.contributorLast]}>
+                  <View style={styles.contributorTop}>
+                    <Text style={styles.contributorName}>{item.label}</Text>
+                    <Text style={styles.contributorValue}>{item.value === null ? 'No signal' : `${Math.round(item.value * 100)}`}</Text>
+                  </View>
+                  <ProgressBar color={pillarColors.movement_capacity} fraction={item.value} />
+                  <Text style={styles.contributorDetail}>{item.detail}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.feelingPanel}>
           <Text style={styles.feelingTitle}>How are you feeling?</Text>
@@ -1583,7 +1652,8 @@ export default function MovementScreen() {
 
         <View>
           <StepsToday scope={protocolScopeValue} today={today} />
-          <EditorialLabel>This week</EditorialLabel>
+          <SectionLabel>This week</SectionLabel>
+          <View style={styles.weekCard}>
           <View style={styles.weekRow}>
             {weeklyDays.map((day) => {
               const dotColor = day.category === 'strength'
@@ -1607,6 +1677,7 @@ export default function MovementScreen() {
             <Text style={styles.monoMeta}>{summary.workout_count} sessions</Text>
             <Text style={styles.monoMeta}>{summary.total_minutes} minutes</Text>
             <Text style={styles.monoMeta}>{summary.recent_high_effort_count} high effort</Text>
+          </View>
           </View>
         </View>
       </View>
@@ -2144,7 +2215,19 @@ const styles = StyleSheet.create({
     lineHeight: 15
   },
   editorialDivider: { backgroundColor: movePalette.line, height: hairlineWidth, marginVertical: 2 },
-  verdictBlock: { paddingTop: 4 },
+  verdictBlock: { gap: 6, marginTop: -16 },
+  capacityCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 16 },
+  lead: { alignItems: 'center', gap: 6 },
+  leadVerdict: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 17, fontWeight: '600', lineHeight: 23, paddingHorizontal: 12, textAlign: 'center' },
+  leadLede: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20, paddingHorizontal: 12, textAlign: 'center' },
+  contributorCard: { backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 16 },
+  contributor: { borderBottomColor: colors.hairline, borderBottomWidth: StyleSheet.hairlineWidth, gap: 8, paddingVertical: 14 },
+  contributorLast: { borderBottomWidth: 0 },
+  contributorTop: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' },
+  contributorName: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600' },
+  contributorValue: { color: colors.text, fontFamily: fonts.display, fontSize: 15, fontVariant: ['tabular-nums'], fontWeight: '700' },
+  contributorDetail: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
+  weekCard: { backgroundColor: colors.surface, borderRadius: 20, paddingBottom: 14, paddingHorizontal: 16 },
   verdict: { ...type.voice, color: movePalette.ink, fontSize: 24, fontWeight: '700', letterSpacing: -0.5, lineHeight: 30, marginTop: 14 },
   lede: { ...type.body, color: 'rgba(255, 255, 255, 0.70)', lineHeight: 22, marginTop: 10 },
   whyTitle: { ...type.label, color: movePalette.ink, marginTop: 22 },
@@ -2158,7 +2241,7 @@ const styles = StyleSheet.create({
   primaryButtonText: { ...type.label, color: onPillar, fontSize: 15 },
   changedRow: { gap: 8 },
   changedCopy: { ...type.body, color: 'rgba(255, 255, 255, 0.65)' },
-  capacityLabels: { flexDirection: 'row', marginTop: 15 },
+  capacityLabels: { flexDirection: 'row' },
   capacityLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', flex: 1, fontSize: 12, textAlign: 'center' },
   capacityLabelActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
   capacityRail: { flexDirection: 'row', gap: 3, marginTop: 8 },
@@ -2179,7 +2262,7 @@ const styles = StyleSheet.create({
   supportCopy: { flex: 1 },
   supportTitle: { ...type.label, color: movePalette.ink },
   supportBody: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', marginTop: 3 },
-  feelingPanel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
+  feelingPanel: { backgroundColor: colors.surface, borderRadius: 20, padding: 16 },
   feelingTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 23 },
   feelingHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)', marginTop: 4 },
   mixList: { gap: 14, marginTop: 16 },

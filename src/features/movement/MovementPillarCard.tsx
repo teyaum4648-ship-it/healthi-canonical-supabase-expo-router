@@ -122,7 +122,7 @@ export function MovementPillarCard({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, gap: 14, paddingHorizontal: 18, paddingVertical: 16 },
+  card: { borderRadius: 20, borderWidth: 0, gap: 14, paddingHorizontal: 16, paddingVertical: 16 },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   headerCopy: { flex: 1, gap: 6, minWidth: 0 },
   flex: { flex: 1, gap: 2, minWidth: 0 },

@@ -23,14 +23,11 @@ import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCa
 import { readinessHeadline, readinessZone, sleepGlance } from '../../../src/features/dashboard/dashboardZones';
 import { BiomarkerBreakdown } from '../../../src/features/dashboard/premium/BiomarkerBreakdown';
 import { BiomarkerEntrySheet } from '../../../src/features/dashboard/premium/BiomarkerEntrySheet';
-import { BiomarkerTimeline } from '../../../src/features/dashboard/premium/BiomarkerTimeline';
-import { MetricGrid } from '../../../src/features/dashboard/premium/MetricGrid';
 import { ReadinessHub } from '../../../src/features/dashboard/premium/ReadinessHub';
 import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
 import { BIOMARKER_KINDS, summarizeBiomarker, type BiomarkerKind, type BiomarkerReading } from '../../../src/engines/biomarkers';
 import { summarizeLoad } from '../../../src/engines/load';
 import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPromptsPanel';
-import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
 import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
 import { WeeklyRecapRow, WeeklyRecapSheet } from '../../../src/features/dashboard/WeeklyRecap';
 import { localDaylightStore, type DaylightBout } from '../../../src/features/practice/daylightModel';
@@ -43,7 +40,7 @@ import { waterPace } from '../../../src/features/nutrition/waterPace';
 import { EMPTY_MIND_ENTRIES, loadMindEntries, mindReadinessSignals, type MindEntries } from '../../../src/features/practice/mindSignals';
 import { latestLoadCheck, localLoadCheckStore, personalBaselineFrom, type LoadCheckRecord } from '../../../src/features/loadCheck/loadCheckStore';
 import { dietAccents } from '../../../src/features/nutrition/DietDashboard';
-import { recordReadiness } from '../../../src/features/trends/readinessHistoryStore';
+import { localReadinessHistoryStore, recordReadiness, type ReadinessHistoryEntry } from '../../../src/features/trends/readinessHistoryStore';
 import { targetRowToTarget as goalTargetsFromRow } from '../../../src/features/nutrition/nutritionTargetModel';
 import { loggingPrompts, type LoggingPromptId } from '../../../src/features/dashboard/loggingPrompts';
 import {
@@ -100,15 +97,24 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { colors, fonts, glass, glassSurface, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
+import { colors, fonts, glass, glassSurface, zones, hues, tintedGlass, type } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
-import { Disclosure, DisclosureGroup, LinkRow } from '../../../src/components/mobile/Disclosure';
+import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { ScreenHeader } from '../../../src/components/mobile/ScreenHeader';
+import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
+import { Fab, MetricRow, MiniBars, MiniCurve, MiniDots, MiniLine, MiniProgress, RowGroup, SectionLabel, WeekStrip } from '../../../src/components/mobile/kit';
+import { energyCardModel, hoursAndMinutes, readinessTrend, readinessWeek } from '../../../src/features/dashboard/todayModel';
+import { setReadinessSnapshot } from '../../../src/features/dashboard/readinessSnapshot';
+import type { PillarReading } from '../../../src/features/dashboard/premium/pillarRingModel';
+import type { ZoneTone } from '../../../src/styles/mobileTheme';
+import type { DataConfidence } from '../../../src/types/common';
 import { buildSleepPhasePresentation, describeEnergyInsight } from '../../../src/features/sleepRhythm/sleepPresentation';
 import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
+
+type ShownReading = { score: number | null; zone: ZoneTone; word: string; insight: string; pillars: readonly PillarReading[]; confidence: DataConfidence };
 
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 const recapDismissedKey = 'healthi:recap:dismissed:v1';
@@ -238,19 +244,16 @@ type QuickLogAction = {
   onPress: () => void;
 };
 
-function QuickLog({ actions, notice }: { actions: QuickLogAction[]; notice?: { text: string; onUndo?: () => void } | null }) {
+function QuickLog({ actions, notice, onPicked }: { actions: QuickLogAction[]; notice?: { text: string; onUndo?: () => void } | null; onPicked?: () => void }) {
   return (
     <View style={styles.quickLogSection}>
-      <View style={styles.quickLogHeader}>
-        <Text style={styles.quickLogTitle}>Quick log</Text>
-      </View>
       <View style={styles.quickLogRow}>
         {actions.map((action) => (
           <Pressable
             accessibilityLabel={`${action.label}. ${action.detail}`}
             accessibilityRole="button"
             key={action.label}
-            onPress={action.onPress}
+            onPress={() => { onPicked?.(); action.onPress(); }}
             style={({ pressed }) => [styles.quickLogButton, pressed && styles.quickLogButtonPressed]}
           >
             <View style={[styles.quickLogIcon, { backgroundColor: `${action.color}1C` }]}>
@@ -337,6 +340,9 @@ export default function DashboardScreen() {
   const waterBusy = useRef(false);
   const [recapDismissedWeek, setRecapDismissedWeek] = useState<string | null | undefined>(undefined);
   const [nutritionMeals, setNutritionMeals] = useState<MealLog[]>([]);
+  const [readinessHistory, setReadinessHistory] = useState<ReadinessHistoryEntry[]>([]);
+  const [shownReading, setShownReading] = useState<ShownReading | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
   const [nutritionTargets, setNutritionTargets] = useState<NutritionTargets | null>(null);
   /* The week's meals and the person's own goals, for the Diet card. The readiness inputs above stay today-only. */
   const [weekMeals, setWeekMeals] = useState<MealLog[]>([]);
@@ -930,12 +936,73 @@ export default function DashboardScreen() {
     else router.navigate(quickEntryHref(id === 'movement' ? 'workout' : id));
   }
 
+  /* The past readings behind the week strip and the trend line; today is added from the screen. */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      localReadinessHistoryStore.read(protocolScopeValue)
+        .then((rows) => { if (active) setReadinessHistory(rows); })
+        .catch(() => { if (active) setReadinessHistory([]); });
+      return () => { active = false; };
+    }, [protocolScopeValue])
+  );
+  const reportReading = useCallback((reading: ShownReading) => {
+    /* Compared by value: the card hands over a fresh array on every render. */
+    setShownReading((previous) => previous && JSON.stringify(previous) === JSON.stringify(reading) ? previous : reading);
+  }, []);
+  const accountReading: ShownReading = {
+    score: visibleReadinessScore,
+    zone: accountZone,
+    word: accountHeadline.word,
+    insight: accountHeadline.insight,
+    pillars: morningBriefing.driver_cards,
+    confidence: morningBriefing.confidence
+  };
+  const reading = mode === 'demo' && shownReading ? shownReading : accountReading;
+  const week = readinessWeek(readinessHistory, today, reading.score);
+  const trendFor = useCallback((score: number | null) => readinessTrend(score, readinessHistory, today), [readinessHistory, today]);
+  const trend = trendFor(reading.score);
+  const lastNightMinutes = sleepAtGlance.lastNight?.minutes ?? null;
+  const sleepBars = weekCards[0]?.front.bars.map((bar) => bar.fraction) ?? [];
+  const rhrValues = restingHeartRate.series.map((day) => day.value);
+  const caloriesToday = nutritionMeals.reduce((sum, meal) => sum + (Number.isFinite(meal.calories) ? meal.calories ?? 0 : 0), 0);
+  const calorieTarget = nutritionTargets?.calories_target ?? null;
+  const moveMatch = /(\d+) of (\d+)/.exec(weekCards[2]?.front.value ?? '');
+  const sessionsDone = moveMatch ? Number(moveMatch[1]) : movementCard.workout_count;
+  const sessionTarget = moveMatch ? Number(moveMatch[2]) : 4;
+  const energyCard = energyCardModel(circadianBriefing, wallClockIso(), energyPhase.label);
+  const signalCount = foundationSourceCount + (hydrationToday ? 1 : 0) + (mindSignals ? 1 : 0) + (restingHeartRate.latest ? 1 : 0);
+  useEffect(() => {
+    setReadinessSnapshot({
+      date: today,
+      score: reading.score,
+      zone: reading.zone,
+      word: reading.word,
+      insight: reading.insight,
+      confidence: reading.confidence,
+      signals: { present: signalCount, total: 7 },
+      pillars: reading.pillars,
+      drivers: morningBriefing.driver_cards,
+      history: readinessHistory,
+      sleep: {
+        minutes: lastNightMinutes,
+        needMinutes: sleepNeed.minutes,
+        detail: lastNightMinutes === null ? 'Log last night to see it against your sleep need.' : sleepAtGlance.label
+      },
+      restingHeartRate: {
+        bpm: restingHeartRate.latest?.value ?? null,
+        detail: restingHeartRate.latest ? restingHeartRate.status : 'No reading yet. Add one from Today or connect a health app.'
+      },
+      training: { value: `${sessionsDone} of ${sessionTarget}`, detail: loadToday.insight }
+    });
+  }, [lastNightMinutes, loadToday.insight, morningBriefing.driver_cards, reading, readinessHistory, restingHeartRate, sessionTarget, sessionsDone, signalCount, sleepAtGlance.label, sleepNeed.minutes, today]);
+
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* The date over the greeting, the plan, and the profile button that opens the menu. */}
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace + 64 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {/* The date over the title, the plan, and the profile button that opens the menu. */}
         <ScreenHeader
-          title={homeGreeting(greeting, firstName)}
+          title="Today"
           eyebrow={displayDate(today)}
           actions={
             <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
@@ -943,23 +1010,28 @@ export default function DashboardScreen() {
             </Pressable>
           }
         />
+        <Text style={styles.greetingLine}>{homeGreeting(greeting, firstName)}</Text>
+
+        <WeekStrip color={zones.optimal.solid} days={week} />
 
         {/*
-          Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
-          The demo's card owns its check-in and "Why this estimate?" sheets; an account
-          reads the morning briefing and checks in through the evening closeout.
+          One score, one sentence, the four foundations. The demo's card owns its check-in
+          and "Why this estimate?" sheets; an account reads the morning briefing and checks
+          in through the evening closeout.
         */}
         {mode === 'demo' ? (
-          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
+          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} trendFor={trendFor} onOpenDetail={() => router.navigate('/readiness')} onReading={reportReading} />
         ) : (
           <ReadinessHub
             score={visibleReadinessScore}
             zone={accountZone}
             word={accountHeadline.word}
             insight={accountHeadline.insight}
-            meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
+            meta={`${sourceLabel} · ${dashboardHero.confidence} confidence`}
+            trend={trend}
             primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Check in'}
             onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : openCheckin}
+            onOpenDetail={() => router.navigate('/readiness')}
             details={biomarkerBreakdown}
             pillars={morningBriefing.driver_cards}
           />
@@ -971,46 +1043,103 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
+        <RowGroup>
+          <MetricRow last title="Day Mode" value={dayModeLabel(protocol.day_mode)} onPress={() => router.navigate('/protocol')} />
+        </RowGroup>
+
+        <View>
+          <SectionLabel>Today</SectionLabel>
+          <RowGroup>
+            <MetricRow
+              color={pillarColors.recovery_rhythm}
+              title="Sleep"
+              visual={<MiniBars color={pillarColors.recovery_rhythm} values={sleepBars} />}
+              value={hoursAndMinutes(lastNightMinutes).value}
+              onPress={() => router.navigate('/rhythm')}
+            />
+            <MetricRow
+              color={homePalette.blueBright}
+              title="Resting HR"
+              visual={<MiniLine color={homePalette.blueBright} values={rhrValues} />}
+              value={restingHeartRate.latest ? String(Math.round(restingHeartRate.latest.value)) : '—'}
+              unit={restingHeartRate.latest ? 'bpm' : undefined}
+              onPress={() => setBiomarkerSheet({ kind: 'resting_heart_rate', date: today })}
+            />
+            <MetricRow
+              color={pillarColors.nourishment}
+              title="Calories"
+              visual={<MiniProgress color={pillarColors.nourishment} fraction={calorieTarget ? caloriesToday / calorieTarget : null} />}
+              value={nutritionMeals.length ? Math.round(caloriesToday).toLocaleString('en-US') : '—'}
+              unit={nutritionMeals.length ? 'kcal' : undefined}
+              onPress={() => router.navigate('/food')}
+            />
+            <MetricRow
+              color={waterColor}
+              title="Water"
+              visual={<MiniProgress color={waterColor} fraction={waterTargetMl ? waterTodayMl / waterTargetMl : null} />}
+              value={(waterTodayMl / 1000).toFixed(1)}
+              unit={waterTargetMl ? `/ ${(waterTargetMl / 1000).toFixed(1)} L` : 'L'}
+              onPress={() => void logGlass()}
+              accessibilityLabel={`Water, ${(waterTodayMl / 1000).toFixed(1)} litres. Add a ${GLASS_ML} mL glass`}
+            />
+            <MetricRow
+              last
+              color={pillarColors.movement_capacity}
+              title="Training"
+              visual={<MiniDots color={pillarColors.movement_capacity} done={sessionsDone} total={sessionTarget} />}
+              value={`${sessionsDone} of ${sessionTarget}`}
+              onPress={() => router.navigate('/movement')}
+            />
+          </RowGroup>
+          {waterNotice ? (
+            <View accessibilityLiveRegion="polite" style={styles.quickNotice}>
+              <Ionicons accessible={false} color={homePalette.textMuted} name="checkmark-circle" size={16} />
+              <Text style={styles.quickNoticeText}>{waterNotice.text}</Text>
+              {waterNotice.id ? <Pressable accessibilityRole="button" hitSlop={8} onPress={() => void undoGlass(waterNotice.id!)} style={styles.quickUndo}><Text style={styles.quickUndoText}>Undo</Text></Pressable> : null}
+            </View>
+          ) : null}
+        </View>
+
         {/* What the day's energy looks like, from the same rhythm the Sleep tab draws. */}
-        {energyInsight ? (
+        <View>
+          <SectionLabel>Energy</SectionLabel>
           <Pressable accessibilityRole="button" accessibilityHint="Opens Sleep" onPress={() => router.navigate('/rhythm')} style={({ pressed }) => [styles.energyCard, pressed && styles.pressed]}>
             <View style={styles.energyCardTop}>
-              <Text style={styles.sectionEyebrow}>Today’s energy</Text>
-              <Text style={styles.energyPhase}>{energyPhase.label} · {energyPhase.energy}</Text>
+              <View style={styles.primaryActionCopy}>
+                <Text style={styles.energyHeadline}>{energyCard?.title ?? 'Today’s energy'}</Text>
+                <Text style={styles.energyDetail}>{energyCard?.subtitle ?? 'Log last night’s sleep and the curve for today appears here.'}</Text>
+              </View>
+              <Ionicons accessible={false} color={homePalette.textFaint} name="chevron-forward" size={16} />
             </View>
-            <Text style={styles.energyHeadline}>{energyInsight.headline}</Text>
-            <Text style={styles.energyDetail}>{energyInsight.detail}</Text>
-            <View style={styles.energyLink}>
-              <Text style={styles.energyLinkText}>See today’s rhythm</Text>
-              <Ionicons accessible={false} color={homePalette.textFaint} name="chevron-forward" size={15} />
-            </View>
+            {energyCard ? (
+              <>
+                <MiniCurve color={pillarColors.recovery_rhythm} markerIndex={energyCard.markerIndex} points={energyCard.points} />
+                <View style={styles.energyAxis}>
+                  <Text style={styles.energyAxisText}>{energyCard.startLabel}</Text>
+                  <Text style={styles.energyAxisText}>{energyCard.endLabel}</Text>
+                </View>
+              </>
+            ) : null}
+            {energyInsight ? <Text style={styles.energyDetail}>{energyInsight.detail}</Text> : null}
           </Pressable>
-        ) : null}
+        </View>
 
-        <View style={styles.todayGroup}>
-          <Text style={styles.sectionEyebrow}>Today</Text>
-          <DisclosureGroup>
-            <LinkRow
+        <View>
+          <SectionLabel>Plan</SectionLabel>
+          <RowGroup>
+            <MetricRow
               title={primaryAction?.title ?? dashboardHero.top_action}
               detail={mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}
               onPress={() => router.navigate('/protocol')}
             />
-            <LinkRow
+            <MetricRow
+              last
               title={personalBaseline ? `Your days start at ${personalBaseline.score}` : 'Set your starting point'}
               detail={personalBaseline ? 'From your load check. Retake it any time.' : 'A short load check, so readiness starts from you instead of 70.'}
               onPress={() => router.navigate('/load-check')}
-              last
             />
-          </DisclosureGroup>
+          </RowGroup>
         </View>
-
-        {/* Component B: last night and today's load, side by side. */}
-        <MetricGrid sleep={sleepAtGlance} load={loadToday} onOpenSleep={() => router.navigate('/rhythm')} onOpenLoad={() => router.navigate('/movement')} />
-
-        {/* Component C: the week's resting heart rate, a line and a day-by-day log. */}
-        <BiomarkerTimeline summary={restingHeartRate} today={today} color={homePalette.blueBright} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
-
-        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
 
         {/* In the demo the readiness card has its own "Why this estimate?"; one is enough. */}
         {mode !== 'demo' ? (
@@ -1027,21 +1156,25 @@ export default function DashboardScreen() {
         {showRecap ? <WeeklyRecapRow onOpen={() => setRecapOpen(true)} onDismiss={dismissRecap} /> : null}
         {recapOpen ? <WeeklyRecapSheet recap={weeklyRecap(weekCards)} onClose={() => setRecapOpen(false)} onTrends={() => { setRecapOpen(false); router.navigate('/progress'); }} /> : null}
 
-        <View style={styles.weekSection}>
-          <View style={styles.weekHeader}>
-            <Text accessibilityRole="header" style={styles.weekTitle}>This week</Text>
-            <Pressable accessibilityRole="link" accessibilityLabel="Open Trends" hitSlop={8} onPress={() => router.navigate('/progress')} style={({ pressed }) => [styles.weekLink, pressed && styles.pressed]}>
-              <Text style={styles.weekLinkText}>Trends</Text>
-              <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={15} />
-            </Pressable>
-          </View>
-          <Text style={styles.weekHint}>Tap a card to see what to work on.</Text>
-          {[weekCards.slice(0, 2), weekCards.slice(2, 4)].map((pair) => (
-            <View key={pair[0]!.id} style={styles.weekRow}>
-              {pair.map((card) => <WeekFlipCard key={card.id} card={card} onAction={weekCardAction} />)}
-            </View>
-          ))}
+        <View>
+          <SectionLabel right="Trends" onRight={() => router.navigate('/progress')}>This week</SectionLabel>
+          <RowGroup>
+            {weekCards.map((card, index) => (
+              <MetricRow
+                key={card.id}
+                color={pillarColors[card.pillar]}
+                title={card.title}
+                detail={card.back.headline}
+                visual={<MiniBars color={pillarColors[card.pillar]} values={card.front.bars.map((bar) => bar.fraction)} />}
+                value={card.front.value}
+                onPress={() => weekCardAction(card)}
+                last={index === weekCards.length - 1}
+              />
+            ))}
+          </RowGroup>
         </View>
+
+        <Text style={styles.footerMeta}>{reading.confidence[0]!.toUpperCase()}{reading.confidence.slice(1)} confidence · updated {formatClockTime(wallClockIso())}</Text>
       </ScrollView>
       {biomarkerSheet ? (
         <BiomarkerEntrySheet
@@ -1051,6 +1184,12 @@ export default function DashboardScreen() {
           onSave={(kind, value) => saveBiomarker(kind, value, biomarkerSheet.date)}
           onClose={() => setBiomarkerSheet(null)}
         />
+      ) : null}
+      <Fab accessibilityLabel="Log something" onPress={() => setQuickOpen(true)} />
+      {quickOpen ? (
+        <EntrySheet title="Log" onClose={() => setQuickOpen(false)}>
+          <QuickLog actions={quickLogActions} onPicked={() => setQuickOpen(false)} />
+        </EntrySheet>
       ) : null}
     </SafeAreaView>
   );
@@ -1075,6 +1214,10 @@ const styles = StyleSheet.create({
   energyLink: { alignItems: 'center', flexDirection: 'row', gap: 2, marginTop: 6 },
   energyLinkText: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.white },
   todayGroup: { gap: 6 },
+  greetingLine: { fontFamily: homeFont, fontSize: 15, lineHeight: 20, color: homePalette.textMuted, marginTop: -10, paddingHorizontal: 4 },
+  energyAxis: { flexDirection: 'row', justifyContent: 'space-between' },
+  energyAxisText: { fontFamily: homeFont, fontSize: 11, color: homePalette.textFaint },
+  footerMeta: { fontFamily: homeFont, fontSize: 12, color: homePalette.textFaint, textAlign: 'center' },
   calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
   homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
   homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },

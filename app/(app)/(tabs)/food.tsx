@@ -203,6 +203,7 @@ import {
 } from '../../../src/styles/mobileTheme';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 import { ScreenHeader, headerDate } from '../../../src/components/mobile/ScreenHeader';
+import { SectionLabel } from '../../../src/components/mobile/kit';
 
 const C = {
   bg: themeColors.background,
@@ -1990,12 +1991,15 @@ export default function FoodScreen() {
         <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
         <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={meal => { setMealDetailMessage(''); setSelectedMeal(meal); }} />
-        <View style={styles.diarySection}>
-          <ActionRow title="Your foods & meals" detail="Search history, starred meals, and saved favorites" icon="bookmark-outline" onPress={() => openMealLibrary()} last={!canUseRemote} />
-          {canUseRemote ? <ActionRow title="Photo meal" detail="Take or choose a photo · review before saving" icon="camera-outline" onPress={openPhotoEntry} last /> : null}
+        <View>
+          <SectionLabel>More</SectionLabel>
+          <View style={styles.diarySection}>
+            <ActionRow title="Your foods & meals" detail="Search history, starred meals, and saved favorites" icon="bookmark-outline" onPress={() => openMealLibrary()} />
+            {canUseRemote ? <ActionRow title="Photo meal" detail="Take or choose a photo · review before saving" icon="camera-outline" onPress={openPhotoEntry} /> : null}
+            <ActionRow title="How good was what you ate" detail="Grades for everything you logged, and what earned them" icon="ribbon-outline" onPress={() => setActiveSegment('Quality')} last />
+          </View>
         </View>
         {goalsSet ? goalSetup : null}
-        <ActionRow title="How good was what you ate" detail="Grades for everything you logged, and what earned them" icon="ribbon-outline" onPress={() => setActiveSegment('Quality')} last />
       </View>
     );
   }
@@ -2677,7 +2681,7 @@ function ChoiceRow({
 }
 
 const styles = StyleSheet.create({
-  diarySection: { ...glassSurface, borderRadius: 20, padding: 18, gap: 12 },
+  diarySection: { ...glassSurface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 4 },
   diaryHeading: { fontFamily: sans, fontSize: 20, lineHeight: 26, fontWeight: '600', color: colors.text },
   diaryDetail: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted },
   diaryEnergy: { paddingVertical: 8, gap: 3 },

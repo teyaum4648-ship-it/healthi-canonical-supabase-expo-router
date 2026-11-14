@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, glassSurface, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { techniqueById } from './breathTechniques';
 import { headWord, type HeadCheck, type HeadRating, type HeadShift } from './headCheck';
@@ -81,7 +81,7 @@ export function PracticeHeadCheck({ before, awaitingAfter, shift, onBefore, onAf
 }
 
 const styles = StyleSheet.create({
-  panel: { ...glassSurface, borderColor: colors.border, borderRadius: 18, borderWidth: hairlineWidth, gap: 12, padding: 18 },
+  panel: { backgroundColor: colors.surface, borderRadius: 20, gap: 12, padding: 16 },
   inline: { borderTopColor: colors.border, borderTopWidth: hairlineWidth, gap: 10, paddingTop: 14 },
   meta: { ...type.caption, color: colors.textFaint },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },

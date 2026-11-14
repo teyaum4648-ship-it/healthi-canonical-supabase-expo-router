@@ -4,11 +4,11 @@ import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native
 
 import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import { useReducedMotion } from '../../../components/mobile/useReducedMotion';
-import { cardSurface, colors, fonts, motion, surfaces, type, zones, type ZoneTone } from '../../../styles/mobileTheme';
+import { colors, motion, type, zones, type ZoneTone } from '../../../styles/mobileTheme';
 import { pillarColors } from '../../../styles/pillarColors';
-import { MetricRing } from './MetricRing';
-import { PILLAR_ORDER, PillarRing, type PillarReading } from './PillarRing';
-import { ZoneChip } from './ZoneChip';
+import { ScoreDial, StatRing } from '../../../components/mobile/kit';
+import { PILLAR_ORDER, type PillarReading } from './PillarRing';
+import { pillarFill } from './pillarRingModel';
 
 const PILLAR_NAMES: Record<PillarReading['domain'], string> = {
   recovery_rhythm: 'Recovery',
@@ -16,12 +16,6 @@ const PILLAR_NAMES: Record<PillarReading['domain'], string> = {
   movement_capacity: 'Movement',
   mind_life_load: 'Mind'
 };
-
-/** Signed points, short enough for a quarter of the row. */
-function points(contribution: number): string {
-  const value = Math.round(contribution);
-  return value > 0 ? `+${value}` : value < 0 ? `\u2212${Math.abs(value)}` : '0';
-}
 
 const curve = Easing.bezier(...motion.bezier);
 
@@ -39,10 +33,12 @@ export function ReadinessHub({
   insight,
   note,
   meta,
+  trend,
   primaryLabel,
   primaryAccessibilityLabel,
   onPrimary,
   onWhy,
+  onOpenDetail,
   details,
   pillars
 }: {
@@ -53,13 +49,17 @@ export function ReadinessHub({
   /** A second, quieter line: the one thing the engine says to watch, when there is one. */
   note?: string;
   meta: string;
+  /** Today against the person's own recent days, e.g. "4 above your 14-day baseline". */
+  trend?: { text: string; direction: 'up' | 'down' | 'flat' } | null;
   primaryLabel: string;
   primaryAccessibilityLabel?: string;
   onPrimary: () => void;
   onWhy?: () => void;
-  /** Revealed when the ring is tapped. */
+  /** Opens the full readiness breakdown. */
+  onOpenDetail?: () => void;
+  /** The overnight biomarkers, revealed on a tap. */
   details: ReactNode;
-  /** What each foundation moved the estimate. Given, the ring splits into the four of them. */
+  /** What each foundation moved the estimate, shown as four rings. */
   pillars?: readonly PillarReading[];
 }) {
   const reducedMotion = useReducedMotion();
@@ -76,64 +76,55 @@ export function ReadinessHub({
   }, [open, reducedMotion, reveal]);
 
   const ringColor = zones[zone].solid;
+  const dial = (
+    <ScoreDial
+      color={ringColor}
+      fraction={score === null ? null : score / 100}
+      label="Readiness"
+      value={score === null ? '—' : String(score)}
+      word={word}
+      wordColor={zones[zone].text}
+      size={208}
+      accessibilityLabel={score === null ? 'No readiness estimate yet' : `Readiness ${score} out of 100, ${word}`}
+    />
+  );
 
   return (
-    <View style={pillars ? styles.open : styles.card}>
-      {/* The pillar ring carries its own label and status, and stands on the page, not in a card. */}
-      {pillars ? null : (
-        <View style={styles.headRow}>
-          <Text style={styles.eyebrow}>Readiness</Text>
-          <ZoneChip tone={zone} label={word} />
-        </View>
-      )}
+    <View style={styles.open}>
+      {onOpenDetail ? (
+        <FluidPressable accessibilityRole="button" accessibilityHint="Opens the readiness breakdown" onPress={onOpenDetail} pressedScale={0.98} style={styles.ringButton}>
+          {dial}
+        </FluidPressable>
+      ) : dial}
 
-      <FluidPressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${score === null ? 'No readiness estimate yet' : `Readiness ${score} out of 100, ${word}`}. ${open ? 'Hide' : 'Show'} biomarker breakdown`}
-        onPress={() => setOpen((value) => !value)}
-        pressedScale={0.97}
-        style={styles.ringButton}
-      >
-        {pillars ? (
-          <PillarRing pillars={pillars}>
-            <Text style={styles.ringLabel}>READINESS</Text>
-            <Text style={[styles.heroScore, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: zones[zone].text }]} />
-              <Text style={[styles.statusWord, { color: zones[zone].text }]}>{word}</Text>
-            </View>
-          </PillarRing>
-        ) : (
-          <MetricRing value={score} size={184} stroke={14} color={ringColor}>
-            <Text style={[styles.score, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
-            <Text style={styles.scoreCaption}>{score === null ? 'No estimate' : 'of 100'}</Text>
-          </MetricRing>
-        )}
-      </FluidPressable>
-
-      {pillars ? (
-        <View style={styles.pillarRow}>
-          {PILLAR_ORDER.map(domain => {
-            const reading = pillars.find(p => p.domain === domain);
-            const known = reading && !reading.missing;
-            const value = known ? points(reading.contribution) : '—';
-            return (
-              <View key={domain} accessible accessibilityLabel={`${PILLAR_NAMES[domain]}: ${known ? `${value} points` : 'no signal yet'}`} style={styles.pillar}>
-                <Text style={[styles.pillarValue, !known && styles.pillarValueMissing]}>{value}</Text>
-                <View style={styles.pillarNameRow}>
-                  <View style={[styles.pillarDot, { backgroundColor: pillarColors[domain] }]} />
-                  <Text numberOfLines={1} style={styles.pillarName}>{PILLAR_NAMES[domain]}</Text>
-                </View>
-              </View>
-            );
-          })}
+      {trend ? (
+        <View style={styles.trendRow}>
+          <Ionicons accessible={false} color={trend.direction === 'down' ? zones.warning.text : zones.optimal.text} name={trend.direction === 'up' ? 'caret-up' : trend.direction === 'down' ? 'caret-down' : 'remove'} size={11} />
+          <Text style={styles.trendText}>{trend.text}</Text>
         </View>
       ) : null}
 
       <Text style={styles.insight}>{insight}</Text>
       {note ? <Text style={styles.note}>{note}</Text> : null}
-      <Text style={styles.meta}>{meta}</Text>
+
+      {pillars ? (
+        <View style={styles.pillarCard}>
+          {PILLAR_ORDER.map((domain) => {
+            const reading = pillars.find((pillar) => pillar.domain === domain);
+            const fill = pillarFill(reading);
+            return (
+              <StatRing
+                key={domain}
+                color={pillarColors[domain]}
+                fraction={fill}
+                label={PILLAR_NAMES[domain]}
+                value={fill === null ? '—' : String(Math.round(fill * 100))}
+                onPress={onOpenDetail}
+              />
+            );
+          })}
+        </View>
+      ) : null}
 
       <View style={styles.actions}>
         <FluidPressable
@@ -151,6 +142,7 @@ export function ReadinessHub({
           </FluidPressable>
         ) : null}
       </View>
+      <Text style={styles.meta}>{meta}</Text>
 
       <FluidPressable
         accessibilityRole="button"
@@ -167,7 +159,7 @@ export function ReadinessHub({
       </FluidPressable>
 
       {open ? (
-        <Animated.View style={{ opacity: reveal, transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }}>
+        <Animated.View style={[styles.details, { opacity: reveal, transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
           {details}
         </Animated.View>
       ) : null}
@@ -176,48 +168,24 @@ export function ReadinessHub({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    ...cardSurface,
-    alignItems: 'center',
-    borderColor: surfaces.edge,
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 14,
-    paddingBottom: 8,
-    paddingHorizontal: 20,
-    paddingTop: 18
-  },
-  open: { alignItems: 'center', gap: 14, paddingBottom: 4, paddingTop: 2 },
-  headRow: { alignItems: 'center', alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between' },
-  eyebrow: { ...type.label, color: colors.text, fontSize: 17, lineHeight: 22 },
-  ringButton: { alignItems: 'center', borderRadius: 999, marginTop: 2 },
-  score: { color: colors.text, fontFamily: fonts.display, fontSize: 56, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -2, lineHeight: 60 },
-  scoreEmpty: { color: colors.textMuted, fontSize: 36, lineHeight: 44 },
-  scoreCaption: { ...type.caption, color: colors.textMuted, marginTop: 2 },
-  ringLabel: { color: colors.textFaint, fontFamily: fonts.bodyMedium, fontSize: 12, fontWeight: '600', letterSpacing: 1.4 },
-  heroScore: { color: colors.text, fontFamily: fonts.display, fontSize: 84, fontVariant: ['tabular-nums'], fontWeight: '600', letterSpacing: -3, lineHeight: 90 },
-  statusRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  statusDot: { borderRadius: 4, height: 7, width: 7 },
-  statusWord: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600' },
-  pillarRow: { alignSelf: 'stretch', flexDirection: 'row', marginTop: -2 },
-  pillar: { alignItems: 'center', flex: 1, gap: 3 },
-  pillarValue: { color: colors.text, fontFamily: fonts.display, fontSize: 20, fontVariant: ['tabular-nums'], fontWeight: '600' },
-  pillarValueMissing: { color: colors.textFaint },
-  pillarNameRow: { alignItems: 'center', flexDirection: 'row', gap: 5 },
-  pillarDot: { borderRadius: 3, height: 6, width: 6 },
-  pillarName: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  insight: { ...type.body, color: colors.text, fontSize: 17, fontWeight: '500', lineHeight: 24, textAlign: 'center' },
-  note: { ...type.body, color: colors.textMuted, fontSize: 15, lineHeight: 21, marginTop: -6, textAlign: 'center' },
-  meta: { ...type.caption, color: colors.textMuted, textAlign: 'center' },
-  actions: { alignSelf: 'stretch', flexDirection: 'row', gap: 10, marginTop: 2 },
-  action: { alignItems: 'center', borderCurve: 'continuous', borderRadius: 14, flex: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 8 },
+  open: { alignItems: 'center', gap: 12, paddingTop: 4 },
+  ringButton: { alignItems: 'center', borderRadius: 999 },
+  trendRow: { alignItems: 'center', flexDirection: 'row', gap: 5, marginTop: -14 },
+  trendText: { ...type.caption, color: colors.textMuted, fontSize: 13 },
+  insight: { ...type.body, color: colors.text, fontSize: 16, fontWeight: '500', lineHeight: 22, paddingHorizontal: 12, textAlign: 'center' },
+  note: { ...type.body, color: colors.textMuted, fontSize: 14, lineHeight: 20, marginTop: -4, paddingHorizontal: 12, textAlign: 'center' },
+  pillarCard: { alignSelf: 'stretch', backgroundColor: colors.surface, borderRadius: 20, flexDirection: 'row', marginTop: 4, paddingHorizontal: 8, paddingVertical: 14 },
+  actions: { alignSelf: 'stretch', flexDirection: 'row', gap: 8 },
+  action: { alignItems: 'center', borderCurve: 'continuous', borderRadius: 14, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
   primary: { backgroundColor: colors.primary },
   primaryHover: { backgroundColor: colors.primaryPressed },
   primaryText: { ...type.label, color: colors.primaryText, fontSize: 15 },
-  secondary: { backgroundColor: colors.surfaceInset, flex: 1.2 },
-  secondaryHover: { backgroundColor: colors.surfaceMuted },
+  secondary: { backgroundColor: colors.surface, flex: 1.2 },
+  secondaryHover: { backgroundColor: colors.surfaceInset },
   secondaryText: { ...type.label, color: colors.text, fontSize: 15 },
-  disclosure: { alignItems: 'center', alignSelf: 'stretch', borderRadius: 14, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 44 },
+  meta: { ...type.caption, color: colors.textFaint, fontSize: 12, textAlign: 'center' },
+  disclosure: { alignItems: 'center', alignSelf: 'stretch', borderRadius: 14, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 40 },
   disclosureHover: { backgroundColor: 'rgba(235, 240, 255, 0.05)' },
-  disclosureText: { ...type.label, color: colors.textMuted }
+  disclosureText: { ...type.label, color: colors.textMuted, fontSize: 14 },
+  details: { alignSelf: 'stretch' }
 });
