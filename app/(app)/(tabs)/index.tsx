@@ -23,6 +23,7 @@ import { ReadinessNowCard } from '../../../src/features/dashboard/ReadinessNowCa
 import { readinessHeadline, readinessZone, sleepGlance } from '../../../src/features/dashboard/dashboardZones';
 import { BiomarkerBreakdown } from '../../../src/features/dashboard/premium/BiomarkerBreakdown';
 import { BiomarkerEntrySheet } from '../../../src/features/dashboard/premium/BiomarkerEntrySheet';
+import { BiomarkerTimeline } from '../../../src/features/dashboard/premium/BiomarkerTimeline';
 import { ReadinessHub } from '../../../src/features/dashboard/premium/ReadinessHub';
 import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
 import { BIOMARKER_KINDS, summarizeBiomarker, type BiomarkerKind, type BiomarkerReading } from '../../../src/engines/biomarkers';
@@ -1086,6 +1087,7 @@ export default function DashboardScreen() {
               last
               color={pillarColors.movement_capacity}
               title="Training"
+              detail={loadToday.label}
               visual={<MiniDots color={pillarColors.movement_capacity} done={sessionsDone} total={sessionTarget} />}
               value={`${sessionsDone} of ${sessionTarget}`}
               onPress={() => router.navigate('/movement')}
@@ -1099,6 +1101,9 @@ export default function DashboardScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* The week's resting heart rate: a line, and any day can be added or corrected. */}
+        <BiomarkerTimeline summary={restingHeartRate} today={today} color={homePalette.blueBright} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
 
         {/* What the day's energy looks like, from the same rhythm the Sleep tab draws. */}
         <View>
