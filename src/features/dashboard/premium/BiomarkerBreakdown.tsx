@@ -31,7 +31,7 @@ export function BiomarkerBreakdown({ summaries, onEdit }: {
               onPress={() => onEdit(summary.kind)}
               style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
             >
-              <Text numberOfLines={1} style={styles.name}>{spec.shortLabel}</Text>
+              <Text numberOfLines={2} style={styles.name}>{spec.shortLabel}</Text>
               <View style={styles.valueRow}>
                 <Text style={[styles.value, !value && styles.valueEmpty]}>{value ?? '—'}</Text>
                 {value ? <Text style={styles.unit}>{spec.unit}</Text> : null}

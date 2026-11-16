@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   close: { alignItems: 'center', height: 40, justifyContent: 'center', marginRight: -8, width: 40 },
   account: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingVertical: 8 },
   avatar: { alignItems: 'center', backgroundColor: colors.accentWash, borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
-  avatarLetter: { ...type.label, color: colors.accent, fontSize: 18 },
+  avatarLetter: { ...type.label, color: colors.accent, fontSize: 18, lineHeight: 22 },
   accountName: { ...type.label, color: colors.text, fontSize: 17 },
   groupLabel: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0, marginTop: 14 },
   group: { backgroundColor: dv.ink.wash, borderColor: colors.border, borderRadius: 16, borderWidth: hairlineWidth, overflow: 'hidden' },
