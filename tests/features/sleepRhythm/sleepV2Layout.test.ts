@@ -8,18 +8,23 @@ const route = readFileSync('app/(app)/(tabs)/rhythm.tsx', 'utf8');
 const thread = readFileSync('src/features/sleepRhythm/SleepThread.tsx', 'utf8');
 
 describe('Sleep V2 progressive disclosure and feature preservation', () => {
-  it('answers "what now" first, in the 1c order, and keeps every step behind Explore', () => {
+  it('answers "what now" first, in the 1c order, with every step of the day in Today’s rhythm', () => {
     const start = experience.indexOf('function TodayTab(');
     const order = [
       '<TodaysRhythm', '<TonightSummary', '<LastSevenNights', '<ChronotypeRow', '<ExploreButton',
-      '{next ? (', '>Today’s steps</SectionLabel>', '>Adjust tonight’s window</SectionLabel>', '<SleepWindowTracker'
+      '{next ? (', '>Adjust tonight’s window</SectionLabel>', '<SleepWindowTracker'
     ].map((marker) => experience.indexOf(marker, start));
     for (const [index, at] of order.entries()) {
       expect(at, `marker ${index}`).toBeGreaterThan(start);
       if (index > 0) expect(at).toBeGreaterThan(order[index - 1]!);
     }
-    expect(experience).toContain('rhythmStepsToShow(protocol,');
-    expect(experience).toContain('onToggleProtocol(item.id)');
+    // Every protocol step, with its status and done state, goes to Today's rhythm; none is hidden.
+    expect(experience).toContain('steps={protocol.map((item) => ({ item, icon: ICONS[item.id], range: rangeLabel(item), status: protocolStatus(item, now, Boolean(completed[item.id]))');
+    expect(experience).toContain('onToggleStep={onToggleProtocol}');
+    expect(experience).toContain('onOpenStep={onOpenProtocol}');
+    expect(experience).not.toContain('>Today’s steps</SectionLabel>');
+    expect(thread).toContain('{doneCount} of {ordered.length} done');
+    expect(experience).toContain('onToggleProtocol(next.id)');
     // The band hero is the engine's curve, before the tab content.
     expect(experience.indexOf('<SleepBand')).toBeLessThan(experience.indexOf('<TodayTab'));
   });
