@@ -182,6 +182,10 @@ import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { Eyebrow, TextLink, ThreadBand, ThreadHeader } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
+import { MoveBand } from '../../../src/features/movement/MoveBand';
+import { summarizeLoad } from '../../../src/engines/load';
 import { MovementPillarCard } from '../../../src/features/movement/MovementPillarCard';
 import { MobilityScreenFlow } from '../../../src/features/movement/MobilityScreenFlow';
 import {
@@ -1488,11 +1492,6 @@ export default function MovementScreen() {
           </View>
         ) : null}
 
-        <Pressable accessibilityRole="button" onPress={openQuickLauncher} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Ionicons name={quickDraft ? 'play' : 'add'} color={onPillar} size={22} />
-          <Text style={styles.primaryButtonText}>{quickDraft ? 'Resume workout' : 'Start workout'}</Text>
-        </Pressable>
-
         {quickDraft ? (
           <Pressable accessibilityRole="button" onPress={discardQuickDraft} style={styles.textAction}>
             <Text style={styles.textActionLabel}>Discard the open session</Text>
@@ -1958,6 +1957,10 @@ export default function MovementScreen() {
     );
   }
 
+  /* The band's light status bar only while the band is showing; the full-screen workout views sit on the canvas. */
+  useBandStatusBar(!(starterOpen || (recap && recapModel) || (isQuickLogging && quickDraft)));
+  const weekLoad = useMemo(() => summarizeLoad(sessions, today), [sessions, today]);
+
   if (starterOpen) {
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>
@@ -2054,9 +2057,32 @@ export default function MovementScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Movement</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Movement · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView ref={scrollRef} style={{ backgroundColor: dv.surface.canvas }} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        {/* The 1c Move band (design language P1). On Train it is the short band, with the way back. */}
+        <ThreadBand>
+          <ThreadHeader
+            date={new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+            dateAccessibilityLabel={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          />
+          {activeSegment === 'Train' ? (
+            <View style={styles.bandFlow}>
+              <TextLink tone="band" label="Back to Move · draft kept" onPress={() => setActiveSegment('Today')} trailing={null} />
+              <Eyebrow tone="band">Move</Eyebrow>
+            </View>
+          ) : (
+            <MoveBand
+              verdict={adaptivePlan.verdict}
+              explanation={adaptivePlan.explanation}
+              effort={adaptivePlan.effort_range}
+              load={weekLoad}
+              today={today}
+              startLabel={quickDraft ? 'Resume workout' : 'Start workout'}
+              onStart={openQuickLauncher}
+            />
+          )}
+        </ThreadBand>
+        {activeSegment !== 'Train' ? <View style={styles.navigationHeader}><SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} /></View> : null}
 
         {usePreviewFixture ? (
           <View style={styles.previewBanner}>
@@ -2105,7 +2131,8 @@ export default function MovementScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingBottom: 28 },
-  navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
+  navigationHeader: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
+  bandFlow: { gap: 4, marginTop: 8 },
   navigationTitle: { ...type.largeTitle, color: colors.text },
   resumeNote: {
     alignItems: 'center',
