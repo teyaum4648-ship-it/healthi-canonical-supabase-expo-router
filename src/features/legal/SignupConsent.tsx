@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CheckBox } from '../../components/CheckBox';
+import { accent } from '../../styles/daywoven1c';
 import { colors, spacing, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { type ConsentState } from './consentModel';
 import { legalUrl, MINIMUM_AGE, type LegalDocument } from './legalLinks';
@@ -130,7 +131,8 @@ const styles = StyleSheet.create({
   },
   error: {
     ...glassSurface,
-    borderColor: colors.danger,
+    /* Amber, as every other form problem: this is a step to finish, not an alarm. */
+    borderColor: accent.amberDeep,
     borderRadius: 10,
     borderWidth: 1,
     marginTop: spacing.xs,

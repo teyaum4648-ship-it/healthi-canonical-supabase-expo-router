@@ -23,25 +23,25 @@ import { generateOnboardingV2Result } from '../../src/features/onboarding/onboar
 import type { OnboardingV2Result } from '../../src/features/onboarding/onboardingV2Types';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
 import { subscriptionsEnabled } from '../../src/features/subscriptions/revenuecat';
-import { colors, fonts, radii, spacing, glassSurface } from '../../src/styles/mobileTheme';
+import { colors, fonts, spacing } from '../../src/styles/mobileTheme';
 import type {
   BiweeklyFocusProfile,
-  DynamicScoreSheet,
-  FoundationDomain,
   OnboardingAnswerValue,
   OnboardingAnswers,
-  PriorityBand,
   OnboardingQuestion
 } from '../../src/types/onboarding';
 
 import * as dv from '../../src/styles/daywoven1c';
 import { BandStatusBar } from '../../src/components/thread/useBandStatusBar';
+import { PersonalReviewScreen } from '../../src/features/onboarding/PersonalReview';
+import { buildPersonalReview } from '../../src/features/onboarding/personalReviewModel';
+import { GUEST_ONBOARDING_DRAFT_KEY } from '../../src/features/onboarding/guestPreview';
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 const shouldUseLocalOnboarding = isDemoMode || !isSupabaseConfigured;
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 // Anonymous answers never leave the device. They are only uploaded after signup consent.
-const guestOnboardingDraftKey = 'daywoven:onboarding:guest-preview';
+const guestOnboardingDraftKey = GUEST_ONBOARDING_DRAFT_KEY;
 
 function isStringArray(value: OnboardingAnswerValue | undefined): value is string[] {
   return Array.isArray(value);
@@ -95,27 +95,6 @@ function updateMultiAnswer(
   return [...withoutExclusiveValues, selectedValue];
 }
 
-const focusLabels: Record<FoundationDomain, string> = {
-  recovery_rhythm: 'Recovery + Rhythm',
-  nourishment: 'Nourishment',
-  movement_capacity: 'Movement Capacity',
-  mind_life_load: 'Mind + Life Load',
-  balanced: 'Balanced'
-};
-
-const focusSummaries: Record<FoundationDomain, string> = {
-  recovery_rhythm:
-    'Your answers suggest Recovery + Rhythm should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward steadier sleep timing, calmer wind-down, and better recovery spacing before pushing progression.',
-  nourishment:
-    'Your answers suggest Nourishment should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward steadier hydration, meal rhythm, digestion support, and energy consistency before increasing demand.',
-  movement_capacity:
-    'Your answers suggest Movement Capacity should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward movement quality, confidence, and consistency before adding more load.',
-  mind_life_load:
-    'Your answers suggest Mind + Life Load should be your first calibration focus. For the next 2 weeks, daywoven will bias your plan toward lower friction, decompression, and consistency that fits your current life load.',
-  balanced:
-    'Your answers suggest a balanced first calibration. For the next 2 weeks, daywoven will keep your plan steady while it learns which levers matter most for you.'
-};
-
 const baselineModeLabels: Record<OnboardingV2Result['baseline_mode'], string> = {
   build: 'Build',
   maintain: 'Maintain',
@@ -124,143 +103,8 @@ const baselineModeLabels: Record<OnboardingV2Result['baseline_mode'], string> = 
   professional_guidance: 'Guided'
 };
 
-const trainingBiasLabels: Record<BiweeklyFocusProfile['training_bias'], string> = {
-  normal_progression: 'Build consistency with normal progression.',
-  reduce_intensity: 'Keep intensity conservative while the first focus stabilizes.',
-  increase_recovery_spacing: 'Add more recovery spacing between harder efforts.',
-  movement_quality_first: 'Prioritize movement quality before adding load.',
-  consistency_first: 'Favor repeatable sessions over aggressive progression.',
-  stress_adapted_training: 'Use training that fits current stress and schedule load.'
-};
-
-const lifestyleBiasLabels: Record<BiweeklyFocusProfile['lifestyle_bias'], string> = {
-  circadian_consistency: 'Anchor sleep and wake timing where possible.',
-  hydration_and_meal_rhythm: 'Make hydration and meal rhythm easier to repeat.',
-  stress_decompression: 'Protect small daily decompression windows.',
-  movement_restoration: 'Add low-friction movement restoration through the day.',
-  balanced: 'Keep lifestyle guidance simple while calibration continues.'
-};
-
-const nourishmentBiasLabels: Record<BiweeklyFocusProfile['nourishment_bias'], string> = {
-  hydration_first: 'Start with hydration consistency.',
-  meal_rhythm_first: 'Make meal timing steadier.',
-  digestion_support: 'Keep meals simple and track response patterns.',
-  protein_energy_adequacy: 'Support protein and energy adequacy.',
-  food_constraints_awareness: 'Keep food constraints visible.',
-  balanced: 'Keep food and hydration guidance balanced.'
-};
-
-const recoveryBiasLabels: Record<BiweeklyFocusProfile['recovery_bias'], string> = {
-  sleep_timing: 'Start with a steadier sleep window.',
-  wind_down: 'Support an easier wind-down routine.',
-  morning_light: 'Use morning light to anchor rhythm.',
-  caffeine_cutoff: 'Make caffeine timing more intentional.',
-  recovery_spacing: 'Space recovery before harder efforts.',
-  balanced: 'Keep recovery guidance balanced.'
-};
-
 function formatConfidence(confidence: BiweeklyFocusProfile['confidence']) {
   return `${confidence[0].toUpperCase()}${confidence.slice(1)} confidence`;
-}
-
-function formatDate(dateString: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(new Date(`${dateString}T00:00:00`));
-}
-
-function priorityColor(priority: PriorityBand) {
-  if (priority === 'high') {
-    return colors.signalCoral;
-  }
-
-  if (priority === 'moderate') {
-    return colors.signalAmber;
-  }
-
-  return colors.signalGreen;
-}
-
-function formatPriority(priority: PriorityBand) {
-  return `${priority[0].toUpperCase()}${priority.slice(1)} priority`;
-}
-
-function focusCopyLabel(focus: FoundationDomain) {
-  if (focus === 'balanced') {
-    return 'Balanced calibration';
-  }
-
-  return focusLabels[focus];
-}
-
-function renderScoreSheet(focusProfile: BiweeklyFocusProfile) {
-  const sheet = focusProfile.dynamic_score_sheet;
-  const domains = [
-    sheet.domain_scores.recovery_rhythm,
-    sheet.domain_scores.nourishment,
-    sheet.domain_scores.mind_life_load,
-    sheet.domain_scores.movement_capacity
-  ];
-  const topSignals = sheet.ranked_reasons.slice(0, 3);
-
-  return (
-    <View style={styles.scoreSheet}>
-      <Text style={styles.scoreSheetEyebrow}>DAYWOVEN / YOUR PERSONAL REVIEW</Text>
-      <Text accessibilityRole="header" style={styles.scoreSheetTitle}>A clearer place to start.</Text>
-      <Text style={styles.scoreSheetSubtitle}>
-        A first look at the patterns in your answers, not a diagnosis or a fixed label.
-      </Text>
-
-      <View style={styles.scoreHero}>
-        <Text style={styles.scoreHeroKicker}>YOUR 14-DAY FOCUS</Text>
-        <Text style={styles.scoreHeroTitle}>{focusCopyLabel(focusProfile.primary_focus)}</Text>
-        <Text style={styles.scoreHeroSummary}>{sheet.summary}</Text>
-        <View style={styles.scorePill}>
-          <View style={styles.scorePillDot} />
-          <Text style={styles.scorePillText}>{formatPriority(sheet.overall_priority)} · provisional</Text>
-        </View>
-      </View>
-
-      <View style={styles.scoreSection}>
-        <Text style={styles.scoreSectionTitle}>Your four foundations</Text>
-        <Text style={styles.scoreSectionBody}>Higher signals suggest areas worth paying more attention to, not a judgment about your health.</Text>
-        {domains.map((domain) => {
-          const leadReason = domain.reasons[0]?.label ?? 'Your baseline is still forming.';
-          const width = `${Math.max(3, Math.min(100, domain.score))}%` as `${number}%`;
-          return (
-            <View key={domain.label} style={styles.domainRow}>
-              <View style={styles.domainTopRow}>
-                <Text style={styles.domainLabel}>{domain.label}</Text>
-                <Text style={styles.domainSignal}>Signal {domain.score}</Text>
-              </View>
-              <View style={styles.domainTrack}>
-                <View style={[styles.domainBar, { width, backgroundColor: priorityColor(domain.priority) }]} />
-              </View>
-              <Text style={styles.domainReason}>{leadReason}</Text>
-            </View>
-          );
-        })}
-      </View>
-
-      <View style={styles.scoreSection}>
-        <Text style={styles.scoreSectionTitle}>What stood out</Text>
-        {topSignals.length ? topSignals.map((reason, index) => (
-          <View key={`${reason.domain}-${reason.reason_code}-${index}`} style={styles.rankRow}>
-            <View style={styles.rankNumber}><Text style={styles.rankNumberText}>0{index + 1}</Text></View>
-            <View style={styles.rankTextWrap}>
-              <Text style={styles.rankDomain}>{focusLabels[reason.domain]}</Text>
-              <Text style={styles.rankLabel}>{reason.label}</Text>
-              <Text style={styles.rankExplanation}>{reason.explanation}</Text>
-            </View>
-          </View>
-        )) : (
-          <Text style={styles.scoreSectionBody}>Your starting signals are balanced. A few logged days will help make the picture clearer.</Text>
-        )}
-      </View>
-    </View>
-  );
 }
 
 export default function OnboardingScreen() {
@@ -696,7 +540,7 @@ export default function OnboardingScreen() {
         {question.helper ? <Text style={styles.helper}>{question.helper}</Text> : null}
         {renderAnswerControl(question)}
         {needsTimeFormat ? (
-          <Text style={styles.timeHint}>That one did not read as a time. Try 10:30pm, 22:30 or 2230.</Text>
+          <Text style={styles.timeHint}>That one did not read as a time. Try something like 10:30 PM.</Text>
         ) : null}
       </Card>
     );
@@ -711,87 +555,17 @@ export default function OnboardingScreen() {
   }
 
   if (focusProfile && resultStage === 'focus') {
-    const topReasons =
-      focusProfile.top_limiting_factors.length > 0
-        ? focusProfile.top_limiting_factors
-        : ['daywoven is still calibrating from your first answers.'];
-
     return (
-      <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
-        <BandStatusBar />
-        <View style={styles.brandRow}><Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandSide}>YOUR BASELINE</Text></View>
-        {renderScoreSheet(focusProfile)}
-
-        <View style={styles.focusHeader}>
-          <Text style={styles.focusHeaderEyebrow}>14-day calibration</Text>
-          <Text style={styles.focusHeaderTitle}>Your 2-Week Focus</Text>
-          <Text style={styles.focusHeaderBody}>{focusSummaries[focusProfile.primary_focus]}</Text>
-        </View>
-
-        <Card style={styles.focusCard}>
-          <Text style={styles.focusLabel}>Primary focus</Text>
-          <Text style={styles.focusTitle}>{focusLabels[focusProfile.primary_focus]}</Text>
-          {focusProfile.secondary_focus ? (
-            <Text style={styles.focusSecondary}>
-              Also watching {focusLabels[focusProfile.secondary_focus]}
-            </Text>
-          ) : null}
-        </Card>
-
-        <Card style={styles.resultPanel}>
-          <Text style={styles.cardTitle}>Top reasons</Text>
-          {topReasons.slice(0, 3).map((reason) => (
-            <View key={reason} style={styles.reasonRow}>
-              <View style={styles.reasonDot} />
-              <Text style={styles.reasonText}>{reason}</Text>
-            </View>
-          ))}
-        </Card>
-
-        <Card style={styles.resultPanel}>
-          <Text style={styles.cardTitle}>What this changes</Text>
-          <View style={styles.changeRow}>
-            <Text style={styles.changeLabel}>Training</Text>
-            <Text style={styles.changeText}>{trainingBiasLabels[focusProfile.training_bias]}</Text>
-          </View>
-          <View style={styles.changeRow}>
-            <Text style={styles.changeLabel}>Lifestyle</Text>
-            <Text style={styles.changeText}>
-              {lifestyleBiasLabels[focusProfile.lifestyle_bias]}
-            </Text>
-          </View>
-          <View style={styles.changeRow}>
-            <Text style={styles.changeLabel}>Food / hydration</Text>
-            <Text style={styles.changeText}>
-              {nourishmentBiasLabels[focusProfile.nourishment_bias]}
-            </Text>
-          </View>
-          <View style={styles.changeRow}>
-            <Text style={styles.changeLabel}>Recovery</Text>
-            <Text style={styles.changeText}>{recoveryBiasLabels[focusProfile.recovery_bias]}</Text>
-          </View>
-        </Card>
-
-        <Card style={styles.resultPanel}>
-          <Text style={styles.confidenceText}>{formatConfidence(focusProfile.confidence)}</Text>
-          <Text style={styles.reassessmentText}>
-            Reassessment due {formatDate(focusProfile.reassessment_due_at)}
-          </Text>
-        </Card>
-
-        {!user?.id && mode === 'account' ? <Text style={styles.privatePreviewNote}>Your answers are stored on this device only. Create an account to save them securely to Daywoven.</Text> : null}
-        <Button
-          disabled={isSubmitting}
-          isLoading={isSubmitting}
-          label={!user?.id && mode === 'account'
-            ? 'Create account to save my plan'
-            : previewNeedsSave ? 'Save these answers to my account'
-            : subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'}
-          onPress={() => void handleContinueFromFocus()}
-          style={styles.brandButton}
-          tone="band"
-        />
-      </Screen>
+      <PersonalReviewScreen
+        review={buildPersonalReview(focusProfile, answers)}
+        ctaLabel={!user?.id && mode === 'account'
+          ? 'Create account to save my plan'
+          : previewNeedsSave ? 'Save these answers to my account'
+          : subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'}
+        onContinue={() => void handleContinueFromFocus()}
+        isSubmitting={isSubmitting}
+        note={!user?.id && mode === 'account' ? 'Your answers are stored on this device only. Create an account to save them securely to Daywoven.' : null}
+      />
     );
   }
 
@@ -924,17 +698,6 @@ const styles = StyleSheet.create({
   brandButton: { borderRadius: 14, minHeight: 56 },
   brandSecondaryButton: { borderColor: dv.bone.outline, borderRadius: 14, minHeight: 56 },
   privatePreviewNote: { color: dv.bone.muted, textAlign: 'center', fontSize: 12, lineHeight: 19 },
-  scoreHero: { gap: 12, padding: 22, borderRadius: 20, backgroundColor: dv.bone.raised, borderColor: dv.bone.hairline, borderWidth: 1 },
-  scoreHeroKicker: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
-  scoreHeroTitle: { color: dv.bone.text, fontSize: 30, fontFamily: fonts.bodySemibold, lineHeight: 36, letterSpacing: -0.9 },
-  scoreHeroSummary: { color: dv.bone.soft, fontSize: 14, lineHeight: 23 },
-  scorePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: dv.bone.raised, borderRadius: 24, paddingVertical: 8, paddingHorizontal: 12 },
-  scorePillDot: { width: 7, height: 7, backgroundColor: dv.bone.text, borderRadius: 4 },
-  scorePillText: { color: dv.accent.amber, fontSize: 12, fontFamily: fonts.bodySemibold },
-  scoreSectionBody: { color: dv.bone.muted, fontSize: 12, lineHeight: 20 },
-  domainRow: { gap: 8, paddingVertical: 7 },
-  domainTrack: { height: 6, overflow: 'hidden', borderRadius: 5, backgroundColor: dv.bone.raised },
-  domainBar: { height: '100%', borderRadius: 5 },
   questionCard: { gap: 16, backgroundColor: dv.bone.raised, borderColor: dv.bone.hairline, borderWidth: 1, borderRadius: 22, padding: 21 },
   questionPrompt: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 21, lineHeight: 29, letterSpacing: -0.45 },
   optionalTag: {
@@ -972,153 +735,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   resultScreen: { backgroundColor: 'transparent', gap: 18, paddingTop: 24, paddingBottom: 42 },
-  scoreSheet: { gap: 22, borderColor: dv.bone.hairline, borderRadius: 24, borderWidth: 1, backgroundColor: dv.bone.raised, padding: 22 },
-  scoreGlowOne: {
-    position: 'absolute',
-    top: -64,
-    right: -44,
-    width: 168,
-    height: 168,
-    borderRadius: 84,
-    backgroundColor: dv.bone.raised
-  },
-  scoreGlowTwo: {
-    position: 'absolute',
-    bottom: 120,
-    left: -52,
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: dv.bone.raised
-  },
-  scoreSheetHeader: {
-    gap: spacing.xs,
-    position: 'relative'
-  },
-  scoreSheetEyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
-  scoreSheetTitle: { color: dv.bone.text, fontSize: 37, fontFamily: fonts.bodySemibold, lineHeight: 43, letterSpacing: -1.4 },
-  scoreSheetSubtitle: { color: dv.bone.soft, fontSize: 14, lineHeight: 22 },
-  scoreSummary: {
-    gap: spacing.md,
-    position: 'relative'
-  },
-  scoreCircle: {
-    width: 214,
-    minHeight: 214,
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderRadius: 107,
-    backgroundColor: dv.control.scrim,
-    paddingHorizontal: spacing.lg
-  },
-  scoreAura: {
-    position: 'absolute',
-    width: 118,
-    height: 118,
-    borderRadius: 59,
-    opacity: 0.13
-  },
-  scoreValue: {
-    color: dv.bone.soft,
-    fontFamily: fonts.bodySemibold,
-    fontSize: 11,
-    letterSpacing: 0,
-    marginTop: spacing.xs
-  },
-  scorePriority: {
-    fontFamily: fonts.bodySemibold,
-    fontSize: 11,
-    letterSpacing: 0
-  },
-  scoreFocus: {
-    color: dv.bone.text,
-    fontFamily: fonts.display,
-    fontSize: 28,
-    fontWeight: '400',
-    lineHeight: 31,
-    textAlign: 'center'
-  },
-  scoreCalibration: {
-    color: dv.bone.soft,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'center'
-  },
-  domainGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    position: 'relative'
-  },
-  domainCard: {
-    flexGrow: 1,
-    flexBasis: '47%',
-    minHeight: 150,
-    alignItems: 'stretch',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: dv.bone.hairline,
-    borderRadius: radii.lg,
-    backgroundColor: dv.bone.raised,
-    padding: spacing.md
-  },
-  domainTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  domainIndicator: {
-    width: 9,
-    height: 9,
-    borderRadius: 5
-  },
-  domainCircle: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderRadius: 24
-  },
-  domainScore: {
-    color: dv.accent.amber,
-    fontFamily: fonts.display,
-    fontSize: 20,
-    fontWeight: '400'
-  },
-  domainLabel: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 15, flexShrink: 1 },
-  domainSignal: { color: dv.accent.amber, fontFamily: fonts.bodySemibold, fontSize: 12 },
-  domainReason: { color: dv.bone.muted, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },
-  domainPriority: {
-    fontFamily: fonts.bodySemibold,
-    fontSize: 10,
-    letterSpacing: 0
-  },
-  scoreSection: { gap: 14, borderTopWidth: 1, borderTopColor: dv.bone.hairline, paddingTop: 18 },
-  scoreSectionTitle: { color: dv.bone.text, fontFamily: fonts.displayMedium, fontSize: 21 },
-  rankRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 7 },
-  rankNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: dv.bone.raised },
-  rankNumberText: { color: dv.accent.amber, fontSize: 12, fontFamily: fonts.bodySemibold },
   rankTextWrap: { flex: 1, gap: 4 },
   rankDomain: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold },
-  rankLabel: { color: dv.bone.text, fontSize: 15, fontFamily: fonts.bodySemibold, lineHeight: 21 },
   rankExplanation: { color: dv.bone.soft, fontSize: 13, lineHeight: 20 },
-  rankImpact: {
-    minWidth: 54,
-    color: dv.bone.soft,
-    fontFamily: fonts.bodySemibold,
-    fontSize: 10,
-    letterSpacing: 0.8,
-    textAlign: 'right'
-  },
-  scoreMeaning: {
-    color: dv.bone.soft,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 23
-  },
   focusHeader: { gap: 10, paddingTop: 9 },
   focusHeaderEyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.2 },
   focusHeaderTitle: { color: dv.bone.text, fontSize: 31, fontFamily: fonts.bodySemibold, lineHeight: 38, letterSpacing: -0.9 },
@@ -1129,11 +748,6 @@ const styles = StyleSheet.create({
   focusTitle: { color: dv.bone.text, fontSize: 33, fontFamily: fonts.bodySemibold, lineHeight: 40 },
   focusSecondary: { color: dv.bone.soft, fontSize: 15, lineHeight: 22 },
   cardTitle: { color: dv.bone.text, fontSize: 20, fontFamily: fonts.bodySemibold },
-  reasonRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm
-  },
   reasonDot: { width: 7, height: 7, marginTop: 7, borderRadius: 4, backgroundColor: dv.bone.text },
   reasonDotHigh: {
     backgroundColor: colors.signalAmber
@@ -1144,10 +758,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xs
   },
-  reasonText: { flex: 1, color: dv.bone.text, fontSize: 14, lineHeight: 22 },
-  changeRow: { gap: 6, borderTopWidth: 1, borderTopColor: dv.bone.hairline, paddingTop: 13 },
-  changeLabel: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold },
-  changeText: { color: dv.bone.text, fontSize: 15, lineHeight: 22 },
   confidenceText: { color: dv.bone.text, fontSize: 15, fontFamily: fonts.bodySemibold },
   reassessmentText: { color: dv.bone.soft, fontSize: 13, lineHeight: 21 },
 });
