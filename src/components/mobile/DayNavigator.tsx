@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { dayTitle, shiftDay } from '../../features/navigation/navigationModel';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 
 export function DayNavigator({ date, today, onChange, earliest, disabled = false, palette }: {
   date: string; today: string; onChange: (date: string) => void; earliest?: string; disabled?: boolean;
@@ -31,8 +31,8 @@ export function DayNavigator({ date, today, onChange, earliest, disabled = false
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   copy: { flex: 1, gap: 2 },
-  arrow: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 14, backgroundColor: colors.surfaceInset },
-  title: { ...type.body, fontWeight: '600', color: colors.text },
+  arrow: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  title: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   date: { ...type.caption, color: colors.textMuted },
   today: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   todayText: { ...type.label, color: colors.accentMid },

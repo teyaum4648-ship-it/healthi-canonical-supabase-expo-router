@@ -9,6 +9,7 @@ import { SleepChartSurface } from './SleepChartSurface';
 import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
 import { formatSleepTime } from './sleepPresentation';
 
+import * as dv from '../../styles/daywoven1c';
 /**
  * The vertical scale, which used to be a fixed 0–100.
  *
@@ -50,7 +51,7 @@ function energyDomain(
 }
 
 /** The shell is a fixed night gradient, so chrome on it uses a fixed light ink, as the phase labels do. */
-const BAND_INK = '#EEF1F6';
+const BAND_INK = dv.bone.text;
 
 /** The words for the vertical scale. A percentage is not a unit anyone has a feel for. */
 const BAND_MARKS: Array<{ at: number; label: string }> = [
@@ -133,7 +134,7 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
   return (
     <View>
       <View style={styles.shell}>
-        <LinearGradient colors={['#161A2B', '#171923', '#1B1B2D', '#121720', '#0E111A']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={[dv.surface.band, dv.surface.band, dv.surface.band, dv.surface.band, dv.surface.band]} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
         <SleepChartSurface height={height} ratio={ratio} onSelect={setRatio} onWidth={setWidth} valueLabel={scrub ? `${scrub.time}, ${scrub.label}, ${scrub.energy}% estimated energy` : 'Current time. Drag horizontally or use the arrow keys to inspect.'}>
           {chart ? <Svg height={height} width={width}>
             <Defs><SvgGradient id="sleep-energy-area" x1="0" x2="0" y1="0" y2="1"><Stop offset="0" stopColor={palette.accent} stopOpacity={0.34} /><Stop offset="1" stopColor={palette.accent} stopOpacity={0.02} /></SvgGradient></Defs>
@@ -180,10 +181,10 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
             ) : null}
             <Path d={chart.area} fill="url(#sleep-energy-area)" />
             <Path d={chart.line} fill="none" stroke={palette.accent} strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.3} />
-            {briefing.energy_extrema.map((extreme) => <Circle key={`${extreme.type}-${extreme.time}`} cx={((new Date(extreme.time).getTime() - chart.start) / chart.span) * width} cy={chart.project(extreme.energy)} fill={extreme.type === 'peak' ? palette.accent : palette.amber} r={4.5} stroke="#FAF9F5" strokeWidth={2} />)}
+            {briefing.energy_extrema.map((extreme) => <Circle key={`${extreme.type}-${extreme.time}`} cx={((new Date(extreme.time).getTime() - chart.start) / chart.span) * width} cy={chart.project(extreme.energy)} fill={extreme.type === 'peak' ? palette.accent : palette.amber} r={4.5} stroke={dv.bone.text} strokeWidth={2} />)}
             {scrub ? <Line stroke={palette.text} strokeOpacity={0.42} strokeWidth={1.5} x1={scrub.x} x2={scrub.x} y1={35} y2={height - 42} /> : <>
               <Line stroke={palette.accent} strokeOpacity={0.46} strokeWidth={1.5} x1={chart.nowPoint.x} x2={chart.nowPoint.x} y1={35} y2={height - 42} />
-              <Circle cx={chart.nowPoint.x} cy={chart.nowPoint.y} fill="#FAF9F5" r={7} stroke={palette.accent} strokeWidth={3} />
+              <Circle cx={chart.nowPoint.x} cy={chart.nowPoint.y} fill={dv.bone.text} r={7} stroke={palette.accent} strokeWidth={3} />
             </>}
           </Svg> : null}
           <View style={styles.phases} pointerEvents="none">{['Rise', 'Peak', 'Dip', '2nd peak', 'Sleep'].map((phase) => <Text selectable={false} key={phase} style={styles.phase}>{phase}</Text>)}</View>
@@ -221,9 +222,9 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
 const styles = StyleSheet.create({
   shell: { height: 244, marginTop: 15, overflow: 'hidden', borderRadius: 0 },
   phases: { flexDirection: 'row', justifyContent: 'space-around', left: 10, position: 'absolute', right: 10, top: 14 },
-  phase: { color: 'rgba(235,240,255,0.55)', fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 0 },
+  phase: { color: dv.bone.muted, fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 0 },
   bandMark: {
-    color: 'rgba(235,240,255,0.45)',
+    color: dv.bone.muted,
     fontFamily: fonts.bodyMedium,
     fontSize: 9,
     left: 8,
@@ -231,8 +232,8 @@ const styles = StyleSheet.create({
     position: 'absolute'
   },
   axis: { bottom: 10, flexDirection: 'row', justifyContent: 'space-between', left: 22, position: 'absolute', right: 22 },
-  axisText: { color: 'rgba(235,240,255,0.6)', fontFamily: fonts.body, fontSize: 10 },
-  tooltip: { borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38, backgroundColor: '#202637' },
+  axisText: { color: dv.bone.muted, fontFamily: fonts.body, fontSize: 10 },
+  tooltip: { borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38, backgroundColor: dv.bone.raised },
   time: { fontFamily: fonts.bodyMedium, fontSize: 14 },
   activity: { fontFamily: fonts.bodyMedium, fontSize: 13, marginTop: 2 },
   detail: { fontFamily: fonts.body, fontSize: 12, marginTop: 3 },

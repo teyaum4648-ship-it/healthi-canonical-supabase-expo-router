@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { control } from '../styles/daywoven1c';
 import { colors, hairlineWidth, type } from '../styles/mobileTheme';
 
 type Meridiem = 'AM' | 'PM';
@@ -154,10 +155,10 @@ const styles = StyleSheet.create({
     gap: 6
   },
   numberField: {
-    backgroundColor: colors.surfaceInset,
-    borderColor: colors.hairline,
+    backgroundColor: colors.surface,
+    borderColor: control.inputBorder,
     borderRadius: 12,
-    borderWidth: hairlineWidth,
+    borderWidth: 1,
     color: colors.text,
     fontSize: 16,
     fontVariant: ['tabular-nums'],
@@ -171,9 +172,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted
   },
   meridiemGroup: {
-    borderColor: colors.hairline,
+    borderColor: control.inputBorder,
     borderRadius: 12,
-    borderWidth: hairlineWidth,
+    borderWidth: 1,
     flexDirection: 'row',
     marginLeft: 4,
     overflow: 'hidden'
@@ -202,8 +203,8 @@ const mobileStyles = StyleSheet.create({
     color: colors.textMuted
   },
   numberField: {
-    backgroundColor: colors.surfaceInset,
-    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+    borderColor: control.inputBorder,
     color: colors.text,
     fontFamily: type.number.fontFamily,
     minHeight: 50

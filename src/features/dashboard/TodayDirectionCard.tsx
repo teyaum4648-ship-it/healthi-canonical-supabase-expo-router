@@ -6,17 +6,19 @@ import { RotatingChevron } from '../../components/thread/RotatingChevron';
 import { Eyebrow, HairlineRow, TextLink } from '../../components/thread/ThreadParts';
 import { ink, type as type1c } from '../../styles/daywoven1c';
 
+import { fonts } from '../../styles/mobileTheme';
+import * as dv from '../../styles/daywoven1c';
 export const daywovenV2 = {
-  background: '#0C0E13',
-  surface: '#151920',
-  elevated: '#1A1F28',
-  border: '#2B303C',
-  text: '#F0F3F7',
-  secondary: '#B5BDCC',
-  muted: '#929EAD',
-  blue: '#9FCCFF',
-  lavender: '#B6B2FA',
-  peach: '#FFC6A6'
+  background: dv.surface.canvas,
+  surface: dv.surface.card,
+  elevated: dv.surface.card,
+  border: dv.ink.border,
+  text: dv.ink.text,
+  secondary: dv.ink.muted,
+  muted: dv.ink.muted,
+  blue: dv.ink.text,
+  lavender: dv.pillarOnCanvas.recovery_rhythm,
+  peach: dv.accent.amberDeep
 } as const;
 
 type Driver = {
@@ -133,7 +135,7 @@ const styles = StyleSheet.create({
   note: { ...type1c.caption, color: ink.muted, marginTop: 10 },
   pressed: { opacity: 0.72 },
   shortcutGroup: { gap: 12 },
-  shortcutHeader: { color: daywovenV2.text, fontSize: 19, fontWeight: '700', letterSpacing: -0.4, paddingHorizontal: 3 },
+  shortcutHeader: { color: daywovenV2.text, fontSize: 19, fontFamily: fonts.bodySemibold, letterSpacing: -0.4, paddingHorizontal: 3 },
   shortcutList: {
     backgroundColor: daywovenV2.surface,
     borderColor: daywovenV2.border,
@@ -145,6 +147,6 @@ const styles = StyleSheet.create({
   shortcutBorder: { borderBottomColor: daywovenV2.border, borderBottomWidth: StyleSheet.hairlineWidth },
   shortcutIcon: { width: 39, height: 39, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
   shortcutText: { flex: 1, gap: 3 },
-  shortcutTitle: { color: daywovenV2.text, fontSize: 15, fontWeight: '600' },
+  shortcutTitle: { color: daywovenV2.text, fontSize: 15, fontFamily: fonts.bodySemibold },
   shortcutDescription: { color: daywovenV2.muted, fontSize: 12, lineHeight: 17 }
 });

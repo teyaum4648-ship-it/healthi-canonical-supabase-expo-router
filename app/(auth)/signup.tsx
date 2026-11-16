@@ -16,8 +16,9 @@ import {
 } from '../../src/features/legal/consentModel';
 import { CONSENT_VERSION } from '../../src/features/legal/legalLinks';
 import { SignupConsent } from '../../src/features/legal/SignupConsent';
-import { colors, spacing, glassSurface } from '../../src/styles/mobileTheme';
+import { colors, spacing, glassSurface, fonts } from '../../src/styles/mobileTheme';
 
+import * as dv from '../../src/styles/daywoven1c';
 export default function SignupScreen() {
   const { signUp, mode } = useAuth();
   const [firstName, setFirstName] = useState('');
@@ -146,17 +147,17 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   screen: { justifyContent: 'center', gap: 18, paddingTop: 26, paddingBottom: 40 },
-  brandBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
+  brandBackground: { backgroundColor: dv.surface.band },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12 },
-  brandMark: { color: '#F6F8F4', fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
-  brandDot: { color: '#C8F18C' },
-  brandSide: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  brandMark: { color: dv.bone.text, fontSize: 25, fontFamily: fonts.bodySemibold, letterSpacing: -1.2 },
+  brandDot: { color: dv.accent.amber },
+  brandSide: { color: dv.bone.soft, fontSize: 10, fontFamily: fonts.bodySemibold, letterSpacing: 1.1 },
   hero: { gap: 10, paddingBottom: 10 },
-  eyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
-  heroTitle: { color: '#F6F8F4', fontSize: 37, fontWeight: '700', lineHeight: 43, letterSpacing: -1.4 },
-  heroBody: { color: '#B8CAB5', fontSize: 15, lineHeight: 24 },
-  brandCard: { borderColor: 'rgba(200,241,140,0.16)', backgroundColor: '#1B3526', padding: 20, borderRadius: 22 },
-  brandButton: { backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 55 },
+  eyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
+  heroTitle: { color: dv.bone.text, fontSize: 37, fontFamily: fonts.bodySemibold, lineHeight: 43, letterSpacing: -1.4 },
+  heroBody: { color: dv.bone.soft, fontSize: 15, lineHeight: 24 },
+  brandCard: { borderColor: dv.bone.hairline, backgroundColor: dv.bone.raised, padding: 20, borderRadius: 22 },
+  brandButton: { backgroundColor: dv.bone.text, borderRadius: 14, minHeight: 55 },
   footer: {
     alignItems: 'center',
     gap: spacing.xs
@@ -166,9 +167,9 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   link: {
-    color: '#C8F18C',
+    color: dv.accent.amber,
     fontSize: 16,
-    fontWeight: '800'
+    fontFamily: fonts.bodySemibold
   },
   feedback: {
     gap: spacing.xs,
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
   feedbackTitle: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: '800'
+    fontFamily: fonts.bodySemibold
   },
   feedbackMessage: {
     color: colors.textMuted,

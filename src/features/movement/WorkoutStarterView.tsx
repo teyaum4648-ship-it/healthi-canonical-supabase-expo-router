@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import {
   canStart,
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     ...type.body,
     color: colors.text,
     flex: 1,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemibold,
     minHeight: 44,
     // Web inputs keep an intrinsic width of about twenty characters and will push the
     // remove button off a phone screen without this.
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 54
   },
-  addMovementText: { ...type.body, color: tabAccent.movement, fontWeight: '600' },
+  addMovementText: { ...type.body, color: tabAccent.movement, fontFamily: fonts.bodySemibold },
 
   confirm: {
     alignItems: 'center',
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   },
   confirmText: { ...type.caption, color: colors.danger, flex: 1 },
   confirmKeep: { alignItems: 'center', justifyContent: 'center', minHeight: 40, paddingHorizontal: 10 },
-  confirmKeepText: { ...type.caption, color: tabAccent.movement, fontWeight: '600' },
+  confirmKeepText: { ...type.caption, color: tabAccent.movement, fontFamily: fonts.bodySemibold },
   loggedNote: { ...type.caption, color: colors.textFaint },
 
   leave: { alignItems: 'center', justifyContent: 'center', marginTop: 12, minHeight: 48 },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   },
   sourcePressed: { backgroundColor: colors.surfaceInset },
   sourceCopy: { flex: 1, gap: 2, minWidth: 0 },
-  sourceTitle: { ...type.body, color: colors.text, fontWeight: '600' },
+  sourceTitle: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   sourceDetail: { ...type.caption, color: colors.textMuted },
   sourceMovements: { ...type.caption, color: colors.textFaint },
 

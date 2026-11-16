@@ -18,7 +18,7 @@ import { TrendBarChart } from '../../../src/features/trends/TrendBarChart';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, type, glassSurface, fonts } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   meta: { ...type.caption, color: colors.textMuted },
   focus: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   focusCopy: { flex: 1, gap: 4 },
-  focusLabel: { ...type.caption, fontWeight: '600', color: colors.accent },
-  focusTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  focusLabel: { ...type.caption, fontFamily: fonts.bodySemibold, color: colors.accent },
+  focusTitle: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   note: { ...type.caption, color: colors.textMuted, textAlign: 'center' }
 });

@@ -1,8 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useState, type PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
 
+import { font, ink, radius, surface } from '../../styles/daywoven1c';
+import { RotatingChevron } from '../thread/RotatingChevron';
+
+/**
+ * A 1c disclosure (design language P3): a white card, radius 14, whose header opens what it
+ * holds, with a chevron that turns over. Safety notices never go inside one.
+ */
 export function Disclosure({ title, detail, children, initiallyOpen = false }: PropsWithChildren<{
   title: string; detail?: string; initiallyOpen?: boolean;
 }>) {
@@ -14,18 +19,19 @@ export function Disclosure({ title, detail, children, initiallyOpen = false }: P
           <Text style={styles.title}>{title}</Text>
           {detail ? <Text style={styles.detail}>{detail}</Text> : null}
         </View>
-        <Ionicons accessible={false} name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
+        <RotatingChevron open={open} color={ink.text} size={17} />
       </Pressable>
       {open ? <View style={styles.content}>{children}</View> : null}
     </View>
   );
 }
+
 const styles = StyleSheet.create({
-  section: { ...glassSurface, borderRadius: 20, paddingHorizontal: 18 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 16 },
-  copy: { flex: 1, gap: 4 },
-  title: { ...type.body, color: colors.text, fontWeight: '600' },
-  detail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
-  content: { paddingBottom: 18, gap: 12 },
+  section: { backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, paddingHorizontal: 16 },
+  header: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 56, paddingVertical: 14 },
+  copy: { flex: 1, gap: 3 },
+  title: { color: ink.text, fontFamily: font.bodySemibold, fontSize: 15, lineHeight: 20 },
+  detail: { color: ink.muted, fontFamily: font.body, fontSize: 12.5, lineHeight: 17.5 },
+  content: { gap: 12, paddingBottom: 16 },
   pressed: { opacity: 0.65 }
 });

@@ -8,7 +8,7 @@ import { ActionRow } from '../../components/mobile/ActionRow';
 import type { DailyReadinessResult } from '../../engines/readiness';
 import { ThreadButton } from '../../components/thread/ThreadParts';
 import { bone, pillar, type as type1c } from '../../styles/daywoven1c';
-import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
+import { accentFill, colors, glass, glassSurface, type, fonts } from '../../styles/mobileTheme';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
@@ -23,12 +23,13 @@ import {
 } from './readinessNow';
 import { createReadinessNowDemoStore, type ReadinessNowDemoData } from './readinessNowStore';
 
+import * as dv from '../../styles/daywoven1c';
 const store = createReadinessNowDemoStore(AsyncStorage);
 const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
   surface: colors.surface, surfaceAlt: colors.surfaceInset, border: colors.borderStrong, hairline: colors.hairline,
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
-  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#F2C87E', chip: colors.surfaceMuted
+  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: dv.accent.amberDeep, chip: colors.surfaceMuted
 };
 const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function clockLabel(value: string) {
@@ -210,20 +211,20 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 4 },
   grow: { flex: 1, paddingHorizontal: 10 },
   wide: { flex: 1.45 },
-  heading: { ...type.body, fontWeight: '600', color: colors.text, marginTop: 4 },
-  eyebrow: { ...type.caption, fontSize: 14, color: colors.accentMid, fontWeight: '600' },
+  heading: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text, marginTop: 4 },
+  eyebrow: { ...type.caption, fontSize: 14, color: colors.accentMid, fontFamily: fonts.bodySemibold },
   body: { ...type.body, color: colors.text },
   muted: { ...type.body, color: colors.textMuted, lineHeight: 23 },
   meta: { ...type.caption, color: colors.textMuted, lineHeight: 20 },
   button: { minHeight: 50, borderRadius: 16, ...accentFill(colors.primary), justifyContent: 'center', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
-  buttonText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
+  buttonText: { ...type.body, color: colors.primaryText, fontFamily: fonts.bodySemibold },
   secondaryText: { color: colors.text },
   secondary: { ...glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   group: { gap: 10, marginVertical: 6 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  notice: { ...type.body, color: '#F2C87E' },
+  notice: { ...type.body, color: dv.accent.amberDeep },
   bandState: { gap: 12, marginTop: 18, minHeight: 124, justifyContent: 'center' },
   bandReminder: { gap: 10, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: bone.hairline },
   bandHeading: { ...type1c.bodyStrong, color: bone.text },

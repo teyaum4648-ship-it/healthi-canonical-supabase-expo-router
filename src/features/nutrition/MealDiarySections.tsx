@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { MealLog, MealType } from '../../engines/nutrition';
 import { ActionRow } from '../../components/mobile/ActionRow';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { mealSectionsForDay } from './mealDiaryModel';
 
@@ -24,7 +24,7 @@ export function MealDiarySections({ meals, date, loading, onAdd, onSelect }: {
 }
 const styles = StyleSheet.create({
   stack: { gap: 12 }, section: { ...glassSurface, borderRadius: 20, padding: 16, gap: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong },
-  title: { ...type.body, fontWeight: '600', color: colors.text }, detail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
+  title: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text }, detail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 }, copy: { flex: 1, gap: 3 }, loading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   add: { minHeight: 44, minWidth: 70, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.surfaceInset, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }, addText: { ...type.label, color: tabAccent.food }
 });

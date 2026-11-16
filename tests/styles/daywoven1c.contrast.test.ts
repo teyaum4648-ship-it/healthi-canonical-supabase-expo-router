@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { contrastRatio, WCAG } from '../../src/styles/contrast';
-import { accent, bone, ink, pillar, pillarOnCanvas, safety, surface, zoneWord } from '../../src/styles/daywoven1c';
+import { accent, bone, control, grade, ink, macro, pillar, pillarOnCanvas, safety, surface, zoneOnCanvas, zoneWord } from '../../src/styles/daywoven1c';
 
 /**
  * The 1c "Thread" palette: a light canvas with a charcoal band. Text on the canvas and on
@@ -97,5 +97,34 @@ describe('1c marks that carry meaning reach 3:1', () => {
   ] as [string, string, string][])('%s', (name, foreground, background) => {
     const ratio = contrastRatio(foreground, background);
     expect(ratio, `${name} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(WCAG.AA_NON_TEXT);
+  });
+});
+
+describe('tokens added in Phase 3 hold the same thresholds', () => {
+  it.each(Object.entries(zoneOnCanvas))('the %s zone text reaches 4.5:1 on its own wash, over the canvas and over a card', (zone, value) => {
+    for (const ground of [surface.canvas, surface.card]) {
+      const behind = flatten(value.background, ground);
+      const ratio = contrastRatio(value.text, behind);
+      expect(ratio, `${zone} text is ${ratio.toFixed(2)}:1 on its wash over ${ground}`).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
+    }
+  });
+
+  it.each(Object.entries(zoneOnCanvas))('the %s zone mark reaches 3:1 on the canvas', (zone, value) => {
+    expect(contrastRatio(value.solid, surface.canvas), zone).toBeGreaterThanOrEqual(WCAG.AA_NON_TEXT);
+  });
+
+  it.each(Object.entries(grade))('grade %s reaches 4.5:1 on white and carries a bone letter', (name, value) => {
+    expect(contrastRatio(value, surface.card), `grade ${name} on white`).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
+    expect(contrastRatio(bone.text, value), `bone on grade ${name}`).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
+  });
+
+  it.each(Object.entries(macro))('the %s macro mark reaches 3:1 on the canvas', (name, value) => {
+    expect(contrastRatio(value, surface.canvas), name).toBeGreaterThanOrEqual(WCAG.AA_NON_TEXT);
+  });
+
+  it('keeps muted ink readable on the recessed panel, and bone readable on a raised band card and the pressed button', () => {
+    expect(contrastRatio(ink.muted, surface.sunken)).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
+    expect(contrastRatio(bone.text, flatten(bone.raised, surface.band))).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
+    expect(contrastRatio(bone.text, control.primaryPressed)).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
   });
 });

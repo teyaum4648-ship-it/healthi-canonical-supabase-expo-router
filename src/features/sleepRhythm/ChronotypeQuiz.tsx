@@ -9,7 +9,7 @@ import {
   type DaySlot
 } from '../../engines/circadian';
 import type { SleepPalette } from './SleepExperience';
-import { glassSurface } from '../../styles/mobileTheme';
+import { glassSurface, fonts } from '../../styles/mobileTheme';
 
 /**
  * Six questions, then a day built from the answers that the person gets to argue with.
@@ -191,7 +191,7 @@ export function ChronotypeQuiz({
                   })}
                   style={({ pressed }) => [styles.option, { backgroundColor: palette.chip, borderColor: 'transparent' }, selected && { borderColor: palette.accent }, pressed && styles.pressed]}
                 >
-                  <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.text, fontWeight: '600' }]}>{option.label}</Text>
+                  <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.text, fontFamily: fonts.bodySemibold }]}>{option.label}</Text>
                 </Pressable>
               );
             })}
@@ -235,31 +235,31 @@ const styles = StyleSheet.create({
   page: { gap: 14, paddingBottom: 96, paddingHorizontal: 20, paddingTop: 56 },
   header: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   close: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
-  title: { flex: 1, fontSize: 26, fontWeight: '600', lineHeight: 32 },
+  title: { flex: 1, fontSize: 26, fontFamily: fonts.bodySemibold, lineHeight: 32 },
   intro: { fontSize: 15, lineHeight: 22 },
   flex: { flex: 1, gap: 4, minWidth: 0 },
   card: { borderRadius: 18, borderWidth: 1, gap: 6, paddingHorizontal: 18, paddingVertical: 16 },
-  cardTitle: { fontSize: 19, fontWeight: '600', lineHeight: 25 },
+  cardTitle: { fontSize: 19, fontFamily: fonts.bodySemibold, lineHeight: 25 },
   cardNote: { fontSize: 13, lineHeight: 19 },
   options: { gap: 6, marginTop: 6 },
   option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   optionText: { fontSize: 15, lineHeight: 21 },
   resultCard: { borderRadius: 18, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
-  eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
+  eyebrow: { fontSize: 12, fontFamily: fonts.bodySemibold, letterSpacing: 0 },
   resultSummary: { fontSize: 16, lineHeight: 23 },
   resultMeta: { fontSize: 13, lineHeight: 19 },
   slot: { borderRadius: 16, borderWidth: 1, gap: 10, padding: 14 },
   slotHead: { flexDirection: 'row', gap: 10 },
-  slotLabel: { fontSize: 15, fontWeight: '600' },
+  slotLabel: { fontSize: 15, fontFamily: fonts.bodySemibold },
   slotWhy: { fontSize: 13, lineHeight: 19 },
-  slotTime: { fontSize: 17, fontVariant: ['tabular-nums'], fontWeight: '600' },
+  slotTime: { fontSize: 17, fontVariant: ['tabular-nums'], fontFamily: fonts.bodySemibold },
   nudgeRow: { flexDirection: 'row', gap: 6 },
   nudge: { alignItems: 'center', borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   nudgeText: { fontSize: 13 },
   footnote: { fontSize: 13, lineHeight: 20 },
   actions: { gap: 10 },
   primaryButton: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
-  primaryButtonText: { fontSize: 16, fontWeight: '600' },
+  primaryButtonText: { fontSize: 16, fontFamily: fonts.bodySemibold },
   secondaryButton: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
   secondaryButtonText: { fontSize: 15, textAlign: 'center' },
   tertiaryButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },

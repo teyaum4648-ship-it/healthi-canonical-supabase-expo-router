@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import type { HealthiProductSnapshot } from './productLookup/productLookupTypes';
 import { MENUSTAT_DATA_TYPE } from './productLookup/restaurantFoodTypes';
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }, link: { ...type.label, color: tabAccent.food },
   searchRow: { flexDirection: 'row', gap: 8 }, searchInput: { ...type.body, color: colors.text, minWidth: 0, flex: 1, backgroundColor: colors.surfaceInset, minHeight: 50, paddingHorizontal: 14, borderRadius: 14 },
   search: { backgroundColor: tabAccent.food, minWidth: 70, paddingHorizontal: 12, minHeight: 50, justifyContent: 'center', alignItems: 'center', borderRadius: 14 }, source: { ...type.caption, color: colors.textMuted },
-  primary: { backgroundColor: tabAccent.food, alignItems: 'center', justifyContent: 'center', borderRadius: 14, minHeight: 52, padding: 12 }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 },
+  primary: { backgroundColor: tabAccent.food, alignItems: 'center', justifyContent: 'center', borderRadius: 14, minHeight: 52, padding: 12 }, primaryText: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.primaryText }, dim: { opacity: 0.5 },
   portionRow: { flexDirection: 'row', gap: 12, alignItems: 'center' }, step: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceInset }, portion: { ...type.numberLg, color: colors.text, flex: 1, minHeight: 54, textAlign: 'center', backgroundColor: colors.surfaceInset, borderRadius: 12 },
   nutrients: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, nutrient: { minWidth: '40%', flex: 1, gap: 4 }, libraryRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, libraryCopy: { flex: 1 }
 });

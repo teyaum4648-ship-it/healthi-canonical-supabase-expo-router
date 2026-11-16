@@ -53,7 +53,8 @@ describe('Sleep V2 progressive disclosure and feature preservation', () => {
     expect(graph).toContain('briefing.typical_band');
     expect(graph).toContain('briefing.energy_extrema');
     expect(graph).toContain('setRatio(null)');
-    expect(graph).toContain("['#161A2B', '#171923', '#1B1B2D', '#121720', '#0E111A']");
+    // The chart still sits on its dark ground, now the 1c band rather than a navy gradient.
+    expect(graph).toContain('colors={[dv.surface.band, dv.surface.band');
   });
 
   it('keeps manual logging, trends, chronotype, and wind-down routes intact', () => {

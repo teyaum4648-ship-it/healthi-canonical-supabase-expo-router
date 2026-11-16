@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { font, HIT, ink, pillarOnCanvas } from '../../styles/daywoven1c';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { pillarColors, pillarTint } from '../../styles/pillarColors';
 import type { LoggingPromptId, LoggingPromptRow } from './loggingPrompts';
 
@@ -51,12 +51,12 @@ export function LoggingPrompts({ rows, onAction, tone = 'sheet' }: { rows: Loggi
 
 const styles = StyleSheet.create({
   list: { gap: 0 },
-  heading: { ...type.body, color: colors.text, fontWeight: '600', marginBottom: 4 },
+  heading: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold, marginBottom: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderStrong },
   last: { borderBottomWidth: 0 },
   tile: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0, gap: 2 },
-  pillar: { ...type.caption, fontWeight: '600' },
+  pillar: { ...type.caption, fontFamily: fonts.bodySemibold },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   status: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.text, flexShrink: 1 },
   pill: { minHeight: 44, minWidth: 76, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },

@@ -77,8 +77,9 @@ describe('loggingPrompts', () => {
 
 describe('pillarTint', () => {
   it('turns a pillar colour into a translucent backing', () => {
-    expect(pillarTint('recovery_rhythm')).toBe('rgba(143, 227, 196, 0.16)');
-    expect(pillarTint('nourishment', 0.3)).toBe('rgba(180, 166, 246, 0.3)');
+    // The 1c canvas marks: recovery #5A52B8, nourishment #B8641A.
+    expect(pillarTint('recovery_rhythm')).toBe('rgba(90, 82, 184, 0.12)');
+    expect(pillarTint('nourishment', 0.3)).toBe('rgba(184, 100, 26, 0.3)');
   });
 
   it('keeps the four pillars distinct', () => {

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -5,21 +6,26 @@ import {
   type TextInputProps as NativeTextInputProps
 } from 'react-native';
 
-import { colors, radii, spacing, type } from '../styles/mobileTheme';
+import { control, font, ink, radius, surface } from '../styles/daywoven1c';
+import { spacing, type } from '../styles/mobileTheme';
 
 type TextInputProps = NativeTextInputProps & {
   label: string;
 };
 
-export function TextInput({ label, style, ...props }: TextInputProps) {
+/** A 1c text field (design language P15): white, a 1pt border, and an ink ring while focused. */
+export function TextInput({ label, style, onFocus, onBlur, ...props }: TextInputProps) {
+  const [focused, setFocused] = useState(false);
   return (
     <>
       <Text style={styles.label}>{label}</Text>
       <NativeTextInput
         accessibilityLabel={label}
         autoCapitalize="none"
-        placeholderTextColor={colors.textFaint}
-        style={[styles.input, style]}
+        placeholderTextColor={ink.muted}
+        onFocus={(event) => { setFocused(true); onFocus?.(event); }}
+        onBlur={(event) => { setFocused(false); onBlur?.(event); }}
+        style={[styles.input, focused && styles.focused, style]}
         {...props}
       />
     </>
@@ -29,16 +35,21 @@ export function TextInput({ label, style, ...props }: TextInputProps) {
 const styles = StyleSheet.create({
   label: {
     ...type.caption,
-    color: colors.textMuted
+    color: ink.muted
   },
   input: {
-    minHeight: 52,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
-    borderRadius: radii.md,
-    backgroundColor: colors.surfaceInset,
-    color: colors.text,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: control.inputBorder,
+    borderRadius: radius.button,
+    backgroundColor: surface.card,
+    color: ink.text,
+    fontFamily: font.body,
     fontSize: 16,
     paddingHorizontal: spacing.md
+  },
+  focused: {
+    borderColor: control.focusRing,
+    borderWidth: 1.5
   }
 });

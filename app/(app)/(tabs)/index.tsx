@@ -105,6 +105,7 @@ import { accent, bone, font, HIT, ink, radius, space, surface, type } from '../.
 import { ExploreButton, HairlineRow, SectionTitle, TextLink, ThreadBand, ThreadCard, ThreadHeader } from '../../../src/components/thread/ThreadParts';
 import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
 import { useSideMenu } from '../../../src/features/navigation/SideMenu';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 
@@ -209,6 +210,7 @@ export default function DashboardScreen() {
   const tabSpace = useTabBarSpace();
   const { user, mode } = useAuth();
   const sideMenu = useSideMenu();
+  useBandStatusBar();
   const isFocused = useIsFocused();
   const today = useLocalToday();
   const [readinessCheckinRequest, setReadinessCheckinRequest] = useState(0);

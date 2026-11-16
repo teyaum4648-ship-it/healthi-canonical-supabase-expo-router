@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   formatRestClock,
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
     paddingRight: 4
   },
   overviewCopy: { flex: 1, gap: 2, minWidth: 0, paddingVertical: 14 },
-  overviewName: { ...type.body, color: colors.text, fontWeight: '600' },
+  overviewName: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   overviewMeta: { ...type.caption, color: colors.textMuted },
 
   footer: {

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { accent, font, HIT, ink, radius } from '../../styles/daywoven1c';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { pillarColors } from '../../styles/pillarColors';
 import type { WeeklyRecap } from './weekCards';
 
@@ -69,8 +69,8 @@ const styles = StyleSheet.create({
   lineTitle: { ...type.label, color: colors.text },
   lineText: { ...type.body, fontSize: 15, lineHeight: 21, color: colors.textMuted },
   focus: { gap: 4 },
-  focusLabel: { ...type.caption, fontWeight: '600', color: colors.accent },
-  focusTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  focusLabel: { ...type.caption, fontFamily: fonts.bodySemibold, color: colors.accent },
+  focusTitle: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   button: { minHeight: 50, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { ...type.body, fontWeight: '600', color: colors.primaryText }
+  buttonText: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.primaryText }
 });

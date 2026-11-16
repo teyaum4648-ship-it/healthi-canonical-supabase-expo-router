@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { localStepsStore, type StepsDay } from './healthSync';
 
 /** Today's steps from a connected health app. Renders nothing until there are some. */
@@ -23,6 +23,6 @@ export function StepsToday({ scope, today }: { scope: string; today: string }) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   label: { ...type.label, color: colors.textMuted },
-  value: { ...type.body, fontWeight: '600', color: colors.text, fontVariant: ['tabular-nums'] },
+  value: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text, fontVariant: ['tabular-nums'] },
   source: { ...type.caption, color: colors.textMuted, marginLeft: 'auto' }
 });

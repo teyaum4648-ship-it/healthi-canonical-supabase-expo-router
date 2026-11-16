@@ -10,6 +10,7 @@ import { useMembership } from '../../src/features/subscriptions/MembershipProvid
 import { getSubscriptionCatalog, buySubscription, restoreSubscriptions } from '../../src/features/subscriptions/revenuecat';
 import { colors, fonts, spacing } from '../../src/styles/mobileTheme';
 
+import * as dv from '../../src/styles/daywoven1c';
 // This is a US-first release; enable external web checkout only for a reviewed
 // US App Store distribution. Storefront-specific policy must be revisited before
 // releasing the iOS app in any additional country.
@@ -219,9 +220,9 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flexGrow: 1, gap: spacing.md, padding: 24, paddingTop: 64 },
   back: { minHeight: 42, justifyContent: 'center' },
-  previewLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderRadius: 22, borderColor: 'rgba(200,241,140,0.35)', backgroundColor: 'rgba(200,241,140,0.07)' },
-  previewLinkText: { color: '#C8F18C', fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '700' },
-  previewLinkArrow: { color: '#C8F18C', fontSize: 17 },
+  previewLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderRadius: 22, borderColor: dv.ink.border, backgroundColor: dv.ink.wash },
+  previewLinkText: { color: dv.ink.text, fontFamily: fonts.bodySemibold, fontSize: 14 },
+  previewLinkArrow: { color: dv.ink.text, fontSize: 17 },
   eyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 2 },
   title: { color: colors.text, fontFamily: fonts.display, fontSize: 35 },
   body: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: .5 },
   buttonText: { color: colors.background, fontFamily: fonts.bodyMedium, fontSize: 15 },
   notice: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
-  error: { color: '#ff8b8b', fontSize: 14 },
+  error: { color: dv.safety.onCanvas, fontSize: 14 },
   secondary: { minHeight: 44, justifyContent: 'center' },
   link: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 15 },
   footer: { gap: 10, marginTop: 16 }

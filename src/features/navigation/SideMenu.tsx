@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
 import { APP_NAME, APP_VERSION } from '../../constants/brand';
 import { supabase } from '../../lib/supabase';
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, fonts } from '../../styles/mobileTheme';
 import { useAuth } from '../auth/AuthProvider';
 import { protocolScope } from '../dailyProtocol';
 import { ConnectedHealthRow } from '../health/ConnectedHealthRow';
@@ -17,6 +17,7 @@ import { openLegalUrl } from '../legal/openLegalUrl';
 import type { SleepRhythmSupabaseClient } from '../sleepRhythm/persistence';
 import { loadSleepHistory, saveSleepForSource } from '../sleepRhythm/sleepSessionSource';
 
+import * as dv from '../../styles/daywoven1c';
 /**
  * The menu behind the three-line tab: the account, the places that are not a pillar, and
  * the apps daywoven connects to.
@@ -167,15 +168,15 @@ function SideMenuContent({ onClose }: { onClose: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { backgroundColor: 'rgba(4, 6, 10, 0.55)' },
+  backdrop: { backgroundColor: dv.control.scrim },
   panel: {
-    backgroundColor: '#12161D',
+    backgroundColor: dv.surface.canvas,
     borderLeftColor: colors.border,
     borderLeftWidth: hairlineWidth,
     bottom: 0,
     position: 'absolute',
     right: 0,
-    shadowColor: '#000',
+    shadowColor: dv.ink.text,
     shadowOffset: { width: -8, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
@@ -183,14 +184,14 @@ const styles = StyleSheet.create({
   },
   content: { gap: 10, paddingHorizontal: 20 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  wordmark: { ...type.heading, color: colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.6 },
+  wordmark: { ...type.heading, color: colors.text, fontSize: 22, fontFamily: fonts.displayMedium, letterSpacing: -0.6 },
   close: { alignItems: 'center', height: 40, justifyContent: 'center', marginRight: -8, width: 40 },
   account: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingVertical: 8 },
   avatar: { alignItems: 'center', backgroundColor: colors.accentWash, borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
   avatarLetter: { ...type.label, color: colors.accent, fontSize: 18 },
   accountName: { ...type.label, color: colors.text, fontSize: 17 },
   groupLabel: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0, marginTop: 14 },
-  group: { backgroundColor: 'rgba(235, 240, 255, 0.04)', borderColor: colors.border, borderRadius: 16, borderWidth: hairlineWidth, overflow: 'hidden' },
+  group: { backgroundColor: dv.ink.wash, borderColor: colors.border, borderRadius: 16, borderWidth: hairlineWidth, overflow: 'hidden' },
   extensions: { paddingHorizontal: 14 },
   row: { alignItems: 'center', borderBottomColor: colors.hairlineSoft, borderBottomWidth: hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 56, paddingHorizontal: 14, paddingVertical: 10 },
   rowIcon: { alignItems: 'center', width: 24 },

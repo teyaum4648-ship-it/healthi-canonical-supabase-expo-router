@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { colors } from '../../src/styles/tokens';
+import { grade } from '../../src/styles/daywoven1c';
 import { contrastRatio, relativeLuminance, WCAG } from '../../src/styles/contrast';
 
 /**
- * The app is dark-only, so every piece of text sits on one of four near-black surfaces.
- * These are the four, and a colour has to clear its threshold on all of them — checking
- * only against pure black is how #6E6E73 shipped at 3.06:1 on the lightest panel.
+ * After the 1c move every screen's text sits on one of four light surfaces: the canvas,
+ * white cards, the inset panel and the recessed panel. A colour has to clear its threshold
+ * on all of them, not only on the lightest.
  */
 const SURFACES: Array<[string, string]> = [
   ['background', colors.background],
@@ -78,17 +79,18 @@ describe('filled controls meet WCAG 2.2 AA for their own label', () => {
     ).toBeGreaterThanOrEqual(WCAG.AA_TEXT);
   });
 
-  it('keeps the pressed state visibly darker than the resting fill', () => {
-    expect(relativeLuminance(colors.primaryPressed)).toBeLessThan(relativeLuminance(colors.primary));
+  it('keeps the pressed state visibly different from the resting fill', () => {
+    // The primary is ink, so pressing lightens it rather than darkening it.
+    expect(contrastRatio(colors.primaryPressed, colors.primary)).toBeGreaterThan(1.2);
   });
 });
 
 describe('score ring colours meet the non-text threshold', () => {
   // From scoreRing.ts. A ring stroke is a graphic, so 1.4.11 applies rather than 1.4.3.
   it.each([
-    ['green', '#30D158'],
-    ['yellow', '#FFD60A'],
-    ['red', '#FF6961'],
+    ['green', grade.A],
+    ['amber', grade.C],
+    ['red', grade.F],
     ['unscored', colors.textFaint]
   ])('%s reaches 3:1 on every surface', (name, value) => {
     const { ratio, surface } = worstCase(value);

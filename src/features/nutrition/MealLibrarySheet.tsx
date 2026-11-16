@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import type { MealLog } from '../../engines/nutrition';
 import type { MealLogItemRow } from './mealItemPersistence';
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   name: { ...type.label, color: colors.text }, value: { ...type.number, color: colors.text },
   input: { ...type.body, color: colors.text, backgroundColor: colors.surfaceInset, minHeight: 50, borderRadius: 14, padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 }, copy: { flex: 1, minWidth: 0 }, star: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
-  filters: { flexDirection: 'row', gap: 20 }, filter: { minHeight: 44, justifyContent: 'center' }, active: { color: tabAccent.food, fontWeight: '600' },
+  filters: { flexDirection: 'row', gap: 20 }, filter: { minHeight: 44, justifyContent: 'center' }, active: { color: tabAccent.food, fontFamily: fonts.bodySemibold },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, metric: { flexGrow: 1, flexBasis: '44%', backgroundColor: colors.surfaceInset, borderRadius: 18, padding: 14, gap: 6 },
-  primary: { minHeight: 52, backgroundColor: tabAccent.food, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, primaryText: { ...type.body, fontWeight: '600', color: colors.primaryText }, dim: { opacity: 0.5 }
+  primary: { minHeight: 52, backgroundColor: tabAccent.food, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, primaryText: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.primaryText }, dim: { opacity: 0.5 }
 });

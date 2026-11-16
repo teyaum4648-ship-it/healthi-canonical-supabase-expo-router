@@ -24,7 +24,12 @@ export const surface = {
   /** The header band, the flipped week cards, the "Tonight" card and dark buttons. */
   band: '#121314',
   /** The bottom tab bar: canvas at 94%, drawn over a light BlurView. */
-  tabBar: 'rgba(244, 244, 242, 0.94)'
+  tabBar: 'rgba(244, 244, 242, 0.94)',
+  /**
+   * Added in Phase 3: a recessed fill one step below the canvas, for an inset panel or a
+   * pressed row on a white card (the old surfaceMuted). Muted ink is 4.79:1 on it.
+   */
+  sunken: '#EAEAE7'
 } as const;
 
 /** Text and lines on the light canvas. */
@@ -38,7 +43,13 @@ export const ink = {
   border: 'rgba(18, 19, 20, 0.14)',
   /** The whole-day energy area behind the strand. */
   strandArea: 'rgba(18, 19, 20, 0.09)',
-  track: 'rgba(18, 19, 20, 0.12)'
+  track: 'rgba(18, 19, 20, 0.12)',
+  /** Added in Phase 3: a quieter divider inside an already-bordered group. */
+  hairlineSoft: 'rgba(18, 19, 20, 0.08)',
+  /** Added in Phase 3: the selected or highlighted state on the canvas (a chosen chip, a held row). */
+  wash: 'rgba(18, 19, 20, 0.06)',
+  /** Added in Phase 3: a slightly stronger wash, for a selected option inside a white card. */
+  washStrong: 'rgba(18, 19, 20, 0.10)'
 } as const;
 
 /**
@@ -62,7 +73,9 @@ export const bone = {
   /** Unfilled part of each readiness ring segment. */
   ringTrack: 'rgba(237, 234, 226, 0.13)',
   /** Off state of the rested-week switch. */
-  switchOff: 'rgba(237, 234, 226, 0.22)'
+  switchOff: 'rgba(237, 234, 226, 0.22)',
+  /** Added in Phase 3: a card or panel raised on the band (onboarding, sign-in). Flattened #1F2021; bone text is 13.6:1 on it. */
+  raised: 'rgba(237, 234, 226, 0.06)'
 } as const;
 
 /**
@@ -129,7 +142,51 @@ export const pillarOnCanvas = {
  */
 export const safety = {
   onCanvas: '#B42318',
-  onBand: '#FF6B6B'
+  onBand: '#FF6B6B',
+  /** Added in Phase 3: the wash behind a safety notice on the canvas. Safety text is 5.2:1 on it. */
+  washOnCanvas: 'rgba(180, 35, 24, 0.10)'
+} as const;
+
+/**
+ * Added in Phase 3: wellness zones on the light canvas (chips, status words, a coloured
+ * mark), the canvas twin of `zoneWord` on the band. Same calm range: ink for a good
+ * reading, amber for "a little short", lavender for "well short", muted for no reading.
+ * Red is never a zone colour; it means safety. Each text clears 4.5:1 on its own wash
+ * over the canvas or a card, and each solid clears 3:1 as a mark.
+ */
+export const zoneOnCanvas = {
+  optimal: { background: 'rgba(18, 19, 20, 0.06)', text: '#121314', solid: '#121314' },
+  warning: { background: 'rgba(233, 149, 65, 0.18)', text: '#994B00', solid: '#B8641A' },
+  critical: { background: 'rgba(162, 157, 255, 0.20)', text: '#4F47AE', solid: '#5A52B8' },
+  neutral: { background: 'rgba(18, 19, 20, 0.05)', text: '#63666A', solid: '#63666A' }
+} as const;
+
+/**
+ * Added in Phase 3: the product-quality grade scale (Food's A–F verdicts), redrawn for the
+ * light canvas. The scale runs green to brick through amber so the order reads without the
+ * letter; the letter is always shown too. F is brick, not the safety red, because a grade
+ * is not a safety signal. Each clears 4.5:1 on white, so the letter can sit on it in bone.
+ */
+export const grade = {
+  A: '#2F6B45',
+  B: '#4F6B1F',
+  C: '#7A5A00',
+  D: '#994B00',
+  F: '#8F2F22',
+  /** A neutral ingredient slice in the composition bar. */
+  neutral: '#63666A'
+} as const;
+
+/**
+ * Added in Phase 3: macro and intake marks on the canvas (bars, rings, legend swatches),
+ * distinct from each other and each at least 3:1 on the canvas. Labels stay ink.
+ */
+export const macro = {
+  energy: '#994B00',
+  protein: '#5A52B8',
+  carbs: '#B8641A',
+  fat: '#63666A',
+  water: '#2A7FA3'
 } as const;
 
 /** Controls shared by every screen. */
@@ -145,7 +202,11 @@ export const control = {
   segmentTrack: 'rgba(18, 19, 20, 0.06)',
   sheetRadius: 20,
   inputBorder: 'rgba(18, 19, 20, 0.22)',
-  focusRing: '#121314'
+  focusRing: '#121314',
+  /** Added in Phase 3: the primary ink button while held. Lighter than ink so the press shows; bone is 10.8:1 on it. */
+  primaryPressed: '#2E3033',
+  /** Added in Phase 3: the dimmed layer behind a sheet or over a camera preview. */
+  scrim: 'rgba(18, 19, 20, 0.45)'
 } as const;
 
 /**

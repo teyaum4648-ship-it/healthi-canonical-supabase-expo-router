@@ -74,6 +74,7 @@ import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, hairlineWidth, palette, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
+import * as dv from '../../../src/styles/daywoven1c';
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
@@ -105,18 +106,18 @@ function formatHourLabel(ms: number): string {
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: 'rgba(180, 166, 246, 0.14)',
-  exercise: 'rgba(242, 200, 126, 0.14)',
-  light_movement: 'rgba(134, 200, 240, 0.14)',
-  wind_down: 'rgba(255, 107, 107, 0.12)',
-  meal: 'rgba(255, 255, 255, 0.10)',
-  sleep: 'rgba(180, 166, 246, 0.12)',
-  neutral: 'rgba(255, 255, 255, 0.07)'
+  deep_work: dv.ink.muted,
+  exercise: dv.accent.amberDeep,
+  light_movement: dv.ink.muted,
+  wind_down: dv.safety.onCanvas,
+  meal: dv.ink.muted,
+  sleep: dv.ink.muted,
+  neutral: dv.ink.muted
 };
 
 const SECTION_ACCENT: Record<CalendarSection, string> = {
   deep_work: palette.forest,
-  exercise: '#F2C87E',
+  exercise: dv.accent.amberDeep,
   light_movement: palette.forestMid,
   wind_down: palette.clayDark,
   meal: palette.faint,

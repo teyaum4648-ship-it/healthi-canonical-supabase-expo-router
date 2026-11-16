@@ -202,6 +202,7 @@ import {
 } from '../../../src/styles/mobileTheme';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
+import * as dv from '../../../src/styles/daywoven1c';
 const C = {
   bg: themeColors.background,
   card: themeColors.surface,
@@ -2058,7 +2059,7 @@ export default function FoodScreen() {
             accessibilityLabel="Search nutrients"
             onChangeText={setNutrientQuery}
             placeholder="Search nutrients"
-            placeholderTextColor="#8C939D"
+            placeholderTextColor={dv.ink.muted}
             style={styles.adaptiveSearch}
             value={nutrientQuery}
           />
@@ -2662,18 +2663,18 @@ function ChoiceRow({
 
 const styles = StyleSheet.create({
   diarySection: { ...glassSurface, borderRadius: 20, padding: 18, gap: 12 },
-  diaryHeading: { fontFamily: sans, fontSize: 20, lineHeight: 26, fontWeight: '600', color: colors.text },
+  diaryHeading: { fontFamily: themeFonts.bodySemibold, fontSize: 20, lineHeight: 26, color: colors.text },
   diaryDetail: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted },
   diaryEnergy: { paddingVertical: 8, gap: 3 },
-  diaryEnergyValue: { fontFamily: sans, fontSize: 38, fontWeight: '600', color: colors.text, fontVariant: ['tabular-nums'] },
+  diaryEnergyValue: { fontFamily: themeFonts.bodySemibold, fontSize: 38, color: colors.text, fontVariant: ['tabular-nums'] },
   diaryMacros: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingVertical: 10 },
   diaryMacro: { flex: 1, minWidth: 70, gap: 4 },
-  diaryMacroValue: { fontFamily: sans, fontSize: 17, lineHeight: 24, fontWeight: '600', color: colors.text },
+  diaryMacroValue: { fontFamily: themeFonts.bodySemibold, fontSize: 17, lineHeight: 24, color: colors.text },
   diaryNotice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   diaryTextButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: tabAccent.food, fontWeight: '500' },
+  diaryLink: { fontFamily: themeFonts.bodyMedium, fontSize: 16, lineHeight: 22, color: tabAccent.food },
   diaryStatus: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted, paddingVertical: 8 },
-  diaryAddText: { color: onPillar, fontWeight: '600' },
+  diaryAddText: { color: onPillar, fontFamily: themeFonts.bodySemibold },
   diaryAdd: { flex: 1, ...accentFill(tabAccent.food), minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
   // Fixed width rather than a flex share, so the primary action keeps the bar and this
   // stays a key beside it at roughly a fifth of the width on a phone.
@@ -2709,16 +2710,16 @@ const styles = StyleSheet.create({
   },
   adaptivePageLabel: {
     ...themeType.largeTitle,
-    color: '#F5F7FA'
+    color: dv.ink.text
   },
   trackerCard: {
     ...glassSurface,
-    borderColor: 'rgba(180, 166, 246, 0.20)',
+    borderColor: dv.ink.border,
     borderRadius: 22,
     borderWidth: 1
   },
   trackerTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 26,
     lineHeight: 32,
@@ -2726,25 +2727,25 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(180, 166, 246, 0.12)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
   },
   trackerEnergyLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12
   },
   trackerEnergyTarget: {
-    color: '#8C939D',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     paddingBottom: 3
@@ -2756,29 +2757,29 @@ const styles = StyleSheet.create({
     gap: 7
   },
   trackerProgressLabel: {
-    color: '#C7CBD1',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(180, 166, 246, 0.10)',
+    backgroundColor: dv.ink.wash,
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
   },
   trackerFill: {
-    backgroundColor: '#C9BFF9',
+    backgroundColor: dv.ink.text,
     borderRadius: 4,
     height: 6
   },
   trackerMicroBlock: {
-    backgroundColor: '#1E2126',
+    backgroundColor: dv.surface.card,
     borderRadius: 16,
     gap: 12,
     padding: 14
   },
   trackerMicroHeading: {
-    color: '#C7CBD1',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.3
@@ -2798,17 +2799,17 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerMicroUnavailable: {
-    color: '#8C939D',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 10
   },
   trackerMicroLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 11
   },
@@ -2818,7 +2819,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(180, 166, 246, 0.28)',
+    borderColor: dv.ink.border,
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2828,13 +2829,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#B4A6F6',
+    backgroundColor: dv.ink.text,
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2843,7 +2844,7 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerScanText: {
-    color: '#0A0D13',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: 12
   },
@@ -2854,13 +2855,13 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   adaptiveModeDot: {
-    backgroundColor: '#F2C87E',
+    backgroundColor: dv.accent.amberWash,
     borderRadius: 3,
     height: 6,
     width: 6
   },
   adaptiveModeText: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -2879,20 +2880,20 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#B4A6F6'
+    borderBottomColor: dv.ink.text
   },
   adaptiveTabText: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 15,
     letterSpacing: -0.1,
     lineHeight: 21
   },
   adaptiveTabTextActive: {
-    color: '#F5F7FA'
+    color: dv.ink.text
   },
   adaptiveTabBaseline: {
-    backgroundColor: 'rgba(255, 255, 255,0.10)',
+    backgroundColor: dv.ink.wash,
     height: hairlineWidth,
     marginTop: -1
   },
@@ -2907,7 +2908,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   adaptiveBackText: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 13,
     lineHeight: 18
@@ -2921,28 +2922,28 @@ const styles = StyleSheet.create({
     paddingTop: 26
   },
   adaptiveSection: {
-    borderTopColor: 'rgba(255, 255, 255,0.10)',
+    borderTopColor: dv.ink.hairline,
     borderTopWidth: hairlineWidth,
     paddingBottom: 24,
     paddingHorizontal: 22,
     paddingTop: 22
   },
   adaptiveSectionLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptiveConfidenceValue: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#B4A6F6',
+    backgroundColor: dv.ink.text,
     borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
@@ -2950,7 +2951,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptivePrimaryButtonText: {
-    color: '#0A0D13',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
@@ -2962,7 +2963,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   adaptiveSectionAside: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15
@@ -2971,37 +2972,37 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptivePriority: {
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth,
     marginBottom: 18,
     paddingBottom: 18
   },
   adaptivePriorityTag: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptivePriorityTagUrgent: {
-    color: '#F2C87E'
+    color: dv.accent.amberDeep
   },
   adaptiveMono: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15,
     fontVariant: ['tabular-nums']
   },
   adaptiveMonoStrong: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19,
     fontVariant: ['tabular-nums']
   },
   adaptivePriorityTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 16.5,
     letterSpacing: -0.1,
@@ -3009,7 +3010,7 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   adaptivePriorityReason: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 13.5,
     lineHeight: 20,
@@ -3022,19 +3023,19 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(180, 166, 246, 0.35)',
+    borderBottomColor: dv.ink.border,
     borderBottomWidth: 1,
     justifyContent: 'center',
     minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptivePriorityConfidence: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3042,7 +3043,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto'
   },
   adaptiveSectionVoice: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: serifItalic,
     fontSize: 14,
     fontStyle: 'italic',
@@ -3053,7 +3054,7 @@ const styles = StyleSheet.create({
     marginTop: 17
   },
   adaptiveLane: {
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth
   },
   adaptiveLaneButton: {
@@ -3062,20 +3063,20 @@ const styles = StyleSheet.create({
     paddingVertical: 13
   },
   adaptiveLaneName: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     flex: 1,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveLaneState: {
-    color: '#C9BFF9',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveLaneStateWarm: {
-    color: '#F2C87E'
+    color: dv.accent.amberDeep
   },
   adaptiveLaneTrackRow: {
     alignItems: 'center',
@@ -3084,18 +3085,18 @@ const styles = StyleSheet.create({
     marginTop: 9
   },
   adaptiveLaneTrack: {
-    backgroundColor: 'rgba(255, 255, 255,0.10)',
+    backgroundColor: dv.ink.wash,
     borderRadius: 2,
     flex: 1,
     height: 4,
     overflow: 'hidden'
   },
   adaptiveLaneTrackLimited: {
-    borderColor: 'rgba(255, 255, 255,0.25)',
+    borderColor: dv.ink.border,
     borderWidth: 1
   },
   adaptiveLaneFill: {
-    backgroundColor: '#C9BFF9',
+    backgroundColor: dv.ink.text,
     borderRadius: 2,
     bottom: 0,
     left: 0,
@@ -3103,21 +3104,21 @@ const styles = StyleSheet.create({
     top: 0
   },
   adaptiveLaneMeta: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 13
   },
   adaptiveLaneDetail: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 19,
     paddingBottom: 15
   },
   adaptiveCoverageLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3125,7 +3126,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptiveCoverageNeed: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 18,
     lineHeight: 24,
@@ -3133,14 +3134,14 @@ const styles = StyleSheet.create({
   },
   adaptiveInsetCard: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 16,
     borderWidth: 1,
     marginTop: 18,
     padding: 18
   },
   adaptiveCoverageSuggestion: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 20,
     lineHeight: 27,
@@ -3149,7 +3150,7 @@ const styles = StyleSheet.create({
   adaptiveRecent: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3163,13 +3164,13 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveRecentTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14.5,
     lineHeight: 20
   },
   adaptiveViewTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serifLight,
     fontSize: 23,
     lineHeight: 30,
@@ -3185,7 +3186,7 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   adaptiveTimelineTime: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 17,
@@ -3194,8 +3195,8 @@ const styles = StyleSheet.create({
     width: 54
   },
   adaptiveTimelineMarker: {
-    backgroundColor: '#C9BFF9',
-    borderColor: '#000000',
+    backgroundColor: dv.ink.text,
+    borderColor: dv.ink.text,
     borderRadius: 6,
     borderWidth: 2,
     height: 12,
@@ -3204,21 +3205,21 @@ const styles = StyleSheet.create({
     width: 12
   },
   adaptiveTimelineCopy: {
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth,
     flex: 1,
     minHeight: 64,
     paddingBottom: 14
   },
   adaptiveTimelineTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveTimelineNote: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 8,
@@ -3226,17 +3227,17 @@ const styles = StyleSheet.create({
   },
   adaptiveEmpty: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 16,
     borderWidth: 1,
     padding: 20
   },
   adaptiveSearch: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.12)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 15,
     height: 46,
@@ -3244,14 +3245,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveConfidenceSummary: {
-    borderTopColor: 'rgba(255, 255, 255,0.08)',
+    borderTopColor: dv.ink.hairline,
     borderTopWidth: hairlineWidth,
     marginTop: 16,
     paddingTop: 15
   },
   adaptiveNutrientRow: {
     alignItems: 'center',
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 12,
@@ -3263,7 +3264,7 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveNutrientContext: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 16,
@@ -3279,28 +3280,28 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(180, 166, 246, 0.40)',
+    borderColor: dv.ink.border,
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 14
   },
   adaptiveProfileLead: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serifLight,
     fontSize: 19,
     lineHeight: 29,
     marginTop: 14
   },
   adaptiveContributorList: {
-    backgroundColor: 'rgba(255, 255, 255,0.08)',
+    backgroundColor: dv.ink.wash,
     borderRadius: 12,
     gap: 1,
     marginTop: 18,
@@ -3315,13 +3316,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12
   },
   adaptiveContributorLabel: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptiveContributorValue: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
@@ -3329,7 +3330,7 @@ const styles = StyleSheet.create({
   adaptiveSecondaryButton: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -3338,13 +3339,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveSecondaryButtonText: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
   },
   adaptiveSafetyNote: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 18,
@@ -3353,7 +3354,7 @@ const styles = StyleSheet.create({
   },
   adaptiveActionDock: {
     backgroundColor: colors.background,
-    borderTopColor: 'rgba(255, 255, 255,0.10)',
+    borderTopColor: dv.ink.hairline,
     borderTopWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 10,
@@ -3364,7 +3365,7 @@ const styles = StyleSheet.create({
   adaptiveDockButton: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
@@ -3376,7 +3377,7 @@ const styles = StyleSheet.create({
   adaptiveDockAdd: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3386,7 +3387,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptiveDockText: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
@@ -3419,8 +3420,8 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(180, 166, 246, 0.08)',
-    borderColor: 'rgba(180, 166, 246, 0.24)',
+    backgroundColor: dv.ink.wash,
+    borderColor: dv.ink.border,
     borderRadius: 18,
     borderWidth: 1,
     height: 42,
@@ -3556,7 +3557,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   metric: {
-    backgroundColor: '#1E2126',
+    backgroundColor: dv.surface.card,
     borderColor: C.hairline,
     borderRadius: 18,
     borderWidth: 1,
@@ -3655,7 +3656,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   primaryButtonText: {
-    color: '#0A0D13',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3772,7 +3773,7 @@ const styles = StyleSheet.create({
     width: 48
   },
   cameraShell: {
-    backgroundColor: '#000000',
+    backgroundColor: dv.surface.band,
     borderRadius: 20,
     height: 320,
     marginTop: 16,
@@ -3791,8 +3792,8 @@ const styles = StyleSheet.create({
   },
   cameraCancel: {
     alignItems: 'center',
-    backgroundColor: 'rgba(26,33,29,0.78)',
-    borderColor: 'rgba(253,252,249,0.38)',
+    backgroundColor: dv.control.scrim,
+    borderColor: dv.ink.border,
     borderRadius: 16,
     borderWidth: 1,
     bottom: 18,
@@ -3803,7 +3804,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   cameraCancelText: {
-    color: '#FFFFFF',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight

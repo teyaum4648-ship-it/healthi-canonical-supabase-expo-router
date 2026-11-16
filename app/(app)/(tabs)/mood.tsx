@@ -90,7 +90,7 @@ import {
   type TensionRegion,
   type ZoneSession
 } from '../../../src/features/practice/zoneModel';
-import { colors, hairlineWidth, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
   trendsLinkText: { ...type.label, color: tabAccent.mood },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   title: { ...type.largeTitle, color: colors.text },
-  subtitle: { ...type.body, fontWeight: '600', color: colors.text },
+  subtitle: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   meta: { ...type.body, color: colors.textMuted },
 
   panel: {

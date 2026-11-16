@@ -9,7 +9,7 @@ import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { DemoEntry } from '../../src/features/auth/DemoEntry';
-import { colors, spacing, glassSurface } from '../../src/styles/mobileTheme';
+import { colors, spacing, glassSurface, fonts } from '../../src/styles/mobileTheme';
 
 export default function LoginScreen() {
   const { signIn, mode } = useAuth();
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   link: {
     color: colors.deepViolet,
     fontSize: 16,
-    fontWeight: '800'
+    fontFamily: fonts.bodySemibold
   },
   feedback: {
     gap: spacing.xs,
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   feedbackTitle: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: '800'
+    fontFamily: fonts.bodySemibold
   },
   feedbackMessage: {
     color: colors.textMuted,

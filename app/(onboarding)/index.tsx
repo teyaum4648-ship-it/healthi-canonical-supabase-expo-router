@@ -34,6 +34,7 @@ import type {
   OnboardingQuestion
 } from '../../src/types/onboarding';
 
+import * as dv from '../../src/styles/daywoven1c';
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 const shouldUseLocalOnboarding = isDemoMode || !isSupabaseConfigured;
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
@@ -898,45 +899,45 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  onboardingBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
+  onboardingBackground: { backgroundColor: dv.surface.band },
   onboardingContent: { gap: 18, paddingTop: 24, paddingBottom: 42 },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8 },
-  brandMark: { color: '#F6F8F4', fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
-  brandDot: { color: '#C8F18C' },
-  brandSide: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  brandMark: { color: dv.bone.text, fontSize: 25, fontFamily: fonts.bodySemibold, letterSpacing: -1.2 },
+  brandDot: { color: dv.accent.amber },
+  brandSide: { color: dv.bone.soft, fontSize: 10, fontFamily: fonts.bodySemibold, letterSpacing: 1.1 },
   progressHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  stepCount: { color: '#F6F8F4', fontSize: 12, fontWeight: '700' },
-  stepPercent: { color: '#B8D69D', fontSize: 11, fontWeight: '700' },
+  stepCount: { color: dv.bone.text, fontSize: 12, fontFamily: fonts.bodySemibold },
+  stepPercent: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold },
   introBlock: { gap: 11, paddingVertical: 18 },
-  stageEyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
-  stageTitle: { color: '#F6F8F4', fontSize: 37, lineHeight: 43, fontWeight: '700', letterSpacing: -1.4 },
-  stageIntro: { color: '#B8CAB5', fontSize: 16, lineHeight: 26 },
-  welcomeNote: { color: '#C9DDC4', fontSize: 13, lineHeight: 21 },
-  questionEyebrow: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.15 },
-  brandButton: { backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 56 },
-  brandSecondaryButton: { borderColor: 'rgba(200,241,140,0.32)', borderRadius: 14, minHeight: 56 },
-  privatePreviewNote: { color: '#AFC6AD', textAlign: 'center', fontSize: 12, lineHeight: 19 },
-  scoreHero: { gap: 12, padding: 22, borderRadius: 20, backgroundColor: '#2B5037', borderColor: 'rgba(200,241,140,0.20)', borderWidth: 1 },
-  scoreHeroKicker: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
-  scoreHeroTitle: { color: '#F7FBEF', fontSize: 30, fontWeight: '700', lineHeight: 36, letterSpacing: -0.9 },
-  scoreHeroSummary: { color: '#D4E6CF', fontSize: 14, lineHeight: 23 },
-  scorePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(200,241,140,0.12)', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 12 },
-  scorePillDot: { width: 7, height: 7, backgroundColor: '#C8F18C', borderRadius: 4 },
-  scorePillText: { color: '#E4F7C9', fontSize: 12, fontWeight: '700' },
-  scoreSectionBody: { color: '#AEC6AB', fontSize: 12, lineHeight: 20 },
+  stageEyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
+  stageTitle: { color: dv.bone.text, fontSize: 37, lineHeight: 43, fontFamily: fonts.bodySemibold, letterSpacing: -1.4 },
+  stageIntro: { color: dv.bone.soft, fontSize: 16, lineHeight: 26 },
+  welcomeNote: { color: dv.bone.soft, fontSize: 13, lineHeight: 21 },
+  questionEyebrow: { color: dv.bone.soft, fontSize: 10, fontFamily: fonts.bodySemibold, letterSpacing: 1.15 },
+  brandButton: { backgroundColor: dv.bone.text, borderRadius: 14, minHeight: 56 },
+  brandSecondaryButton: { borderColor: dv.bone.outline, borderRadius: 14, minHeight: 56 },
+  privatePreviewNote: { color: dv.bone.muted, textAlign: 'center', fontSize: 12, lineHeight: 19 },
+  scoreHero: { gap: 12, padding: 22, borderRadius: 20, backgroundColor: dv.bone.raised, borderColor: dv.bone.hairline, borderWidth: 1 },
+  scoreHeroKicker: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
+  scoreHeroTitle: { color: dv.bone.text, fontSize: 30, fontFamily: fonts.bodySemibold, lineHeight: 36, letterSpacing: -0.9 },
+  scoreHeroSummary: { color: dv.bone.soft, fontSize: 14, lineHeight: 23 },
+  scorePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: dv.bone.raised, borderRadius: 24, paddingVertical: 8, paddingHorizontal: 12 },
+  scorePillDot: { width: 7, height: 7, backgroundColor: dv.bone.text, borderRadius: 4 },
+  scorePillText: { color: dv.accent.amber, fontSize: 12, fontFamily: fonts.bodySemibold },
+  scoreSectionBody: { color: dv.bone.muted, fontSize: 12, lineHeight: 20 },
   domainRow: { gap: 8, paddingVertical: 7 },
-  domainTrack: { height: 6, overflow: 'hidden', borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.11)' },
+  domainTrack: { height: 6, overflow: 'hidden', borderRadius: 5, backgroundColor: dv.bone.raised },
   domainBar: { height: '100%', borderRadius: 5 },
-  questionCard: { gap: 16, backgroundColor: '#1D3526', borderColor: 'rgba(200,241,140,0.16)', borderWidth: 1, borderRadius: 22, padding: 21 },
-  questionPrompt: { color: '#F6F8F4', fontFamily: fonts.bodyMedium, fontSize: 21, lineHeight: 29, fontWeight: '700', letterSpacing: -0.45 },
+  questionCard: { gap: 16, backgroundColor: dv.bone.raised, borderColor: dv.bone.hairline, borderWidth: 1, borderRadius: 22, padding: 21 },
+  questionPrompt: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 21, lineHeight: 29, letterSpacing: -0.45 },
   optionalTag: {
     color: colors.textFaint,
     fontFamily: fonts.body,
     fontSize: 13
   },
-  progressTrack: { height: 5, overflow: 'hidden', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.14)' },
-  progressFill: { height: '100%', borderRadius: 10, backgroundColor: '#C8F18C' },
-  helper: { color: '#B8CAB5', fontFamily: fonts.body, fontSize: 14, lineHeight: 22 },
+  progressTrack: { height: 5, overflow: 'hidden', borderRadius: 10, backgroundColor: dv.bone.raised },
+  progressFill: { height: '100%', borderRadius: 10, backgroundColor: dv.bone.text },
+  helper: { color: dv.bone.soft, fontFamily: fonts.body, fontSize: 14, lineHeight: 22 },
   timeHint: {
     color: colors.signalAmber,
     fontFamily: fonts.body,
@@ -949,22 +950,22 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm
   },
-  scaleOption: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(246,248,244,0.16)', borderRadius: 14, backgroundColor: '#172D20' },
-  scaleOptionSelected: { borderColor: '#C8F18C', backgroundColor: '#2D4934' },
-  scaleOptionLabel: { color: '#F6F8F4', fontSize: 18, fontWeight: '700' },
-  option: { minHeight: 58, justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(246,248,244,0.15)', borderRadius: 14, backgroundColor: '#14281C', paddingHorizontal: 18, paddingVertical: 14 },
-  optionSelected: { borderColor: '#C8F18C', backgroundColor: '#2D4934' },
+  scaleOption: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: dv.bone.hairline, borderRadius: 14, backgroundColor: dv.bone.raised },
+  scaleOptionSelected: { borderColor: dv.bone.outline, backgroundColor: dv.bone.raised },
+  scaleOptionLabel: { color: dv.bone.text, fontSize: 18, fontFamily: fonts.bodySemibold },
+  option: { minHeight: 58, justifyContent: 'center', borderWidth: 1, borderColor: dv.bone.hairline, borderRadius: 14, backgroundColor: dv.bone.raised, paddingHorizontal: 18, paddingVertical: 14 },
+  optionSelected: { borderColor: dv.bone.outline, backgroundColor: dv.bone.raised },
   optionPressed: {
     opacity: 0.82
   },
-  optionLabel: { color: '#E8F2E4', fontFamily: fonts.body, fontSize: 15, fontWeight: '600', lineHeight: 23 },
-  optionLabelSelected: { color: '#D9FBAF' },
+  optionLabel: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 15, lineHeight: 23 },
+  optionLabelSelected: { color: dv.accent.amber },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   actionButton: {
     flex: 1
   },
   resultScreen: { backgroundColor: 'transparent', gap: 18, paddingTop: 24, paddingBottom: 42 },
-  scoreSheet: { gap: 22, borderColor: 'rgba(200,241,140,0.16)', borderRadius: 24, borderWidth: 1, backgroundColor: '#152D1F', padding: 22 },
+  scoreSheet: { gap: 22, borderColor: dv.bone.hairline, borderRadius: 24, borderWidth: 1, backgroundColor: dv.bone.raised, padding: 22 },
   scoreGlowOne: {
     position: 'absolute',
     top: -64,
@@ -972,7 +973,7 @@ const styles = StyleSheet.create({
     width: 168,
     height: 168,
     borderRadius: 84,
-    backgroundColor: 'rgba(124,181,103,0.16)'
+    backgroundColor: dv.bone.raised
   },
   scoreGlowTwo: {
     position: 'absolute',
@@ -981,15 +982,15 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
     borderRadius: 65,
-    backgroundColor: 'rgba(111, 175, 142, 0.14)'
+    backgroundColor: dv.bone.raised
   },
   scoreSheetHeader: {
     gap: spacing.xs,
     position: 'relative'
   },
-  scoreSheetEyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
-  scoreSheetTitle: { color: '#F6F8F4', fontSize: 37, fontWeight: '700', lineHeight: 43, letterSpacing: -1.4 },
-  scoreSheetSubtitle: { color: '#B8CAB5', fontSize: 14, lineHeight: 22 },
+  scoreSheetEyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
+  scoreSheetTitle: { color: dv.bone.text, fontSize: 37, fontFamily: fonts.bodySemibold, lineHeight: 43, letterSpacing: -1.4 },
+  scoreSheetSubtitle: { color: dv.bone.soft, fontSize: 14, lineHeight: 22 },
   scoreSummary: {
     gap: spacing.md,
     position: 'relative'
@@ -1004,7 +1005,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderRadius: 107,
-    backgroundColor: 'rgba(19, 10, 33, 0.74)',
+    backgroundColor: dv.control.scrim,
     paddingHorizontal: spacing.lg
   },
   scoreAura: {
@@ -1015,21 +1016,19 @@ const styles = StyleSheet.create({
     opacity: 0.13
   },
   scoreValue: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
+    color: dv.bone.soft,
+    fontFamily: fonts.bodySemibold,
     fontSize: 11,
-    fontWeight: '800',
     letterSpacing: 0,
     marginTop: spacing.xs
   },
   scorePriority: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.bodySemibold,
     fontSize: 11,
-    fontWeight: '800',
     letterSpacing: 0
   },
   scoreFocus: {
-    color: '#F6F8F4',
+    color: dv.bone.text,
     fontFamily: fonts.display,
     fontSize: 28,
     fontWeight: '400',
@@ -1037,7 +1036,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   scoreCalibration: {
-    color: '#B8CAB5',
+    color: dv.bone.soft,
     fontFamily: fonts.body,
     fontSize: 12,
     lineHeight: 17,
@@ -1057,9 +1056,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(200, 241, 140, 0.14)',
+    borderColor: dv.bone.hairline,
     borderRadius: radii.lg,
-    backgroundColor: '#1C3627',
+    backgroundColor: dv.bone.raised,
     padding: spacing.md
   },
   domainTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -1077,60 +1076,58 @@ const styles = StyleSheet.create({
     borderRadius: 24
   },
   domainScore: {
-    color: '#C8F18C',
+    color: dv.accent.amber,
     fontFamily: fonts.display,
     fontSize: 20,
     fontWeight: '400'
   },
-  domainLabel: { color: '#F6F8F4', fontFamily: fonts.body, fontSize: 15, fontWeight: '700', flexShrink: 1 },
-  domainSignal: { color: '#C8F18C', fontFamily: fonts.body, fontSize: 12, fontWeight: '700' },
-  domainReason: { color: '#AEBEAC', fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },
+  domainLabel: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 15, flexShrink: 1 },
+  domainSignal: { color: dv.accent.amber, fontFamily: fonts.bodySemibold, fontSize: 12 },
+  domainReason: { color: dv.bone.muted, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },
   domainPriority: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.bodySemibold,
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0
   },
-  scoreSection: { gap: 14, borderTopWidth: 1, borderTopColor: 'rgba(200,241,140,0.14)', paddingTop: 18 },
-  scoreSectionTitle: { color: '#F6F8F4', fontFamily: fonts.display, fontSize: 21, fontWeight: '700' },
+  scoreSection: { gap: 14, borderTopWidth: 1, borderTopColor: dv.bone.hairline, paddingTop: 18 },
+  scoreSectionTitle: { color: dv.bone.text, fontFamily: fonts.displayMedium, fontSize: 21 },
   rankRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 7 },
-  rankNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: 'rgba(200,241,140,0.12)' },
-  rankNumberText: { color: '#C8F18C', fontSize: 12, fontWeight: '800' },
+  rankNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: dv.bone.raised },
+  rankNumberText: { color: dv.accent.amber, fontSize: 12, fontFamily: fonts.bodySemibold },
   rankTextWrap: { flex: 1, gap: 4 },
-  rankDomain: { color: '#B8D69D', fontSize: 11, fontWeight: '700' },
-  rankLabel: { color: '#F6F8F4', fontSize: 15, fontWeight: '700', lineHeight: 21 },
-  rankExplanation: { color: '#B8CAB5', fontSize: 13, lineHeight: 20 },
+  rankDomain: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold },
+  rankLabel: { color: dv.bone.text, fontSize: 15, fontFamily: fonts.bodySemibold, lineHeight: 21 },
+  rankExplanation: { color: dv.bone.soft, fontSize: 13, lineHeight: 20 },
   rankImpact: {
     minWidth: 54,
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
+    color: dv.bone.soft,
+    fontFamily: fonts.bodySemibold,
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.8,
     textAlign: 'right'
   },
   scoreMeaning: {
-    color: '#B8CAB5',
+    color: dv.bone.soft,
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 23
   },
   focusHeader: { gap: 10, paddingTop: 9 },
-  focusHeaderEyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  focusHeaderTitle: { color: '#F6F8F4', fontSize: 31, fontWeight: '700', lineHeight: 38, letterSpacing: -0.9 },
-  focusHeaderBody: { color: '#B8CAB5', fontSize: 15, lineHeight: 24 },
-  focusCard: { gap: 10, borderRadius: 20, borderColor: 'rgba(200,241,140,0.22)', backgroundColor: '#264932' },
-  resultPanel: { gap: 14, borderRadius: 20, borderColor: 'rgba(200,241,140,0.13)', backgroundColor: '#1B3526', padding: 20 },
-  focusLabel: { color: '#B9D69D', fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
-  focusTitle: { color: '#F6F8F4', fontSize: 33, fontWeight: '700', lineHeight: 40 },
-  focusSecondary: { color: '#B8CAB5', fontSize: 15, lineHeight: 22 },
-  cardTitle: { color: '#F6F8F4', fontSize: 20, fontWeight: '700' },
+  focusHeaderEyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.2 },
+  focusHeaderTitle: { color: dv.bone.text, fontSize: 31, fontFamily: fonts.bodySemibold, lineHeight: 38, letterSpacing: -0.9 },
+  focusHeaderBody: { color: dv.bone.soft, fontSize: 15, lineHeight: 24 },
+  focusCard: { gap: 10, borderRadius: 20, borderColor: dv.bone.hairline, backgroundColor: dv.bone.raised },
+  resultPanel: { gap: 14, borderRadius: 20, borderColor: dv.bone.hairline, backgroundColor: dv.bone.raised, padding: 20 },
+  focusLabel: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 0.7 },
+  focusTitle: { color: dv.bone.text, fontSize: 33, fontFamily: fonts.bodySemibold, lineHeight: 40 },
+  focusSecondary: { color: dv.bone.soft, fontSize: 15, lineHeight: 22 },
+  cardTitle: { color: dv.bone.text, fontSize: 20, fontFamily: fonts.bodySemibold },
   reasonRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm
   },
-  reasonDot: { width: 7, height: 7, marginTop: 7, borderRadius: 4, backgroundColor: '#C8F18C' },
+  reasonDot: { width: 7, height: 7, marginTop: 7, borderRadius: 4, backgroundColor: dv.bone.text },
   reasonDotHigh: {
     backgroundColor: colors.signalAmber
   },
@@ -1140,10 +1137,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xs
   },
-  reasonText: { flex: 1, color: '#E8F2E4', fontSize: 14, lineHeight: 22 },
-  changeRow: { gap: 6, borderTopWidth: 1, borderTopColor: 'rgba(200,241,140,0.12)', paddingTop: 13 },
-  changeLabel: { color: '#B9D69D', fontSize: 11, fontWeight: '700' },
-  changeText: { color: '#E8F2E4', fontSize: 15, lineHeight: 22 },
-  confidenceText: { color: '#F6F8F4', fontSize: 15, fontWeight: '700' },
-  reassessmentText: { color: '#B8CAB5', fontSize: 13, lineHeight: 21 },
+  reasonText: { flex: 1, color: dv.bone.text, fontSize: 14, lineHeight: 22 },
+  changeRow: { gap: 6, borderTopWidth: 1, borderTopColor: dv.bone.hairline, paddingTop: 13 },
+  changeLabel: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold },
+  changeText: { color: dv.bone.text, fontSize: 15, lineHeight: 22 },
+  confidenceText: { color: dv.bone.text, fontSize: 15, fontFamily: fonts.bodySemibold },
+  reassessmentText: { color: dv.bone.soft, fontSize: 13, lineHeight: 21 },
 });

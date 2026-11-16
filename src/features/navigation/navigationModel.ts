@@ -1,18 +1,18 @@
 /** Presentation-only routes. Logging still uses each feature's existing save path. */
 /**
- * The bar is the four doctors plus a way home.
+ * The bar in the 1c "Thread" design: Today, then the four foundations.
  *
- * Diet, Movement and Sleep were already Chek's Dr. Diet, Dr. Movement and Dr. Quiet
- * under other names; Mood is the fourth, which the app had never had. "You" comes off
- * the bar and moves into the Home header, because a pillar and a settings screen do not
- * deserve equal standing and six tabs at phone width reads as a menu.
+ * Only labels, icons and order changed from the earlier bar; every route is the same, so
+ * deep links, quickEntryHref and every router.navigate('/food')-style call keep working.
+ * Plan and the profile are not tabs: Plan sits in Today's header, and the "You" avatar
+ * there opens the side menu, which replaced the old three-line Menu tab.
  */
 export const mainTabs = [
-  { route: 'index', label: 'Home', outline: 'home-outline', filled: 'home' },
-  { route: 'food', label: 'Diet', outline: 'nutrition-outline', filled: 'nutrition' },
-  { route: 'movement', label: 'Movement', outline: 'body-outline', filled: 'body' },
+  { route: 'index', label: 'Today', outline: 'sunny-outline', filled: 'sunny' },
   { route: 'rhythm', label: 'Sleep', outline: 'moon-outline', filled: 'moon' },
-  { route: 'mood', label: 'Mood', outline: 'happy-outline', filled: 'happy' }
+  { route: 'food', label: 'Food', outline: 'restaurant-outline', filled: 'restaurant' },
+  { route: 'movement', label: 'Move', outline: 'walk-outline', filled: 'walk' },
+  { route: 'mood', label: 'Mind', outline: 'leaf-outline', filled: 'leaf' }
 ] as const;
 
 export type QuickEntry = 'food' | 'workout' | 'sleep';

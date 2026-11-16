@@ -6,7 +6,8 @@ import {
   type PressableProps
 } from 'react-native';
 
-import { accentFill, colors, glass, glassSurface, radii, type } from '../styles/mobileTheme';
+import { control, font, ink, radius, safety } from '../styles/daywoven1c';
+import { colors } from '../styles/mobileTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -16,6 +17,11 @@ type ButtonProps = PressableProps & {
   variant?: ButtonVariant;
 };
 
+/**
+ * The shared button in the 1c style (design language P13): 46pt, radius 12. Primary is an
+ * ink fill with bone text; secondary is a 1pt outline; danger is the outline in the safety
+ * red, kept for the few destructive actions.
+ */
 export function Button({
   label,
   disabled,
@@ -34,7 +40,7 @@ export function Button({
       style={(state) => [
         styles.base,
         styles[variant],
-        state.pressed && !isDisabled ? styles.pressed : null,
+        state.pressed && !isDisabled ? (variant === 'primary' ? styles.primaryPressed : styles.pressed) : null,
         isDisabled ? styles.disabled : null,
         typeof style === 'function' ? style(state) : style
       ]}
@@ -43,7 +49,7 @@ export function Button({
       {isLoading ? (
         <ActivityIndicator color={variant === 'primary' ? colors.primaryText : colors.primary} />
       ) : (
-        <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : null]}>
+        <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : variant === 'danger' ? styles.dangerLabel : null]}>
           {label}
         </Text>
       )}
@@ -53,36 +59,19 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
+    minHeight: control.buttonHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.md,
-    paddingHorizontal: 20
+    borderRadius: radius.button,
+    paddingHorizontal: 18
   },
-  primary: accentFill(colors.primary),
-  secondary: {
-    ...glassSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: glass.edge
-  },
-  danger: {
-    ...glassSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.danger
-  },
-  pressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }]
-  },
-  disabled: {
-    opacity: 0.45
-  },
-  label: {
-    ...type.label,
-    color: colors.text,
-    fontSize: 16
-  },
-  primaryLabel: {
-    color: colors.primaryText
-  }
+  primary: { backgroundColor: colors.primary },
+  primaryPressed: { backgroundColor: control.primaryPressed },
+  secondary: { backgroundColor: 'transparent', borderColor: ink.border, borderWidth: 1 },
+  danger: { backgroundColor: 'transparent', borderColor: safety.onCanvas, borderWidth: 1 },
+  pressed: { backgroundColor: ink.wash },
+  disabled: { opacity: 0.45 },
+  label: { color: colors.text, fontFamily: font.bodyMedium, fontSize: 14.5 },
+  primaryLabel: { color: colors.primaryText },
+  dangerLabel: { color: safety.onCanvas }
 });

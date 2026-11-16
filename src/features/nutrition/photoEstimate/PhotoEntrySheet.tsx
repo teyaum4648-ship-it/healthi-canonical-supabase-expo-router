@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { CheckBox } from '../../../components/CheckBox';
 import { ActionRow } from '../../../components/mobile/ActionRow';
 import { EntrySheet } from '../../../components/mobile/EntrySheet';
-import { colors, type } from '../../../styles/mobileTheme';
+import { colors, type, fonts } from '../../../styles/mobileTheme';
 import { tabAccent } from '../../../styles/pillarColors';
 import type { PhotoCaptureSource } from './photoCapture';
 
@@ -56,7 +56,7 @@ export function PhotoEntrySheet({ available, busy, notice, onCapture, onClose, o
 
 const styles = StyleSheet.create({
   detail: { ...type.body, color: colors.textMuted },
-  title: { ...type.body, color: colors.text, fontWeight: '600' },
+  title: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   action: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 18, backgroundColor: colors.surfaceInset },
   dim: { opacity: 0.5 }
 });

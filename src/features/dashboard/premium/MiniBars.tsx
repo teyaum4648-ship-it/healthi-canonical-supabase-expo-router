@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import * as dv from '../../../styles/daywoven1c';
 /**
  * Seven flat bars, oldest to newest, with the newest in the metric's colour and the rest
  * in a quiet grey. No axis, no gridlines: the card's number carries the value and this
@@ -22,7 +23,7 @@ export function MiniBars({ values, color, height = 40, label }: {
         return (
           <View
             key={index}
-            style={[styles.bar, { height: Math.max(4, Math.round((value / max) * height)), backgroundColor: last ? color : 'rgba(235, 240, 255, 0.16)' }]}
+            style={[styles.bar, { height: Math.max(4, Math.round((value / max) * height)), backgroundColor: last ? color : dv.ink.track }]}
           />
         );
       })}
@@ -33,5 +34,5 @@ export function MiniBars({ values, color, height = 40, label }: {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: 5 },
   bar: { flex: 1, borderRadius: 4, borderCurve: 'continuous' },
-  stub: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(235, 240, 255, 0.08)' }
+  stub: { flex: 1, height: 4, borderRadius: 2, backgroundColor: dv.ink.wash }
 });

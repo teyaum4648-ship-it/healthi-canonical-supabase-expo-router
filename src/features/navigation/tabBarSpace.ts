@@ -1,20 +1,25 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/**
- * The tab bar floats over the content so it can be real frosted glass, which means every
- * tab's scroll has to end clear of it. One number for all of them, so a change to the bar
- * cannot leave one screen's last card hidden underneath.
- */
-export const TAB_BAR_HEIGHT = 64;
+import { tabBar } from '../../styles/daywoven1c';
 
-/** Distance from the bottom of the screen to the bar: the home indicator, or a margin. */
-export function tabBarBottomGap(insetBottom: number): number {
-  return Math.max(insetBottom, 12);
+/**
+ * The 1c tab bar runs the full width of the screen along the bottom, frosted over the
+ * content, so every tab's scroll has to end clear of it. One number for all of them, so a
+ * change to the bar cannot leave one screen's last card hidden underneath.
+ *
+ * Its height above the home indicator: top padding, the tab item (a 23pt icon in the
+ * 23pt icon, a 3pt gap and a 14pt label line) and the bottom padding.
+ */
+export const TAB_BAR_HEIGHT = tabBar.paddingTop + tabBar.iconSize + 3 + 14 + tabBar.paddingBottom;
+
+/** The bar's own bottom padding: its fixed padding plus the home indicator, when there is one. */
+export function tabBarBottomPadding(insetBottom: number): number {
+  return tabBar.paddingBottom + Math.max(0, insetBottom);
 }
 
 /** Space to leave at the end of a tab's content so its last item clears the bar. */
 export function tabBarSpace(insetBottom: number, extra = 20): number {
-  return TAB_BAR_HEIGHT + tabBarBottomGap(insetBottom) + extra;
+  return TAB_BAR_HEIGHT + Math.max(0, insetBottom) + extra;
 }
 
 export function useTabBarSpace(extra = 20): number {

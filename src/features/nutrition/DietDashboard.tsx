@@ -2,12 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import type { NutrientSummary, NutritionTargets } from '../../engines/nutrition';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { shiftDay } from '../navigation/navigationModel';
 import { dietWeek, intakeProgress } from './dietDashboardModel';
 
-export const dietAccents = { energy: '#AA8AF8', protein: '#EE829E', carbs: '#E9B06A', fat: '#77AEFA', water: '#63CBEF' };
+import { macro } from '../../styles/daywoven1c';
+/** Macro and intake marks on the 1c canvas; see `macro` in daywoven1c.ts. */
+export const dietAccents = { energy: macro.energy, protein: macro.protein, carbs: macro.carbs, fat: macro.fat, water: macro.water };
 const rounded = (value: number | null) => value === null ? '—' : Math.round(value).toLocaleString();
 
 export function IntakeRing({ fraction, color, size = 64, icon }: {
@@ -89,6 +91,6 @@ export function DietIntakeSummary({ summary, targets, onNutrients }: {
 const styles = StyleSheet.create({
   week: { gap: 4 }, weekHeader: { flexDirection: 'row', alignItems: 'center' }, month: { ...type.label, color: colors.textMuted, flex: 1 }, weekButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, today: { ...type.label, color: tabAccent.food },
   days: { flexDirection: 'row', gap: 3 }, day: { flex: 1, minHeight: 74, alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 16, borderWidth: 1, borderColor: 'transparent' }, selectedDay: { backgroundColor: colors.surfaceInset, borderColor: dietAccents.energy }, weekday: { ...type.caption, color: colors.textMuted }, date: { ...type.number, color: colors.text }, selectedText: { color: colors.text }, todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: dietAccents.energy }, dim: { opacity: 0.3 },
-  summary: { gap: 12 }, energy: { ...glassSurface, borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong }, energyCopy: { flex: 1, minWidth: 140, gap: 9 }, energyRing: { alignItems: 'center', gap: 8 }, caption: { ...type.label, color: colors.textMuted }, valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 4 }, energyNumber: { ...type.numberLg, fontSize: 40, lineHeight: 48, letterSpacing: -1.4, color: colors.text }, target: { ...type.label, color: colors.textMuted }, detail: { ...type.caption, color: colors.textMuted }, percent: { ...type.caption, fontWeight: '500' },
+  summary: { gap: 12 }, energy: { ...glassSurface, borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong }, energyCopy: { flex: 1, minWidth: 140, gap: 9 }, energyRing: { alignItems: 'center', gap: 8 }, caption: { ...type.label, color: colors.textMuted }, valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 4 }, energyNumber: { ...type.numberLg, fontSize: 40, lineHeight: 48, letterSpacing: -1.4, color: colors.text }, target: { ...type.label, color: colors.textMuted }, detail: { ...type.caption, color: colors.textMuted }, percent: { ...type.caption, fontFamily: fonts.bodyMedium },
   macros: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, macro: { flex: 1, flexBasis: '28%', minWidth: 88, ...glassSurface, borderRadius: 20, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.hairline, gap: 3 }, macroLabel: { ...type.label, color: colors.textMuted, marginBottom: 5 }, macroNumber: { ...type.numberLg, fontSize: 26, lineHeight: 32, color: colors.text }, macroUnit: { ...type.label, color: colors.textMuted }, macroTarget: { ...type.caption, color: colors.textMuted }, macroRing: { alignItems: 'center', paddingTop: 12, paddingBottom: 2 }, footnote: { ...type.caption, color: colors.textMuted, paddingHorizontal: 4 }
 });

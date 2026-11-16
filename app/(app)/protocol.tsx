@@ -17,7 +17,7 @@ import {
   safetyStatusLabel,
   shouldSurfaceSafety
 } from '../../src/features/dailyProtocol';
-import { colors, hairlineWidth, radii, spacing, type, glassSurface } from '../../src/styles/mobileTheme';
+import { colors, hairlineWidth, radii, spacing, type, glassSurface, fonts } from '../../src/styles/mobileTheme';
 
 function actionIcon(kind: ProtocolActionKind): keyof typeof Ionicons.glyphMap {
   switch (kind) {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5
   },
-  tagText: { ...type.caption, fontWeight: '600', color: colors.accent },
+  tagText: { ...type.caption, fontFamily: fonts.bodySemibold, color: colors.accent },
   heroTitle: { ...type.heading, color: colors.text, marginTop: 4 },
   heroSummary: { ...type.body, color: colors.textMuted },
   metaLine: { ...type.caption, color: colors.textFaint, marginTop: 2 },
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   checkDone: { backgroundColor: colors.primary, borderColor: colors.primary },
   actionCopy: { flex: 1, gap: 3 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionTitle: { ...type.body, fontWeight: '600', color: colors.text, flexShrink: 1 },
+  actionTitle: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text, flexShrink: 1 },
   actionTitleQuiet: { color: colors.textMuted },
   actionDetail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
   actionTime: { ...type.caption, color: colors.textMuted, fontVariant: ['tabular-nums'] },

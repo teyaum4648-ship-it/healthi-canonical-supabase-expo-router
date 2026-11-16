@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     gap: spacing.md,
-    paddingHorizontal: 22,
+    paddingHorizontal: 20,
     paddingBottom: 34,
     paddingTop: 18
   }

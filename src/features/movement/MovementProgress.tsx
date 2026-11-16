@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { SegmentedControl } from '../../components/mobile/SegmentedControl';
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   buildExerciseProgress,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12
   },
   exerciseCopy: { flex: 1, gap: 3, minWidth: 0 },
-  exerciseName: { ...type.body, color: colors.text, fontWeight: '600' },
+  exerciseName: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   exerciseMeta: { ...type.caption, color: colors.textMuted },
   changeTag: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   changeText: { ...type.label, color: colors.textMuted },

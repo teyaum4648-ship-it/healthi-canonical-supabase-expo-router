@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CheckBox } from '../../components/CheckBox';
-import { colors, spacing, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, spacing, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { type ConsentState } from './consentModel';
 import { legalUrl, MINIMUM_AGE, type LegalDocument } from './legalLinks';
 import { openLegalUrl } from './openLegalUrl';
@@ -106,11 +106,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 19
   },
-  emphasis: { color: colors.text, fontWeight: '600' },
+  emphasis: { color: colors.text, fontFamily: fonts.bodySemibold },
   link: {
     ...type.caption,
     color: colors.accent,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemibold,
     lineHeight: 19,
     textDecorationLine: 'underline'
   },
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   linkDead: {
     ...type.caption,
     color: colors.text,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemibold,
     lineHeight: 19
   },
   footnote: {

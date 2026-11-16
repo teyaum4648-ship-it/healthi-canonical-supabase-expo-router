@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, fonts } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   BREATH_TECHNIQUES,
@@ -145,7 +145,7 @@ export function TechniquePicker({
 
 const styles = StyleSheet.create({
   wrap: { gap: 10 },
-  eyebrow: { ...type.body, fontWeight: '600', color: colors.text },
+  eyebrow: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   moreRow: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   body: { ...type.caption, color: colors.textMuted, lineHeight: 19 },
 
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   iconSelected: { backgroundColor: tabAccent.mood },
   copy: { flex: 1, gap: 2 },
   nameRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  name: { ...type.body, color: colors.text, fontWeight: '600' },
+  name: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   tag: {
     ...type.caption,
     backgroundColor: colors.surfaceMuted,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     color: tabAccent.mood,
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemibold,
     overflow: 'hidden',
     paddingHorizontal: 6,
     paddingVertical: 2
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   pattern: { ...type.caption, color: colors.textFaint, fontVariant: ['tabular-nums'] },
 
   detail: { gap: 6, paddingBottom: 14, paddingLeft: 45, paddingRight: 4 },
-  detailLabel: { ...type.caption, fontWeight: '600', color: colors.textMuted, marginTop: 4 },
+  detailLabel: { ...type.caption, fontFamily: fonts.bodySemibold, color: colors.textMuted, marginTop: 4 },
   detailText: { ...type.caption, color: colors.text, lineHeight: 20 },
 
   caution: {

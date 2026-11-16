@@ -3,7 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CheckBox } from '../../components/CheckBox';
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { BreathCircle } from './BreathCircle';
 import type { BreathTechnique } from './breathTechniques';
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   waterlineText: { ...type.caption, color: colors.textMuted, lineHeight: 18 },
 
   stage: { alignItems: 'center', gap: 12 },
-  cue: { ...type.body, color: colors.text, fontWeight: '600', textAlign: 'center' },
+  cue: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold, textAlign: 'center' },
 
   primary: {
     alignItems: 'center',

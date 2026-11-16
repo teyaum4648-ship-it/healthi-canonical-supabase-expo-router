@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10
   },
-  input: { color: colors.text, flex: 1, fontFamily: fonts.display, fontSize: 34, fontVariant: ['tabular-nums'], fontWeight: '700', minHeight: 48, padding: 0 },
+  input: { color: colors.text, flex: 1, fontFamily: fonts.displayMedium, fontSize: 34, fontVariant: ['tabular-nums'], minHeight: 48, padding: 0 },
   unit: { ...type.body, color: colors.textMuted },
   error: { ...type.body, color: colors.danger, fontSize: 15 },
   save: { alignItems: 'center', backgroundColor: colors.primary, borderCurve: 'continuous', borderRadius: 14, justifyContent: 'center', minHeight: 50 },

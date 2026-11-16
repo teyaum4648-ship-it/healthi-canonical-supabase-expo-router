@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import {
   allergenMatchText,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   panelAdvisory: { backgroundColor: colors.surfaceInset, borderColor: tabAccent.food },
   panelQuiet: { backgroundColor: colors.surfaceInset, borderColor: colors.border },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { ...type.body, color: colors.text, fontWeight: '600', flex: 1 },
+  title: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold, flex: 1 },
   line: { ...type.body, color: colors.textMuted },
   evidence: { ...type.label, color: colors.textFaint }
 });
