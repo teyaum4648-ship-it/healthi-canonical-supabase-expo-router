@@ -15,6 +15,8 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThreadDetailBand } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
 
 import { TimeField } from '../../../src/components/TimeField';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
@@ -105,24 +107,29 @@ function formatHourLabel(ms: number): string {
 
 type CalendarSection = 'deep_work' | 'exercise' | 'light_movement' | 'wind_down' | 'meal' | 'sleep' | 'neutral';
 
+/*
+ * The calendar in the Today strand's language: work and training that fit an energy peak
+ * sit on the amber wash, wind-down and sleep on the lavender wash, the rest on a quiet ink
+ * wash. Red is never used here; it means safety.
+ */
 const SECTION_TINT: Record<CalendarSection, string> = {
-  deep_work: dv.ink.muted,
-  exercise: dv.accent.amberDeep,
-  light_movement: dv.ink.muted,
-  wind_down: dv.safety.onCanvas,
-  meal: dv.ink.muted,
-  sleep: dv.ink.muted,
-  neutral: dv.ink.muted
+  deep_work: dv.accent.amberWash,
+  exercise: dv.accent.amberWash,
+  light_movement: dv.ink.wash,
+  wind_down: dv.zoneOnCanvas.critical.background,
+  meal: dv.ink.wash,
+  sleep: dv.zoneOnCanvas.critical.background,
+  neutral: dv.ink.wash
 };
 
 const SECTION_ACCENT: Record<CalendarSection, string> = {
-  deep_work: palette.forest,
+  deep_work: dv.ink.text,
   exercise: dv.accent.amberDeep,
-  light_movement: palette.forestMid,
-  wind_down: palette.clayDark,
-  meal: palette.faint,
-  sleep: palette.inkSoft,
-  neutral: palette.faint
+  light_movement: dv.ink.text,
+  wind_down: dv.zoneOnCanvas.critical.text,
+  meal: dv.ink.muted,
+  sleep: dv.zoneOnCanvas.critical.text,
+  neutral: dv.ink.muted
 };
 
 const SECTION_LABEL: Record<CalendarSection, string> = {
@@ -383,6 +390,7 @@ function DayTimeline({
 
 export default function PlanScreen() {
   const tabSpace = useTabBarSpace();
+  useBandStatusBar();
   const { user, mode } = useAuth();
   const today = useLocalToday();
   const now = useMemo(() => wallClockIso(), []);
@@ -876,13 +884,15 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.safe}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace + 22 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.topBar}>
-            <Pressable accessibilityRole="button" onPress={() => router.navigate('/')} style={styles.backHome}><Ionicons name="chevron-back" color={colors.accentMid} size={20} /><Text style={styles.backHomeLabel}>Home</Text></Pressable>
-            <Text accessibilityRole="header" style={styles.pageTitle}>Your plan</Text>
-            <Text style={styles.subtitle}>{new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
-          </View>
+      <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+        <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace + 22 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ThreadDetailBand
+            backLabel="Today"
+            onBack={() => router.navigate('/')}
+            eyebrow="Plan"
+            title="Your plan"
+            sub={new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+          />
 
           <View style={styles.statusLine}>
             <View style={styles.statusDot} />

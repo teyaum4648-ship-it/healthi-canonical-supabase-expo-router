@@ -24,6 +24,39 @@ export function ThreadBand({ children, style }: { children: ReactNode; style?: S
   );
 }
 
+/**
+ * P1, detail screens: the short band. A way back, an eyebrow naming where you are, one Jost
+ * title and an optional line under it. Plan, Protocol, Trends, Settings and the flows use it.
+ */
+export function ThreadDetailBand({ eyebrow, title, sub, onBack, backLabel = 'Back', right, children, style }: {
+  style?: StyleProp<ViewStyle>;
+  eyebrow: string;
+  title: string;
+  sub?: string | null;
+  onBack?: () => void;
+  backLabel?: string;
+  right?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <ThreadBand style={style}>
+      <View style={styles.detailTop}>
+        {onBack ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+            <Ionicons accessible={false} color={bone.text} name="chevron-back" size={20} />
+            <Text style={styles.backLabel}>{backLabel}</Text>
+          </Pressable>
+        ) : <View />}
+        {right ? <View style={styles.headerRight}>{right}</View> : null}
+      </View>
+      <View style={styles.detailEyebrow}><Eyebrow tone="band">{eyebrow}</Eyebrow></View>
+      <Text accessibilityRole="header" style={styles.detailTitle}>{title}</Text>
+      {sub ? <Text style={styles.detailSub}>{sub}</Text> : null}
+      {children}
+    </ThreadBand>
+  );
+}
+
 /** P1: the wordmark and date row, with the screen's own buttons on the right. */
 export function ThreadHeader({ date, dateAccessibilityLabel, right }: { date: string; dateAccessibilityLabel?: string; right?: ReactNode }) {
   return (
@@ -207,6 +240,12 @@ const styles = StyleSheet.create({
   wordmark: { ...type.wordmark, color: bone.text },
   date: { ...type.caption, fontSize: 12.5, color: bone.muted },
   headerRight: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  detailTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: HIT },
+  back: { alignItems: 'center', flexDirection: 'row', gap: 2, marginLeft: -6, minHeight: HIT, paddingRight: 8 },
+  backLabel: { ...type.button, color: bone.text },
+  detailEyebrow: { marginTop: 14 },
+  detailTitle: { ...type.sleepTitle, color: bone.text, marginTop: 8 },
+  detailSub: { ...type.body, color: bone.soft, marginTop: 8 },
   sectionTitle: { ...type.sectionTitle, color: ink.text },
   eyebrow: { ...type.eyebrow, color: ink.muted },
   eyebrowBand: { color: bone.muted },

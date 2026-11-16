@@ -6,7 +6,7 @@ import {
   type PressableProps
 } from 'react-native';
 
-import { control, font, ink, radius, safety } from '../styles/daywoven1c';
+import { bone, control, font, ink, radius, safety } from '../styles/daywoven1c';
 import { colors } from '../styles/mobileTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
@@ -15,6 +15,8 @@ type ButtonProps = PressableProps & {
   label: string;
   isLoading?: boolean;
   variant?: ButtonVariant;
+  /** 'band' for a button on the charcoal band (P13): primary turns bone with ink text, secondary takes bone text. */
+  tone?: 'canvas' | 'band';
 };
 
 /**
@@ -27,10 +29,12 @@ export function Button({
   disabled,
   isLoading = false,
   variant = 'primary',
+  tone = 'canvas',
   style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || isLoading;
+  const onBandPrimary = tone === 'band' && variant === 'primary';
 
   return (
     <Pressable
@@ -40,16 +44,17 @@ export function Button({
       style={(state) => [
         styles.base,
         styles[variant],
-        state.pressed && !isDisabled ? (variant === 'primary' ? styles.primaryPressed : styles.pressed) : null,
+        onBandPrimary ? styles.bandPrimary : null,
+        state.pressed && !isDisabled ? (onBandPrimary ? styles.bandPrimaryPressed : variant === 'primary' ? styles.primaryPressed : styles.pressed) : null,
         isDisabled ? styles.disabled : null,
         typeof style === 'function' ? style(state) : style
       ]}
       {...props}
     >
       {isLoading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.primaryText : colors.primary} />
+        <ActivityIndicator color={onBandPrimary ? ink.text : variant === 'primary' ? colors.primaryText : colors.primary} />
       ) : (
-        <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : variant === 'danger' ? styles.dangerLabel : null]}>
+        <Text style={[styles.label, onBandPrimary ? styles.bandPrimaryLabel : tone === 'band' && variant === 'secondary' ? styles.bandSecondaryLabel : variant === 'primary' ? styles.primaryLabel : variant === 'danger' ? styles.dangerLabel : null]}>
           {label}
         </Text>
       )}
@@ -67,11 +72,15 @@ const styles = StyleSheet.create({
   },
   primary: { backgroundColor: colors.primary },
   primaryPressed: { backgroundColor: control.primaryPressed },
+  bandPrimary: { backgroundColor: bone.text },
+  bandPrimaryPressed: { backgroundColor: bone.soft },
   secondary: { backgroundColor: 'transparent', borderColor: ink.border, borderWidth: 1 },
   danger: { backgroundColor: 'transparent', borderColor: safety.onCanvas, borderWidth: 1 },
   pressed: { backgroundColor: ink.wash },
   disabled: { opacity: 0.45 },
   label: { color: colors.text, fontFamily: font.bodyMedium, fontSize: 14.5 },
   primaryLabel: { color: colors.primaryText },
+  bandPrimaryLabel: { color: ink.text },
+  bandSecondaryLabel: { color: bone.text },
   dangerLabel: { color: safety.onCanvas }
 });

@@ -6,6 +6,7 @@ import { Screen } from '../src/components/Screen';
 
 import { fonts } from '../src/styles/mobileTheme';
 import * as dv from '../src/styles/daywoven1c';
+import { BandStatusBar } from '../src/components/thread/useBandStatusBar';
 // Real Daywoven app captures already published as assets on daywovenapp.com.
 // Do not substitute stock photos or promise features that are not in the build.
 const IMAGE_BASE = 'https://daywovenapp.com/assets/';
@@ -110,6 +111,7 @@ function goBackToMembership() {
 export default function AppPreviewScreen() {
   return (
     <Screen backgroundStyle={styles.background} contentStyle={styles.page}>
+      <BandStatusBar />
       <View style={styles.nav}>
         <Text style={styles.wordmark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
         <Pressable accessibilityRole="button" onPress={goBackToMembership} style={styles.navBack}>
@@ -188,7 +190,7 @@ export default function AppPreviewScreen() {
 
 const styles = StyleSheet.create({
   background: {
-    backgroundColor: dv.bone.raised
+    backgroundColor: dv.surface.band
   },
   page: { gap: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 54 },
   nav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },

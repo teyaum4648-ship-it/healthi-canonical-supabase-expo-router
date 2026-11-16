@@ -13,6 +13,9 @@ import { loadObservedAnswers } from '../../src/features/loadCheck/loadCheckSourc
 import { useLocalToday } from '../../src/features/navigation/useLocalToday';
 import { colors, glassSurface, hairlineWidth, radii, spacing, type } from '../../src/styles/mobileTheme';
 import { hues } from '../../src/styles/tokens';
+import { ThreadDetailBand } from '../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../src/components/thread/useBandStatusBar';
+import * as dv from '../../src/styles/daywoven1c';
 
 /**
  * The load check: a short questionnaire about the past month that sets where readiness
@@ -27,6 +30,7 @@ const BAND_WORD: Record<LoadBand, string> = { light: 'Light', moderate: 'Moderat
 const BAND_COLOR: Record<LoadBand, string> = { light: colors.accent, moderate: colors.textMuted, heavy: hues.amber };
 
 export default function LoadCheckScreen() {
+  useBandStatusBar();
   const { user, mode } = useAuth();
   const today = useLocalToday();
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
@@ -75,17 +79,10 @@ export default function LoadCheckScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <View style={styles.topBar}>
-        <Pressable accessibilityLabel="Back" accessibilityRole="button" hitSlop={8} onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons color={colors.text} name="chevron-back" size={24} />
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.topTitle}>Load check</Text>
-        <View style={styles.backButton} />
-      </View>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ThreadDetailBand style={styles.band} onBack={() => router.back()} eyebrow="Load check" title="Where your days start" />
         <View style={styles.introBlock}>
-          <Text style={styles.title}>Where your days start</Text>
           <Text style={styles.intro}>
             About thirty quick questions on the past month. Your answers set where readiness starts each day for you, instead of the same {READINESS_BASELINE} for everyone. Skip anything you would rather not answer.
           </Text>
@@ -198,12 +195,9 @@ export default function LoadCheckScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  backButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
-  topTitle: { ...type.label, color: colors.text },
+  band: { marginHorizontal: -spacing.lg, marginTop: -spacing.sm },
   scroll: { gap: spacing.lg, paddingBottom: 96, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   introBlock: { gap: 8 },
-  title: { ...type.largeTitle, color: colors.text },
   intro: { ...type.body, color: colors.textMuted },
   meta: { ...type.caption, color: colors.textFaint, fontVariant: ['tabular-nums'] },
   section: { ...glassSurface, borderColor: colors.hairline, borderRadius: radii.lg, borderWidth: hairlineWidth, gap: 18, padding: spacing.lg },

@@ -18,3 +18,9 @@ export function useBandStatusBar(active = true) {
     }, [active])
   );
 }
+
+/** The same, as an element, for screens that choose the band in JSX after early returns. */
+export function BandStatusBar({ active = true }: { active?: boolean }) {
+  useBandStatusBar(active);
+  return null;
+}

@@ -19,6 +19,7 @@ import { SignupConsent } from '../../src/features/legal/SignupConsent';
 import { colors, spacing, glassSurface, fonts } from '../../src/styles/mobileTheme';
 
 import * as dv from '../../src/styles/daywoven1c';
+import { BandStatusBar } from '../../src/components/thread/useBandStatusBar';
 export default function SignupScreen() {
   const { signUp, mode } = useAuth();
   const [firstName, setFirstName] = useState('');
@@ -78,6 +79,7 @@ export default function SignupScreen() {
   if (mode === 'demo') return <DemoEntry />;
   return (
     <Screen backgroundStyle={styles.brandBackground} contentStyle={styles.screen}>
+      <BandStatusBar />
       <View style={styles.brandRow}>
         <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
         <Text style={styles.brandSide}>SAVE YOUR BASELINE</Text>
@@ -156,14 +158,14 @@ const styles = StyleSheet.create({
   eyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.3 },
   heroTitle: { color: dv.bone.text, fontSize: 37, fontFamily: fonts.bodySemibold, lineHeight: 43, letterSpacing: -1.4 },
   heroBody: { color: dv.bone.soft, fontSize: 15, lineHeight: 24 },
-  brandCard: { borderColor: dv.bone.hairline, backgroundColor: dv.bone.raised, padding: 20, borderRadius: 22 },
-  brandButton: { backgroundColor: dv.bone.text, borderRadius: 14, minHeight: 55 },
+  brandCard: { borderColor: dv.ink.border, backgroundColor: dv.surface.card, padding: 20, borderRadius: 22 },
+  brandButton: { borderRadius: 14, minHeight: 55 },
   footer: {
     alignItems: 'center',
     gap: spacing.xs
   },
   footerText: {
-    color: colors.textMuted,
+    color: dv.bone.muted,
     fontSize: 15
   },
   link: {

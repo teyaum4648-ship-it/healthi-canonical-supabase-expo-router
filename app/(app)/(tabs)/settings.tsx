@@ -6,7 +6,6 @@ import Svg, { Circle } from 'react-native-svg';
 import { Button } from '../../../src/components/Button';
 import { Card } from '../../../src/components/Card';
 import { Screen } from '../../../src/components/Screen';
-import { SectionHeader } from '../../../src/components/SectionHeader';
 import { LegalLinks } from '../../../src/features/legal/LegalLinksPanel';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { ActionRow } from '../../../src/components/mobile/ActionRow';
@@ -34,7 +33,7 @@ import type { ProfileScreenModel } from '../../../src/features/profile/profileTy
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
 import { colors, fonts, spacing, type, glassSurface } from '../../../src/styles/mobileTheme';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
-
+import { ThreadDetailBand } from '../../../src/components/thread/ThreadParts';
 function statusLabel(value: 'ready' | 'partial' | 'calibrating'): string {
   return value === 'ready' ? 'Ready' : value === 'partial' ? 'Early pattern' : 'Calibrating';
 }
@@ -164,11 +163,10 @@ export default function SettingsScreen() {
   const baseline = model?.baseline;
 
   return (
-    <Screen contentStyle={{ ...styles.content, paddingBottom: tabSpace }}>
-      <SectionHeader
-        title="You"
-        body="Your progress, profile and preferences."
-      />
+    <Screen
+      contentStyle={{ ...styles.content, paddingBottom: tabSpace }}
+      band={<ThreadDetailBand onBack={() => router.canGoBack() ? router.back() : router.navigate('/')} eyebrow="You" title="Profile and settings" sub="Your progress, profile and preferences." />}
+    >
 
       {isLoading || !model || !baseline ? (
         <Card style={styles.loadingCard}>

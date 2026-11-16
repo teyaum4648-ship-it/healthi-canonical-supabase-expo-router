@@ -11,6 +11,7 @@ import { colors, fonts, spacing, glassSurface } from '../src/styles/mobileTheme'
 import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
 import * as dv from '../src/styles/daywoven1c';
+import { BandStatusBar } from '../src/components/thread/useBandStatusBar';
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
@@ -72,6 +73,7 @@ export default function IndexRoute() {
 
   return (
     <Screen backgroundStyle={styles.brandBackground} contentStyle={styles.screen}>
+      <BandStatusBar />
       <View style={styles.nav}>
         <Text style={styles.logo}>daywoven<Text style={{ color: dv.accent.amber }}>.</Text></Text>
         <Text style={styles.navLabel}>YOUR STARTING POINT</Text>
@@ -92,6 +94,7 @@ export default function IndexRoute() {
           <Button
             disabled={isLoading}
             label="Explore your wellness baseline"
+            tone="band"
             onPress={() => void handleStart()}
             style={styles.cta}
           />
@@ -216,7 +219,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 27
   },
-  cta: { alignSelf: 'stretch', backgroundColor: dv.bone.text, borderRadius: 14, minHeight: 56 },
+  cta: { alignSelf: 'stretch', borderRadius: 14, minHeight: 56 },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   ringScore: {
-    color: colors.text,
+    color: dv.bone.text,
     fontFamily: fonts.display,
     fontSize: 74,
     fontWeight: '300',
@@ -301,7 +304,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   metricValue: {
-    color: colors.text,
+    color: dv.bone.text,
     fontFamily: fonts.display,
     fontSize: 18
   },
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   protocolTitle: {
-    color: colors.text,
+    color: dv.bone.text,
     fontFamily: fonts.bodySemibold,
     fontSize: 12
   },

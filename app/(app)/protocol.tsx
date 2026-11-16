@@ -17,6 +17,9 @@ import {
   safetyStatusLabel,
   shouldSurfaceSafety
 } from '../../src/features/dailyProtocol';
+import { ThreadDetailBand } from '../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../src/components/thread/useBandStatusBar';
+import * as dv from '../../src/styles/daywoven1c';
 import { colors, hairlineWidth, radii, spacing, type, glassSurface, fonts } from '../../src/styles/mobileTheme';
 
 function actionIcon(kind: ProtocolActionKind): keyof typeof Ionicons.glyphMap {
@@ -115,6 +118,7 @@ export default function ProtocolScreen() {
   /* The local day Home wrote the protocol under; a UTC date lost it every evening in the Americas. */
   const today = useLocalToday();
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
+  useBandStatusBar();
   const [protocol, setProtocol] = useState<DailyProtocol | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -158,15 +162,27 @@ export default function ProtocolScreen() {
   const totalCount = protocol?.actions.length ?? 0;
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <View style={styles.topBar}>
-        <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons color={colors.text} name="chevron-back" size={22} />
-        </Pressable>
-        <View style={styles.backButton} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* The 1c short band; with a protocol it carries the day's headline, mode, focus and progress. */}
+        <ThreadDetailBand
+          style={styles.band}
+          onBack={() => router.back()}
+          eyebrow="Daily protocol"
+          title={protocol ? protocol.headline : 'Daily protocol'}
+          sub={protocol ? protocol.summary : null}
+        >
+          {protocol ? (
+            <View style={styles.bandHero}>
+              <View style={styles.tagRow}>
+                <View style={styles.bandTag}><Text style={styles.bandTagText}>{dayModeLabel(protocol.day_mode)}</Text></View>
+                <View style={styles.bandTag}><Text style={styles.bandTagText}>{focusLabel(protocol.primary_focus)}</Text></View>
+              </View>
+              <View style={styles.bandTrack}><View style={[styles.bandFill, { width: `${totalCount ? Math.round((doneCount / totalCount) * 100) : 0}%` }]} /></View>
+              <Text style={styles.bandMeta}>{doneCount} of {totalCount} done · {confidenceLabel(protocol.confidence).toLowerCase()}</Text>
+            </View>
+          ) : null}
+        </ThreadDetailBand>
         {isLoading ? (
           <Text style={styles.muted}>Loading today’s protocol…</Text>
         ) : !protocol ? (
@@ -176,20 +192,6 @@ export default function ProtocolScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.hero}>
-              <Text accessibilityRole="header" style={styles.largeTitle}>Daily Protocol</Text>
-              <View style={styles.tagRow}>
-                <View style={styles.tag}><Text style={styles.tagText}>{dayModeLabel(protocol.day_mode)}</Text></View>
-                <View style={styles.tag}><Text style={styles.tagText}>{focusLabel(protocol.primary_focus)}</Text></View>
-              </View>
-              <Text style={styles.heroTitle}>{protocol.headline}</Text>
-              <Text style={styles.heroSummary}>{protocol.summary}</Text>
-              <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${totalCount ? Math.round((doneCount / totalCount) * 100) : 0}%` }]} /></View>
-              <Text style={styles.metaLine}>
-                {doneCount} of {totalCount} done · {confidenceLabel(protocol.confidence).toLowerCase()}
-              </Text>
-            </View>
-
             {shouldSurfaceSafety(protocol.safety.status) ? (
               <View style={styles.safetyNote}>
                 <Ionicons color={colors.accentMid} name="shield-checkmark-outline" size={16} />
@@ -224,6 +226,13 @@ export default function ProtocolScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  band: { marginHorizontal: -spacing.lg, marginTop: -spacing.sm },
+  bandHero: { gap: 10, marginTop: 16 },
+  bandTag: { borderColor: dv.bone.outline, borderRadius: 14, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
+  bandTagText: { color: dv.bone.soft, fontFamily: dv.font.bodyMedium, fontSize: 12 },
+  bandTrack: { backgroundColor: dv.bone.ringTrack, height: 4, marginTop: 4 },
+  bandFill: { backgroundColor: dv.accent.amber, height: 4 },
+  bandMeta: { color: dv.bone.muted, fontFamily: dv.font.body, fontSize: 12.5 },
   topBar: {
     alignItems: 'center',
     flexDirection: 'row',

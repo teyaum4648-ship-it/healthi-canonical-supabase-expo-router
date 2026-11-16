@@ -35,6 +35,7 @@ import type {
 } from '../../src/types/onboarding';
 
 import * as dv from '../../src/styles/daywoven1c';
+import { BandStatusBar } from '../../src/components/thread/useBandStatusBar';
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 const shouldUseLocalOnboarding = isDemoMode || !isSupabaseConfigured;
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
@@ -717,6 +718,7 @@ export default function OnboardingScreen() {
 
     return (
       <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
+        <BandStatusBar />
         <View style={styles.brandRow}><Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandSide}>YOUR BASELINE</Text></View>
         {renderScoreSheet(focusProfile)}
 
@@ -787,6 +789,7 @@ export default function OnboardingScreen() {
             : subscriptionsEnabled && mode === 'account' ? 'Continue to membership' : 'Continue to daywoven'}
           onPress={() => void handleContinueFromFocus()}
           style={styles.brandButton}
+          tone="band"
         />
       </Screen>
     );
@@ -795,6 +798,7 @@ export default function OnboardingScreen() {
   if (setupResult) {
     return (
       <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
+        <BandStatusBar />
         <View style={styles.brandRow}><Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandSide}>YOUR BASELINE</Text></View>
         <View style={styles.focusHeader}>
           <Text style={styles.focusHeaderEyebrow}>Baseline setup complete</Text>
@@ -843,13 +847,14 @@ export default function OnboardingScreen() {
           </Text>
         </Card>
 
-        <Button style={styles.brandButton} label="See my full score and two-week focus" onPress={() => setResultStage('focus')} />
+        <Button style={styles.brandButton} tone="band" label="See my full score and two-week focus" onPress={() => setResultStage('focus')} />
       </Screen>
     );
   }
 
   return (
     <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.onboardingContent}>
+      <BandStatusBar />
       <View style={styles.brandRow}>
         <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
         <Text style={styles.brandSide}>YOUR BASELINE</Text>
@@ -885,6 +890,7 @@ export default function OnboardingScreen() {
           onPress={handleBack}
           style={[styles.actionButton, styles.brandSecondaryButton]}
           variant="secondary"
+          tone="band"
         />
         <Button
           disabled={!canContinue}
@@ -892,6 +898,7 @@ export default function OnboardingScreen() {
           label={isLastStep ? 'Review your baseline' : 'Next'}
           onPress={handleNext}
           style={[styles.actionButton, styles.brandButton]}
+          tone="band"
         />
       </View>
     </Screen>
@@ -914,7 +921,7 @@ const styles = StyleSheet.create({
   stageIntro: { color: dv.bone.soft, fontSize: 16, lineHeight: 26 },
   welcomeNote: { color: dv.bone.soft, fontSize: 13, lineHeight: 21 },
   questionEyebrow: { color: dv.bone.soft, fontSize: 10, fontFamily: fonts.bodySemibold, letterSpacing: 1.15 },
-  brandButton: { backgroundColor: dv.bone.text, borderRadius: 14, minHeight: 56 },
+  brandButton: { borderRadius: 14, minHeight: 56 },
   brandSecondaryButton: { borderColor: dv.bone.outline, borderRadius: 14, minHeight: 56 },
   privatePreviewNote: { color: dv.bone.muted, textAlign: 'center', fontSize: 12, lineHeight: 19 },
   scoreHero: { gap: 12, padding: 22, borderRadius: 20, backgroundColor: dv.bone.raised, borderColor: dv.bone.hairline, borderWidth: 1 },
@@ -931,7 +938,7 @@ const styles = StyleSheet.create({
   questionCard: { gap: 16, backgroundColor: dv.bone.raised, borderColor: dv.bone.hairline, borderWidth: 1, borderRadius: 22, padding: 21 },
   questionPrompt: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 21, lineHeight: 29, letterSpacing: -0.45 },
   optionalTag: {
-    color: colors.textFaint,
+    color: dv.bone.muted,
     fontFamily: fonts.body,
     fontSize: 13
   },
