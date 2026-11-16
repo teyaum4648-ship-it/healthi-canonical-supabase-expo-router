@@ -41,7 +41,7 @@ import type { MorningReport } from '../../../src/engines/circadian/sleepRecovery
 import { localBiomarkerStore, saveManualReading } from '../../../src/features/biomarkers/biomarkerStore';
 import type { BiomarkerReading } from '../../../src/engines/biomarkers';
 import { MorningCheckIn } from '../../../src/features/sleepRhythm/MorningCheckIn';
-import { CaffeineLog } from '../../../src/features/sleepRhythm/CaffeineLog';
+import { CaffeineLog } from '../../../src/features/sleepRhythm/CaffeineLogCard';
 import { caffeineOnBoard, createCaffeineEntry, localCaffeineStore, type CaffeineDrink, type CaffeineEntry } from '../../../src/features/sleepRhythm/caffeineLog';
 import { localMorningReportStore, saveMorningReport, type MorningReportRow } from '../../../src/features/sleepRhythm/morningReportStore';
 
