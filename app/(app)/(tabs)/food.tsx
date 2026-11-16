@@ -27,9 +27,14 @@ import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DietIntakeSummary, DietWeekSelector } from '../../../src/features/nutrition/DietDashboard';
 import { HydrationCard } from '../../../src/features/nutrition/HydrationCard';
 import type { HydrationClient } from '../../../src/features/nutrition/hydrationStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { Eyebrow, TextLink, ThreadBand, ThreadHeader } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
+import { FoodBand, FoodQuickAdd } from '../../../src/features/nutrition/FoodBand';
+import { addGlassOfWater, GLASS_ML } from '../../../src/features/nutrition/quickWater';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { dayTitle } from '../../../src/features/navigation/navigationModel';
 import { FoodEntryPicker } from '../../../src/features/nutrition/FoodEntryPicker';
@@ -660,6 +665,9 @@ export default function FoodScreen() {
   }, [userId]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
+  const [waterNotice, setWaterNotice] = useState<string | null>(null);
+  const [waterVersion, setWaterVersion] = useState(0);
+  useBandStatusBar();
   const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
   const todayMeals = useMemo(() => mealsForDay(meals, today), [meals, today]);
   /**
@@ -1961,15 +1969,32 @@ export default function FoodScreen() {
    * where "no target set" points at them. Photo meals only appear where they work — a
    * disabled row at the top of the tab was the first thing everyone saw.
    */
+  async function logWaterGlass() {
+    try {
+      await addGlassOfWater({ demo: mode === 'demo', userId: canUseRemote ? userId : null, client: canUseRemote ? supabase as unknown as HydrationClient : null, day: today, storage: AsyncStorage });
+      setWaterNotice(`Glass of water added · ${GLASS_ML} mL`);
+      setWaterVersion((value) => value + 1);
+    } catch {
+      setWaterNotice('Water wasn’t saved. Try again from the water card below.');
+    }
+  }
+
   function renderDiary() {
     const goalsSet = targets.basis.length > 0;
     const goalSetup = <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} pattern={goalPatternInput(activeProfile)} onTargets={setTargets} onOpenPattern={() => { closeScanner(); setActiveSegment('Food Pattern Test'); }} />;
     return (
       <View style={styles.stack}>
         <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
-        <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
+        {/* Quick add (design language P6). The day's intake is the band's hero above. */}
+        <FoodQuickAdd tiles={[
+          { label: 'Search', icon: 'search-outline', accessibilityLabel: 'Search for a food', onPress: () => setFoodEntryOpen(true) },
+          { label: 'Scan', icon: 'barcode-outline', accessibilityLabel: 'Scan a product barcode', onPress: () => openScanner('log') },
+          { label: 'Meals', icon: 'bookmark-outline', accessibilityLabel: 'Your foods and saved meals', onPress: () => openMealLibrary() },
+          { label: 'Water', icon: 'water-outline', accessibilityLabel: `Add a ${GLASS_ML} mL glass of water`, onPress: () => void logWaterGlass() }
+        ]} />
+        {waterNotice ? <Text accessibilityLiveRegion="polite" style={styles.diaryDetail}>{waterNotice}</Text> : null}
         {goalsSet ? null : goalSetup}
-        <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
+        <HydrationCard key={`${userId}:${today}:${mode}:${waterVersion}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
         <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={meal => { setMealDetailMessage(''); setSelectedMeal(meal); }} />
         <View style={styles.diarySection}>
@@ -2516,36 +2541,60 @@ export default function FoodScreen() {
   const inFlow = scannerOpen || !dietTabs.includes(activeSegment as DietTab);
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+      <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.safe, { backgroundColor: dv.surface.canvas }]}>
           <ScrollView
             ref={scrollRef}
             onScroll={(event) => { scrollPositions.current[scannerOpen ? 'scanner' : activeSegment] = event.nativeEvent.contentOffset.y; }}
             scrollEventThrottle={100}
-            contentContainerStyle={[styles.scroll, inFlow ? { paddingBottom: tabSpace } : null]}
+            contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.adaptiveTopBar}>
-              <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Diet</Text>
-              <Text style={styles.diaryDetail}>{modeLabel}</Text>
-            </View>
-            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
-              <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
-                <Ionicons name="chevron-back" size={20} color={tabAccent.food} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
-              </Pressable>
-            )}
+            {/* The 1c Food band (design language P1). In a flow (scanning, building a meal) it is the short band: a way back and the screen's name. */}
+            <ThreadBand>
+              <ThreadHeader
+                date={new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                dateAccessibilityLabel={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                right={<Text numberOfLines={1} style={styles.bandMode}>{modeLabel}</Text>}
+              />
+              {inFlow ? (
+                <View style={styles.bandFlow}>
+                  <TextLink
+                    tone="band"
+                    label={scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}
+                    onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }}
+                    trailing={null}
+                  />
+                  <Eyebrow tone="band">Food</Eyebrow>
+                </View>
+              ) : (
+                <FoodBand
+                  summary={nutrientSummary}
+                  targets={targets}
+                  mealCount={todayMeals.length}
+                  isToday={today === actualToday}
+                  dayLabel={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long' })}
+                  onAddMeal={() => { setMealStartMessage(''); setMealChooserOpen(true); }}
+                  onScan={() => openScanner('log')}
+                  onNutrients={() => setActiveSegment('Nutrients')}
+                />
+              )}
+            </ThreadBand>
+            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : null}
             {/saved|logged|could not|unavailable|not saved/i.test(status) ? <Text accessibilityLiveRegion="polite" style={styles.diaryStatus}>{status}</Text> : null}
             {scannerOpen ? renderScanner() : null}
             {!scannerOpen && (activeSegment === 'Diary' || activeSegment === 'Today') ? renderDiary() : null}
             {!scannerOpen && activeSegment === 'Quality' ? (
-              <FoodQualityReviewPanel
-                onOpenPreferences={() => setActiveSegment('Profile')}
-                onOpenScanner={() => openScanner('log')}
-                review={qualityReview}
-                windowLabel="Today"
-              />
+              <View style={styles.gutter}>
+                <FoodQualityReviewPanel
+                  onOpenPreferences={() => setActiveSegment('Profile')}
+                  onOpenScanner={() => openScanner('log')}
+                  review={qualityReview}
+                  windowLabel="Today"
+                />
+              </View>
             ) : null}
             {!scannerOpen && activeSegment === 'Timeline' ? renderTimeline() : null}
             {!scannerOpen && activeSegment === 'Nutrients' ? renderNutrients() : null}
@@ -2556,22 +2605,6 @@ export default function FoodScreen() {
             {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
             {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
-          {!inFlow ? <View style={[styles.adaptiveActionDock, { marginBottom: tabSpace - 12 }]}>
-            <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color={onPillar} size={22} /><Text style={[styles.adaptivePrimaryButtonText, styles.diaryAddText]}>Add meal</Text></Pressable>
-            {/*
-              Scanning was three taps inside the add-meal sheet, which is a long way
-              round for the thing people stand in a shop holding. It gets its own key
-              on the same bar — no label, because a barcode is already the word.
-            */}
-            <Pressable
-              accessibilityLabel="Scan a product barcode"
-              accessibilityRole="button"
-              onPress={() => openScanner('log')}
-              style={({ pressed }) => [styles.dockScan, pressed && styles.pressed]}
-            >
-              <Ionicons name="barcode-outline" color={tabAccent.food} size={24} />
-            </Pressable>
-          </View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
       {scoreBreakdownFor ? <EntrySheet title="Why this score" onClose={() => setScoreBreakdownFor(null)}>
@@ -2689,6 +2722,9 @@ const styles = StyleSheet.create({
     width: 68
   },
   diaryTabs: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
+  bandMode: { color: dv.bone.muted, flexShrink: 1, fontFamily: dv.font.body, fontSize: 12 },
+  bandFlow: { gap: 4, marginTop: 8 },
+  gutter: { paddingHorizontal: dv.space.gutter, paddingTop: 12 },
   screen: {
     flex: 1,
     backgroundColor: 'transparent'
