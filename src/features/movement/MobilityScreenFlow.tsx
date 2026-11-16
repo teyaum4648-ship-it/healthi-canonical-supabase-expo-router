@@ -12,8 +12,9 @@ import {
   type PostureFlag
 } from '../../engines/movement';
 import type { MovementCardPalette } from './MovementPillarCard';
-import { glassSurface } from '../../styles/mobileTheme';
+import { glassSurface, fonts } from '../../styles/mobileTheme';
 
+import * as dv from '../../styles/daywoven1c';
 /**
  * Doing the screen, and reading what it found.
  *
@@ -60,7 +61,7 @@ export function MobilityScreenFlow({
 
   if (showResults) {
     return (
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.page} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
         <Header palette={palette} title="What the checks suggest" onClose={onClose} />
 
         {referrals.length > 0 ? (
@@ -141,7 +142,7 @@ export function MobilityScreenFlow({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={styles.page} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       <Header palette={palette} title="How are you moving?" onClose={onClose} />
       <Text style={[styles.intro, { color: palette.muted }]}>
         Seven checks, no equipment. Skip any you cannot do safely — a skipped check is left out
@@ -166,7 +167,7 @@ export function MobilityScreenFlow({
                   }))}
                   style={({ pressed }) => [styles.option, { backgroundColor: palette.wash, borderColor: 'transparent' }, selected && { borderColor: palette.accent }, pressed && styles.pressed]}
                 >
-                  <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.ink, fontWeight: '600' }]}>{option.label}</Text>
+                  <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.ink, fontFamily: fonts.bodySemibold }]}>{option.label}</Text>
                 </Pressable>
               );
             })}
@@ -191,7 +192,7 @@ export function MobilityScreenFlow({
                 onPress={() => togglePosture(flag)}
                 style={({ pressed }) => [styles.option, { backgroundColor: palette.wash, borderColor: 'transparent' }, selected && { borderColor: palette.accent }, pressed && styles.pressed]}
               >
-                <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.ink, fontWeight: '600' }]}>
+                <Text style={[styles.optionText, { color: palette.muted }, selected && { color: palette.ink, fontFamily: fonts.bodySemibold }]}>
                   {POSTURE_PROMPTS[flag]}
                 </Text>
               </Pressable>
@@ -239,17 +240,17 @@ const styles = StyleSheet.create({
   page: { gap: 14, paddingBottom: 96 },
   header: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   close: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
-  title: { flex: 1, fontSize: 26, fontWeight: '600', lineHeight: 32 },
+  title: { flex: 1, fontSize: 26, fontFamily: fonts.bodySemibold, lineHeight: 32 },
   intro: { fontSize: 15, lineHeight: 22 },
   flex: { flex: 1, gap: 6, minWidth: 0 },
   card: { borderRadius: 18, borderWidth: 1, gap: 10, paddingHorizontal: 18, paddingVertical: 16 },
-  cardTitle: { fontSize: 19, fontWeight: '600', lineHeight: 25 },
+  cardTitle: { fontSize: 19, fontFamily: fonts.bodySemibold, lineHeight: 25 },
   cardBody: { fontSize: 15, lineHeight: 22 },
   options: { gap: 6, marginTop: 6 },
   option: { borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   optionText: { fontSize: 15, lineHeight: 21 },
   listBlock: { gap: 4, marginTop: 6 },
-  listLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0 },
+  listLabel: { fontSize: 12, fontFamily: fonts.bodySemibold, letterSpacing: 0 },
   listItem: { fontSize: 15, lineHeight: 22 },
   withheld: { fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
   referral: { alignItems: 'flex-start', borderRadius: 12, flexDirection: 'row', gap: 10, padding: 14 },
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   footnote: { fontSize: 13, lineHeight: 20 },
   actions: { gap: 10 },
   primaryButton: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
-  primaryButtonText: { color: '#0B0B0C', fontSize: 16, fontWeight: '600' },
+  primaryButtonText: { color: dv.bone.text, fontSize: 16, fontFamily: fonts.bodySemibold },
   secondaryButton: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 14 },
   secondaryButtonText: { fontSize: 16, textAlign: 'center' },
   buttonDisabled: { opacity: 0.4 },

@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text } from 'react-native';
 import { safeProductImageUrl } from './productLookup/productImage';
 import { type } from '../../styles/mobileTheme';
 
+import * as dv from '../../styles/daywoven1c';
 export function ProductThumbnail({ url, name, size = 52, onPress }: { url?: string | null; name: string; size?: number; onPress?: () => void }) {
   const uri = safeProductImageUrl(url);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -13,7 +14,7 @@ export function ProductThumbnail({ url, name, size = 52, onPress }: { url?: stri
   </Pressable>;
 }
 const styles = StyleSheet.create({
-  frame: { flexShrink: 0, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 4 },
+  frame: { flexShrink: 0, borderRadius: 12, overflow: 'hidden', backgroundColor: dv.surface.card, alignItems: 'center', justifyContent: 'center', padding: 4 },
   image: { width: '100%', height: '100%' },
-  fallback: { ...type.caption, fontSize: 12, lineHeight: 15, color: '#59616B', textAlign: 'center' }
+  fallback: { ...type.caption, fontSize: 12, lineHeight: 15, color: dv.ink.muted, textAlign: 'center' }
 });

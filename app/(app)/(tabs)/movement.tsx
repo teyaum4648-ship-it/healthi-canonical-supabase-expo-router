@@ -182,6 +182,10 @@ import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DayNavigator } from '../../../src/components/mobile/DayNavigator';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { Eyebrow, TextLink, ThreadBand, ThreadHeader } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
+import { MoveBand } from '../../../src/features/movement/MoveBand';
+import { summarizeLoad } from '../../../src/engines/load';
 import { MovementPillarCard } from '../../../src/features/movement/MovementPillarCard';
 import { MobilityScreenFlow } from '../../../src/features/movement/MobilityScreenFlow';
 import {
@@ -193,20 +197,22 @@ import {
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
+import * as dv from '../../../src/styles/daywoven1c';
+import { formatClockOfDate } from '../../../src/utils/clockFormat';
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
 const segments: Segment[] = ['Today', 'Train', 'History'];
 const movePalette = {
-  background: '#08090C',
-  surface: '#15171B',
-  ink: '#F5F7FA',
-  green: '#86C8F0',
-  greenMid: '#A5D6F4',
-  slate: '#A9B0BA',
-  line: 'rgba(255, 255, 255, 0.075)',
-  lineStrong: 'rgba(255, 255, 255, 0.12)',
-  wash: 'rgba(134, 200, 240, 0.12)'
+  background: dv.surface.canvas,
+  surface: dv.surface.card,
+  ink: dv.ink.text,
+  green: dv.ink.text,
+  greenMid: dv.ink.text,
+  slate: dv.ink.muted,
+  line: dv.ink.hairline,
+  lineStrong: dv.ink.hairline,
+  wash: dv.ink.wash
 } as const;
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -230,7 +236,7 @@ function formatLoggedAt(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    : `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${formatClockOfDate(date)}`;
 }
 
 function EditorialLabel({ children }: { children: string }) {
@@ -657,7 +663,7 @@ export default function MovementScreen() {
     const rows = [
       { label: 'Strength', count: summary.strength_session_count, color: movePalette.green },
       { label: 'Cardio', count: summary.cardio_session_count, color: movePalette.greenMid },
-      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: '#8C939D' },
+      { label: 'Mobility + recovery', count: summary.mobility_recovery_session_count, color: dv.ink.muted },
       { label: 'Mixed + sport', count: Math.max(0, summary.workout_count - known), color: movePalette.slate }
     ];
     const max = Math.max(1, ...rows.map((row) => row.count));
@@ -712,7 +718,7 @@ export default function MovementScreen() {
           : session.workout_type === 'cardio'
             ? movePalette.greenMid
             : session.workout_type === 'mobility' || session.workout_type === 'recovery'
-              ? '#8C939D'
+              ? dv.ink.muted
               : movePalette.slate
       };
     });
@@ -1487,11 +1493,6 @@ export default function MovementScreen() {
           </View>
         ) : null}
 
-        <Pressable accessibilityRole="button" onPress={openQuickLauncher} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Ionicons name={quickDraft ? 'play' : 'add'} color={onPillar} size={22} />
-          <Text style={styles.primaryButtonText}>{quickDraft ? 'Resume workout' : 'Start workout'}</Text>
-        </Pressable>
-
         {quickDraft ? (
           <Pressable accessibilityRole="button" onPress={discardQuickDraft} style={styles.textAction}>
             <Text style={styles.textActionLabel}>Discard the open session</Text>
@@ -1588,7 +1589,7 @@ export default function MovementScreen() {
                 : day.category === 'cardio'
                   ? movePalette.greenMid
                   : day.category === 'mobility' || day.category === 'recovery'
-                    ? '#A9B0BA'
+                    ? dv.ink.muted
                     : day.category
                       ? movePalette.slate
                       : 'transparent';
@@ -1795,7 +1796,7 @@ export default function MovementScreen() {
           <TextInput
             onChangeText={setLibraryQuery}
             placeholder="Search movements"
-            placeholderTextColor="rgba(255, 255, 255, 0.42)"
+            placeholderTextColor={dv.ink.muted}
             style={styles.searchInput}
             value={libraryQuery}
           />
@@ -1957,6 +1958,10 @@ export default function MovementScreen() {
     );
   }
 
+  /* The band's light status bar only while the band is showing; the full-screen workout views sit on the canvas. */
+  useBandStatusBar(!(starterOpen || (recap && recapModel) || (isQuickLogging && quickDraft)));
+  const weekLoad = useMemo(() => summarizeLoad(sessions, today), [sessions, today]);
+
   if (starterOpen) {
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>
@@ -2053,9 +2058,32 @@ export default function MovementScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView ref={scrollRef} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <View style={styles.navigationHeader}><Text accessibilityRole="header" style={styles.navigationTitle}>Movement</Text>{activeSegment === 'Train' ? <Pressable accessibilityRole="button" onPress={() => setActiveSegment('Today')} style={styles.textAction}><Text style={styles.textActionLabel}>‹ Back to Movement · draft kept</Text></Pressable> : <SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} />}</View>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView ref={scrollRef} style={{ backgroundColor: dv.surface.canvas }} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        {/* The 1c Move band (design language P1). On Train it is the short band, with the way back. */}
+        <ThreadBand>
+          <ThreadHeader
+            date={new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+            dateAccessibilityLabel={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          />
+          {activeSegment === 'Train' ? (
+            <View style={styles.bandFlow}>
+              <TextLink tone="band" label="Back to Move · draft kept" onPress={() => setActiveSegment('Today')} trailing={null} />
+              <Eyebrow tone="band">Move</Eyebrow>
+            </View>
+          ) : (
+            <MoveBand
+              verdict={adaptivePlan.verdict}
+              explanation={adaptivePlan.explanation}
+              effort={adaptivePlan.effort_range}
+              load={weekLoad}
+              today={today}
+              startLabel={quickDraft ? 'Resume workout' : 'Start workout'}
+              onStart={openQuickLauncher}
+            />
+          )}
+        </ThreadBand>
+        {activeSegment !== 'Train' ? <View style={styles.navigationHeader}><SegmentedControl options={segments} value={activeSegment} onChange={setActiveSegment} /></View> : null}
 
         {usePreviewFixture ? (
           <View style={styles.previewBanner}>
@@ -2104,7 +2132,8 @@ export default function MovementScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingBottom: 28 },
-  navigationHeader: { paddingHorizontal: 20, paddingTop: 18, gap: 16 },
+  navigationHeader: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
+  bandFlow: { gap: 4, marginTop: 8 },
   navigationTitle: { ...type.largeTitle, color: colors.text },
   resumeNote: {
     alignItems: 'center',
@@ -2125,9 +2154,9 @@ const styles = StyleSheet.create({
   },
   segment: { borderBottomColor: 'transparent', borderBottomWidth: 2, minHeight: 48, justifyContent: 'center' },
   segmentActive: { borderBottomColor: movePalette.green },
-  segmentText: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontFamily: type.label.fontFamily, fontSize: 12 },
+  segmentText: { ...type.caption, color: dv.ink.muted, fontFamily: type.label.fontFamily, fontSize: 12 },
   segmentTextActive: { color: movePalette.green },
-  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: 'rgba(134, 200, 240, 0.16)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
+  previewBanner: { alignItems: 'center', alignSelf: 'center', backgroundColor: movePalette.wash, borderColor: dv.ink.hairline, borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', gap: 7, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 },
   previewDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 6, width: 6 },
   previewBannerText: { ...type.caption, color: movePalette.green, fontSize: 13 },
   page: { gap: 22, paddingHorizontal: 22, paddingTop: 30 },
@@ -2135,7 +2164,7 @@ const styles = StyleSheet.create({
   pageTitle: { ...type.title, color: movePalette.ink, fontSize: 30, lineHeight: 37 },
   editorialLabel: {
     ...type.eyebrow,
-    color: 'rgba(255, 255, 255, 0.56)',
+    color: dv.ink.muted,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
@@ -2146,56 +2175,56 @@ const styles = StyleSheet.create({
   reasonList: { gap: 9, marginTop: 11 },
   reasonRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   reasonDot: { backgroundColor: movePalette.greenMid, borderRadius: 3, height: 5, width: 5 },
-  reasonLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.65)', flex: 1 },
-  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(134, 200, 240, 0.16)', borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
-  protocolNoteText: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', flex: 1 },
+  reasonLine: { ...type.caption, color: dv.ink.muted, flex: 1 },
+  protocolNote: { alignItems: 'flex-start', backgroundColor: movePalette.wash, borderColor: dv.ink.hairline, borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 9, padding: 14 },
+  protocolNoteText: { ...type.caption, color: dv.ink.muted, flex: 1 },
   primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: tabAccent.movement, borderRadius: 13, flexDirection: 'row', gap: 10, justifyContent: 'center', minHeight: 56, paddingHorizontal: 18 },
   primaryButtonText: { ...type.label, color: onPillar, fontSize: 15 },
   changedRow: { gap: 8 },
-  changedCopy: { ...type.body, color: 'rgba(255, 255, 255, 0.65)' },
+  changedCopy: { ...type.body, color: dv.ink.muted },
   capacityLabels: { flexDirection: 'row', marginTop: 15 },
-  capacityLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', flex: 1, fontSize: 12, textAlign: 'center' },
+  capacityLabel: { ...type.caption, color: dv.ink.muted, flex: 1, fontSize: 12, textAlign: 'center' },
   capacityLabelActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
   capacityRail: { flexDirection: 'row', gap: 3, marginTop: 8 },
-  capacitySegment: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, flex: 1, height: 6 },
+  capacitySegment: { backgroundColor: dv.ink.wash, borderRadius: 3, flex: 1, height: 6 },
   capacitySegmentActive: { backgroundColor: movePalette.green },
   capacityPanel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 15, borderWidth: hairlineWidth, marginTop: 14, padding: 16 },
   capacityTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 24 },
-  body: { ...type.body, color: 'rgba(255, 255, 255, 0.66)', marginTop: 8 },
-  monoMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontVariant: ['tabular-nums'], fontSize: 13 },
+  body: { ...type.body, color: dv.ink.muted, marginTop: 8 },
+  monoMeta: { ...type.caption, color: dv.ink.muted, fontVariant: ['tabular-nums'], fontSize: 13 },
   rangeMeta: { ...type.caption, color: movePalette.greenMid, fontVariant: ['tabular-nums'], marginTop: 12 },
   objective: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 13 },
   agenda: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 18 },
   agendaRow: { alignItems: 'flex-start', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, flexDirection: 'row', gap: 16, paddingVertical: 13 },
   agendaWhen: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, lineHeight: 17, width: 44 },
-  agendaCopy: { ...type.body, color: 'rgba(255, 255, 255, 0.70)', flex: 1, fontSize: 13.5, lineHeight: 20 },
+  agendaCopy: { ...type.body, color: dv.ink.muted, flex: 1, fontSize: 13.5, lineHeight: 20 },
   supportList: { gap: 16, marginTop: 16 },
   supportRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
   supportCopy: { flex: 1 },
   supportTitle: { ...type.label, color: movePalette.ink },
-  supportBody: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', marginTop: 3 },
+  supportBody: { ...type.caption, color: dv.ink.muted, marginTop: 3 },
   feelingPanel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
   feelingTitle: { ...type.heading, color: movePalette.ink, fontSize: 18, lineHeight: 23 },
-  feelingHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)', marginTop: 4 },
+  feelingHint: { ...type.caption, color: dv.ink.muted, marginTop: 4 },
   mixList: { gap: 14, marginTop: 16 },
   mixHeading: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   mixLabel: { ...type.label, color: movePalette.ink, fontSize: 12.5 },
-  mixRail: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, height: 6, overflow: 'hidden' },
+  mixRail: { backgroundColor: dv.ink.wash, borderRadius: 3, height: 6, overflow: 'hidden' },
   mixFill: { borderRadius: 3, height: 6 },
-  mixInsight: { ...type.voice, color: 'rgba(255, 255, 255, 0.70)', marginTop: 16 },
+  mixInsight: { ...type.voice, color: dv.ink.muted, marginTop: 16 },
   weekRow: { flexDirection: 'row', marginTop: 16 },
   weekDay: { alignItems: 'center', flex: 1, gap: 9 },
-  weekLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.42)', fontSize: 12 },
+  weekLabel: { ...type.caption, color: dv.ink.muted, fontSize: 12 },
   weekLabelToday: { color: movePalette.green, fontFamily: type.label.fontFamily },
   weekDot: { borderColor: movePalette.lineStrong, borderRadius: 6, borderWidth: 1, height: 11, width: 11 },
   weekDotToday: { borderColor: movePalette.green, borderWidth: 2 },
   weekLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 16 },
   panel: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 18 },
-  ledgerHero: { ...glassSurface, borderColor: 'rgba(134, 200, 240, 0.15)', borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
+  ledgerHero: { ...glassSurface, borderColor: dv.ink.hairline, borderRadius: 18, borderWidth: hairlineWidth, padding: 17 },
   ledgerTitleInput: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 22, lineHeight: 28, minHeight: 48, paddingBottom: 8, paddingTop: 2 },
   ledgerTimestampRow: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 12 },
   ledgerTimestamp: { ...type.caption, color: movePalette.greenMid, flex: 1, fontSize: 13, fontVariant: ['tabular-nums'] },
-  ledgerHelp: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', fontSize: 13.5, lineHeight: 20, marginTop: 12 },
+  ledgerHelp: { ...type.body, color: dv.ink.muted, fontSize: 13.5, lineHeight: 20, marginTop: 12 },
   addMovementChip: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 12, borderWidth: hairlineWidth, flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   addMovementChipText: { ...type.caption, color: movePalette.green, fontFamily: type.label.fontFamily },
   ledgerExerciseCard: { ...glassSurface, borderColor: movePalette.line, borderRadius: 18, borderWidth: hairlineWidth, overflow: 'hidden', paddingBottom: 14, paddingTop: 16 },
@@ -2203,24 +2232,24 @@ const styles = StyleSheet.create({
   ledgerExerciseTitleWrap: { flex: 1 },
   ledgerExerciseIndex: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12, letterSpacing: 0 },
   ledgerExerciseTitle: { ...type.heading, borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, color: movePalette.ink, fontSize: 19, lineHeight: 24, marginRight: 10, marginTop: 3, minHeight: 48, paddingVertical: 8 },
-  ledgerPreviousDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.58)', fontSize: 13, marginTop: 6 },
+  ledgerPreviousDate: { ...type.caption, color: dv.ink.muted, fontSize: 13, marginTop: 6 },
   ledgerCategoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingVertical: 13 },
   ledgerCategoryChip: { borderColor: movePalette.lineStrong, borderRadius: 11, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },
-  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: 'rgba(134, 200, 240, 0.28)' },
-  ledgerCategoryText: { ...type.caption, color: 'rgba(255, 255, 255, 0.55)', fontSize: 12 },
+  ledgerCategoryChipActive: { backgroundColor: movePalette.wash, borderColor: dv.ink.border },
+  ledgerCategoryText: { ...type.caption, color: dv.ink.muted, fontSize: 12 },
   ledgerCategoryTextActive: { color: movePalette.green, fontFamily: type.label.fontFamily },
   ledgerSetCountRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   ledgerSetCountCopy: { flex: 1, paddingRight: 12 },
   ledgerSetCountTitle: { ...type.label, color: movePalette.ink, fontSize: 13 },
-  ledgerSetCountHint: { ...type.caption, color: 'rgba(255, 255, 255, 0.57)', fontSize: 13, marginTop: 2 },
-  ledgerSetStepper: { alignItems: 'center', borderColor: 'rgba(134, 200, 240, 0.20)', borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
+  ledgerSetCountHint: { ...type.caption, color: dv.ink.muted, fontSize: 13, marginTop: 2 },
+  ledgerSetStepper: { alignItems: 'center', borderColor: dv.ink.border, borderRadius: 11, borderWidth: hairlineWidth, flexDirection: 'row', overflow: 'hidden' },
   ledgerStepperButton: { alignItems: 'center', ...glassSurface, height: 44, justifyContent: 'center', width: 44 },
   ledgerSetCountValue: { ...type.label, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, borderRightColor: movePalette.line, borderRightWidth: hairlineWidth, color: movePalette.ink, fontSize: 14, textAlign: 'center', width: 34 },
   ledgerSheet: { borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, minWidth: 662 },
-  ledgerHeaderRow: { alignItems: 'center', backgroundColor: '#1E2126', flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
-  ledgerHeader: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.55)', fontSize: 13, letterSpacing: 0, textAlign: 'center' },
+  ledgerHeaderRow: { alignItems: 'center', backgroundColor: dv.surface.card, flexDirection: 'row', minHeight: 34, paddingHorizontal: 10 },
+  ledgerHeader: { ...type.eyebrow, color: dv.ink.muted, fontSize: 13, letterSpacing: 0, textAlign: 'center' },
   ledgerSetRow: { alignItems: 'center', borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', minHeight: 54, paddingHorizontal: 10 },
-  ledgerSetRowComplete: { backgroundColor: 'rgba(134, 200, 240, 0.055)' },
+  ledgerSetRowComplete: { backgroundColor: dv.ink.wash },
   ledgerSetColumn: { width: 104 },
   ledgerPreviousColumn: { width: 126 },
   ledgerInputColumn: { width: 76 },
@@ -2229,7 +2258,7 @@ const styles = StyleSheet.create({
   ledgerSetIdentity: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   ledgerSetNumber: { ...type.label, color: movePalette.ink, fontSize: 12, textAlign: 'center', width: 22 },
   ledgerPreviousCell: { alignItems: 'center', flexDirection: 'row', gap: 5, justifyContent: 'center', minHeight: 48, paddingHorizontal: 4 },
-  ledgerPreviousValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontSize: 13, fontVariant: ['tabular-nums'] },
+  ledgerPreviousValue: { ...type.caption, color: dv.ink.muted, fontSize: 13, fontVariant: ['tabular-nums'] },
   ledgerCellInput: { ...type.body, borderLeftColor: movePalette.line, borderLeftWidth: hairlineWidth, color: movePalette.ink, fontSize: 13, minHeight: 48, paddingHorizontal: 5, textAlign: 'center' },
   ledgerDoneButton: { alignItems: 'center', borderColor: movePalette.green, borderRadius: 10, borderWidth: hairlineWidth, height: 44, justifyContent: 'center', marginHorizontal: 6 },
   ledgerDoneButtonActive: { backgroundColor: movePalette.green },
@@ -2237,22 +2266,22 @@ const styles = StyleSheet.create({
   ledgerRemoveText: { ...type.caption, color: colors.danger, fontFamily: type.label.fontFamily, fontSize: 12 },
   ledgerAddSet: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 4, minHeight: 44, paddingHorizontal: 16, paddingTop: 10 },
   ledgerAddSetText: { ...type.label, color: movePalette.green, fontSize: 12 },
-  ledgerFinishBar: { alignItems: 'center', backgroundColor: '#1E2126', borderColor: movePalette.lineStrong, borderRadius: 18, borderWidth: hairlineWidth, flexDirection: 'row', gap: 12, padding: 15 },
+  ledgerFinishBar: { alignItems: 'center', backgroundColor: dv.surface.card, borderColor: movePalette.lineStrong, borderRadius: 18, borderWidth: hairlineWidth, flexDirection: 'row', gap: 12, padding: 15 },
   ledgerFinishCopy: { flex: 1 },
   ledgerFinishTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
   ledgerFinishHint: { ...type.caption, color: movePalette.slate, fontSize: 13, lineHeight: 18, marginTop: 3 },
   ledgerFinishButton: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
-  ledgerFinishButtonText: { ...type.label, color: '#0A0D13' },
-  ledgerStatus: { ...type.caption, color: 'rgba(255, 255, 255, 0.60)', fontSize: 13, textAlign: 'center' },
+  ledgerFinishButtonText: { ...type.label, color: dv.bone.text },
+  ledgerStatus: { ...type.caption, color: dv.ink.muted, fontSize: 13, textAlign: 'center' },
   field: { marginTop: 15 },
-  fieldLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.68)', marginTop: 12 },
+  fieldLabel: { ...type.label, color: dv.ink.muted, marginTop: 12 },
   input: { ...type.body, backgroundColor: movePalette.background, borderColor: movePalette.lineStrong, borderRadius: 11, borderWidth: hairlineWidth, color: movePalette.ink, minHeight: 48, paddingHorizontal: 13, paddingVertical: 11 },
   textarea: { minHeight: 84, textAlignVertical: 'top' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 9 },
   chip: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   chipSelected: { backgroundColor: movePalette.green, borderColor: movePalette.green },
-  chipText: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontFamily: type.label.fontFamily },
-  chipTextSelected: { color: '#0A0D13' },
+  chipText: { ...type.caption, color: dv.ink.muted, fontFamily: type.label.fontFamily },
+  chipTextSelected: { color: dv.bone.text },
   twoFields: { flexDirection: 'row', gap: 10 },
   threeFields: { flexDirection: 'row', gap: 8 },
   flexField: { flex: 1, minWidth: 0 },
@@ -2262,28 +2291,28 @@ const styles = StyleSheet.create({
   iconButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
   libraryScroller: { marginHorizontal: -4, marginTop: 10 },
   libraryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 4 },
-  emptyCopy: { ...type.caption, color: 'rgba(255, 255, 255, 0.46)', marginTop: 16 },
+  emptyCopy: { ...type.caption, color: dv.ink.muted, marginTop: 16 },
   exerciseCard: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 20, paddingTop: 16 },
-  exerciseIndex: { ...type.eyebrow, color: 'rgba(255, 255, 255, 0.42)' },
+  exerciseIndex: { ...type.eyebrow, color: dv.ink.muted },
   textAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 },
   textActionLabel: { ...type.label, color: movePalette.green },
-  sectionIntro: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', marginTop: -10 },
+  sectionIntro: { ...type.body, color: dv.ink.muted, marginTop: -10 },
   templateCard: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 16 },
   templateCopy: { flex: 1 },
   templateTitle: { ...type.heading, color: movePalette.ink, fontSize: 19, lineHeight: 25 },
-  monoLine: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'], marginTop: 7 },
-  templateMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', marginTop: 4 },
+  monoLine: { ...type.caption, color: dv.ink.muted, fontVariant: ['tabular-nums'], marginTop: 7 },
+  templateMeta: { ...type.caption, color: dv.ink.muted, marginTop: 4 },
   fitTag: { ...type.eyebrow, color: movePalette.greenMid, fontSize: 12 },
   templateActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
   templateStart: { alignItems: 'center', backgroundColor: movePalette.green, borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 48 },
-  templateStartText: { ...type.label, color: '#0A0D13' },
+  templateStartText: { ...type.label, color: dv.bone.text },
   templatePreview: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 12, borderWidth: hairlineWidth, justifyContent: 'center', minHeight: 48, minWidth: 92 },
   templatePreviewText: { ...type.label, color: movePalette.ink },
   outlineAction: { alignItems: 'center', borderColor: movePalette.lineStrong, borderRadius: 15, borderWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, padding: 16 },
   outlineActionCopyWrap: { flex: 1, paddingRight: spacing.md },
   outlineActionTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
-  outlineActionCopy: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', marginTop: 3 },
-  footnote: { ...type.caption, color: 'rgba(255, 255, 255, 0.45)' },
+  outlineActionCopy: { ...type.caption, color: dv.ink.muted, marginTop: 3 },
+  footnote: { ...type.caption, color: dv.ink.muted },
   searchBox: { alignItems: 'center', ...glassSurface, borderColor: movePalette.lineStrong, borderRadius: 13, borderWidth: hairlineWidth, flexDirection: 'row', gap: 10, paddingHorizontal: 14 },
   searchInput: { ...type.body, color: movePalette.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
   libraryFilters: { gap: 8, paddingRight: 22 },
@@ -2294,42 +2323,42 @@ const styles = StyleSheet.create({
   libraryItemFirst: { borderTopWidth: 0 },
   libraryItemCopy: { flex: 1 },
   libraryItemTitle: { ...type.label, color: movePalette.ink, fontSize: 14 },
-  libraryItemMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', marginTop: 3 },
+  libraryItemMeta: { ...type.caption, color: dv.ink.muted, marginTop: 3 },
   libraryItemAside: { alignItems: 'flex-end', maxWidth: '42%' },
-  libraryItemCategory: { ...type.caption, color: 'rgba(255, 255, 255, 0.52)', fontSize: 12 },
-  emptyLibrary: { ...type.body, color: 'rgba(255, 255, 255, 0.48)', paddingVertical: 40, textAlign: 'center' },
+  libraryItemCategory: { ...type.caption, color: dv.ink.muted, fontSize: 12 },
+  emptyLibrary: { ...type.body, color: dv.ink.muted, paddingVertical: 40, textAlign: 'center' },
   historyInsight: { ...type.voice, color: movePalette.ink, fontSize: 24, lineHeight: 31, marginTop: -6 },
   historyPlotCard: { ...glassSurface, borderColor: movePalette.line, borderRadius: 16, borderWidth: hairlineWidth, padding: 14 },
   plotArea: { height: 172, overflow: 'hidden', position: 'relative' },
-  plotGridLine: { backgroundColor: 'rgba(255, 255, 255, 0.07)', height: hairlineWidth, left: 0, position: 'absolute', right: 0 },
+  plotGridLine: { backgroundColor: dv.ink.wash, height: hairlineWidth, left: 0, position: 'absolute', right: 0 },
   plotDot: { borderColor: movePalette.surface, borderRadius: 6, borderWidth: 1.5, height: 12, marginLeft: -6, marginTop: -6, position: 'absolute', width: 12 },
   plotAxisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  plotAxisLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.40)', fontSize: 12 },
+  plotAxisLabel: { ...type.caption, color: dv.ink.muted, fontSize: 12 },
   plotAxisTitle: { ...type.caption, color: movePalette.greenMid, fontSize: 12 },
   plotLegend: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 10 },
-  plotLegendText: { ...type.caption, color: 'rgba(255, 255, 255, 0.50)', fontSize: 12 },
+  plotLegendText: { ...type.caption, color: dv.ink.muted, fontSize: 12 },
   loadRows: { gap: 12, marginTop: 16 },
   loadRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  loadLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', fontSize: 12, width: 54 },
-  loadRail: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 5, flex: 1, height: 10, overflow: 'hidden' },
+  loadLabel: { ...type.caption, color: dv.ink.muted, fontSize: 12, width: 54 },
+  loadRail: { backgroundColor: dv.ink.wash, borderRadius: 5, flex: 1, height: 10, overflow: 'hidden' },
   loadFill: { backgroundColor: movePalette.green, borderRadius: 5, height: 10 },
-  loadValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', fontSize: 12, textAlign: 'right', width: 34 },
+  loadValue: { ...type.caption, color: dv.ink.muted, fontSize: 12, textAlign: 'right', width: 34 },
   patternRows: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, marginTop: 12 },
   patternRow: { alignItems: 'center', borderBottomColor: movePalette.line, borderBottomWidth: hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 52 },
   patternLabel: { ...type.label, color: movePalette.ink },
-  patternValue: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'] },
+  patternValue: { ...type.caption, color: dv.ink.muted, fontVariant: ['tabular-nums'] },
   mirrorLine: { ...type.voice, color: movePalette.ink, fontSize: 22, lineHeight: 29, marginTop: 14 },
-  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: 'rgba(134, 200, 240, 0.17)', borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
+  mirrorTag: { alignSelf: 'flex-start', backgroundColor: movePalette.wash, borderColor: dv.ink.hairline, borderRadius: 11, borderWidth: hairlineWidth, marginTop: 14, paddingHorizontal: 12, paddingVertical: 8 },
   emptyHistory: { paddingVertical: 14 },
   sessionRow: { borderTopColor: movePalette.line, borderTopWidth: hairlineWidth, paddingVertical: 13 },
-  sessionDate: { ...type.caption, color: 'rgba(255, 255, 255, 0.44)', fontSize: 12, marginBottom: 5 },
+  sessionDate: { ...type.caption, color: dv.ink.muted, fontSize: 12, marginBottom: 5 },
   historyTitleWrap: { flex: 1, paddingRight: 8 },
   sessionTitle: { ...type.label, color: movePalette.ink, fontSize: 13.5 },
-  sessionMeta: { ...type.caption, color: 'rgba(255, 255, 255, 0.48)', fontSize: 13, marginTop: 2 },
+  sessionMeta: { ...type.caption, color: dv.ink.muted, fontSize: 13, marginTop: 2 },
   sessionAside: { alignItems: 'flex-end', marginRight: 2 },
-  sessionMinutes: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)', fontVariant: ['tabular-nums'] },
-  sessionEffort: { ...type.caption, color: 'rgba(255, 255, 255, 0.42)', fontSize: 12, marginTop: 2 },
-  meta: { ...type.caption, color: 'rgba(255, 255, 255, 0.46)' },
+  sessionMinutes: { ...type.caption, color: dv.ink.muted, fontVariant: ['tabular-nums'] },
+  sessionEffort: { ...type.caption, color: dv.ink.muted, fontSize: 12, marginTop: 2 },
+  meta: { ...type.caption, color: dv.ink.muted },
   disabled: { opacity: 0.38 },
   pressed: { opacity: 0.68 },
   loading: { alignItems: 'center', gap: 10, paddingVertical: 48 }

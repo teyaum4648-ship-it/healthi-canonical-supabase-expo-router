@@ -6,11 +6,12 @@ import { techniqueById } from './breathTechniques';
 import { headWord, type HeadCheck, type HeadRating, type HeadShift } from './headCheck';
 import { HeadScale } from './HeadScale';
 
+import { formatClockOfDate } from '../../utils/clockFormat';
 const accent = tabAccent.mood;
 
 function timeLabel(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return Number.isNaN(date.getTime()) ? '' : formatClockOfDate(date);
 }
 
 /**

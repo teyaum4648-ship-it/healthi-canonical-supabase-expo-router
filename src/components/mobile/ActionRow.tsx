@@ -1,7 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, type } from '../../styles/mobileTheme';
 
+import { font, HIT, ink } from '../../styles/daywoven1c';
+
+/**
+ * A 1c hairline row (design language P4): title and detail on the left, a right-aligned
+ * tabular value, a chevron, and a hairline between rows. No card around each row.
+ */
 export function ActionRow({ title, detail, icon, onPress, value, last = false }: {
   title: string;
   detail?: string;
@@ -12,23 +17,23 @@ export function ActionRow({ title, detail, icon, onPress, value, last = false }:
 }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, last && styles.last, pressed && styles.pressed]}>
-      {icon ? <Ionicons color={colors.accent} name={icon} size={22} /> : null}
+      {icon ? <Ionicons accessible={false} color={ink.text} name={icon} size={20} /> : null}
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
         {detail ? <Text style={styles.detail}>{detail}</Text> : null}
       </View>
       {value ? <Text style={styles.value}>{value}</Text> : null}
-      <Ionicons accessible={false} color={colors.textMuted} name="chevron-forward" size={17} />
+      <Ionicons accessible={false} color={ink.muted} name="chevron-forward" size={16} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 64, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderStrong },
+  row: { alignItems: 'center', borderBottomColor: ink.hairline, borderBottomWidth: 1, flexDirection: 'row', gap: 12, minHeight: HIT + 8, paddingVertical: 12 },
   last: { borderBottomWidth: 0 },
   pressed: { opacity: 0.65 },
-  copy: { flex: 1, minWidth: 0, gap: 3 },
-  title: { ...type.body, color: colors.text, fontWeight: '600' },
-  detail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
-  value: { ...type.label, color: colors.textMuted, maxWidth: '30%', textAlign: 'right' }
+  copy: { flex: 1, gap: 2, minWidth: 0 },
+  title: { color: ink.text, fontFamily: font.bodyMedium, fontSize: 14.5, lineHeight: 20 },
+  detail: { color: ink.muted, fontFamily: font.body, fontSize: 12, lineHeight: 17 },
+  value: { color: ink.text, fontFamily: font.body, fontSize: 13.5, fontVariant: ['tabular-nums'], maxWidth: '35%', textAlign: 'right' }
 });

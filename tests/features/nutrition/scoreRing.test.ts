@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { scoreRingColor } from '../../../src/features/nutrition/scoreRing';
+import { grade } from '../../../src/styles/daywoven1c';
 
 /**
  * The ring's three colours are derived from the letter grade rather than from their own
@@ -9,9 +10,9 @@ import { scoreRingColor } from '../../../src/features/nutrition/scoreRing';
  * this fails rather than the two quietly disagreeing.
  */
 describe('the score ring reads the bands, not its own numbers', () => {
-  const green = '#30D158';
-  const amber = '#FFD60A';
-  const red = '#FF6961';
+  const green = grade.A;
+  const amber = grade.C;
+  const red = grade.F;
 
   it('is green from 80 up', () => {
     expect(scoreRingColor(100)).toBe(green);

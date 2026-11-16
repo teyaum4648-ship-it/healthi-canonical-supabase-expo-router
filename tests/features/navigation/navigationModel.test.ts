@@ -2,24 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { dayTitle, firstRouteParam, mainTabs, quickEntryHref, quickEntryRequest, shiftDay } from '../../../src/features/navigation/navigationModel';
 
 describe('mobile navigation contract', () => {
-  it('is the four pillars plus a way home, and nothing else', () => {
-    // Diet, Movement and Sleep were already Chek's Dr. Diet, Dr. Movement and Dr. Quiet
-    // under other names. Mood is the fourth, which the app had never had.
-    expect(mainTabs.map((tab) => tab.label)).toEqual(['Home', 'Diet', 'Movement', 'Sleep', 'Mood']);
+  it('is Today plus the four foundations, and nothing else', () => {
+    expect(mainTabs.map((tab) => tab.label)).toEqual(['Today', 'Sleep', 'Food', 'Move', 'Mind']);
     expect(new Set(mainTabs.map((tab) => tab.route)).size).toBe(5);
-    // Plan and the profile are reached from the Home header; neither is a pillar.
+    // Plan and the profile are reached from Today's header; neither is a foundation.
     expect(mainTabs.some((tab) => String(tab.route) === 'plan')).toBe(false);
     expect(mainTabs.some((tab) => String(tab.route) === 'settings')).toBe(false);
+    expect(mainTabs.some((tab) => String(tab.route) === 'menu')).toBe(false);
   });
 
   it('renames labels without moving routes, so every deep link still resolves', () => {
-    // The tabs were relabelled, not rerouted: /food is still Diet and /movement is
-    // still Movement, which is what quickEntryHref and every saved link depend on.
+    // The tabs were relabelled and reordered, not rerouted: /food is still the food
+    // tab and /movement the movement tab, which quickEntryHref and saved links depend on.
     const byLabel = new Map(mainTabs.map((tab) => [tab.label, String(tab.route)]));
-    expect(byLabel.get('Diet')).toBe('food');
-    expect(byLabel.get('Movement')).toBe('movement');
+    expect(byLabel.get('Today')).toBe('index');
+    expect(byLabel.get('Food')).toBe('food');
+    expect(byLabel.get('Move')).toBe('movement');
     expect(byLabel.get('Sleep')).toBe('rhythm');
-    expect(byLabel.get('Mood')).toBe('mood');
+    expect(byLabel.get('Mind')).toBe('mood');
   });
   it.each([['food', '/food'], ['workout', '/movement'], ['sleep', '/rhythm']] as const)('opens the %s logger with a one-time intent', (destination, pathname) => {
     expect(quickEntryHref(destination, 'request-1')).toEqual({ pathname, params: { action: 'log', entry: 'request-1' } });

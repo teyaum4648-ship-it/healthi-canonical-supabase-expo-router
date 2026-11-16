@@ -10,6 +10,8 @@ import { entryDestination } from '../src/features/auth/entryRouting';
 import { colors, fonts, spacing, glassSurface } from '../src/styles/mobileTheme';
 import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
+import * as dv from '../src/styles/daywoven1c';
+import { BandStatusBar } from '../src/components/thread/useBandStatusBar';
 const signalTags = ['Sleep', 'Stress', 'Food', 'Recovery', 'Movement'];
 
 export default function IndexRoute() {
@@ -71,8 +73,9 @@ export default function IndexRoute() {
 
   return (
     <Screen backgroundStyle={styles.brandBackground} contentStyle={styles.screen}>
+      <BandStatusBar />
       <View style={styles.nav}>
-        <Text style={styles.logo}>daywoven<Text style={{ color: '#C8F18C' }}>.</Text></Text>
+        <Text style={styles.logo}>daywoven<Text style={{ color: dv.accent.amber }}>.</Text></Text>
         <Text style={styles.navLabel}>YOUR STARTING POINT</Text>
       </View>
 
@@ -91,6 +94,7 @@ export default function IndexRoute() {
           <Button
             disabled={isLoading}
             label="Explore your wellness baseline"
+            tone="band"
             onPress={() => void handleStart()}
             style={styles.cta}
           />
@@ -158,8 +162,8 @@ export default function IndexRoute() {
 }
 
 const styles = StyleSheet.create({
-  brandBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
-  signInLink: { color: '#C8F18C', fontSize: 14, fontWeight: '600', textAlign: 'center', paddingVertical: 14 },
+  brandBackground: { backgroundColor: dv.surface.band },
+  signInLink: { color: dv.accent.amber, fontSize: 14, fontFamily: fonts.bodySemibold, textAlign: 'center', paddingVertical: 14 },
   startError: {
     color: colors.danger,
     fontFamily: fonts.body,
@@ -179,12 +183,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  logo: { color: '#F6F8F4', fontFamily: fonts.display, fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
+  logo: { color: dv.bone.text, fontFamily: fonts.displayMedium, fontSize: 25, letterSpacing: -1.2 },
   navLabel: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
+    color: dv.bone.soft,
+    fontFamily: fonts.bodySemibold,
     fontSize: 10,
-    fontWeight: '700',
     letterSpacing: 0
   },
   hero: {
@@ -205,24 +208,24 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 520
   },
-  eyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  headline: { color: '#F6F8F4', fontFamily: fonts.display, fontSize: 46, fontWeight: '700', lineHeight: 50, letterSpacing: -1.8 },
-  headlineAccent: { color: '#C8F18C', fontWeight: '700' },
+  eyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.2 },
+  headline: { color: dv.bone.text, fontFamily: fonts.displayMedium, fontSize: 46, lineHeight: 50, letterSpacing: -1.8 },
+  headlineAccent: { color: dv.accent.amber, fontFamily: fonts.bodySemibold },
   subcopy: {
     maxWidth: 430,
-    color: '#B8CAB5',
+    color: dv.bone.soft,
     fontFamily: fonts.body,
     fontSize: 15,
     fontWeight: '400',
     lineHeight: 27
   },
-  cta: { alignSelf: 'stretch', backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 56 },
+  cta: { alignSelf: 'stretch', borderRadius: 14, minHeight: 56 },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm
   },
-  tag: { borderWidth: 1, borderColor: 'rgba(200,241,140,0.25)', color: '#C9D7C2', borderRadius: 18, fontSize: 11, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 8 },
+  tag: { borderWidth: 1, borderColor: dv.bone.outline, color: dv.bone.soft, borderRadius: 18, fontSize: 11, fontFamily: fonts.bodySemibold, paddingHorizontal: 12, paddingVertical: 8 },
   visual: {
     alignItems: 'center',
     gap: spacing.lg
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderWidth: 1,
-    borderColor: 'rgba(108, 168, 115, 0.12)',
+    borderColor: dv.bone.hairline,
     borderRadius: 130
   },
   mainRing: {
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
     width: 224,
     height: 224,
     borderWidth: 1,
-    borderColor: 'rgba(108, 168, 115, 0.24)',
+    borderColor: dv.bone.hairline,
     borderRadius: 112
   },
   ringAccentOne: {
@@ -257,7 +260,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: '#C8F18C',
+    borderColor: dv.bone.outline,
     borderRadius: 36
   },
   ringAccentTwo: {
@@ -267,8 +270,8 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#C8F18C',
-    shadowColor: '#C8F18C',
+    backgroundColor: dv.bone.text,
+    shadowColor: dv.surface.band,
     shadowOpacity: 0.6,
     shadowRadius: 12
   },
@@ -277,65 +280,62 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   ringScore: {
-    color: colors.text,
+    color: dv.bone.text,
     fontFamily: fonts.display,
     fontSize: 74,
     fontWeight: '300',
     lineHeight: 78
   },
   ringLabel: {
-    color: '#C8F18C',
-    fontFamily: fonts.body,
+    color: dv.accent.amber,
+    fontFamily: fonts.bodySemibold,
     fontSize: 10,
-    fontWeight: '700',
     letterSpacing: 0
   },
   ringVerdict: {
-    color: '#B8CAB5',
+    color: dv.bone.soft,
     fontFamily: fonts.body,
     fontSize: 12
   },
-  metrics: { width: 300, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(200,241,140,0.16)', borderRadius: 20, backgroundColor: '#1B3526', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
+  metrics: { width: 300, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: dv.bone.hairline, borderRadius: 20, backgroundColor: dv.bone.raised, paddingHorizontal: spacing.md, paddingVertical: spacing.md },
   metric: {
     flex: 1,
     alignItems: 'center',
     gap: spacing.xs
   },
   metricValue: {
-    color: colors.text,
+    color: dv.bone.text,
     fontFamily: fonts.display,
     fontSize: 18
   },
   metricLabel: {
-    color: '#B8CAB5',
-    fontFamily: fonts.body,
+    color: dv.bone.soft,
+    fontFamily: fonts.bodySemibold,
     fontSize: 9,
-    fontWeight: '700',
     letterSpacing: 0
   },
   divider: {
     width: 1,
     height: 30,
-    backgroundColor: 'rgba(200,241,140,0.20)'
+    backgroundColor: dv.bone.raised
   },
-  protocol: { width: 300, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: 'rgba(200,241,140,0.16)', borderLeftWidth: 3, borderLeftColor: '#C8F18C', borderRadius: 18, backgroundColor: '#1B3526', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  protocol: { width: 300, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: dv.bone.hairline, borderLeftWidth: 3, borderLeftColor: dv.bone.outline, borderRadius: 18, backgroundColor: dv.bone.raised, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   protocolDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#C8F18C'
+    backgroundColor: dv.bone.text
   },
   protocolTextWrap: {
     flex: 1
   },
   protocolTitle: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    fontWeight: '700'
+    color: dv.bone.text,
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12
   },
   protocolText: {
-    color: '#B8CAB5',
+    color: dv.bone.soft,
     fontFamily: fonts.body,
     fontSize: 11,
     lineHeight: 16

@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import type { ProductLetterGrade } from '../../engines/nutrition/productScoring';
 import { reviewCoverageLine, type FoodQualityReview, type GradedItem } from './foodQualityReview';
 
+import { grade as gradeScale } from '../../styles/daywoven1c';
 /**
  * The page that used to be called Guidance.
  *
@@ -24,11 +25,11 @@ import { reviewCoverageLine, type FoodQualityReview, type GradedItem } from './f
  */
 
 const GRADE_COLOR: Record<ProductLetterGrade, string> = {
-  A: '#30D158',
-  B: '#9BE36D',
-  C: '#FFD60A',
-  D: '#FF9F0A',
-  F: '#FF6B6B'
+  A: gradeScale.A,
+  B: gradeScale.B,
+  C: gradeScale.C,
+  D: gradeScale.D,
+  F: gradeScale.F
 };
 
 function GradeBadge({ grade, size = 'small' }: { grade: ProductLetterGrade; size?: 'small' | 'large' }) {
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50
   },
-  primaryText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
+  primaryText: { ...type.body, color: colors.primaryText, fontFamily: fonts.bodySemibold },
   secondary: {
     alignItems: 'center',
     flexDirection: 'row',

@@ -6,6 +6,7 @@ import type { ProductLetterGrade } from '../../engines/nutrition/productScoring'
 import type { CompositionSlice, ProductExplanation } from '../../engines/nutrition/productScoring/explain';
 import { isCostRole } from '../../engines/nutrition/productScoring/explain';
 
+import { grade as gradeScale } from '../../styles/daywoven1c';
 /**
  * What a scan says back.
  *
@@ -27,19 +28,19 @@ import { isCostRole } from '../../engines/nutrition/productScoring/explain';
  */
 
 const GRADE_COLOR: Record<ProductLetterGrade, string> = {
-  A: '#30D158',
-  B: '#9BE36D',
-  C: '#FFD60A',
-  D: '#FF9F0A',
-  F: '#FF6961'
+  A: gradeScale.A,
+  B: gradeScale.B,
+  C: gradeScale.C,
+  D: gradeScale.D,
+  F: gradeScale.F
 };
 
 /** The bar reads left to right from what the product mostly is to what it least is. */
 function sliceColor(slice: CompositionSlice): string {
   if (slice.role === 'unknown') return colors.surfaceMuted;
-  if (slice.role === 'neutral') return '#3A3A3C';
-  if (isCostRole(slice.role)) return slice.role === 'refined_starch' ? '#FFD60A' : '#FF9F0A';
-  return '#30D158';
+  if (slice.role === 'neutral') return gradeScale.neutral;
+  if (isCostRole(slice.role)) return slice.role === 'refined_starch' ? gradeScale.C : gradeScale.D;
+  return gradeScale.A;
 }
 
 export function ProductVerdict({ explanation, name, brand, score, grade, certaintyNote, sourceNote }: {
@@ -106,7 +107,7 @@ export function ProductVerdict({ explanation, name, brand, score, grade, certain
               <View
                 style={[
                   styles.findingRail,
-                  { backgroundColor: finding.tone === 'strength' ? '#30D158' : accent }
+                  { backgroundColor: finding.tone === 'strength' ? gradeScale.A : accent }
                 ]}
               />
               <View style={styles.findingCopy}>

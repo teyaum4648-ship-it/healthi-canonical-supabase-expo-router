@@ -16,6 +16,9 @@ import {
   type EveningCloseoutResult
 } from '../../src/features/eveningCloseout';
 import { colors, hairlineWidth, radii, spacing, type, glassSurface } from '../../src/styles/mobileTheme';
+import { ThreadDetailBand } from '../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../src/components/thread/useBandStatusBar';
+import * as dv from '../../src/styles/daywoven1c';
 
 type QuestionKey = keyof EveningCloseoutAnswers;
 
@@ -92,6 +95,7 @@ const RESPONSE_LABEL: Record<CloseoutResponseLabel, string> = {
 };
 
 export default function CloseoutScreen() {
+  useBandStatusBar();
   const { user } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
@@ -130,17 +134,15 @@ export default function CloseoutScreen() {
   }, [answers, scope, today]);
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <View style={styles.topBar}>
-        <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons color={colors.text} name="chevron-back" size={22} />
-        </Pressable>
-        <Text style={styles.topTitle}>Evening closeout</Text>
-        <View style={styles.backButton} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>A short check-in to close the day. Answer what you can — anything you skip just keeps confidence lower.</Text>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ThreadDetailBand
+          style={styles.band}
+          onBack={() => router.back()}
+          eyebrow="Check-in"
+          title="Evening closeout"
+          sub="A short check-in to close the day. Answer what you can — anything you skip just keeps confidence lower."
+        />
 
         {QUESTIONS.map((question) => (
           <View key={question.key} style={styles.questionBlock}>
@@ -214,17 +216,8 @@ export default function CloseoutScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
-  },
-  backButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
-  topTitle: { ...type.label, color: colors.text },
+  band: { marginHorizontal: -spacing.lg, marginTop: -spacing.sm },
   scroll: { gap: spacing.lg, paddingBottom: 96, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  intro: { ...type.body, color: colors.textMuted },
   questionBlock: { gap: 10 },
   prompt: { ...type.label, color: colors.text },
   optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

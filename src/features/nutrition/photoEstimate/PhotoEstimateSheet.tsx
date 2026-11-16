@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { EntrySheet } from '../../../components/mobile/EntrySheet';
-import { colors, type, glassSurface } from '../../../styles/mobileTheme';
+import { colors, type, glassSurface, fonts } from '../../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../../styles/pillarColors';
 import {
   correctPortion,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   item: { gap: 8, padding: 14, borderRadius: 14, backgroundColor: colors.surfaceInset },
   itemHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   itemName: { flex: 1, gap: 2 },
-  name: { ...type.body, color: colors.text, fontWeight: '600' },
+  name: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   itemCalories: { ...type.body, color: colors.text },
   macros: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   macro: { minWidth: 64, gap: 2 },
@@ -263,9 +263,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: tabAccent.food
   },
-  saveText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
+  saveText: { ...type.body, color: colors.primaryText, fontFamily: fonts.bodySemibold },
   pressed: { opacity: 0.6 },
   secondary: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  secondaryText: { ...type.body, color: tabAccent.food, fontWeight: '600' },
+  secondaryText: { ...type.body, color: tabAccent.food, fontFamily: fonts.bodySemibold },
   cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' }
 });

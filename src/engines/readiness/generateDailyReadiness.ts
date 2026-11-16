@@ -11,6 +11,7 @@ import type {
   GenerateDailyReadinessInput
 } from './readinessTypes';
 
+import { formatClockText } from '../../utils/clockFormat';
 type DomainScore = {
   domain: DailyReadinessDomain;
   contribution: number;
@@ -419,7 +420,7 @@ function actions(
       id: 'protect_wind_down',
       title: 'Protect your wind-down window tonight.',
       detail: input.rhythm?.wind_down_start
-        ? `Begin winding down around ${input.rhythm.wind_down_start}.`
+        ? `Begin winding down around ${formatClockText(input.rhythm.wind_down_start)}.`
         : 'Keep the final part of the day quieter and more predictable.',
       domain: 'recovery_rhythm',
       priority: 'high',
@@ -430,7 +431,7 @@ function actions(
     add({
       id: 'use_energy_window',
       title: 'Use your strongest energy window for focused work.',
-      detail: `Protect ${input.rhythm.deep_work_window.start} to ${input.rhythm.deep_work_window.end} for your highest-value task.`,
+      detail: `Protect ${formatClockText(input.rhythm.deep_work_window.start)} to ${formatClockText(input.rhythm.deep_work_window.end)} for your highest-value task.`,
       domain: 'recovery_rhythm',
       priority: 'high',
       confidence: input.rhythm.confidence ?? confidence,
@@ -453,7 +454,7 @@ function actions(
       id: 'steady_movement',
       title: mode === 'build' ? 'Use today for a focused movement session.' : 'Keep movement steady today.',
       detail: input.rhythm?.exercise_window
-        ? `The suggested exercise window is ${input.rhythm.exercise_window.start} to ${input.rhythm.exercise_window.end}.`
+        ? `The suggested exercise window is ${formatClockText(input.rhythm.exercise_window.start)} to ${formatClockText(input.rhythm.exercise_window.end)}.`
         : 'Match the session to your available time and current energy.',
       domain: 'movement_capacity',
       priority: 'medium',

@@ -22,32 +22,34 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 
+import { fonts } from '../../styles/mobileTheme';
+import * as dv from '../../styles/daywoven1c';
 export const ouraColors = {
-  bg: '#06080C',
-  ink: '#06080C',
-  card: 'rgba(255,255,255,0.025)',
-  cardBorder: 'rgba(255,255,255,0.06)',
-  hairline: 'rgba(255,255,255,0.08)',
-  track: 'rgba(255,255,255,0.08)',
-  teal: '#5FD3C9',
-  tealBright: '#7FE6DC',
-  tealDim: '#3E9A93',
-  blue: '#86B2FF',
-  green: '#9CD485',
-  warm: '#E8A47C',
-  rose: '#E88AA6',
-  violet: '#9A8CFF',
-  text: '#F3F4F6',
-  sub: '#A8AEB8',
-  muted: '#6E747E',
-  faint: '#565C66'
+  bg: dv.surface.canvas,
+  ink: dv.bone.text,
+  card: dv.ink.wash,
+  cardBorder: dv.ink.hairline,
+  hairline: dv.ink.hairline,
+  track: dv.ink.wash,
+  teal: dv.ink.text,
+  tealBright: dv.ink.text,
+  tealDim: dv.ink.text,
+  blue: dv.ink.text,
+  green: dv.ink.text,
+  warm: dv.accent.amberDeep,
+  rose: dv.ink.text,
+  violet: dv.pillarOnCanvas.recovery_rhythm,
+  text: dv.ink.text,
+  sub: dv.ink.muted,
+  muted: dv.ink.muted,
+  faint: dv.ink.muted
 } as const;
 
 export const ouraGradients = {
-  nebula: ['#16243A', '#0E2230', '#06080C'] as const,
-  check: ['#14202E', '#0A1018'] as const,
-  clock: ['#0E2236', '#070D16'] as const,
-  ring: ['#7FE6DC', '#5FD3C9', '#2E827C'] as const
+  nebula: [dv.surface.card, dv.surface.card, dv.surface.card] as const,
+  check: [dv.surface.card, dv.surface.card] as const,
+  clock: [dv.surface.card, dv.surface.card] as const,
+  ring: [dv.ink.text, dv.ink.text, dv.ink.text] as const
 };
 
 export const ouraFonts = {
@@ -59,7 +61,7 @@ export const ouraType = {
   hero: { fontFamily: ouraFonts.serif, fontSize: 64, lineHeight: 68 },
   display: { fontFamily: ouraFonts.serif, fontSize: 20, lineHeight: 25 },
   serifSm: { fontFamily: ouraFonts.serif, fontSize: 17, lineHeight: 21 },
-  eyebrow: { fontFamily: ouraFonts.body, fontSize: 11, fontWeight: '600', letterSpacing: 2.5 },
+  eyebrow: { fontFamily: fonts.bodySemibold, fontSize: 11, letterSpacing: 2.5 },
   body: { fontFamily: ouraFonts.body, fontSize: 14, lineHeight: 20 },
   caption: { fontFamily: ouraFonts.body, fontSize: 12, lineHeight: 16 }
 } as const satisfies Record<string, TextStyle>;
@@ -185,7 +187,7 @@ export function AnimatedReadinessRing({
             <Stop offset="1" stopColor={ouraGradients.ring[2]} />
           </SvgLinearGradient>
         </Defs>
-        <Circle cx={100} cy={100} fill="none" r={radius} stroke="rgba(255,255,255,0.08)" strokeWidth={6} />
+        <Circle cx={100} cy={100} fill="none" r={radius} stroke={dv.ink.muted} strokeWidth={6} />
         <AnimatedCircle
           animatedProps={arcProps}
           cx={100}
@@ -198,8 +200,8 @@ export function AnimatedReadinessRing({
           strokeWidth={6}
           transform="rotate(-90 100 100)"
         />
-        <AnimatedCircle animatedProps={tipProps} fill="#CFF6F1" r={5} />
-        <AnimatedCircle animatedProps={tipProps} fill="#FFFFFF" r={2} />
+        <AnimatedCircle animatedProps={tipProps} fill={dv.surface.card} r={5} />
+        <AnimatedCircle animatedProps={tipProps} fill={dv.surface.card} r={2} />
       </Svg>
       <View pointerEvents="none" style={{ alignItems: 'center', position: 'absolute' }}>
         <Text style={[ouraType.eyebrow, { color: ouraColors.tealDim, letterSpacing: 3 }]}>Readiness</Text>
@@ -239,13 +241,13 @@ export function BodyClockArc({
       <Defs>
         <SvgLinearGradient id="healthi_body_clock" x1="0" x2="1" y1="0" y2="0">
           <Stop offset="0" stopColor={ouraColors.blue} />
-          <Stop offset="1" stopColor="#5F7FD0" />
+          <Stop offset="1" stopColor={dv.pillarOnCanvas.mind_life_load} />
         </SvgLinearGradient>
       </Defs>
       <Path
         d={`M${x0} ${baseY} Q${(x0 + x1) / 2} ${baseY - amp - 14} ${x1} ${baseY}`}
         fill="none"
-        stroke="rgba(134,178,255,0.18)"
+        stroke={dv.ink.hairline}
         strokeWidth={2}
       />
       <Path
@@ -258,7 +260,7 @@ export function BodyClockArc({
       />
       <G>
         <Circle cx={midX} cy={midY - 11} fill={ouraColors.blue} r={3.5} />
-        <Circle cx={midX} cy={midY + 2} fill="#FFFFFF" r={5} />
+        <Circle cx={midX} cy={midY + 2} fill={dv.surface.card} r={5} />
       </G>
       {ticks.map((tick) => (
         <SvgText
@@ -319,7 +321,7 @@ export function ScoreRing({
     <View style={{ alignItems: 'center', gap: 10 }}>
       <View style={{ alignItems: 'center', height: 62, justifyContent: 'center', width: 62 }}>
         <Svg height={62} viewBox="0 0 60 60" width={62}>
-          <Circle cx={30} cy={30} fill="none" r={radius} stroke="rgba(255,255,255,0.08)" strokeWidth={5} />
+          <Circle cx={30} cy={30} fill="none" r={radius} stroke={dv.ink.muted} strokeWidth={5} />
           <AnimatedCircle
             animatedProps={arcProps}
             cx={30}
@@ -390,7 +392,7 @@ export function StressSpark({
       <Defs>
         <SvgLinearGradient id="healthi_stress" x1="0" x2="1" y1="0" y2="0">
           <Stop offset="0" stopColor={ouraColors.warm} />
-          <Stop offset="0.5" stopColor="#D9C27A" />
+          <Stop offset="0.5" stopColor={dv.accent.amber} />
           <Stop offset="1" stopColor={ouraColors.teal} />
         </SvgLinearGradient>
         <ClipPath id="healthi_stress_wipe">

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, type } from '../styles/mobileTheme';
+import { ink } from '../styles/daywoven1c';
+import { spacing, type } from '../styles/mobileTheme';
 
 type SectionHeaderProps = {
   eyebrow?: string;
@@ -8,6 +9,7 @@ type SectionHeaderProps = {
   body?: string;
 };
 
+/** A screen or section heading in 1c: a muted eyebrow, a Jost title and a muted line. */
 export function SectionHeader({ eyebrow, title, body }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
@@ -19,19 +21,8 @@ export function SectionHeader({ eyebrow, title, body }: SectionHeaderProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: spacing.xs
-  },
-  eyebrow: {
-    ...type.eyebrow,
-    color: colors.accent
-  },
-  title: {
-    ...type.largeTitle,
-    color: colors.text
-  },
-  body: {
-    ...type.body,
-    color: colors.textMuted
-  }
+  container: { gap: spacing.xs },
+  eyebrow: { ...type.eyebrow, color: ink.muted },
+  title: { ...type.largeTitle, color: ink.text },
+  body: { ...type.body, color: ink.muted }
 });

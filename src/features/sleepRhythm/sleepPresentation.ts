@@ -7,6 +7,7 @@ import type {
   TimeWindow
 } from '../../engines/circadian';
 
+import { formatClock } from '../../utils/clockFormat';
 export type SleepPhasePresentation = {
   label: string;
   energy: 'Low' | 'Steady' | 'High';
@@ -237,11 +238,9 @@ export function formatSleepTime(value: string | null | undefined): string {
   return formatClockMinutes(minute);
 }
 
+/** Kept as a named export for the Sleep screens; the formatting itself is shared. */
 export function formatClockMinutes(input: number): string {
-  const minute = ((Math.round(input) % 1440) + 1440) % 1440;
-  const hour = Math.floor(minute / 60);
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${String(minute % 60).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
+  return formatClock(input);
 }
 
 export function sleepNightSummaries(sessions: SleepSession[]): SleepNightSummary[] {
@@ -339,6 +338,11 @@ function nextShiftLabel(briefing: CircadianBriefing, now: string): string {
   const nextMs = parseDate(next.time)?.getTime();
   if (nextMs === undefined || nextMs === null) return 'Timing is still calibrating';
   return `Next shift in ${formatSleepMinutes((nextMs - nowMs) / 60_000)}`;
+}
+
+/** The plain name of a phase of the day, e.g. "First peak", for chart readouts. */
+export function sleepPhaseLabel(phase: CircadianPhase): string {
+  return PHASE_COPY[phase]?.label ?? PHASE_COPY.unknown.label;
 }
 
 export function buildSleepPhasePresentation(briefing: CircadianBriefing, now: string): SleepPhasePresentation {

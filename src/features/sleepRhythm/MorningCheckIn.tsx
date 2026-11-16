@@ -8,6 +8,7 @@ import { recoveryTier } from '../../engines/circadian/energyModel';
 import { isPlausibleMorningHR, PLAUSIBLE_MORNING_HR, type Restedness } from '../../engines/sleepEnergy';
 import { cardSurface, fonts, zones } from '../../styles/mobileTheme';
 
+import * as dvSwitch from '../../styles/daywoven1c';
 export type MorningCheckInPalette = {
   border: string;
   text: string;
@@ -205,7 +206,7 @@ export function MorningCheckIn({ palette, hasNight, report, awakeFromWindow, rec
 
         <View style={styles.switchRow}>
           <Text style={[styles.switchLabel, { color: palette.text }]}>I’m not sure of my sleep times</Text>
-          <Switch accessibilityLabel="I’m not sure of my sleep times" value={Boolean(answers.timesUncertain)} onValueChange={(value) => onChange({ timesUncertain: value })} />
+          <Switch thumbColor={dvSwitch.surface.card} trackColor={{ false: dvSwitch.control.switchOffOnCanvas, true: dvSwitch.control.switchOn }} ios_backgroundColor={dvSwitch.control.switchOffOnCanvas} accessibilityLabel="I’m not sure of my sleep times" value={Boolean(answers.timesUncertain)} onValueChange={(value) => onChange({ timesUncertain: value })} />
         </View>
         {/* Nothing below needs a button press: the forecast above updates on each tap. */}
         <Text style={[styles.note, { color: palette.faint }]}>Answers save as you tap. Everything here is optional.</Text>

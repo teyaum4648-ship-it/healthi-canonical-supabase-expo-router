@@ -1,4 +1,5 @@
 import { productLetterGrade, type ProductLetterGrade } from '../../engines/nutrition/productScoring';
+import { grade, ink } from '../../styles/daywoven1c';
 
 /**
  * What colour a score reads as, at a glance.
@@ -11,15 +12,15 @@ import { productLetterGrade, type ProductLetterGrade } from '../../engines/nutri
  */
 
 const RING_COLOR: Record<ProductLetterGrade, string> = {
-  A: '#30D158',
-  B: '#30D158',
-  C: '#FFD60A',
-  D: '#FFD60A',
-  F: '#FF6961'
+  A: grade.A,
+  B: grade.A,
+  C: grade.C,
+  D: grade.C,
+  F: grade.F
 };
 
-/** The colour for a score, or a muted grey when there is no score to show. */
-export function scoreRingColor(score: number | null | undefined, unscored = '#8E8E93'): string {
+/** The colour for a score, or muted ink when there is no score to show. Colours come from the 1c grade scale. */
+export function scoreRingColor(score: number | null | undefined, unscored: string = ink.muted): string {
   if (typeof score !== 'number' || !Number.isFinite(score)) return unscored;
   return RING_COLOR[productLetterGrade(score)];
 }

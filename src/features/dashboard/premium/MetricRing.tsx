@@ -5,6 +5,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useReducedMotion } from '../../../components/mobile/useReducedMotion';
 import { motion } from '../../../styles/tokens';
 
+import * as dv from '../../../styles/daywoven1c';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const curve = Easing.bezier(...motion.bezier);
 
@@ -13,7 +14,7 @@ const curve = Easing.bezier(...motion.bezier);
  * fills on the shared curve when the value changes; with Reduce Motion it is drawn in
  * place. Whatever sits in the middle is the caller's, so the number is always text.
  */
-export function MetricRing({ value, size, stroke, color, track = 'rgba(235, 240, 255, 0.08)', children }: {
+export function MetricRing({ value, size, stroke, color, track = dv.ink.wash, children }: {
   /** 0–100, or null for an empty track. */
   value: number | null;
   size: number;

@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SleepSession } from '../../engines/circadian';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import type { HealthSource } from './healthImport';
 import { syncHealth } from './healthSync';
 
+import * as dv from '../../styles/daywoven1c';
 const appName = Platform.OS === 'android' ? 'Health Connect' : 'Apple Health';
 
 /**
@@ -46,7 +47,7 @@ export function ConnectedHealthRow({ source, scope, readSleep, saveSleep }: {
       : `${appName} works in the installed daywoven app; this preview build cannot reach it.`;
 
   return <View style={styles.row}>
-    <View style={styles.icon}><Ionicons accessible={false} color="#FF6B81" name="heart" size={18} /></View>
+    <View style={styles.icon}><Ionicons accessible={false} color={dv.ink.text} name="heart" size={18} /></View>
     <View style={styles.copy}>
       <Text style={styles.title}>{appName}</Text>
       <Text style={styles.detail}>{available === null ? 'Checking…' : detail}</Text>
@@ -62,9 +63,9 @@ export function ConnectedHealthRow({ source, scope, readSleep, saveSleep }: {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 14 },
-  icon: { width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(255, 107, 129, 0.16)', alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 30, height: 30, borderRadius: 8, backgroundColor: dv.ink.wash, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, gap: 3 },
-  title: { ...type.body, fontWeight: '600', color: colors.text },
+  title: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   detail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
   button: { minHeight: 44, minWidth: 88, paddingHorizontal: 14, borderRadius: 22, backgroundColor: colors.surfaceInset, alignItems: 'center', justifyContent: 'center' },
   buttonText: { ...type.label, color: colors.accent },

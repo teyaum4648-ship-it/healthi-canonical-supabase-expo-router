@@ -6,7 +6,9 @@ import { ActivityIndicator, AppState, Pressable, StyleSheet, Switch, Text, View 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import type { DailyReadinessResult } from '../../engines/readiness';
-import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
+import { ThreadButton } from '../../components/thread/ThreadParts';
+import { bone, pillar, type as type1c } from '../../styles/daywoven1c';
+import { accentFill, colors, glass, glassSurface, type, fonts } from '../../styles/mobileTheme';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
 import { quickEntryHref } from '../navigation/navigationModel';
@@ -21,14 +23,17 @@ import {
 } from './readinessNow';
 import { createReadinessNowDemoStore, type ReadinessNowDemoData } from './readinessNowStore';
 
+import * as dv from '../../styles/daywoven1c';
+import * as dvSwitch from '../../styles/daywoven1c';
+import { formatClockOfDate } from '../../utils/clockFormat';
 const store = createReadinessNowDemoStore(AsyncStorage);
 const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
   surface: colors.surface, surfaceAlt: colors.surfaceInset, border: colors.borderStrong, hairline: colors.hairline,
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
-  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: '#F2C87E', chip: colors.surfaceMuted
+  accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: dv.accent.amberDeep, chip: colors.surfaceMuted
 };
-const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const timeLabel = (value: string) => formatClockOfDate(new Date(value));
 function clockLabel(value: string) {
   const [h, m] = value.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
@@ -85,7 +90,7 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
   if (picker) return <SleepTimePicker label="Usual lunch" value={draft.lunchTime} palette={timePalette} onCancel={() => setPicker(false)} onDone={value => { setDraft(d => ({ ...d, lunchTime: value })); setPicker(false); }} />;
   return <EntrySheet title="Gentle reminders" onClose={onClose} busy={busy} footer={<Button disabled={busy} title={busy ? 'Saving…' : 'Save preferences'} onPress={() => { setBusy(true); setError(false); void onSave(draft).then(onClose).catch(() => setError(true)).finally(() => setBusy(false)); }} />}>
     <Text style={styles.muted}>Only on Home while you have the demo open. No phone alerts, background tracking, or repeated notifications.</Text>
-    <View style={styles.row}><Text style={[styles.heading, { flex: 1 }]}>Remind me to log lunch</Text><Switch accessibilityLabel="Lunch reminders" value={draft.enabled} onValueChange={enabled => setDraft(d => ({ ...d, enabled }))} /></View>
+    <View style={styles.row}><Text style={[styles.heading, { flex: 1 }]}>Remind me to log lunch</Text><Switch thumbColor={dvSwitch.surface.card} trackColor={{ false: dvSwitch.control.switchOffOnCanvas, true: dvSwitch.control.switchOn }} ios_backgroundColor={dvSwitch.control.switchOffOnCanvas} accessibilityLabel="Lunch reminders" value={draft.enabled} onValueChange={enabled => setDraft(d => ({ ...d, enabled }))} /></View>
     <ActionRow title="Usual lunch time" detail={clockLabel(draft.lunchTime)} icon="time-outline" onPress={() => setPicker(true)} last />
     <Choices label="Remind me after" value={String(draft.delayMinutes)} options={['30', '45', '60'].map(value => ({ value, title: `${value} min` }))} onChange={value => setDraft(d => ({ ...d, delayMinutes: Number(value) as 30 | 45 | 60 }))} />
     <Text style={styles.muted}>Quiet hours: 9 PM–8 AM. A recent meal log or “Yes, I ate” check-in keeps the reminder quiet. Your lunch preference is never treated as proof you ate.</Text>
@@ -156,7 +161,8 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
     catch { setReminderError(true); }
     finally { setSavingReminder(false); }
   }
-  if (!data) return <View style={styles.card}><Text style={styles.heading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.muted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><Button secondary title="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={colors.accentMid} />}</View>;
+  /* These states sit in the 1c band at the top of Today, so they use the band's colours. */
+  if (!data) return <View style={styles.bandState}><Text style={styles.bandHeading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.bandMuted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><ThreadButton tone="band" variant="secondary" label="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={bone.text} />}</View>;
   const remind = focused && shouldRemindAboutLunch(now, data.reminders, mealTimes, data.checkins);
   const zone = readinessZone(result.publicScore, safetyActive);
   const headline = readinessHeadline(zone, result.attention[0]?.text ?? result.summary);
@@ -178,7 +184,7 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
       details={details}
       pillars={result.ledger}
     />
-    {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
+    {remind ? <View style={styles.bandReminder}><Text style={styles.bandHeading}>A moment for your food diary?</Text><Text style={styles.bandMuted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><ThreadButton tone="band" label="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><ThreadButton tone="band" variant="secondary" label={savingReminder ? 'Saving…' : 'In 30 minutes'} onPress={() => { if (!savingReminder) void quietReminder('later'); }} style={styles.grow} /><ThreadButton tone="band" variant="secondary" label={savingReminder ? 'Saving…' : 'Not today'} onPress={() => { if (!savingReminder) void quietReminder('today'); }} style={styles.grow} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.bandNotice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); onCheckinSaved?.(); }} /> : null}
     {sheet === 'reminders' ? <ReminderSheet initial={data.reminders} onSave={saveReminders} onClose={() => setSheet(null)} /> : null}
     {sheet === 'why' ? <EntrySheet title="Your current picture" onClose={() => setSheet(null)}>
@@ -207,19 +213,24 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 4 },
   grow: { flex: 1, paddingHorizontal: 10 },
   wide: { flex: 1.45 },
-  heading: { ...type.body, fontWeight: '600', color: colors.text, marginTop: 4 },
-  eyebrow: { ...type.caption, fontSize: 14, color: colors.accentMid, fontWeight: '600' },
+  heading: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text, marginTop: 4 },
+  eyebrow: { ...type.caption, fontSize: 14, color: colors.accentMid, fontFamily: fonts.bodySemibold },
   body: { ...type.body, color: colors.text },
   muted: { ...type.body, color: colors.textMuted, lineHeight: 23 },
   meta: { ...type.caption, color: colors.textMuted, lineHeight: 20 },
   button: { minHeight: 50, borderRadius: 16, ...accentFill(colors.primary), justifyContent: 'center', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
-  buttonText: { ...type.body, color: colors.primaryText, fontWeight: '600' },
+  buttonText: { ...type.body, color: colors.primaryText, fontFamily: fonts.bodySemibold },
   secondaryText: { color: colors.text },
   secondary: { ...glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   group: { gap: 10, marginVertical: 6 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
-  notice: { ...type.body, color: '#F2C87E' },
+  notice: { ...type.body, color: dv.accent.amberDeep },
+  bandState: { gap: 12, marginTop: 18, minHeight: 124, justifyContent: 'center' },
+  bandReminder: { gap: 10, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: bone.hairline },
+  bandHeading: { ...type1c.bodyStrong, color: bone.text },
+  bandMuted: { ...type1c.body, color: bone.soft },
+  bandNotice: { ...type1c.body, color: pillar.nourishment },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

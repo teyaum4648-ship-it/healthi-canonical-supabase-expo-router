@@ -5,24 +5,23 @@ const experience = readFileSync('src/features/sleepRhythm/SleepExperience.tsx', 
 const hero = readFileSync('src/features/sleepRhythm/SleepTodayHero.tsx', 'utf8');
 const graph = readFileSync('src/features/sleepRhythm/SleepEnergyChart.tsx', 'utf8');
 const route = readFileSync('app/(app)/(tabs)/rhythm.tsx', 'utf8');
+const thread = readFileSync('src/features/sleepRhythm/SleepThread.tsx', 'utf8');
 
 describe('Sleep V2 progressive disclosure and feature preservation', () => {
-  it('prioritizes the daily direction, interactive energy forecast and next useful time', () => {
+  it('answers "what now" first, in the 1c order, and keeps every step behind Explore', () => {
     const start = experience.indexOf('function TodayTab(');
-    const heroAt = experience.indexOf('<SleepTodayHero', start);
-    const energyAt = experience.indexOf('<EnergyField', start);
-    const nextAt = experience.indexOf('{next ? (', start);
-    const rhythmAt = experience.indexOf('>Today’s rhythm</SectionLabel>', start);
-    const tonightAt = experience.indexOf('>Tonight</SectionLabel>', start);
-    const detailsAt = experience.indexOf('<SleepSectionToggle', start);
-    expect(heroAt).toBeGreaterThan(start);
-    expect(energyAt).toBeGreaterThan(heroAt);
-    expect(nextAt).toBeGreaterThan(energyAt);
-    expect(rhythmAt).toBeGreaterThan(nextAt);
-    expect(tonightAt).toBeGreaterThan(rhythmAt);
-    expect(detailsAt).toBeGreaterThan(tonightAt);
+    const order = [
+      '<TodaysRhythm', '<TonightSummary', '<LastSevenNights', '<ChronotypeRow', '<ExploreButton',
+      '{next ? (', '>Today’s steps</SectionLabel>', '>Adjust tonight’s window</SectionLabel>', '<SleepWindowTracker'
+    ].map((marker) => experience.indexOf(marker, start));
+    for (const [index, at] of order.entries()) {
+      expect(at, `marker ${index}`).toBeGreaterThan(start);
+      if (index > 0) expect(at).toBeGreaterThan(order[index - 1]!);
+    }
     expect(experience).toContain('rhythmStepsToShow(protocol,');
     expect(experience).toContain('onToggleProtocol(item.id)');
+    // The band hero is the engine's curve, before the tab content.
+    expect(experience.indexOf('<SleepBand')).toBeLessThan(experience.indexOf('<TodayTab'));
   });
 
   it('keeps detailed tools and history accessible without deleting the underlying features', () => {
@@ -39,10 +38,16 @@ describe('Sleep V2 progressive disclosure and feature preservation', () => {
   });
 
   it('uses actual recorded nights and retains correct source/missing-data handling', () => {
-    expect(experience).toContain('session.date.slice(0, 10) === briefing.date.slice(0, 10)');
+    // Last 7 nights reads the logged nights; one not logged is "none", never zero hours.
+    expect(thread).toContain('sleepGlance({ sessions, today, needMinutes })');
+    expect(thread).toContain("night.minutes === null ? 'none'");
+    expect(thread).toContain('briefing.confidence');
+    expect(thread).toContain('<SleepEnergyChart briefing={briefing} now={now}');
+    expect(thread).toContain('<SleepTwoThread day={twoProcess}');
+    expect(readFileSync('src/features/sleepRhythm/SleepTwoThread.tsx', 'utf8')).toContain('· est.');
+    expect(thread).toContain('onLogSleep');
     expect(experience).toContain('briefing.confidence');
     expect(hero).toContain('Estimated energy');
-    expect(hero).toContain('onLogSleep');
     expect(route).toContain('generateCircadianBriefing');
     expect(route).toContain('saveSleepForSource');
   });
@@ -53,7 +58,8 @@ describe('Sleep V2 progressive disclosure and feature preservation', () => {
     expect(graph).toContain('briefing.typical_band');
     expect(graph).toContain('briefing.energy_extrema');
     expect(graph).toContain('setRatio(null)');
-    expect(graph).toContain("['#161A2B', '#171923', '#1B1B2D', '#121720', '#0E111A']");
+    // The chart still sits on its dark ground, now the 1c band rather than a navy gradient.
+    expect(graph).toContain('colors={[dv.surface.band, dv.surface.band');
   });
 
   it('keeps manual logging, trends, chronotype, and wind-down routes intact', () => {

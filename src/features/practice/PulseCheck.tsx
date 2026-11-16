@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, fonts } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   bpmFromCount,
@@ -223,14 +223,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   contextCopy: { flex: 1, gap: 2 },
-  contextLabel: { ...type.body, color: colors.text, fontWeight: '600' },
+  contextLabel: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   contextNote: { ...type.caption, color: colors.textMuted, lineHeight: 18 },
   baselineTag: {
     ...type.caption,
     backgroundColor: pillarTint('mind_life_load', 0.11),
     borderRadius: 6,
     color: tabAccent.mood,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemibold,
     overflow: 'hidden',
     paddingHorizontal: 7,
     paddingVertical: 3

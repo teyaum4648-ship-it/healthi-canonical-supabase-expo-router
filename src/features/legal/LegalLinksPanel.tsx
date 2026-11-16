@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Disclosure } from '../../components/mobile/Disclosure';
-import { colors, spacing, type } from '../../styles/mobileTheme';
+import { colors, spacing, type, fonts } from '../../styles/mobileTheme';
 import { LEGAL_TITLES, legalUrl, type LegalDocument } from './legalLinks';
 import { openLegalUrl } from './openLegalUrl';
 
@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   pressed: { opacity: 0.65 },
-  rowTitle: { ...type.body, color: colors.text, fontWeight: '600' },
-  rowTitleLink: { ...type.body, color: colors.accent, fontWeight: '600' },
+  rowTitle: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
+  rowTitleLink: { ...type.body, color: colors.accent, fontFamily: fonts.bodySemibold },
   rowDetail: { ...type.caption, color: colors.textMuted },
   notice: {
     backgroundColor: colors.surfaceInset,

@@ -12,6 +12,7 @@ vi.mock('react-native', () => ({
   View: ({ children }: React.PropsWithChildren) => <div>{children}</div>
 }));
 vi.mock('../../../src/components/Screen', () => ({ Screen: ({ children }: React.PropsWithChildren) => <main>{children}</main> }));
+vi.mock('../../../src/components/thread/useBandStatusBar', () => ({ BandStatusBar: () => null, useBandStatusBar: () => undefined }));
 vi.mock('../../../src/components/Button', () => ({ Button: ({ label }: { label: string }) => <button>{label}</button> }));
 vi.mock('../../../src/features/auth/DemoEntry', () => ({ DemoEntry: () => <button>Continue demo</button> }));
 vi.mock('../../../src/styles/mobileTheme', () => ({ colors: { text: '#fff' }, fonts: {}, spacing: {}, type: { body: {} }, glassSurface: {} }));

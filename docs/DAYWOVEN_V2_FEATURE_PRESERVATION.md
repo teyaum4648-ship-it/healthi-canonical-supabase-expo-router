@@ -4,7 +4,7 @@
 Design work branch only. This plan documents the existing routes/components inspected on the launch codebase and the required regression checks. It does not certify native TestFlight behavior.
 
 ## Approved UX direction
-**Track → Understand → Plan.** Low-friction logging and one obvious daily direction by default; interactive explanations and full analytics available progressively. Design reference: user-approved Daywoven interactive prototype (charcoal #0C0E13, elevated #151920, blue #9FCCFF, lavender #B6B2FA, peach #FFC6A6). No decorative forest imagery or universal lime theme.
+**Track → Understand → Plan.** Low-friction logging and one obvious daily direction by default; interactive explanations and full analytics available progressively. Design reference: the Daywoven 1c "Thread" handoff in `docs/design/1c/HANDOFF.md` (reference screens in `docs/design/1c/reference/`, tokens in `src/styles/daywoven1c.ts`). No decorative forest imagery or universal lime theme.
 
 ## Preservation inventory (no feature deletion)
 

@@ -1,18 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '../../styles/mobileTheme';
+import * as dv from '../../styles/daywoven1c';
 export const sleepV2 = {
-  background: '#0C0E13',
-  surface: '#151920',
-  elevated: '#1A1F28',
-  border: '#2B303C',
-  text: '#F0F3F7',
-  muted: '#B5BDCC',
-  faint: '#929EAD',
-  lavender: '#B6B2FA',
-  lavenderSoft: 'rgba(182, 178, 250, 0.13)',
-  blue: '#9FCCFF',
-  amber: '#FFC6A6'
+  background: dv.surface.canvas,
+  surface: dv.surface.card,
+  elevated: dv.surface.card,
+  border: dv.ink.border,
+  text: dv.ink.text,
+  muted: dv.ink.muted,
+  faint: dv.ink.muted,
+  lavender: dv.pillarOnCanvas.recovery_rhythm,
+  lavenderSoft: dv.ink.washStrong,
+  blue: dv.ink.text,
+  amber: dv.accent.amberDeep
 } as const;
 
 type SleepTodayHeroProps = {
@@ -111,24 +113,24 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: sleepV2.surface, borderRadius: 24, borderWidth: 1, borderColor: sleepV2.border, padding: 20, gap: 13 },
   metaLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
-  eyebrow: { fontSize: 11, letterSpacing: 1.1, fontWeight: '700', color: sleepV2.lavender },
+  eyebrow: { fontSize: 11, letterSpacing: 1.1, fontFamily: fonts.bodySemibold, color: sleepV2.lavender },
   meta: { fontSize: 11, color: sleepV2.faint, textTransform: 'capitalize', flexShrink: 1 },
-  title: { fontSize: 29, lineHeight: 35, letterSpacing: -0.8, fontWeight: '700', color: sleepV2.text },
+  title: { fontSize: 29, lineHeight: 35, letterSpacing: -0.8, fontFamily: fonts.bodySemibold, color: sleepV2.text },
   summary: { fontSize: 15, lineHeight: 23, color: sleepV2.muted },
   nowRow: { flexDirection: 'row', flexWrap: 'wrap' },
   statusChip: { backgroundColor: sleepV2.lavenderSoft, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 12, color: sleepV2.text, fontWeight: '600' },
+  statusText: { fontSize: 12, color: sleepV2.text, fontFamily: fonts.bodySemibold },
   shiftRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, borderTopColor: sleepV2.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 13 },
   shiftText: { color: sleepV2.blue, fontSize: 13, lineHeight: 19, flex: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 3 },
   primary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 13, paddingHorizontal: 15, backgroundColor: sleepV2.lavender, flexGrow: 1 },
-  primaryText: { color: sleepV2.background, fontSize: 14, fontWeight: '700' },
+  primaryText: { color: sleepV2.background, fontSize: 14, fontFamily: fonts.bodySemibold },
   secondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: sleepV2.border, paddingHorizontal: 13 },
-  secondaryText: { color: sleepV2.lavender, fontSize: 13, fontWeight: '600' },
+  secondaryText: { color: sleepV2.lavender, fontSize: 13, fontFamily: fonts.bodySemibold },
   detailsToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 18, paddingHorizontal: 17, borderRadius: 19, borderWidth: 1, borderColor: sleepV2.border, backgroundColor: sleepV2.surface },
   detailsText: { flex: 1, gap: 5 },
-  detailsTitle: { fontSize: 16, fontWeight: '700', color: sleepV2.text },
+  detailsTitle: { fontSize: 16, fontFamily: fonts.bodySemibold, color: sleepV2.text },
   detailsSubtitle: { fontSize: 12, lineHeight: 18, color: sleepV2.faint },
   pressed: { opacity: 0.72 }
 });

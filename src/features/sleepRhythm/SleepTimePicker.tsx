@@ -7,6 +7,7 @@ import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
 import { SleepTimeWheel } from './SleepTimeWheel';
 import { sleepClockParts, sleepClockValue } from './sleepTimePickerModel';
 
+import * as dv from '../../styles/daywoven1c';
 const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const MINUTES = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
 const PERIODS = ['AM', 'PM'] as const;
@@ -35,7 +36,7 @@ export function SleepTimePicker({ label, value, palette, onCancel, onDone }: {
           <View style={[styles.header, { borderBottomColor: palette.border }]}>
             <Pressable accessibilityRole="button" onPress={onCancel} style={styles.action}><Text style={[styles.actionText, { color: palette.muted }]}>Cancel</Text></Pressable>
             <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{label}</Text>
-            <Pressable accessibilityRole="button" disabled={!valid} onPress={() => { if (valid && output) onDone(output); }} style={styles.action}><Text style={[styles.actionText, { color: valid ? palette.accent : palette.faint, fontWeight: '600' }]}>Done</Text></Pressable>
+            <Pressable accessibilityRole="button" disabled={!valid} onPress={() => { if (valid && output) onDone(output); }} style={styles.action}><Text style={[styles.actionText, { color: valid ? palette.accent : palette.faint, fontFamily: fonts.bodySemibold }]}>Done</Text></Pressable>
           </View>
           <View style={styles.labels}>
             {['Hour', 'Minute', 'AM / PM'].map((text) => <Text key={text} style={[styles.label, { color: palette.muted }]}>{text}</Text>)}
@@ -53,12 +54,12 @@ export function SleepTimePicker({ label, value, palette, onCancel, onDone }: {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(3,7,5,0.34)' },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: dv.control.scrim },
   sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 16, width: '100%', maxWidth: 520, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   action: { minHeight: 48, minWidth: 64, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   actionText: { fontFamily: fonts.body, fontSize: 16 },
-  title: { flex: 1, fontFamily: fonts.bodyMedium, fontWeight: '600', fontSize: 17, textAlign: 'center' },
+  title: { flex: 1, fontFamily: fonts.bodySemibold, fontSize: 17, textAlign: 'center' },
   labels: { flexDirection: 'row', paddingHorizontal: 18, paddingTop: 18 },
   label: { flex: 1, fontFamily: fonts.body, fontSize: 14, textAlign: 'center' },
   wheels: { flexDirection: 'row', marginHorizontal: 18, marginTop: 4, position: 'relative' },

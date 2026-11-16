@@ -27,9 +27,14 @@ import { ActionRow } from '../../../src/components/mobile/ActionRow';
 import { DietIntakeSummary, DietWeekSelector } from '../../../src/features/nutrition/DietDashboard';
 import { HydrationCard } from '../../../src/features/nutrition/HydrationCard';
 import type { HydrationClient } from '../../../src/features/nutrition/hydrationStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Disclosure } from '../../../src/components/mobile/Disclosure';
 import { EntrySheet } from '../../../src/components/mobile/EntrySheet';
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { Eyebrow, TextLink, ThreadBand, ThreadHeader } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
+import { FoodBand, FoodQuickAdd } from '../../../src/features/nutrition/FoodBand';
+import { addGlassOfWater, GLASS_ML } from '../../../src/features/nutrition/quickWater';
 import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { dayTitle } from '../../../src/features/navigation/navigationModel';
 import { FoodEntryPicker } from '../../../src/features/nutrition/FoodEntryPicker';
@@ -202,6 +207,8 @@ import {
 } from '../../../src/styles/mobileTheme';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
+import * as dv from '../../../src/styles/daywoven1c';
+import { formatClockOfDate } from '../../../src/utils/clockFormat';
 const C = {
   bg: themeColors.background,
   card: themeColors.surface,
@@ -247,7 +254,7 @@ function dateKey(value: string): string {
 function formatClock(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return formatClockOfDate(date);
 }
 
 function confidenceLabel(value: string): string {
@@ -659,6 +666,9 @@ export default function FoodScreen() {
   }, [userId]);
   const activeProtocol = useActiveProtocol(protocolScopeValue, today);
   const protocolNourishment = (activeProtocol?.actions ?? []).filter((action) => action.domain === 'nourishment');
+  const [waterNotice, setWaterNotice] = useState<string | null>(null);
+  const [waterVersion, setWaterVersion] = useState(0);
+  useBandStatusBar();
   const modeLabel = demoModeLabel(isSupabaseConfigured, Boolean(userId && userId !== 'demo-user'));
   const todayMeals = useMemo(() => mealsForDay(meals, today), [meals, today]);
   /**
@@ -1960,15 +1970,32 @@ export default function FoodScreen() {
    * where "no target set" points at them. Photo meals only appear where they work — a
    * disabled row at the top of the tab was the first thing everyone saw.
    */
+  async function logWaterGlass() {
+    try {
+      await addGlassOfWater({ demo: mode === 'demo', userId: canUseRemote ? userId : null, client: canUseRemote ? supabase as unknown as HydrationClient : null, day: today, storage: AsyncStorage });
+      setWaterNotice(`Glass of water added · ${GLASS_ML} mL`);
+      setWaterVersion((value) => value + 1);
+    } catch {
+      setWaterNotice('Water wasn’t saved. Try again from the water card below.');
+    }
+  }
+
   function renderDiary() {
     const goalsSet = targets.basis.length > 0;
     const goalSetup = <NutritionGoalSetup key={`${userId}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as GoalClient : null} pattern={goalPatternInput(activeProfile)} onTargets={setTargets} onOpenPattern={() => { closeScanner(); setActiveSegment('Food Pattern Test'); }} />;
     return (
       <View style={styles.stack}>
         <DietWeekSelector date={today} today={actualToday} onChange={setSelectedDay} />
-        <DietIntakeSummary summary={nutrientSummary} targets={targets} onNutrients={() => setActiveSegment('Nutrients')} />
+        {/* Quick add (design language P6). The day's intake is the band's hero above. */}
+        <FoodQuickAdd tiles={[
+          { label: 'Search', icon: 'search-outline', accessibilityLabel: 'Search for a food', onPress: () => setFoodEntryOpen(true) },
+          { label: 'Scan', icon: 'barcode-outline', accessibilityLabel: 'Scan a product barcode', onPress: () => openScanner('log') },
+          { label: 'Meals', icon: 'bookmark-outline', accessibilityLabel: 'Your foods and saved meals', onPress: () => openMealLibrary() },
+          { label: 'Water', icon: 'water-outline', accessibilityLabel: `Add a ${GLASS_ML} mL glass of water`, onPress: () => void logWaterGlass() }
+        ]} />
+        {waterNotice ? <Text accessibilityLiveRegion="polite" style={styles.diaryDetail}>{waterNotice}</Text> : null}
         {goalsSet ? null : goalSetup}
-        <HydrationCard key={`${userId}:${today}:${mode}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
+        <HydrationCard key={`${userId}:${today}:${mode}:${waterVersion}`} userId={userId} demo={mode === 'demo'} client={canUseRemote ? supabase as unknown as HydrationClient : null} date={today} />
         {mealBuilder.items.length > 0 ? <View style={styles.diarySection}><ActionRow title="Continue your meal" detail={`${mealBuilder.items.length} foods in your unsaved draft`} icon="create-outline" onPress={() => setActiveSegment('Build Meal')} last /></View> : null}
         <MealDiarySections meals={todayMeals} date={today} loading={isLoadingRemote} onAdd={beginDiaryMeal} onSelect={meal => { setMealDetailMessage(''); setSelectedMeal(meal); }} />
         <View style={styles.diarySection}>
@@ -2058,7 +2085,7 @@ export default function FoodScreen() {
             accessibilityLabel="Search nutrients"
             onChangeText={setNutrientQuery}
             placeholder="Search nutrients"
-            placeholderTextColor="#8C939D"
+            placeholderTextColor={dv.ink.muted}
             style={styles.adaptiveSearch}
             value={nutrientQuery}
           />
@@ -2515,36 +2542,60 @@ export default function FoodScreen() {
   const inFlow = scannerOpen || !dietTabs.includes(activeSegment as DietTab);
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+      <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.safe, { backgroundColor: dv.surface.canvas }]}>
           <ScrollView
             ref={scrollRef}
             onScroll={(event) => { scrollPositions.current[scannerOpen ? 'scanner' : activeSegment] = event.nativeEvent.contentOffset.y; }}
             scrollEventThrottle={100}
-            contentContainerStyle={[styles.scroll, inFlow ? { paddingBottom: tabSpace } : null]}
+            contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.adaptiveTopBar}>
-              <Text accessibilityRole="header" style={styles.adaptivePageLabel}>Diet</Text>
-              <Text style={styles.diaryDetail}>{modeLabel}</Text>
-            </View>
-            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : (
-              <Pressable accessibilityRole="button" onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }} style={styles.diaryTextButton}>
-                <Ionicons name="chevron-back" size={20} color={tabAccent.food} /><Text style={styles.diaryLink}>{scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}</Text>
-              </Pressable>
-            )}
+            {/* The 1c Food band (design language P1). In a flow (scanning, building a meal) it is the short band: a way back and the screen's name. */}
+            <ThreadBand>
+              <ThreadHeader
+                date={new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                dateAccessibilityLabel={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                right={<Text numberOfLines={1} style={styles.bandMode}>{modeLabel}</Text>}
+              />
+              {inFlow ? (
+                <View style={styles.bandFlow}>
+                  <TextLink
+                    tone="band"
+                    label={scannerOpen && mealBuilder.items.length ? 'Back to meal' : 'Back to diary'}
+                    onPress={() => { closeScanner(); setActiveSegment(mealBuilder.items.length && scannerOpen ? 'Build Meal' : 'Diary'); }}
+                    trailing={null}
+                  />
+                  <Eyebrow tone="band">Food</Eyebrow>
+                </View>
+              ) : (
+                <FoodBand
+                  summary={nutrientSummary}
+                  targets={targets}
+                  mealCount={todayMeals.length}
+                  isToday={today === actualToday}
+                  dayLabel={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long' })}
+                  onAddMeal={() => { setMealStartMessage(''); setMealChooserOpen(true); }}
+                  onScan={() => openScanner('log')}
+                  onNutrients={() => setActiveSegment('Nutrients')}
+                />
+              )}
+            </ThreadBand>
+            {!inFlow ? <View style={styles.diaryTabs}><SegmentedControl options={['Overview', 'Nutrients', 'Quality'] as const} value={activeSegment === 'Diary' ? 'Overview' : activeSegment as 'Nutrients' | 'Quality'} onChange={(segment) => { closeScanner(); setActiveSegment(segment === 'Overview' ? 'Diary' : segment); }} /></View> : null}
             {/saved|logged|could not|unavailable|not saved/i.test(status) ? <Text accessibilityLiveRegion="polite" style={styles.diaryStatus}>{status}</Text> : null}
             {scannerOpen ? renderScanner() : null}
             {!scannerOpen && (activeSegment === 'Diary' || activeSegment === 'Today') ? renderDiary() : null}
             {!scannerOpen && activeSegment === 'Quality' ? (
-              <FoodQualityReviewPanel
-                onOpenPreferences={() => setActiveSegment('Profile')}
-                onOpenScanner={() => openScanner('log')}
-                review={qualityReview}
-                windowLabel="Today"
-              />
+              <View style={styles.gutter}>
+                <FoodQualityReviewPanel
+                  onOpenPreferences={() => setActiveSegment('Profile')}
+                  onOpenScanner={() => openScanner('log')}
+                  review={qualityReview}
+                  windowLabel="Today"
+                />
+              </View>
             ) : null}
             {!scannerOpen && activeSegment === 'Timeline' ? renderTimeline() : null}
             {!scannerOpen && activeSegment === 'Nutrients' ? renderNutrients() : null}
@@ -2555,22 +2606,6 @@ export default function FoodScreen() {
             {!scannerOpen && activeSegment === 'Food Pattern Test' ? renderPatternTest() : null}
             {!scannerOpen && activeSegment === 'Insights' ? renderInsights() : null}
           </ScrollView>
-          {!inFlow ? <View style={[styles.adaptiveActionDock, { marginBottom: tabSpace - 12 }]}>
-            <Pressable accessibilityRole="button" onPress={() => { setMealStartMessage(''); setMealChooserOpen(true); }} style={({ pressed }) => [styles.diaryAdd, pressed && styles.pressed]}><Ionicons name="add" color={onPillar} size={22} /><Text style={[styles.adaptivePrimaryButtonText, styles.diaryAddText]}>Add meal</Text></Pressable>
-            {/*
-              Scanning was three taps inside the add-meal sheet, which is a long way
-              round for the thing people stand in a shop holding. It gets its own key
-              on the same bar — no label, because a barcode is already the word.
-            */}
-            <Pressable
-              accessibilityLabel="Scan a product barcode"
-              accessibilityRole="button"
-              onPress={() => openScanner('log')}
-              style={({ pressed }) => [styles.dockScan, pressed && styles.pressed]}
-            >
-              <Ionicons name="barcode-outline" color={tabAccent.food} size={24} />
-            </Pressable>
-          </View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
       {scoreBreakdownFor ? <EntrySheet title="Why this score" onClose={() => setScoreBreakdownFor(null)}>
@@ -2662,18 +2697,18 @@ function ChoiceRow({
 
 const styles = StyleSheet.create({
   diarySection: { ...glassSurface, borderRadius: 20, padding: 18, gap: 12 },
-  diaryHeading: { fontFamily: sans, fontSize: 20, lineHeight: 26, fontWeight: '600', color: colors.text },
+  diaryHeading: { fontFamily: themeFonts.bodySemibold, fontSize: 20, lineHeight: 26, color: colors.text },
   diaryDetail: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted },
   diaryEnergy: { paddingVertical: 8, gap: 3 },
-  diaryEnergyValue: { fontFamily: sans, fontSize: 38, fontWeight: '600', color: colors.text, fontVariant: ['tabular-nums'] },
+  diaryEnergyValue: { fontFamily: themeFonts.bodySemibold, fontSize: 38, color: colors.text, fontVariant: ['tabular-nums'] },
   diaryMacros: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingVertical: 10 },
   diaryMacro: { flex: 1, minWidth: 70, gap: 4 },
-  diaryMacroValue: { fontFamily: sans, fontSize: 17, lineHeight: 24, fontWeight: '600', color: colors.text },
+  diaryMacroValue: { fontFamily: themeFonts.bodySemibold, fontSize: 17, lineHeight: 24, color: colors.text },
   diaryNotice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   diaryTextButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  diaryLink: { fontFamily: sans, fontSize: 16, lineHeight: 22, color: tabAccent.food, fontWeight: '500' },
+  diaryLink: { fontFamily: themeFonts.bodyMedium, fontSize: 16, lineHeight: 22, color: tabAccent.food },
   diaryStatus: { fontFamily: sans, fontSize: 14, lineHeight: 21, color: colors.textMuted, paddingVertical: 8 },
-  diaryAddText: { color: onPillar, fontWeight: '600' },
+  diaryAddText: { color: onPillar, fontFamily: themeFonts.bodySemibold },
   diaryAdd: { flex: 1, ...accentFill(tabAccent.food), minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderRadius: 16 },
   // Fixed width rather than a flex share, so the primary action keeps the bar and this
   // stays a key beside it at roughly a fifth of the width on a phone.
@@ -2688,6 +2723,9 @@ const styles = StyleSheet.create({
     width: 68
   },
   diaryTabs: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
+  bandMode: { color: dv.bone.muted, flexShrink: 1, fontFamily: dv.font.body, fontSize: 12 },
+  bandFlow: { gap: 4, marginTop: 8 },
+  gutter: { paddingHorizontal: dv.space.gutter, paddingTop: 12 },
   screen: {
     flex: 1,
     backgroundColor: 'transparent'
@@ -2709,16 +2747,16 @@ const styles = StyleSheet.create({
   },
   adaptivePageLabel: {
     ...themeType.largeTitle,
-    color: '#F5F7FA'
+    color: dv.ink.text
   },
   trackerCard: {
     ...glassSurface,
-    borderColor: 'rgba(180, 166, 246, 0.20)',
+    borderColor: dv.ink.border,
     borderRadius: 22,
     borderWidth: 1
   },
   trackerTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 26,
     lineHeight: 32,
@@ -2726,25 +2764,25 @@ const styles = StyleSheet.create({
   },
   trackerEnergyRow: {
     alignItems: 'flex-end',
-    borderBottomColor: 'rgba(180, 166, 246, 0.12)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 16
   },
   trackerEnergyValue: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 42,
     lineHeight: 46
   },
   trackerEnergyLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12
   },
   trackerEnergyTarget: {
-    color: '#8C939D',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     paddingBottom: 3
@@ -2756,29 +2794,29 @@ const styles = StyleSheet.create({
     gap: 7
   },
   trackerProgressLabel: {
-    color: '#C7CBD1',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerRail: {
-    backgroundColor: 'rgba(180, 166, 246, 0.10)',
+    backgroundColor: dv.ink.wash,
     borderRadius: 4,
     height: 6,
     overflow: 'hidden'
   },
   trackerFill: {
-    backgroundColor: '#C9BFF9',
+    backgroundColor: dv.ink.text,
     borderRadius: 4,
     height: 6
   },
   trackerMicroBlock: {
-    backgroundColor: '#1E2126',
+    backgroundColor: dv.surface.card,
     borderRadius: 16,
     gap: 12,
     padding: 14
   },
   trackerMicroHeading: {
-    color: '#C7CBD1',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0.3
@@ -2798,17 +2836,17 @@ const styles = StyleSheet.create({
     padding: 10
   },
   trackerMicroValue: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 13
   },
   trackerMicroUnavailable: {
-    color: '#8C939D',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 10
   },
   trackerMicroLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 11
   },
@@ -2818,7 +2856,7 @@ const styles = StyleSheet.create({
   },
   trackerSearchButton: {
     alignItems: 'center',
-    borderColor: 'rgba(180, 166, 246, 0.28)',
+    borderColor: dv.ink.border,
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -2828,13 +2866,13 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerSearchText: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12
   },
   trackerScanButton: {
     alignItems: 'center',
-    backgroundColor: '#B4A6F6',
+    backgroundColor: dv.ink.text,
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -2843,7 +2881,7 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   trackerScanText: {
-    color: '#0A0D13',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: 12
   },
@@ -2854,13 +2892,13 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   adaptiveModeDot: {
-    backgroundColor: '#F2C87E',
+    backgroundColor: dv.accent.amberWash,
     borderRadius: 3,
     height: 6,
     width: 6
   },
   adaptiveModeText: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -2879,20 +2917,20 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   adaptiveTabActive: {
-    borderBottomColor: '#B4A6F6'
+    borderBottomColor: dv.ink.text
   },
   adaptiveTabText: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 15,
     letterSpacing: -0.1,
     lineHeight: 21
   },
   adaptiveTabTextActive: {
-    color: '#F5F7FA'
+    color: dv.ink.text
   },
   adaptiveTabBaseline: {
-    backgroundColor: 'rgba(255, 255, 255,0.10)',
+    backgroundColor: dv.ink.wash,
     height: hairlineWidth,
     marginTop: -1
   },
@@ -2907,7 +2945,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   adaptiveBackText: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 13,
     lineHeight: 18
@@ -2921,28 +2959,28 @@ const styles = StyleSheet.create({
     paddingTop: 26
   },
   adaptiveSection: {
-    borderTopColor: 'rgba(255, 255, 255,0.10)',
+    borderTopColor: dv.ink.hairline,
     borderTopWidth: hairlineWidth,
     paddingBottom: 24,
     paddingHorizontal: 22,
     paddingTop: 22
   },
   adaptiveSectionLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptiveConfidenceValue: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptivePrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#B4A6F6',
+    backgroundColor: dv.ink.text,
     borderRadius: 13,
     justifyContent: 'center',
     marginTop: 22,
@@ -2950,7 +2988,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptivePrimaryButtonText: {
-    color: '#0A0D13',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
@@ -2962,7 +3000,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   adaptiveSectionAside: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15
@@ -2971,37 +3009,37 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptivePriority: {
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth,
     marginBottom: 18,
     paddingBottom: 18
   },
   adaptivePriorityTag: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 15
   },
   adaptivePriorityTagUrgent: {
-    color: '#F2C87E'
+    color: dv.accent.amberDeep
   },
   adaptiveMono: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 15,
     fontVariant: ['tabular-nums']
   },
   adaptiveMonoStrong: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19,
     fontVariant: ['tabular-nums']
   },
   adaptivePriorityTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 16.5,
     letterSpacing: -0.1,
@@ -3009,7 +3047,7 @@ const styles = StyleSheet.create({
     marginTop: 7
   },
   adaptivePriorityReason: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 13.5,
     lineHeight: 20,
@@ -3022,19 +3060,19 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adaptiveInlineAction: {
-    borderBottomColor: 'rgba(180, 166, 246, 0.35)',
+    borderBottomColor: dv.ink.border,
     borderBottomWidth: 1,
     justifyContent: 'center',
     minHeight: 44
   },
   adaptiveInlineActionText: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptivePriorityConfidence: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3042,7 +3080,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto'
   },
   adaptiveSectionVoice: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: serifItalic,
     fontSize: 14,
     fontStyle: 'italic',
@@ -3053,7 +3091,7 @@ const styles = StyleSheet.create({
     marginTop: 17
   },
   adaptiveLane: {
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth
   },
   adaptiveLaneButton: {
@@ -3062,20 +3100,20 @@ const styles = StyleSheet.create({
     paddingVertical: 13
   },
   adaptiveLaneName: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     flex: 1,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveLaneState: {
-    color: '#C9BFF9',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
   },
   adaptiveLaneStateWarm: {
-    color: '#F2C87E'
+    color: dv.accent.amberDeep
   },
   adaptiveLaneTrackRow: {
     alignItems: 'center',
@@ -3084,18 +3122,18 @@ const styles = StyleSheet.create({
     marginTop: 9
   },
   adaptiveLaneTrack: {
-    backgroundColor: 'rgba(255, 255, 255,0.10)',
+    backgroundColor: dv.ink.wash,
     borderRadius: 2,
     flex: 1,
     height: 4,
     overflow: 'hidden'
   },
   adaptiveLaneTrackLimited: {
-    borderColor: 'rgba(255, 255, 255,0.25)',
+    borderColor: dv.ink.border,
     borderWidth: 1
   },
   adaptiveLaneFill: {
-    backgroundColor: '#C9BFF9',
+    backgroundColor: dv.ink.text,
     borderRadius: 2,
     bottom: 0,
     left: 0,
@@ -3103,21 +3141,21 @@ const styles = StyleSheet.create({
     top: 0
   },
   adaptiveLaneMeta: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 13
   },
   adaptiveLaneDetail: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 19,
     paddingBottom: 15
   },
   adaptiveCoverageLabel: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
@@ -3125,7 +3163,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   adaptiveCoverageNeed: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 18,
     lineHeight: 24,
@@ -3133,14 +3171,14 @@ const styles = StyleSheet.create({
   },
   adaptiveInsetCard: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 16,
     borderWidth: 1,
     marginTop: 18,
     padding: 18
   },
   adaptiveCoverageSuggestion: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serif,
     fontSize: 20,
     lineHeight: 27,
@@ -3149,7 +3187,7 @@ const styles = StyleSheet.create({
   adaptiveRecent: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3163,13 +3201,13 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveRecentTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14.5,
     lineHeight: 20
   },
   adaptiveViewTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serifLight,
     fontSize: 23,
     lineHeight: 30,
@@ -3185,7 +3223,7 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   adaptiveTimelineTime: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 17,
@@ -3194,8 +3232,8 @@ const styles = StyleSheet.create({
     width: 54
   },
   adaptiveTimelineMarker: {
-    backgroundColor: '#C9BFF9',
-    borderColor: '#000000',
+    backgroundColor: dv.ink.text,
+    borderColor: dv.ink.text,
     borderRadius: 6,
     borderWidth: 2,
     height: 12,
@@ -3204,21 +3242,21 @@ const styles = StyleSheet.create({
     width: 12
   },
   adaptiveTimelineCopy: {
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth,
     flex: 1,
     minHeight: 64,
     paddingBottom: 14
   },
   adaptiveTimelineTitle: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 15,
     lineHeight: 20
   },
   adaptiveTimelineNote: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 8,
@@ -3226,17 +3264,17 @@ const styles = StyleSheet.create({
   },
   adaptiveEmpty: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.10)',
+    borderColor: dv.ink.hairline,
     borderRadius: 16,
     borderWidth: 1,
     padding: 20
   },
   adaptiveSearch: {
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.12)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 15,
     height: 46,
@@ -3244,14 +3282,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveConfidenceSummary: {
-    borderTopColor: 'rgba(255, 255, 255,0.08)',
+    borderTopColor: dv.ink.hairline,
     borderTopWidth: hairlineWidth,
     marginTop: 16,
     paddingTop: 15
   },
   adaptiveNutrientRow: {
     alignItems: 'center',
-    borderBottomColor: 'rgba(255, 255, 255,0.07)',
+    borderBottomColor: dv.ink.hairline,
     borderBottomWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 12,
@@ -3263,7 +3301,7 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   adaptiveNutrientContext: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 13,
     lineHeight: 16,
@@ -3279,28 +3317,28 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   adaptiveFoundationBadge: {
-    borderColor: 'rgba(180, 166, 246, 0.40)',
+    borderColor: dv.ink.border,
     borderRadius: 6,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4
   },
   adaptiveFoundationBadgeText: {
-    color: '#B4A6F6',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 12,
     letterSpacing: 0,
     lineHeight: 14
   },
   adaptiveProfileLead: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: serifLight,
     fontSize: 19,
     lineHeight: 29,
     marginTop: 14
   },
   adaptiveContributorList: {
-    backgroundColor: 'rgba(255, 255, 255,0.08)',
+    backgroundColor: dv.ink.wash,
     borderRadius: 12,
     gap: 1,
     marginTop: 18,
@@ -3315,13 +3353,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12
   },
   adaptiveContributorLabel: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 13.5,
     lineHeight: 18
   },
   adaptiveContributorValue: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sansMedium,
     fontSize: 12,
     lineHeight: 16
@@ -3329,7 +3367,7 @@ const styles = StyleSheet.create({
   adaptiveSecondaryButton: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -3338,13 +3376,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   adaptiveSecondaryButtonText: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
   },
   adaptiveSafetyNote: {
-    color: '#A9B0BA',
+    color: dv.ink.muted,
     fontFamily: sans,
     fontSize: 12,
     lineHeight: 18,
@@ -3353,7 +3391,7 @@ const styles = StyleSheet.create({
   },
   adaptiveActionDock: {
     backgroundColor: colors.background,
-    borderTopColor: 'rgba(255, 255, 255,0.10)',
+    borderTopColor: dv.ink.hairline,
     borderTopWidth: hairlineWidth,
     flexDirection: 'row',
     gap: 10,
@@ -3364,7 +3402,7 @@ const styles = StyleSheet.create({
   adaptiveDockButton: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
@@ -3376,7 +3414,7 @@ const styles = StyleSheet.create({
   adaptiveDockAdd: {
     alignItems: 'center',
     ...glassSurface,
-    borderColor: 'rgba(255, 255, 255,0.15)',
+    borderColor: dv.ink.hairline,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -3386,7 +3424,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18
   },
   adaptiveDockText: {
-    color: '#F5F7FA',
+    color: dv.ink.text,
     fontFamily: sansMedium,
     fontSize: 14,
     lineHeight: 19
@@ -3419,8 +3457,8 @@ const styles = StyleSheet.create({
   },
   iconBubble: {
     alignItems: 'center',
-    backgroundColor: 'rgba(180, 166, 246, 0.08)',
-    borderColor: 'rgba(180, 166, 246, 0.24)',
+    backgroundColor: dv.ink.wash,
+    borderColor: dv.ink.border,
     borderRadius: 18,
     borderWidth: 1,
     height: 42,
@@ -3556,7 +3594,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   metric: {
-    backgroundColor: '#1E2126',
+    backgroundColor: dv.surface.card,
     borderColor: C.hairline,
     borderRadius: 18,
     borderWidth: 1,
@@ -3655,7 +3693,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   primaryButtonText: {
-    color: '#0A0D13',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight
@@ -3772,7 +3810,7 @@ const styles = StyleSheet.create({
     width: 48
   },
   cameraShell: {
-    backgroundColor: '#000000',
+    backgroundColor: dv.surface.band,
     borderRadius: 20,
     height: 320,
     marginTop: 16,
@@ -3791,8 +3829,8 @@ const styles = StyleSheet.create({
   },
   cameraCancel: {
     alignItems: 'center',
-    backgroundColor: 'rgba(26,33,29,0.78)',
-    borderColor: 'rgba(253,252,249,0.38)',
+    backgroundColor: dv.control.scrim,
+    borderColor: dv.ink.border,
     borderRadius: 16,
     borderWidth: 1,
     bottom: 18,
@@ -3803,7 +3841,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   cameraCancelText: {
-    color: '#FFFFFF',
+    color: dv.bone.text,
     fontFamily: sansMedium,
     fontSize: themeType.label.fontSize,
     lineHeight: themeType.label.lineHeight

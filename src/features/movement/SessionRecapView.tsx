@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type, glassSurface } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../styles/mobileTheme';
 import type { ExerciseMovementPattern } from './movementPersistence';
 import {
   baselineNames,
@@ -10,6 +10,7 @@ import {
   type SessionRecap
 } from './sessionRecap';
 
+import * as dv from '../../styles/daywoven1c';
 /**
  * The screen a finished session lands on.
  *
@@ -23,16 +24,16 @@ import {
  */
 
 const palette = {
-  background: '#08090C',
-  surface: '#15171B',
-  ink: '#F5F7FA',
-  accent: '#86C8F0',
-  accentMid: '#A5D6F4',
-  slate: '#A9B0BA',
-  faint: '#8C939D',
-  line: 'rgba(255, 255, 255, 0.075)',
-  record: '#FF9F0A',
-  up: '#A6EAD2'
+  background: dv.surface.canvas,
+  surface: dv.surface.card,
+  ink: dv.ink.text,
+  accent: dv.ink.text,
+  accentMid: dv.ink.text,
+  slate: dv.ink.muted,
+  faint: dv.ink.muted,
+  line: dv.ink.hairline,
+  record: dv.accent.amberDeep,
+  up: dv.ink.text
 } as const;
 
 function Eyebrow({ children }: { children: string }) {
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   savedRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   savedLabel: { ...type.eyebrow, color: palette.up },
   title: { ...type.title, color: palette.ink },
-  meta: { ...type.body, color: 'rgba(255, 255, 255, 0.62)', fontVariant: ['tabular-nums'] },
+  meta: { ...type.body, color: dv.ink.muted, fontVariant: ['tabular-nums'] },
   eyebrow: { ...type.eyebrow, color: palette.faint },
   panel: {
     ...glassSurface,
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
   changeRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   changeName: { ...type.body, color: palette.ink, flex: 1 },
   changeDetail: { ...type.body, color: palette.slate, fontVariant: ['tabular-nums'] },
-  changeDetailUp: { color: palette.up, fontFamily: type.label.fontFamily, fontWeight: '600' },
+  changeDetailUp: { color: palette.up, fontFamily: fonts.bodySemibold },
   baseline: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -257,8 +258,8 @@ const styles = StyleSheet.create({
   baselineText: { ...type.caption, color: palette.slate, flex: 1 },
   recordCard: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 159, 10, 0.10)',
-    borderColor: 'rgba(255, 159, 10, 0.26)',
+    backgroundColor: dv.accent.amberWash,
+    borderColor: dv.accent.amberWash,
     borderRadius: 16,
     borderWidth: hairlineWidth,
     flexDirection: 'row',
@@ -267,24 +268,24 @@ const styles = StyleSheet.create({
   },
   recordCopy: { flex: 1, gap: 3 },
   recordTitle: { ...type.label, color: palette.record, fontSize: 15 },
-  recordDetail: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)' },
+  recordDetail: { ...type.caption, color: dv.ink.muted },
   coverageRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   // Wide enough for the longest pattern name, and pinned to one line so a narrow
   // phone breaks the bar instead of the word: "Locomotio / n" reads as a bug.
-  coverageLabel: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)', width: 86 },
-  coverageTrack: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 3, flex: 1, height: 6, overflow: 'hidden' },
+  coverageLabel: { ...type.caption, color: dv.ink.muted, width: 86 },
+  coverageTrack: { backgroundColor: dv.ink.wash, borderRadius: 3, flex: 1, height: 6, overflow: 'hidden' },
   coverageFill: { backgroundColor: palette.accent, height: '100%' },
   coverageValue: { ...type.caption, color: palette.accentMid, fontVariant: ['tabular-nums'], textAlign: 'right', width: 52 },
   coverageNone: { ...type.caption, color: palette.faint, textAlign: 'right', width: 52 },
-  coverageNote: { ...type.caption, color: 'rgba(255, 255, 255, 0.62)' },
+  coverageNote: { ...type.caption, color: dv.ink.muted },
   classify: { borderTopColor: palette.line, borderTopWidth: hairlineWidth, gap: 14, paddingTop: 14 },
   classifyRow: { gap: 8 },
-  classifyAsk: { ...type.caption, color: 'rgba(255, 255, 255, 0.72)' },
+  classifyAsk: { ...type.caption, color: dv.ink.muted },
   classifyName: { color: palette.ink },
   classifyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: dv.ink.wash,
     borderColor: palette.line,
     borderRadius: 999,
     borderWidth: hairlineWidth,
@@ -292,11 +293,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: 13
   },
-  chipPressed: { backgroundColor: 'rgba(134, 200, 240, 0.18)' },
+  chipPressed: { backgroundColor: dv.ink.washStrong },
   chipText: { ...type.caption, color: palette.ink },
   nextPanel: {
-    backgroundColor: 'rgba(134, 200, 240, 0.10)',
-    borderColor: 'rgba(134, 200, 240, 0.26)',
+    backgroundColor: dv.ink.wash,
+    borderColor: dv.ink.border,
     borderRadius: 16,
     borderWidth: hairlineWidth,
     gap: 8,
@@ -304,19 +305,19 @@ const styles = StyleSheet.create({
   },
   nextHeadline: { ...type.heading, color: palette.ink, fontSize: 20, lineHeight: 26 },
   nextName: { ...type.caption, color: palette.accentMid },
-  nextReason: { ...type.caption, color: 'rgba(255, 255, 255, 0.68)' },
+  nextReason: { ...type.caption, color: dv.ink.muted },
   nextConfidence: { ...type.caption, color: palette.faint },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: dv.ink.hairline,
     borderRadius: 13,
     borderWidth: hairlineWidth,
     flex: 1,
     justifyContent: 'center',
     minHeight: 52
   },
-  secondaryLabel: { ...type.label, color: 'rgba(255, 255, 255, 0.78)', fontSize: 15 },
+  secondaryLabel: { ...type.label, color: dv.ink.muted, fontSize: 15 },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: palette.accent,
@@ -325,6 +326,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52
   },
-  primaryLabel: { ...type.label, color: '#0A0D13', fontSize: 15 },
+  primaryLabel: { ...type.label, color: dv.bone.text, fontSize: 15 },
   pressed: { opacity: 0.6 }
 });

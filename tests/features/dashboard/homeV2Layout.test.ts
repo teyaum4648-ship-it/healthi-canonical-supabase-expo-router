@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 const home = readFileSync('app/(app)/(tabs)/index.tsx', 'utf8');
 const card = readFileSync('src/features/dashboard/TodayDirectionCard.tsx', 'utf8');
+const hub = readFileSync('src/features/dashboard/premium/ReadinessHub.tsx', 'utf8');
+const presentation = readFileSync('src/features/dashboard/homeDashboardPresentation.ts', 'utf8');
 
-describe('Daywoven V2 Home information hierarchy', () => {
+describe('Today (Daywoven 1c) information hierarchy', () => {
   it('places live readiness first, followed by the daily direction and quick logging', () => {
     const readiness = home.indexOf('<ReadinessNowCard');
     const accountReadiness = home.indexOf('<ReadinessHub');
@@ -36,7 +38,7 @@ describe('Daywoven V2 Home information hierarchy', () => {
   });
 
   it('preserves existing detailed analysis controls including biomarker editing and weekly cards', () => {
-    for (const control of ['<ReadinessNowCard', '<ReadinessHub', '<BiomarkerTimeline', '<BiomarkerEntrySheet', '<MetricGrid', '<WeeklyRecapRow', '<WeekFlipCard', '<Disclosure title="Why this estimate?"']) {
+    for (const control of ['<ReadinessNowCard', '<ReadinessHub', '<BiomarkerTimeline', '<BiomarkerEntrySheet', '<MetricGrid', '{biomarkerBreakdown}', '<WeeklyRecapRow', '<WeeklyRecapSheet', '<WeekFlipCard']) {
       expect(home).toContain(control);
     }
     expect(home).toContain("onPress={() => router.navigate('/load-check')}");
@@ -58,7 +60,58 @@ describe('Daywoven V2 Home information hierarchy', () => {
     expect(card).toContain('accessibilityState={{ expanded }}');
     expect(home).toContain('drivers={morningBriefing.driver_cards}');
     expect(home).toContain("router.navigate('/rhythm')");
-    expect(home).toContain("router.navigate('/food')");
+    expect(home).toContain("'/food' as const");
     expect(home).toContain("router.navigate('/movement')");
+  });
+
+  it('keeps the account explanation inline in the band: baseline, every driver and the full protocol', () => {
+    expect(home).toContain('whyPanel={accountWhy}');
+    expect(home).toContain('readinessLedgerSummary(');
+    expect(home).toContain('morningBriefing.driver_cards.map((driver, index) => (');
+    expect(home).toContain('value={contributionLabel(driver)}');
+    expect(home).toContain('label="See the full daily protocol"');
+    expect(hub).toContain('accessibilityState={whyPanel ? { expanded: whyOpen } : undefined}');
+  });
+
+  it('keeps the account logging prompts reachable after they left the Why panel', () => {
+    const toggle = home.indexOf('accessibilityLabel={showExtendedHome');
+    expect(home.indexOf('<LoggingPrompts tone="canvas"')).toBeGreaterThan(toggle);
+  });
+
+  it('places the energy strand after Quick log and before the analysis, and the biomarkers under Explore', () => {
+    const quickLog = home.indexOf('<QuickLog actions={quickLogActions}');
+    const thread = home.indexOf('<DayThread sources={threadSources}');
+    const toggle = home.indexOf('accessibilityLabel={showExtendedHome');
+    expect(thread).toBeGreaterThan(quickLog);
+    expect(toggle).toBeGreaterThan(thread);
+    expect(home.indexOf('{biomarkerBreakdown}')).toBeGreaterThan(toggle);
+  });
+
+  it('draws the plan for the strand separately, leaving the briefing and protocol inputs unchanged', () => {
+    expect(home).toContain('rhythm: briefingToDayPlanRhythm(circadianBriefing)');
+    expect(home).toContain('day_plan: preliminaryDayPlan');
+    expect(home).toContain('dayPlan: preliminaryDayPlan');
+  });
+
+  it('drops only the greeting and the insight shortcuts from Today, keeping the greeting helpers', () => {
+    expect(home).not.toContain('<InsightShortcuts');
+    expect(home).not.toContain('homeGreeting(');
+    expect(presentation).toContain('export function homeGreeting');
+    expect(home).toContain('onPress={sideMenu.open}');
+    expect(home).toContain('accessibilityLabel="You · profile and settings"');
+    expect(home).toContain("router.navigate('/plan')");
+  });
+
+  it('no longer hides the biomarkers behind a tap on the readiness ring', () => {
+    expect(hub).not.toContain('Hide biomarkers');
+    expect(hub).toContain('readinessRingLabel(');
+  });
+
+  it('draws the original readiness ring, large and centred, with the score and zone in it', () => {
+    expect(hub).toContain('const RING_MAX = 248;');
+    expect(hub).toContain('<PillarRing');
+    expect(hub).toContain('size={ringSize}');
+    expect(hub.indexOf('<PillarRing')).toBeLessThan(hub.indexOf('styles.pillarRow'));
+    expect(hub.indexOf('styles.pillarRow')).toBeLessThan(hub.indexOf('copy.headline'));
   });
 });

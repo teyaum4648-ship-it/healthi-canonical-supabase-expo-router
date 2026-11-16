@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, fonts } from '../../styles/mobileTheme';
 import { tabAccent } from '../../styles/pillarColors';
 import { techniqueById } from './breathTechniques';
 import { PacedBreath } from './PacedBreath';
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   list: { gap: 0 },
   row: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, minHeight: 60, paddingVertical: 9 },
   rowCopy: { flex: 1, gap: 2 },
-  rowLabel: { ...type.body, color: colors.text, fontWeight: '600' },
+  rowLabel: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   rowNote: { ...type.caption, color: colors.textMuted, lineHeight: 18 },
   rowMinutes: { ...type.label, color: colors.textFaint, fontVariant: ['tabular-nums'] },
   divider: { backgroundColor: colors.border, height: hairlineWidth },

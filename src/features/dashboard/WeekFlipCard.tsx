@@ -2,35 +2,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
-import { pillarColors, pillarTint } from '../../styles/pillarColors';
-import type { WeekBar, WeekCard } from './weekCards';
+import { bone, font, HIT, ink, radius, surface, type } from '../../styles/daywoven1c';
+import type { WeekCard } from './weekCards';
 
-const CARD_ICONS = { sleep: 'moon-outline', diet: 'nutrition-outline', move: 'barbell-outline', mood: 'happy-outline' } as const;
+const CARD_ICONS = { sleep: 'moon-outline', diet: 'restaurant-outline', move: 'walk-outline', mood: 'leaf-outline' } as const;
 const useNativeDriver = Platform.OS !== 'web';
 
-function MiniBars({ bars, color, tint }: { bars: WeekBar[]; color: string; tint: string }) {
-  return <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.bars}>
-    {bars.map((bar) => <View key={bar.day} style={styles.barSlot}>
-      {bar.fraction === null
-        ? <View style={styles.barEmpty} />
-        : <View style={[styles.bar, { height: `${Math.round(Math.max(0.1, bar.fraction) * 100)}%`, backgroundColor: bar.strong ? color : tint }]} />}
-    </View>)}
-  </View>;
-}
-
 /**
- * One "This week" card. Tapping it turns it over to the thing to work on and back.
+ * One "This week" card (design language P7). The front is the week's number; tapping it
+ * turns it over to the one thing to work on, on the dark band colour, and back.
  *
  * The turn is a squeeze to nothing and back rather than a 3D rotation, because the
  * perspective a real rotation needs renders differently on web and native and a card
  * that distorts mid-turn reads as broken. With reduced motion on, it simply changes face.
+ * The front no longer draws the week's mini bars (decision E); the same week is in Trends.
  */
 export function WeekFlipCard({ card, onAction }: { card: WeekCard; onAction: (card: WeekCard) => void }) {
   const reducedMotion = useReducedMotion();
   const [flipped, setFlipped] = useState(false);
   const [scale] = useState(() => new Animated.Value(1));
-  const color = pillarColors[card.pillar];
   const busy = useRef(false);
 
   function turn() {
@@ -47,7 +37,7 @@ export function WeekFlipCard({ card, onAction }: { card: WeekCard; onAction: (ca
     ? `${card.title}, what to work on: ${card.back.headline}. ${card.back.detail}`
     : `${card.title} this week: ${card.front.value} ${card.front.label}. ${card.front.caption}.`;
 
-  return <Animated.View style={[styles.card, { transform: [{ scaleX: scale }] }]}>
+  return <Animated.View style={[styles.card, flipped && styles.cardFlipped, { transform: [{ scaleX: scale }] }]}>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -55,53 +45,44 @@ export function WeekFlipCard({ card, onAction }: { card: WeekCard; onAction: (ca
       onPress={turn}
       style={({ pressed }) => [styles.face, pressed && styles.pressed]}
     >
-      <View style={styles.header}>
-        {flipped
-          ? <Text style={[styles.eyebrow, { color }]}>Work on</Text>
-          : <View style={styles.titleRow}>
-            <Ionicons accessible={false} color={color} name={CARD_ICONS[card.id]} size={15} />
-            <Text style={styles.title}>{card.title}</Text>
-          </View>}
-        <Ionicons accessible={false} color={colors.textMuted} name={flipped ? 'return-up-back-outline' : 'swap-horizontal-outline'} size={15} />
-      </View>
       {flipped ? <>
-        <Text style={styles.headline} numberOfLines={2}>{card.back.headline}</Text>
+        <Text style={styles.eyebrow}>{card.title} · work on</Text>
+        <Text style={styles.headline} numberOfLines={3}>{card.back.headline}</Text>
         <Text style={styles.detail} numberOfLines={5}>{card.back.detail}</Text>
       </> : <>
-        <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>{card.front.value}</Text>
+        <View style={styles.titleRow}>
+          <Ionicons accessible={false} color={ink.text} name={CARD_ICONS[card.id]} size={16} />
+          <Text style={styles.title}>{card.title}</Text>
+        </View>
+        <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{card.front.value}</Text>
         <Text style={styles.label} numberOfLines={2}>{card.front.label}</Text>
-        <MiniBars bars={card.front.bars} color={color} tint={pillarTint(card.pillar, 0.4)} />
-        <Text style={styles.caption} numberOfLines={1}>{card.front.caption}</Text>
+        <Text style={styles.caption} numberOfLines={3}>{card.front.caption}</Text>
       </>}
     </Pressable>
     {flipped ? <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${card.back.actionLabel}, ${card.title}`}
       onPress={() => onAction(card)}
-      style={({ pressed }) => [styles.action, { borderColor: color }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.action, pressed && styles.pressed]}
     >
-      <Text style={[styles.actionText, { color }]}>{card.back.actionLabel}</Text>
+      <Text style={styles.actionText}>{card.back.actionLabel}</Text>
     </Pressable> : null}
   </Animated.View>;
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, minWidth: 0, minHeight: 236, ...glassSurface, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.075)', padding: 14, gap: 10 },
-  face: { flex: 1, gap: 4 },
+  card: { backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, flex: 1, minHeight: 142, minWidth: 0, padding: 14 },
+  cardFlipped: { backgroundColor: surface.band, borderColor: surface.band },
+  face: { flex: 1 },
   pressed: { opacity: 0.7 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 20, marginBottom: 4 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title: { ...type.label, color: colors.text },
-  eyebrow: { ...type.caption, fontWeight: '600' },
-  value: { fontFamily: type.body.fontFamily, fontSize: 24, lineHeight: 30, fontWeight: '600', letterSpacing: -0.4, color: colors.text, fontVariant: ['tabular-nums'] },
-  label: { ...type.caption, color: colors.textMuted },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 40, marginTop: 'auto', marginBottom: 6 },
-  barSlot: { flex: 1, height: '100%', justifyContent: 'flex-end' },
-  bar: { width: '100%', borderRadius: 3 },
-  barEmpty: { width: '100%', height: 6, borderRadius: 3, borderWidth: 1, borderColor: colors.borderStrong },
-  caption: { ...type.caption, color: colors.textMuted },
-  headline: { fontFamily: type.body.fontFamily, fontSize: 17, lineHeight: 22, fontWeight: '600', color: colors.text },
-  detail: { ...type.caption, color: colors.textMuted, marginTop: 2 },
-  action: { minHeight: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
-  actionText: { ...type.label }
+  titleRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  title: { fontFamily: font.bodySemibold, fontSize: 13, color: ink.text },
+  value: { ...type.bigNumber, color: ink.text, fontVariant: ['tabular-nums'], marginTop: 14 },
+  label: { fontFamily: font.body, fontSize: 12, lineHeight: 16.2, color: ink.text, marginTop: 6 },
+  caption: { fontFamily: font.body, fontSize: 12, lineHeight: 16.2, color: ink.muted, marginTop: 2 },
+  eyebrow: { fontFamily: font.bodySemibold, fontSize: 10.5, letterSpacing: 0.84, textTransform: 'uppercase', color: bone.muted },
+  headline: { fontFamily: font.bodySemibold, fontSize: 14, lineHeight: 18.2, color: bone.text, marginTop: 8 },
+  detail: { fontFamily: font.body, fontSize: 12, lineHeight: 16.8, color: bone.soft, marginTop: 4 },
+  action: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: HIT },
+  actionText: { fontFamily: font.bodyMedium, fontSize: 12.5, color: bone.text, textDecorationLine: 'underline' }
 });

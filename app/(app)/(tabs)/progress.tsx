@@ -18,10 +18,13 @@ import { TrendBarChart } from '../../../src/features/trends/TrendBarChart';
 import { loadTrendsScreenModel } from '../../../src/features/trends/trendsComposer';
 import type { TrendsScreenModel } from '../../../src/features/trends/trendsTypes';
 import { isSupabaseConfigured, supabase } from '../../../src/lib/supabase';
-import { colors, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, type, glassSurface, fonts } from '../../../src/styles/mobileTheme';
 import { pillarColors } from '../../../src/styles/pillarColors';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
+import { ThreadDetailBand } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
+import * as dv from '../../../src/styles/daywoven1c';
 const rangeLabels = ['7 days', '14 days', '30 days'] as const;
 type RangeLabel = typeof rangeLabels[number];
 const rangeDaysFor: Record<RangeLabel, TrendsRangeDays> = { '7 days': 7, '14 days': 14, '30 days': 30 };
@@ -65,6 +68,7 @@ function DomainCard({ card, rangeDays }: { card: TrendsDomainCard; rangeDays: nu
  * is a to-do rather than a trend and the other said everything twice.
  */
 export default function ProgressScreen() {
+  useBandStatusBar();
   const tabSpace = useTabBarSpace();
   const { user } = useAuth();
   const [range, setRange] = useState<RangeLabel>('7 days');
@@ -97,14 +101,16 @@ export default function ProgressScreen() {
   const focusRoute = focus && focus.domain !== 'balanced' ? domainRoute[focus.domain] : null;
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back to Home" hitSlop={8} onPress={() => router.canGoBack() ? router.back() : router.navigate('/')} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-          <Ionicons color={colors.accent} name="chevron-back" size={22} />
-          <Text style={styles.backText}>Home</Text>
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.title}>Trends</Text>
-        <Text style={styles.subtitle}>Patterns from what you’ve logged. A day with nothing logged is left out, not counted as zero.</Text>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
+        <ThreadDetailBand
+          style={styles.band}
+          backLabel="Back"
+          onBack={() => router.canGoBack() ? router.back() : router.navigate('/')}
+          eyebrow="Trends"
+          title="Your patterns"
+          sub="Patterns from what you’ve logged. A day with nothing logged is left out, not counted as zero."
+        />
 
         <SegmentedControl options={rangeLabels} value={range} onChange={setRange} />
 
@@ -149,6 +155,7 @@ export default function ProgressScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent' },
+  band: { marginHorizontal: -20, marginTop: -8 },
   scroll: { gap: 14, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
   back: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44, marginLeft: -6 },
   backText: { ...type.body, color: colors.accent },
@@ -167,7 +174,7 @@ const styles = StyleSheet.create({
   meta: { ...type.caption, color: colors.textMuted },
   focus: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   focusCopy: { flex: 1, gap: 4 },
-  focusLabel: { ...type.caption, fontWeight: '600', color: colors.accent },
-  focusTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  focusLabel: { ...type.caption, fontFamily: fonts.bodySemibold, color: colors.accent },
+  focusTitle: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   note: { ...type.caption, color: colors.textMuted, textAlign: 'center' }
 });

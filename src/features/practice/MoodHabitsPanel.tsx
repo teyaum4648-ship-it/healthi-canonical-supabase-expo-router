@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { TextInput } from '../../components/TextInput';
-import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
+import { colors, hairlineWidth, type, fonts } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import {
   availableHabits,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   divider: { backgroundColor: colors.border, height: hairlineWidth },
   row: { alignItems: 'center', flexDirection: 'row', gap: 11, minHeight: 56, paddingVertical: 8 },
   rowCopy: { flex: 1, gap: 2 },
-  name: { ...type.body, color: colors.text, fontWeight: '600' },
+  name: { ...type.body, color: colors.text, fontFamily: fonts.bodySemibold },
   nameDone: { color: colors.textMuted, textDecorationLine: 'line-through' },
   detail: { ...type.caption, color: colors.textMuted },
 

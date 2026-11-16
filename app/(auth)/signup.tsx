@@ -1,12 +1,13 @@
-import { Link } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../src/components/Button';
-import { Card } from '../../src/components/Card';
 import { Screen } from '../../src/components/Screen';
-import { SectionHeader } from '../../src/components/SectionHeader';
 import { TextInput } from '../../src/components/TextInput';
+import { Eyebrow, ThreadBand } from '../../src/components/thread/ThreadParts';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { DemoEntry } from '../../src/features/auth/DemoEntry';
 import {
@@ -16,44 +17,87 @@ import {
 } from '../../src/features/legal/consentModel';
 import { CONSENT_VERSION } from '../../src/features/legal/legalLinks';
 import { SignupConsent } from '../../src/features/legal/SignupConsent';
-import { colors, spacing, glassSurface } from '../../src/styles/mobileTheme';
+import { generateBiweeklyFocusProfile } from '../../src/features/onboarding/generateBiweeklyFocusProfile';
+import { loadGuestPreview, SIGNUP_FIRST_NAME_KEY } from '../../src/features/onboarding/guestPreview';
+import { focusName } from '../../src/features/onboarding/personalReviewModel';
+import { accent, bone, font, HIT, ink, radius, space, surface, type } from '../../src/styles/daywoven1c';
 
+/** A form never stretches across a desktop window; on a phone this is the full width. */
+const FORM_WIDTH = 440;
+
+function emailProblem(email: string): string | null {
+  if (!email.trim()) return 'Add the email you want to sign in with.';
+  return /^\S+@\S+\.\S+$/.test(email.trim()) ? null : 'That email does not look complete.';
+}
+
+/** Server messages in plain words, always ending as a sentence. */
+function readableFailure(error: unknown): string {
+  const raw = error instanceof Error ? error.message.trim() : '';
+  if (!raw || /failed to fetch|network|timed? ?out/i.test(raw)) return 'We could not reach Daywoven. Check your connection and try again.';
+  return /[.!?]$/.test(raw) ? raw : `${raw}.`;
+}
+
+function passwordProblem(password: string): string | null {
+  return password.length >= 8 ? null : 'Use at least 8 characters.';
+}
+
+/**
+ * Account creation (design language 1c): the next step after the Personal Review, not a
+ * separate portal. A short charcoal band says what is being saved, the focus carried over
+ * from the review; the form is compact, with each problem shown under its own field.
+ *
+ * Unchanged underneath: Supabase signup through useAuth().signUp, the consent model and
+ * its version, the requirement that both consents are ticked before any request, and demo
+ * mode, which never creates an account. The questionnaire answers stay in the guest draft
+ * on this device whatever happens here, so a failed attempt loses nothing.
+ */
 export default function SignupScreen() {
   const { signUp, mode } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [attempted, setAttempted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [consent, setConsent] = useState<ConsentState>(EMPTY_CONSENT);
   const [consentError, setConsentError] = useState(false);
-  const [feedback, setFeedback] = useState<{
-    message: string;
-    tone: 'error' | 'success';
-  } | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [created, setCreated] = useState(false);
+  const [focus, setFocus] = useState<{ name: string; summary: string } | null>(null);
+
+  /* The focus from the Personal Review, read from the same on-device draft it was built from. */
+  useEffect(() => {
+    let live = true;
+    void loadGuestPreview().then((preview) => {
+      if (!live || !preview?.previewComplete) return;
+      const profile = generateBiweeklyFocusProfile({ userId: 'local-preview', answers: preview.answers });
+      setFocus({ name: focusName(profile.primary_focus), summary: profile.dynamic_score_sheet.summary });
+    });
+    void AsyncStorage.getItem(SIGNUP_FIRST_NAME_KEY).then((saved) => {
+      if (live && saved) setFirstName((current) => current || saved);
+    }).catch(() => undefined);
+    return () => { live = false; };
+  }, []);
+
+  const updateFirstName = (value: string) => {
+    setFirstName(value);
+    void AsyncStorage.setItem(SIGNUP_FIRST_NAME_KEY, value).catch(() => undefined);
+  };
+
+  const errors = useMemo(() => (attempted ? { email: emailProblem(email), password: passwordProblem(password) } : { email: null, password: null }), [attempted, email, password]);
 
   async function handleSignup() {
-    if (!email || password.length < 8) {
-      setFeedback({
-        message: 'Use an email and a password with at least 8 characters.',
-        tone: 'error'
-      });
-      return;
-    }
-
+    setAttempted(true);
+    setServerError(null);
+    const fieldsOk = !emailProblem(email) && !passwordProblem(password);
     /*
      * Checked before the request rather than after it, so an account is never created
      * in a state where we cannot show what its owner agreed to.
      */
-    if (!consentIsComplete(consent)) {
-      setConsentError(true);
-      setFeedback(null);
-      return;
-    }
+    const consentOk = consentIsComplete(consent);
+    setConsentError(!consentOk);
+    if (!fieldsOk || !consentOk) return;
 
-    setConsentError(false);
-    setFeedback(null);
     setIsSubmitting(true);
-
     try {
       await signUp(email.trim(), password, {
         version: CONSENT_VERSION,
@@ -62,136 +106,156 @@ export default function SignupScreen() {
         ageConfirmed: consent.agreement,
         healthData: consent.healthData
       }, firstName);
-      setFeedback({
-        message: 'Check your email to confirm the account, then return here and log in.',
-        tone: 'success'
-      });
+      setCreated(true);
+      void AsyncStorage.removeItem(SIGNUP_FIRST_NAME_KEY).catch(() => undefined);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to create an account right now.';
-      setFeedback({ message, tone: 'error' });
+      setServerError(readableFailure(error));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (mode === 'demo') return <DemoEntry />;
-  return (
-    <Screen backgroundStyle={styles.brandBackground} contentStyle={styles.screen}>
-      <View style={styles.brandRow}>
-        <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
-        <Text style={styles.brandSide}>SAVE YOUR BASELINE</Text>
-      </View>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>ONE LAST STEP</Text>
-        <Text accessibilityRole="header" style={styles.heroTitle}>Make your progress yours.</Text>
-        <Text style={styles.heroBody}>
-          Create an account to securely save your wellness starting point and keep building from it. Your preview answers stay on your device until you agree to save them.
-        </Text>
-      </View>
 
-      <Card style={styles.brandCard}>
-        <TextInput
-          autoCapitalize="words"
-          autoComplete="given-name"
-          label="First name"
-          maxLength={40}
-          onChangeText={setFirstName}
-          placeholder="What should we call you? (optional)"
-          value={firstName}
-        />
-        <TextInput
-          autoComplete="email"
-          inputMode="email"
-          label="Email"
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          value={email}
-        />
-        <TextInput
-          autoComplete="new-password"
-          label="Password"
-          onChangeText={setPassword}
-          placeholder="At least 8 characters"
-          secureTextEntry
-          value={password}
-        />
-        <SignupConsent onChange={setConsent} showError={consentError} value={consent} />
-        <Button style={styles.brandButton} isLoading={isSubmitting} label="Save my baseline · create account" onPress={handleSignup} />
-        {feedback ? (
-          <View
-            accessibilityLiveRegion="polite"
-            accessibilityRole="alert"
-            style={[
-              styles.feedback,
-              feedback.tone === 'error' ? styles.feedbackError : styles.feedbackSuccess
-            ]}
-          >
-            <Text style={styles.feedbackTitle}>
-              {feedback.tone === 'error' ? 'Signup failed' : 'Account created'}
-            </Text>
-            <Text style={styles.feedbackMessage}>{feedback.message}</Text>
+  const band = (
+    <ThreadBand>
+      <View style={styles.readable}>
+        <View style={styles.brandRow}>
+          <Text style={styles.wordmark}>daywoven<Text style={styles.dot}>.</Text></Text>
+          <Eyebrow tone="band">Create your account</Eyebrow>
+        </View>
+        {focus && router.canGoBack() ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Back to your Personal Review" hitSlop={6} onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+            <Ionicons accessible={false} color={bone.text} name="chevron-back" size={18} />
+            <Text style={styles.backText}>Your review</Text>
+          </Pressable>
+        ) : null}
+        <Text accessibilityRole="header" style={styles.headline}>Make this yours.</Text>
+        <Text style={styles.sub}>
+          Save your starting point and keep building from it. Your answers stay on this device until you agree below.
+        </Text>
+        {focus ? (
+          <View accessible accessibilityLabel={`Saving your 14-day focus: ${focus.name}`} style={styles.focus}>
+            <View style={styles.focusMark} />
+            <View style={styles.focusCopy}>
+              <Text style={styles.focusKicker}>YOUR 14-DAY FOCUS</Text>
+              <Text style={styles.focusName}>{focus.name}</Text>
+              <Text numberOfLines={2} style={styles.focusSummary}>{focus.summary}</Text>
+            </View>
           </View>
         ) : null}
-      </Card>
+      </View>
+    </ThreadBand>
+  );
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Already have an account?</Text>
-        <Link href="/(auth)/login" style={styles.link}>
-          Log in
-        </Link>
+  return (
+    <Screen band={band} contentStyle={styles.content}>
+      <View style={styles.readable}>
+        {created ? (
+          <View accessibilityLiveRegion="polite" style={styles.card}>
+            <Ionicons accessible={false} color={ink.text} name="mail-unread-outline" size={26} />
+            <Text accessibilityRole="header" style={styles.doneTitle}>Check your email</Text>
+            <Text style={styles.doneBody}>
+              We sent a link to {email.trim()}. Confirm it, then come back and log in. Your answers are still saved on this device.
+            </Text>
+            <Button label="Go to log in" onPress={() => router.replace('/(auth)/login')} />
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <TextInput
+              autoCapitalize="words"
+              autoComplete="given-name"
+              hint="Optional. Used to greet you."
+              label="First name"
+              maxLength={40}
+              onChangeText={updateFirstName}
+              placeholder="What should we call you?"
+              returnKeyType="next"
+              textContentType="givenName"
+              value={firstName}
+            />
+            <TextInput
+              autoComplete="email"
+              error={errors.email}
+              inputMode="email"
+              keyboardType="email-address"
+              label="Email"
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              returnKeyType="next"
+              textContentType="emailAddress"
+              value={email}
+            />
+            <TextInput
+              autoComplete="new-password"
+              error={errors.password}
+              hint="At least 8 characters."
+              label="Password"
+              onChangeText={setPassword}
+              onSubmitEditing={() => void handleSignup()}
+              placeholder="Choose a password"
+              returnKeyType="go"
+              secureTextEntry
+              textContentType="newPassword"
+              value={password}
+            />
+
+            <View style={styles.consent}>
+              <SignupConsent onChange={(next) => { setConsent(next); if (consentIsComplete(next)) setConsentError(false); }} showError={consentError} value={consent} />
+            </View>
+
+            {serverError ? (
+              <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.serverError}>
+                <Ionicons accessible={false} color={accent.amberDeep} name="alert-circle-outline" size={18} />
+                <View style={styles.serverErrorCopy}>
+                  <Text style={styles.serverErrorTitle}>Your account was not created</Text>
+                  <Text style={styles.serverErrorBody}>{serverError} Your answers are still saved on this device.</Text>
+                </View>
+              </View>
+            ) : null}
+
+            <Button isLoading={isSubmitting} disabled={isSubmitting} label="Create my account" onPress={() => void handleSignup()} />
+          </View>
+        )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account?</Text>
+          <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push('/(auth)/login')} style={styles.footerLink}>
+            <Text style={styles.footerLinkText}>Log in</Text>
+          </Pressable>
+        </View>
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { justifyContent: 'center', gap: 18, paddingTop: 26, paddingBottom: 40 },
-  brandBackground: { backgroundColor: '#13291D', experimental_backgroundImage: 'linear-gradient(180deg, #214932 0%, #13281D 38%, #0C1A13 100%)' },
-  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12 },
-  brandMark: { color: '#F6F8F4', fontSize: 25, fontWeight: '800', letterSpacing: -1.2 },
-  brandDot: { color: '#C8F18C' },
-  brandSide: { color: '#B8D69D', fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
-  hero: { gap: 10, paddingBottom: 10 },
-  eyebrow: { color: '#C8F18C', fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
-  heroTitle: { color: '#F6F8F4', fontSize: 37, fontWeight: '700', lineHeight: 43, letterSpacing: -1.4 },
-  heroBody: { color: '#B8CAB5', fontSize: 15, lineHeight: 24 },
-  brandCard: { borderColor: 'rgba(200,241,140,0.16)', backgroundColor: '#1B3526', padding: 20, borderRadius: 22 },
-  brandButton: { backgroundColor: '#C8F18C', borderRadius: 14, minHeight: 55 },
-  footer: {
-    alignItems: 'center',
-    gap: spacing.xs
-  },
-  footerText: {
-    color: colors.textMuted,
-    fontSize: 15
-  },
-  link: {
-    color: '#C8F18C',
-    fontSize: 16,
-    fontWeight: '800'
-  },
-  feedback: {
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: spacing.md
-  },
-  feedbackError: {
-    borderColor: colors.danger,
-    ...glassSurface
-  },
-  feedbackSuccess: {
-    borderColor: colors.success,
-    backgroundColor: colors.surfaceMuted
-  },
-  feedbackTitle: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '800'
-  },
-  feedbackMessage: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20
-  }
+  readable: { alignSelf: 'center', maxWidth: FORM_WIDTH, width: '100%' },
+  content: { gap: 0, paddingBottom: 40, paddingTop: space.xl },
+  brandRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: HIT },
+  wordmark: { ...type.wordmark, color: bone.text },
+  dot: { color: accent.amber },
+  back: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 2, marginLeft: -4, marginTop: 4, minHeight: HIT },
+  backText: { ...type.button, color: bone.text },
+  pressed: { opacity: 0.7 },
+  headline: { color: bone.text, fontFamily: font.display, fontSize: 34, letterSpacing: -0.4, lineHeight: 39, marginTop: 14 },
+  sub: { ...type.body, color: bone.soft, marginTop: 10 },
+  focus: { borderColor: bone.hairline, borderRadius: radius.card, borderWidth: 1, flexDirection: 'row', gap: 12, marginTop: 20, overflow: 'hidden', padding: 14 },
+  focusMark: { backgroundColor: accent.amber, borderRadius: 2, width: 3 },
+  focusCopy: { flex: 1, gap: 3 },
+  focusKicker: { color: accent.amber, fontFamily: font.bodySemibold, fontSize: 10.5, letterSpacing: 1.1 },
+  focusName: { color: bone.text, fontFamily: font.display, fontSize: 21 },
+  focusSummary: { ...type.caption, color: bone.soft },
+  card: { backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, gap: 10, padding: 18 },
+  consent: { borderTopColor: ink.hairline, borderTopWidth: 1, marginTop: 6, paddingTop: 12 },
+  serverError: { backgroundColor: surface.sunken, borderColor: accent.amberDeep, borderRadius: radius.button, borderWidth: 1, flexDirection: 'row', gap: 10, padding: 12 },
+  serverErrorCopy: { flex: 1, gap: 2 },
+  serverErrorTitle: { color: ink.text, fontFamily: font.bodySemibold, fontSize: 14 },
+  serverErrorBody: { ...type.caption, color: ink.muted },
+  doneTitle: { color: ink.text, fontFamily: font.display, fontSize: 24 },
+  doneBody: { ...type.body, color: ink.muted },
+  footer: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 18 },
+  footerText: { ...type.body, color: ink.muted },
+  footerLink: { justifyContent: 'center', minHeight: HIT },
+  footerLinkText: { ...type.button, color: ink.text, textDecorationLine: 'underline' }
 });

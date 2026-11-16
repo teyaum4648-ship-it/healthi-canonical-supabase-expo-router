@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useReducedMotion } from '../../components/mobile/useReducedMotion';
-import { colors, type } from '../../styles/mobileTheme';
+import { colors, type, fonts } from '../../styles/mobileTheme';
 import { BreathCircle, DEFAULT_BREATH_PALETTE, type BreathPalette } from './BreathCircle';
 import { cycleMs, phaseTarget, type BreathTechnique } from './breathTechniques';
 import { useStopOnBackground } from './useStopOnBackground';
@@ -168,6 +168,6 @@ export function PacedBreath({
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: 10 },
   button: { alignItems: 'center', justifyContent: 'center' },
-  cue: { ...type.body, fontWeight: '600', minHeight: 23, textAlign: 'center' },
+  cue: { ...type.body, fontFamily: fonts.bodySemibold, minHeight: 23, textAlign: 'center' },
   hint: { ...type.caption }
 });

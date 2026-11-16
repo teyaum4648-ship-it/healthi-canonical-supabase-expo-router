@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { type, zones, type ZoneTone } from '../../../styles/mobileTheme';
+import { type, zones, type ZoneTone, fonts } from '../../../styles/mobileTheme';
 
 /** A zone as a soft wash with its word in the darker shade of the same hue. */
 export function ZoneChip({ tone, label }: { tone: ZoneTone; label: string }) {
@@ -26,5 +26,5 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  text: { ...type.caption, fontSize: 13, fontWeight: '600', lineHeight: 17 }
+  text: { ...type.caption, fontSize: 13, fontFamily: fonts.bodySemibold, lineHeight: 17 }
 });

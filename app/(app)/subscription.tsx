@@ -3,12 +3,17 @@ import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, T
 import type { PurchasesPackage } from 'react-native-purchases';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { supabase } from '../../src/lib/supabase';
 import { useMembership } from '../../src/features/subscriptions/MembershipProvider';
 import { getSubscriptionCatalog, buySubscription, restoreSubscriptions } from '../../src/features/subscriptions/revenuecat';
 import { colors, fonts, spacing } from '../../src/styles/mobileTheme';
+
+import { ThreadDetailBand } from '../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../src/components/thread/useBandStatusBar';
+import * as dv from '../../src/styles/daywoven1c';
 
 // This is a US-first release; enable external web checkout only for a reviewed
 // US App Store distribution. Storefront-specific policy must be revisited before
@@ -30,6 +35,7 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
   const active = billingRequired && status === 'active';
   const canBuyNative = Constants.appOwnership !== 'expo';
   const webCheckoutAvailable = websiteCheckoutEnabled && mode === 'account' && Boolean(user?.id);
+  useBandStatusBar();
 
   useEffect(() => {
     let live = true;
@@ -141,13 +147,16 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      {!gated ? <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.link}>‹ Back to settings</Text>
-      </Pressable> : null}
-      <Text style={styles.eyebrow}>DAYWOVEN</Text>
-      <Text style={styles.title}>{gated ? 'Your next chapter starts here' : 'Membership'}</Text>
-      <Text style={styles.body}>{gated ? 'You’ve completed your free baseline and seen your personal results. Subscribe to continue with your day-by-day wellness plan, meal and sleep tracking, movement tools and progress insights.' : 'Daywoven is free to download. Membership gives access to your personalized daily wellness tools.'}</Text>
+    <SafeAreaView edges={['top']} style={styles.safe}>
+    <ScrollView style={styles.canvas} contentContainerStyle={styles.page}>
+      <ThreadDetailBand
+        style={styles.band}
+        onBack={gated ? undefined : () => router.back()}
+        backLabel="Back to settings"
+        eyebrow="Daywoven"
+        title={gated ? 'Your next chapter starts here' : 'Membership'}
+        sub={gated ? 'You’ve completed your free baseline and seen your personal results. Subscribe to continue with your day-by-day wellness plan, meal and sleep tracking, movement tools and progress insights.' : 'Daywoven is free to download. Membership gives access to your personalized daily wellness tools.'}
+      />
       <Pressable accessibilityRole="link" accessibilityLabel="Preview the app" onPress={() => router.push('/app-preview')} style={styles.previewLink}>
         <Text style={styles.previewLinkText}>Preview the app</Text>
         <Text style={styles.previewLinkArrow}>↗</Text>
@@ -213,29 +222,30 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
         <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://daywovenapp.com/legal/privacy.html')}><Text style={styles.link}>Privacy Policy</Text></Pressable>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.background, flexGrow: 1, gap: spacing.md, padding: 24, paddingTop: 64 },
-  back: { minHeight: 42, justifyContent: 'center' },
-  previewLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderRadius: 22, borderColor: 'rgba(200,241,140,0.35)', backgroundColor: 'rgba(200,241,140,0.07)' },
-  previewLinkText: { color: '#C8F18C', fontFamily: fonts.bodyMedium, fontSize: 14, fontWeight: '700' },
-  previewLinkArrow: { color: '#C8F18C', fontSize: 17 },
-  eyebrow: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 12, letterSpacing: 2 },
-  title: { color: colors.text, fontFamily: fonts.display, fontSize: 35 },
+  safe: { backgroundColor: dv.surface.band, flex: 1 },
+  canvas: { backgroundColor: dv.surface.canvas },
+  page: { flexGrow: 1, gap: spacing.md, paddingBottom: 24, paddingHorizontal: 24 },
+  band: { marginBottom: spacing.xs, marginHorizontal: -24 },
+  previewLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderRadius: 22, borderColor: dv.ink.border, backgroundColor: dv.ink.wash },
+  previewLinkText: { color: dv.ink.text, fontFamily: fonts.bodySemibold, fontSize: 14 },
+  previewLinkArrow: { color: dv.ink.text, fontSize: 17 },
   body: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
-  panel: { backgroundColor: colors.surfaceInset, borderRadius: 16, gap: 12, padding: 20 },
-  webPanel: { backgroundColor: colors.surfaceInset, borderRadius: 16, gap: 14, padding: 20, borderColor: colors.accent, borderWidth: 1 },
+  panel: { backgroundColor: dv.surface.card, borderColor: dv.ink.border, borderRadius: dv.radius.card, borderWidth: 1, gap: 12, padding: 20 },
+  webPanel: { backgroundColor: dv.surface.card, borderRadius: dv.radius.card, gap: 14, padding: 20, borderColor: dv.ink.text, borderWidth: 1 },
   heading: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 19 },
   plan: { borderColor: colors.borderStrong, borderRadius: 12, borderWidth: 1, gap: 4, padding: 12 },
-  planSelected: { borderColor: colors.accent },
+  planSelected: { borderColor: dv.ink.text },
   planTitle: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 16 },
-  button: { backgroundColor: colors.accent, borderRadius: 12, minHeight: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  button: { backgroundColor: dv.ink.text, borderRadius: dv.radius.button, minHeight: dv.control.buttonHeight, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   buttonDisabled: { opacity: .5 },
-  buttonText: { color: colors.background, fontFamily: fonts.bodyMedium, fontSize: 15 },
+  buttonText: { ...dv.type.button, color: dv.bone.text },
   notice: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
-  error: { color: '#ff8b8b', fontSize: 14 },
+  error: { color: dv.safety.onCanvas, fontSize: 14 },
   secondary: { minHeight: 44, justifyContent: 'center' },
   link: { color: colors.accent, fontFamily: fonts.bodyMedium, fontSize: 15 },
   footer: { gap: 10, marginTop: 16 }

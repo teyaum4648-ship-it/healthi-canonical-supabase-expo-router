@@ -4,6 +4,7 @@ import { colors, hairlineWidth, type } from '../../styles/mobileTheme';
 import { pillarTint, tabAccent } from '../../styles/pillarColors';
 import { HEAD_OPTIONS, headWord, type HeadRating } from './headCheck';
 
+import * as dv from '../../styles/daywoven1c';
 const accent = tabAccent.mood;
 
 /**
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center'
   },
-  pip: { backgroundColor: 'rgba(245, 247, 250, 0.35)', borderRadius: 4, height: 8, width: 8 },
+  pip: { backgroundColor: dv.ink.washStrong, borderRadius: 4, height: 8, width: 8 },
   pipSelected: { backgroundColor: colors.textInverse },
   pressed: { opacity: 0.75 },
   ends: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -4 },

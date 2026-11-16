@@ -5,6 +5,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SegmentedControl } from '../../../src/components/mobile/SegmentedControl';
+import { ThreadBand, ThreadHeader } from '../../../src/components/thread/ThreadParts';
+import { useBandStatusBar } from '../../../src/components/thread/useBandStatusBar';
+import { MindBand } from '../../../src/features/practice/MindBand';
+import * as dv from '../../../src/styles/daywoven1c';
 import { calculateMindScore, type MindSuggestion } from '../../../src/engines/mind';
 import { useAuth } from '../../../src/features/auth/AuthProvider';
 import type { ReadinessCheckin } from '../../../src/features/dashboard/readinessNow';
@@ -90,7 +94,7 @@ import {
   type TensionRegion,
   type ZoneSession
 } from '../../../src/features/practice/zoneModel';
-import { colors, hairlineWidth, type, glassSurface } from '../../../src/styles/mobileTheme';
+import { colors, hairlineWidth, type, glassSurface, fonts } from '../../../src/styles/mobileTheme';
 import { tabAccent } from '../../../src/styles/pillarColors';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
@@ -132,6 +136,7 @@ const isUuid = (value: string | undefined): value is string =>
 
 export default function MoodScreen() {
   const tabSpace = useTabBarSpace();
+  useBandStatusBar();
   const { user, mode } = useAuth();
   const scope = useMemo(() => protocolScope(user?.id), [user?.id]);
   const date = localDateKey();
@@ -368,15 +373,20 @@ export default function MoodScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text accessibilityRole="header" style={styles.title}>Mood</Text>
-        </View>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
+      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false}>
+        {/* The 1c Mind band (design language P1), full width above the gutter. */}
+        <ThreadBand style={styles.band}>
+          <ThreadHeader
+            date={new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+            dateAccessibilityLabel={new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          />
+          <MindBand score={mind} rings={rings} onPractice={() => setSegment('Practice')} />
+        </ThreadBand>
         <SegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} />
 
         {segment === 'Today' ? <HeadCheckCard helps={helps} latest={latestHead} onAnswer={(rating) => void recordHead(rating, 'now')} /> : null}
-        {segment === 'Today' ? <MoodToday onSuggestion={followSuggestion} rings={rings} score={mind} week={week} /> : null}
+        {segment === 'Today' ? <MoodToday inBand onSuggestion={followSuggestion} rings={rings} score={mind} week={week} /> : null}
 
         {segment === 'Trends' ? (
           <View style={styles.panel}>
@@ -554,6 +564,7 @@ export default function MoodScreen() {
 
 const styles = StyleSheet.create({
   safe: { backgroundColor: 'transparent', flex: 1 },
+  band: { marginHorizontal: -18, marginTop: -8 },
   scroll: { gap: 14, paddingBottom: 40, paddingHorizontal: 18, paddingTop: 8 },
 
   header: { gap: 4, paddingTop: 6 },
@@ -562,7 +573,7 @@ const styles = StyleSheet.create({
   trendsLinkText: { ...type.label, color: tabAccent.mood },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
   title: { ...type.largeTitle, color: colors.text },
-  subtitle: { ...type.body, fontWeight: '600', color: colors.text },
+  subtitle: { ...type.body, fontFamily: fonts.bodySemibold, color: colors.text },
   meta: { ...type.body, color: colors.textMuted },
 
   panel: {
