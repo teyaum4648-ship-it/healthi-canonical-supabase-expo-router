@@ -106,4 +106,12 @@ describe('Today (Daywoven 1c) information hierarchy', () => {
     expect(hub).not.toContain('Hide biomarkers');
     expect(hub).toContain('readinessRingLabel(');
   });
+
+  it('draws the original readiness ring, large and centred, with the score and zone in it', () => {
+    expect(hub).toContain('const RING_MAX = 248;');
+    expect(hub).toContain('<PillarRing');
+    expect(hub).toContain('size={ringSize}');
+    expect(hub.indexOf('<PillarRing')).toBeLessThan(hub.indexOf('styles.pillarRow'));
+    expect(hub.indexOf('styles.pillarRow')).toBeLessThan(hub.indexOf('copy.headline'));
+  });
 });
