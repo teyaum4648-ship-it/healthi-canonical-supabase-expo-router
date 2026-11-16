@@ -72,7 +72,7 @@ export function ChronotypeQuiz({
     return (
       <ScrollView
         contentContainerStyle={styles.page}
-        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
         style={[styles.root, { backgroundColor: palette.background }]}
       >
         <Header palette={palette} title="A day built for your clock" onClose={onClose} />
@@ -161,7 +161,7 @@ export function ChronotypeQuiz({
   return (
     <ScrollView
       contentContainerStyle={styles.page}
-      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
       style={[styles.root, { backgroundColor: palette.background }]}
     >
       <Header palette={palette} title="When does your body want the day?" onClose={onClose} />

@@ -438,7 +438,7 @@ export function WorkoutSessionLogger(props: WorkoutSessionLoggerProps) {
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {view === 'Focus' && exercise ? (

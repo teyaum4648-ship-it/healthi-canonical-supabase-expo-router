@@ -80,7 +80,7 @@ export default function LoadCheckScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
-      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={styles.scroll} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
         <ThreadDetailBand style={styles.band} onBack={() => router.back()} eyebrow="Load check" title="Where your days start" />
         <View style={styles.introBlock}>
           <Text style={styles.intro}>

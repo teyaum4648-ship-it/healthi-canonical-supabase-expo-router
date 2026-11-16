@@ -26,7 +26,7 @@ export function Screen({ children, scroll = true, contentStyle, backgroundStyle,
       {scroll ? (
         <ScrollView
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {content}
@@ -44,7 +44,7 @@ function BandScreen({ band, scroll, backgroundStyle, children }: PropsWithChildr
         <ScrollView
           style={styles.canvas}
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {band}

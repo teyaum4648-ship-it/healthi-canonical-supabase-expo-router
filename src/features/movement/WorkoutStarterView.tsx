@@ -235,7 +235,7 @@ export function WorkoutStarter(props: {
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <TextInput

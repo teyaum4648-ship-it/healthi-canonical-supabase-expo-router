@@ -198,6 +198,7 @@ import { useQuickEntry } from '../../../src/features/navigation/useQuickEntry';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 import * as dv from '../../../src/styles/daywoven1c';
+import { formatClockOfDate } from '../../../src/utils/clockFormat';
 type Segment = 'Today' | 'Train' | 'Library' | 'History';
 type LibraryFilter = 'all' | (typeof exerciseCategories)[number];
 
@@ -235,7 +236,7 @@ function formatLoggedAt(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    : `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${formatClockOfDate(date)}`;
 }
 
 function EditorialLabel({ children }: { children: string }) {
@@ -2058,7 +2059,7 @@ export default function MovementScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
-      <ScrollView ref={scrollRef} style={{ backgroundColor: dv.surface.canvas }} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} style={{ backgroundColor: dv.surface.canvas }} onScroll={(event) => { scrollPositions.current[activeSegment] = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={100} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         {/* The 1c Move band (design language P1). On Train it is the short band, with the way back. */}
         <ThreadBand>
           <ThreadHeader

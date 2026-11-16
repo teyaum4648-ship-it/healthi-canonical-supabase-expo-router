@@ -77,6 +77,7 @@ import { colors, fonts, hairlineWidth, palette, spacing, type, glassSurface } fr
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 import * as dv from '../../../src/styles/daywoven1c';
+import { formatClock, formatClockCompact } from '../../../src/utils/clockFormat';
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
@@ -90,17 +91,11 @@ function formatTime(value: string | undefined): string {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
-  const hour12 = hours % 12 || 12;
-  const suffix = hours >= 12 ? 'PM' : 'AM';
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  return formatClock(date.getUTCHours() * 60 + date.getUTCMinutes());
 }
 
 function formatHourLabel(ms: number): string {
-  const hours = new Date(ms).getUTCHours();
-  const hour12 = hours % 12 || 12;
-  return `${hour12} ${hours >= 12 ? 'PM' : 'AM'}`;
+  return formatClockCompact(new Date(ms).getUTCHours() * 60);
 }
 
 // ─── Calendar sections (sleep-derived recommendation bands) ───────────────────
@@ -885,7 +880,7 @@ export default function PlanScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: dv.surface.band }]}>
-        <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace + 22 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ backgroundColor: dv.surface.canvas }} contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace + 22 }]} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <ThreadDetailBand
             backLabel="Today"
             onBack={() => router.navigate('/')}

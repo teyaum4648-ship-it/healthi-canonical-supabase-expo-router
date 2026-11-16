@@ -61,7 +61,7 @@ export function MobilityScreenFlow({
 
   if (showResults) {
     return (
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.page} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
         <Header palette={palette} title="What the checks suggest" onClose={onClose} />
 
         {referrals.length > 0 ? (
@@ -142,7 +142,7 @@ export function MobilityScreenFlow({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={styles.page} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       <Header palette={palette} title="How are you moving?" onClose={onClose} />
       <Text style={[styles.intro, { color: palette.muted }]}>
         Seven checks, no equipment. Skip any you cannot do safely — a skipped check is left out

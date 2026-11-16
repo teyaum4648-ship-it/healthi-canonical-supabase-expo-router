@@ -881,7 +881,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: tabSpace }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: tabSpace }} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
         <ThreadBand>
           <ThreadHeader
             date={displayDate(today)}

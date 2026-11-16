@@ -1,15 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BlurView } from 'expo-blur';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HIT, ink, surface, tabBar, type } from '../../styles/daywoven1c';
 import { mainTabs } from './navigationModel';
 import { TAB_BAR_HEIGHT, tabBarBottomPadding } from './tabBarSpace';
 
 /**
+ * While the keyboard is up the bar steps aside, so the field being typed in and the button
+ * that saves it get the room. On iOS the keyboard covers the bar anyway; on Android the
+ * window resizes, and a bar riding on top of the keyboard would take that room.
+ */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, () => setOpen(true));
+    const hide = Keyboard.addListener(hideEvent, () => setOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return open;
+}
+
+/**
  * The 1c bottom bar (handoff Phase 2): Today, Sleep, Food, Move, Mind, full width along the
- * bottom, frosted over the content, with a hairline on top. Active is ink and semibold,
+ * bottom, with a hairline on top.
+ *
+ * It sits in the layout, below the screen, rather than floating over it. A floating bar
+ * made every screen guess its height to keep a last button clear, and a screen that
+ * guessed wrong (the pinned "Finish workout" footer) lost the button underneath it. In the
+ * layout, nothing can be under the bar, on any screen size, safe area or text size. Active is ink and semibold,
  * inactive is muted; there is no colour per tab. Routes that are not in `mainTabs` (Plan,
  * Trends, Settings, the old Menu) are never drawn, but stay reachable by route.
  *
@@ -17,13 +39,13 @@ import { TAB_BAR_HEIGHT, tabBarBottomPadding } from './tabBarSpace';
  */
 export function ThreadTabBar({ state, navigation, insets, litRoute }: BottomTabBarProps & { litRoute?: string | null }) {
   const current = state.routes[state.index]?.name;
+  const keyboardOpen = useKeyboardOpen();
+  if (keyboardOpen) return null;
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.bar, { height: TAB_BAR_HEIGHT + Math.max(0, insets.bottom), paddingBottom: tabBarBottomPadding(insets.bottom) }]}
+      style={[styles.bar, { minHeight: TAB_BAR_HEIGHT + Math.max(0, insets.bottom), paddingBottom: tabBarBottomPadding(insets.bottom) }]}
     >
-      <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="light" />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.tint]} />
       {mainTabs.map((tab) => {
         const route = state.routes.find((candidate) => candidate.name === tab.route);
         if (!route) return null;
@@ -53,19 +75,15 @@ export function ThreadTabBar({ state, navigation, insets, litRoute }: BottomTabB
 
 const styles = StyleSheet.create({
   bar: {
+    backgroundColor: surface.canvas,
     borderTopColor: ink.hairline,
     borderTopWidth: 1,
-    bottom: 0,
     flexDirection: 'row',
-    left: 0,
     overflow: 'hidden',
     paddingHorizontal: 8,
-    paddingTop: tabBar.paddingTop,
-    position: 'absolute',
-    right: 0
+    paddingTop: tabBar.paddingTop
   },
-  tint: { backgroundColor: surface.tabBar },
   item: { alignItems: 'center', flex: 1, gap: 3, justifyContent: 'center', minHeight: HIT, minWidth: 0 },
-  label: { lineHeight: 14 },
+  label: { minHeight: 14 },
   pressed: { opacity: 0.6 }
 });
