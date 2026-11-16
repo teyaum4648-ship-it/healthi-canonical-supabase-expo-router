@@ -7,7 +7,7 @@ Last reviewed: November 10, 2026. These pages are **drafts**, not published poli
 | Item | Value | Status |
 | --- | --- | --- |
 | Operator name | Tiam Anderson | Added throughout the legal drafts. Confirm that this is the actual operating legal person; do not imply an unformed LLC. |
-| Contact inbox | admin@daywoven.com | Added as the single contact for support, privacy, security, legal, and accessibility. **Not delivery-tested**; ensure it receives messages. |
+| Contact inbox | admin@daywovenapp.com | Added as the single contact for support, privacy, security, legal, and accessibility. **Not delivery-tested**; ensure it receives messages. |
 | Mailing address | Privately supplied | **Not placed into GitHub or public pages.** Confirm a publicly publishable business/postal address before replacing `{{BUSINESS_ADDRESS}}`. |
 | Initial app model | Free App Store download + optional paid in-app subscription | Adjusted Terms and Refunds to Apple billing. The current app does **not** yet implement StoreKit subscription checkout, entitlements, or restore purchases; do not sell or claim working paid access until implemented/tested. |
 | Initial market | United States | Privacy draft remains US-only. Canada was discussed as a potential later expansion, not authorized for launch yet. |
@@ -20,7 +20,7 @@ Last reviewed: November 10, 2026. These pages are **drafts**, not published poli
 - `{{BACKUP_RETENTION}}` — real provider backup lifecycle and deletion limitations.
 - `{{TECHNICAL_LOG_RETENTION}}` — actual log retention and any third-party log processing.
 - `{{LEGAL_RECORD_RETENTION}}` — factual legal-record retention process and duration.
-- Verify that `admin@daywoven.com` accepts and is monitored for mail, and that the user owns/controls that domain.
+- Verify that `admin@daywovenapp.com` accepts and is monitored for mail, and that the user owns/controls that domain.
 - Confirm actual data processors, third-party AI processing, health-data consent and account-deletion behavior; the policy must describe deployed behavior, not aspirational features.
 - Decide and review the arbitration clause in `terms.html`, and have qualified counsel assess applicable California health-privacy and consumer terms before public launch.
 
