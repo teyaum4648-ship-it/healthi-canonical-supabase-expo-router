@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CircadianBriefing, CircadianPhase } from '../../../src/engines/circadian';
 import type { SleepProtocolItem } from '../../../src/features/sleepRhythm/sleepPresentation';
-import { buildRhythm, buildSleepChart, chartPoints, minuteAtX, readSleepChart, SLEEP_CHART } from '../../../src/features/sleepRhythm/sleepThreadModel';
+import { buildRhythm, chartPoints } from '../../../src/features/sleepRhythm/sleepThreadModel';
 
 const DAY = '2026-11-16';
 const at = (minute: number) => `${DAY}T${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}:00.000Z`;
@@ -47,57 +47,13 @@ const item = (id: SleepProtocolItem['id'], start: number, end: number | null, re
   id, name: id, reason, start_at: at(start), end_at: end === null ? null : at(end), point_in_time: end === null, evidence: ''
 });
 
-describe('the Sleep energy chart', () => {
+describe('the Sleep energy curve', () => {
   it('reads the curve on the wall-clock axis', () => {
     const points = chartPoints(briefing());
     expect(points[0]).toMatchObject({ minute: 400, phase: 'rising' });
     expect(points.at(-1)!.minute).toBe(1360);
   });
 
-  it('draws solid up to now and dotted after, from the same point', () => {
-    const chart = buildSleepChart({ briefing: briefing(), nowMinute: 581, width: 350 });
-    const livedEnd = chart.lived!.split(' ').at(-1);
-    const predictedStart = chart.predicted!.split(' ')[0];
-    expect(livedEnd).toBe(predictedStart);
-    expect(chart.area).toMatch(/^M/);
-    expect(chart.nowX).toBeGreaterThan(0);
-    expect(chart.nowX).toBeLessThan(350);
-  });
-
-  it('draws the person’s usual range as a band, high above low', () => {
-    const chart = buildSleepChart({ briefing: briefing(), nowMinute: 581, width: 350 });
-    expect(chart.usual!.top).toBeLessThan(chart.usual!.bottom);
-    expect(buildSleepChart({ briefing: briefing({ typical_band: null }), nowMinute: 581, width: 350 }).usual).toBeNull();
-  });
-
-  it('draws no curve at all without one, rather than a made-up shape', () => {
-    const chart = buildSleepChart({ briefing: briefing({ energy_curve: [] }), nowMinute: 581, width: 350 });
-    expect(chart.lived).toBeNull();
-    expect(chart.predicted).toBeNull();
-    expect(chart.area).toBeNull();
-    expect(readSleepChart(briefing({ energy_curve: [] }), 600, 350)).toBeNull();
-  });
-
-  it('labels every third hour from the wake hour', () => {
-    const chart = buildSleepChart({ briefing: briefing(), nowMinute: 581, width: 360 });
-    expect(chart.hourLabels.map((label) => label.label)).toEqual(['06', '09', '12', '15', '18', '21']);
-    expect(chart.baselineY).toBe(SLEEP_CHART.height - SLEEP_CHART.bottom);
-  });
-
-  it('reads a time, its phase and its window, snapped to five minutes and kept on the curve', () => {
-    const reading = readSleepChart(briefing(), 603, 360)!;
-    expect(reading.time).toBe('10:05');
-    expect(reading.phase).toBe('morning_peak');
-    expect(reading.level).toBe('High');
-    expect(readSleepChart(briefing(), 100, 360)!.minute).toBe(400);
-    expect(readSleepChart(briefing(), 2000, 360)!.minute).toBe(1360);
-  });
-
-  it('turns a drag position into a minute across the day', () => {
-    expect(minuteAtX(briefing(), 0, 360)).toBe(360);
-    expect(minuteAtX(briefing(), 360, 360)).toBe(23 * 60);
-    expect(minuteAtX(briefing(), -50, 360)).toBe(360);
-  });
 });
 
 describe('Today’s rhythm', () => {
@@ -119,9 +75,9 @@ describe('Today’s rhythm', () => {
   it('lists the high and low windows and wind-down, with the engine’s own fit text', () => {
     const rows = buildRhythm(briefing(), protocol, phaseName).rows;
     expect(rows.map((row) => row.name)).toEqual(['First peak', 'Midday dip', 'Second peak', 'Wind-down']);
-    expect(rows[0]).toMatchObject({ range: '09:00–12:00', fit: 'Aligned with your estimated first focus peak' });
+    expect(rows[0]).toMatchObject({ range: '9:00 AM–12:00 PM', fit: 'Aligned with your estimated first focus peak' });
     expect(rows[1]!.fit).toBe('Placed near your estimated lower-energy window');
-    expect(rows[3]).toMatchObject({ range: '21:10–22:40', fit: 'A calmer transition before your target sleep time' });
+    expect(rows[3]).toMatchObject({ range: '9:10–10:40 PM', fit: 'A calmer transition before your target sleep time' });
   });
 
   it('leaves the fit line empty rather than inventing one when no step falls in a window', () => {

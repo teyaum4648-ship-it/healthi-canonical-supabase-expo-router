@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { getRecommendedActivityAt, outlookLabel, THIN_COVERAGE, type CircadianBriefing } from '../../engines/circadian';
-import { fonts, glassSurface } from '../../styles/mobileTheme';
+import { fonts } from '../../styles/mobileTheme';
 import { SleepChartSurface } from './SleepChartSurface';
 import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
 import { formatSleepTime } from './sleepPresentation';
@@ -194,7 +194,7 @@ export function SleepEnergyChart({ briefing, now, palette }: { briefing: Circadi
               {mark.label}
             </Text>
           )) : null}
-          {scrub ? <View pointerEvents="none" style={[styles.tooltip, { left: Math.max(8, Math.min(width - 168, scrub.x - 80)), ...glassSurface, borderColor: palette.border }]}>
+          {scrub ? <View pointerEvents="none" style={[styles.tooltip, { left: Math.max(8, Math.min(width - 168, scrub.x - 80)), backgroundColor: palette.surface, borderColor: palette.border }]}>
             <Text selectable={false} style={[styles.time, { color: palette.text }]}>{scrub.time}</Text>
             <Text selectable={false} style={[styles.activity, { color: palette.accent }]}>{scrub.label}</Text>
             <Text selectable={false} style={[styles.detail, { color: palette.muted }]}>{scrub.energy}% estimated energy</Text>
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   axis: { bottom: 10, flexDirection: 'row', justifyContent: 'space-between', left: 22, position: 'absolute', right: 22 },
   axisText: { color: dv.bone.muted, fontFamily: fonts.body, fontSize: 10 },
-  tooltip: { borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38, backgroundColor: dv.bone.raised },
+  tooltip: { borderRadius: 13, borderWidth: 1, width: 160, paddingHorizontal: 11, paddingVertical: 8, position: 'absolute', top: 38, backgroundColor: dv.bone.raised },
   time: { fontFamily: fonts.bodyMedium, fontSize: 14 },
   activity: { fontFamily: fonts.bodyMedium, fontSize: 13, marginTop: 2 },
   detail: { fontFamily: fonts.body, fontSize: 12, marginTop: 3 },

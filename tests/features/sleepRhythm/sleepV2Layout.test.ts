@@ -42,7 +42,9 @@ describe('Sleep V2 progressive disclosure and feature preservation', () => {
     expect(thread).toContain('sleepGlance({ sessions, today, needMinutes })');
     expect(thread).toContain("night.minutes === null ? 'none'");
     expect(thread).toContain('briefing.confidence');
-    expect(thread).toContain('energy · est.');
+    expect(thread).toContain('<SleepEnergyChart briefing={briefing} now={now}');
+    expect(thread).toContain('<SleepTwoThread day={twoProcess}');
+    expect(readFileSync('src/features/sleepRhythm/SleepTwoThread.tsx', 'utf8')).toContain('· est.');
     expect(thread).toContain('onLogSleep');
     expect(experience).toContain('briefing.confidence');
     expect(hero).toContain('Estimated energy');

@@ -1,17 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type AccessibilityActionEvent } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
+import { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Eyebrow, SectionTitle, TextLink, ThreadButton } from '../../components/thread/ThreadParts';
-import { getRecommendedActivityAt, type CircadianBriefing, type SleepSession } from '../../engines/circadian';
+import type { CircadianBriefing, SleepSession } from '../../engines/circadian';
 import { accent, bone, font, HIT, ink, radius, space, surface, type } from '../../styles/daywoven1c';
 import { formatHoursMinutes, sleepGlance } from '../dashboard/dashboardZones';
 import { clock } from '../dashboard/dayThreadModel';
 import { wallClockMinute } from '../dashboard/dayThreadInput';
 import { formatSleepMinutes, sleepPhaseLabel, type OutlookSummary, type SleepProtocolItem } from './sleepPresentation';
-import { buildRhythm, buildSleepChart, minuteAtX, readSleepChart, SLEEP_CHART, type RhythmRow } from './sleepThreadModel';
+import { SleepEnergyChart } from './SleepEnergyChart';
+import { buildRhythm, type RhythmRow } from './sleepThreadModel';
+import { SleepTwoThread } from './SleepTwoThread';
+import type { SleepWindowTrackerPalette } from './SleepWindowTracker';
+import { buildTwoProcessDay } from './twoProcessModel';
 
 /** "Today looks steady." from the engine's outlook word, so the headline is the engine's own. */
 function outlookHeadline(outlook: OutlookSummary | null): string {
@@ -19,108 +21,66 @@ function outlookHeadline(outlook: OutlookSummary | null): string {
   return `Today looks ${outlook.headline.toLowerCase()}.`;
 }
 
+/** The original Sleep energy chart's colours, set for the charcoal band. */
+const BAND_CHART_PALETTE: SleepWindowTrackerPalette = {
+  surface: surface.band,
+  surfaceAlt: bone.raised,
+  border: bone.hairline,
+  hairline: bone.hairline,
+  text: bone.text,
+  muted: bone.muted,
+  faint: bone.faint,
+  accent: accent.amber,
+  accentSoft: accent.amberGap,
+  primary: bone.text,
+  primaryText: ink.text,
+  amber: accent.lavender,
+  chip: bone.raised
+};
+
 /**
  * The Sleep header band (design language P1): eyebrow, the engine's outlook as the
- * headline, its limiter or timing note as the sub-line, then the screen's one hero, the
- * energy chart with a live readout.
+ * headline, its limiter or timing note as the sub-line, then two views of the day. First
+ * the energy forecast, drag to read what each moment suits; then body clock and sleep
+ * pressure, the two threads that energy sits between.
  */
-export function SleepBand({ briefing, outlook, nowMinute, support, onLogSleep }: {
+export function SleepBand({ briefing, outlook, now, nowMinute, sessions, needMinutes, support, onLogSleep }: {
   briefing: CircadianBriefing;
   outlook: OutlookSummary | null;
+  /** The wall clock on the UTC axis, as the briefing's own times are. */
+  now: string;
   nowMinute: number;
+  sessions: SleepSession[];
+  needMinutes: number;
   /** The current phase's own support line, used when the engine has no limiter or timing note. */
   support: string;
   onLogSleep: () => void;
 }) {
   const sub = [outlook?.body, outlook?.timing, outlook?.calibrating ? 'Still calibrating, so treat this loosely.' : null].filter(Boolean).join(' ') || support;
   const hasCurve = briefing.energy_curve.length >= 2;
+  const twoProcess = useMemo(() => buildTwoProcessDay({
+    day: briefing.date.slice(0, 10),
+    wakeIso: briefing.wake_time,
+    bedIso: briefing.target_bedtime,
+    clockMidSleepMinutes: briefing.circadian_phase?.phaseMinutes ?? null,
+    sessions,
+    needMinutes
+  }), [briefing, sessions, needMinutes]);
   return (
     <View>
       <View style={styles.bandEyebrow}><Eyebrow tone="band">Sleep & energy</Eyebrow></View>
       <Text accessibilityRole="header" style={styles.bandTitle}>{outlookHeadline(outlook)}</Text>
       <Text style={styles.bandSub}>{hasCurve ? sub : 'Your energy through the day is estimated from your recent nights. One logged night is enough to start.'}</Text>
       {hasCurve ? (
-        <SleepEnergyThread briefing={briefing} nowMinute={nowMinute} />
+        <>
+          <View style={styles.forecast}>
+            <SleepEnergyChart briefing={briefing} now={now} palette={BAND_CHART_PALETTE} />
+          </View>
+          <SleepTwoThread day={twoProcess} nowMinute={nowMinute} />
+        </>
       ) : (
         <ThreadButton tone="band" label="Log last night’s sleep" onPress={onLogSleep} style={styles.bandButton} />
       )}
-    </View>
-  );
-}
-
-/**
- * The energy curve on the band, in the 1c chart grammar (P8, P9): amber line, solid where
- * lived and dotted where predicted, the person's usual range as a wash, one baseline, sparse
- * hour labels and no gridlines. Drag across it to read the estimate at any time.
- */
-export function SleepEnergyThread({ briefing, nowMinute }: { briefing: CircadianBriefing; nowMinute: number }) {
-  const [width, setWidth] = useState(0);
-  const [scrubMinute, setScrubMinute] = useState<number | null>(null);
-  const chart = useMemo(() => buildSleepChart({ briefing, nowMinute, width }), [briefing, nowMinute, width]);
-  const reading = useMemo(() => readSleepChart(briefing, scrubMinute ?? nowMinute, width), [briefing, nowMinute, scrubMinute, width]);
-  const activity = useMemo(() => {
-    if (!reading) return null;
-    const day = briefing.date.slice(0, 10);
-    const iso = `${day}T${reading.time}:00.000Z`;
-    return wallClockMinute(iso, day) === null ? null : getRecommendedActivityAt(briefing, iso).label;
-  }, [briefing, reading]);
-
-  const pan = Gesture.Pan()
-    .runOnJS(true)
-    .activeOffsetX([-6, 6])
-    .failOffsetY([-14, 14])
-    .onStart((event) => setScrubMinute(minuteAtX(briefing, event.x, width)))
-    .onUpdate((event) => setScrubMinute(minuteAtX(briefing, event.x, width)));
-
-  const onAction = (event: AccessibilityActionEvent) => {
-    const from = scrubMinute ?? nowMinute;
-    if (event.nativeEvent.actionName === 'increment') setScrubMinute(from + 15);
-    if (event.nativeEvent.actionName === 'decrement') setScrubMinute(from - 15);
-  };
-
-  return (
-    <View>
-      <View style={styles.readout}>
-        <Text style={styles.readoutTime}>{reading ? `${reading.time} · ${sleepPhaseLabel(reading.phase)}` : '—'}</Text>
-        <Text style={styles.readoutLevel}>{reading?.level ? `${reading.level} energy · est.` : 'est.'}</Text>
-      </View>
-      {activity ? <Text style={styles.readoutActivity}>Suits {activity.toLowerCase()}</Text> : null}
-      <GestureDetector gesture={pan}>
-        <View
-          accessible
-          accessibilityRole="adjustable"
-          accessibilityLabel="Estimated energy through today"
-          accessibilityHint="Drag to read energy at a time"
-          accessibilityValue={{ text: reading ? `${reading.time}, ${sleepPhaseLabel(reading.phase)}, ${reading.level ?? 'no'} energy, estimate` : 'No estimate' }}
-          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-          onAccessibilityAction={onAction}
-          onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-          style={styles.chart}
-        >
-          {width > 0 ? (
-            <Svg width={width} height={SLEEP_CHART.height}>
-              {chart.usual ? <Rect x={0} y={chart.usual.top} width={width} height={Math.max(1, chart.usual.bottom - chart.usual.top)} fill={bone.raised} /> : null}
-              {chart.area ? <Path d={chart.area} fill={accent.amberGap} /> : null}
-              <Line x1={0} x2={width} y1={chart.baselineY} y2={chart.baselineY} stroke={bone.hairline} strokeWidth={1} />
-              {chart.nowX !== null ? <Line x1={chart.nowX} x2={chart.nowX} y1={SLEEP_CHART.top - 6} y2={chart.baselineY} stroke={bone.outline} strokeWidth={1} /> : null}
-              {chart.lived ? <Polyline points={chart.lived} fill="none" stroke={accent.amber} strokeWidth={2} strokeLinejoin="round" /> : null}
-              {chart.predicted ? <Polyline points={chart.predicted} fill="none" stroke={accent.amber} strokeWidth={2} strokeDasharray={[2, 4]} strokeLinecap="round" /> : null}
-              {reading ? (
-                <>
-                  {scrubMinute !== null ? <Line x1={reading.x} x2={reading.x} y1={reading.y} y2={chart.baselineY} stroke={bone.text} strokeWidth={2} /> : null}
-                  <Circle cx={reading.x} cy={reading.y} r={4.5} fill={surface.band} stroke={accent.amber} strokeWidth={2} />
-                </>
-              ) : null}
-            </Svg>
-          ) : null}
-          {chart.usual ? <Text style={[styles.usualLabel, { top: Math.max(0, chart.usual.top - 15) }]}>Your usual</Text> : null}
-          <View style={styles.hours}>
-            {chart.hourLabels.map((label) => (
-              <Text key={label.label} style={[styles.hour, { left: Math.min(Math.max(0, label.x - 8), Math.max(0, width - 16)) }]}>{label.label}</Text>
-            ))}
-          </View>
-        </View>
-      </GestureDetector>
     </View>
   );
 }
@@ -283,15 +243,8 @@ const styles = StyleSheet.create({
   bandEyebrow: { marginTop: 22 },
   bandTitle: { ...type.sleepTitle, color: bone.text, marginTop: 10 },
   bandSub: { ...type.body, color: bone.soft, marginTop: 10 },
+  forecast: { marginHorizontal: -space.gutter },
   bandButton: { alignSelf: 'flex-start', marginTop: 18, paddingHorizontal: 18 },
-  readout: { alignItems: 'baseline', flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 20, minHeight: 24 },
-  readoutTime: { color: bone.text, flexShrink: 1, fontFamily: font.display, fontSize: 20, fontVariant: ['tabular-nums'] },
-  readoutLevel: { color: bone.soft, fontFamily: font.body, fontSize: 12.5 },
-  readoutActivity: { color: bone.muted, fontFamily: font.body, fontSize: 12, marginTop: 2 },
-  chart: { height: SLEEP_CHART.height, marginTop: 8 },
-  usualLabel: { color: bone.label, fontFamily: font.body, fontSize: 10.5, position: 'absolute', right: 0 },
-  hours: { bottom: 0, height: 16, left: 0, position: 'absolute', right: 0 },
-  hour: { color: bone.label, fontFamily: font.body, fontSize: 10.5, fontVariant: ['tabular-nums'], position: 'absolute', width: 16, textAlign: 'center' },
   section: { marginTop: space.section },
   sectionHead: { alignItems: 'baseline', flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
   sectionMeta: { ...type.caption, color: ink.muted, flexShrink: 1, textAlign: 'right' },

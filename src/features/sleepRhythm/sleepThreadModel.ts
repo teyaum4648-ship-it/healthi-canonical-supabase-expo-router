@@ -1,37 +1,16 @@
 import type { CircadianBriefing, CircadianPhase, EnergyZoneLevel } from '../../engines/circadian';
 import { wallClockMinute } from '../dashboard/dayThreadInput';
-import { clock, threadRange } from '../dashboard/dayThreadModel';
+import { formatClockRange } from '../../utils/clockFormat';
 import type { SleepProtocolItem } from './sleepPresentation';
 
 /**
- * The 1c Sleep screen, as pure geometry and copy from the circadian briefing. Nothing here
- * estimates: every line, window and number is the engine's, placed on the screen.
- *
- * The design drew two threads (body clock and sleep pressure). The engine's energy model
- * is not a two-process model and does not expose those separately, so this draws the one
- * curve it does produce, in the same chart grammar as Today: solid where the day has been
- * lived, dotted where it is predicted, the person's usual range as a wash, scrubbable.
+ * The 1c Sleep screen's "Today's rhythm", as pure copy from the circadian briefing. Nothing
+ * here estimates: every window and time is the engine's, placed on the screen. The charts
+ * live in SleepEnergyChart (the energy forecast) and twoProcessModel (body clock and sleep
+ * pressure).
  */
 
-export const SLEEP_CHART = { height: 190, top: 14, bottom: 26, padX: 0 } as const;
-
 export type SleepChartPoint = { minute: number; energy: number; phase: CircadianPhase };
-
-export type SleepChart = {
-  startHour: number;
-  endHour: number;
-  width: number;
-  /** The curve up to now (solid) and from now on (dotted), as "x,y" polylines. */
-  lived: string | null;
-  predicted: string | null;
-  /** The area under the whole curve, for the wash. */
-  area: string | null;
-  /** The person's usual range, as a band between two y values. */
-  usual: { top: number; bottom: number } | null;
-  nowX: number | null;
-  hourLabels: { x: number; label: string }[];
-  baselineY: number;
-};
 
 export function chartPoints(briefing: Pick<CircadianBriefing, 'date' | 'energy_curve'>): SleepChartPoint[] {
   const day = briefing.date.slice(0, 10);
@@ -41,115 +20,10 @@ export function chartPoints(briefing: Pick<CircadianBriefing, 'date' | 'energy_c
     .sort((a, b) => a.minute - b.minute);
 }
 
-function energyAt(points: SleepChartPoint[], minute: number): number | null {
-  if (points.length === 0 || minute < points[0]!.minute || minute > points[points.length - 1]!.minute) return null;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const a = points[index]!;
-    const b = points[index + 1]!;
-    if (minute >= a.minute && minute <= b.minute) {
-      const span = b.minute - a.minute;
-      return span <= 0 ? a.energy : a.energy + ((b.energy - a.energy) * (minute - a.minute)) / span;
-    }
-  }
-  return points[points.length - 1]!.energy;
-}
-
 function phaseAt(points: SleepChartPoint[], minute: number): CircadianPhase {
   let best = points[0];
   for (const point of points) if (point.minute <= minute) best = point;
   return best?.phase ?? 'unknown';
-}
-
-export function buildSleepChart(input: {
-  briefing: Pick<CircadianBriefing, 'date' | 'energy_curve' | 'wake_time' | 'target_bedtime' | 'typical_band'>;
-  nowMinute: number;
-  width: number;
-}): SleepChart {
-  const day = input.briefing.date.slice(0, 10);
-  const { startHour, endHour } = threadRange(wallClockMinute(input.briefing.wake_time, day), wallClockMinute(input.briefing.target_bedtime, day));
-  const start = startHour * 60;
-  const span = (endHour - startHour) * 60;
-  const plotHeight = SLEEP_CHART.height - SLEEP_CHART.top - SLEEP_CHART.bottom;
-  const baselineY = SLEEP_CHART.top + plotHeight;
-  const x = (minute: number) => SLEEP_CHART.padX + ((minute - start) / span) * (input.width - SLEEP_CHART.padX * 2);
-  const y = (energy: number) => SLEEP_CHART.top + (1 - Math.min(100, Math.max(0, energy)) / 100) * plotHeight;
-  const points = chartPoints(input.briefing);
-
-  const hourLabels: SleepChart['hourLabels'] = [];
-  for (let hour = startHour; hour <= endHour; hour += 3) hourLabels.push({ x: x(hour * 60), label: hour === 24 ? '24' : String(hour % 24).padStart(2, '0') });
-
-  const band = input.briefing.typical_band;
-  const usual = band ? { top: y(band.high), bottom: y(band.low) } : null;
-  const nowVisible = input.nowMinute >= start && input.nowMinute <= endHour * 60;
-
-  if (points.length < 2 || input.width <= 0) {
-    return { startHour, endHour, width: input.width, lived: null, predicted: null, area: null, usual, nowX: nowVisible ? x(input.nowMinute) : null, hourLabels, baselineY };
-  }
-
-  const coords = points.map((point) => `${x(point.minute).toFixed(1)},${y(point.energy).toFixed(1)}`);
-  const nowEnergy = energyAt(points, input.nowMinute);
-  const nowCoord = nowEnergy === null ? null : `${x(input.nowMinute).toFixed(1)},${y(nowEnergy).toFixed(1)}`;
-  const before = points.filter((point) => point.minute < input.nowMinute).map((point) => `${x(point.minute).toFixed(1)},${y(point.energy).toFixed(1)}`);
-  const after = points.filter((point) => point.minute > input.nowMinute).map((point) => `${x(point.minute).toFixed(1)},${y(point.energy).toFixed(1)}`);
-  const livedPoints = nowCoord ? [...before, nowCoord] : input.nowMinute > points[points.length - 1]!.minute ? coords : [];
-  const predictedPoints = nowCoord ? [nowCoord, ...after] : input.nowMinute < points[0]!.minute ? coords : [];
-  const first = points[0]!;
-  const last = points[points.length - 1]!;
-
-  return {
-    startHour,
-    endHour,
-    width: input.width,
-    lived: livedPoints.length >= 2 ? livedPoints.join(' ') : null,
-    predicted: predictedPoints.length >= 2 ? predictedPoints.join(' ') : null,
-    area: `M${x(first.minute).toFixed(1)},${baselineY} L${coords.join(' L')} L${x(last.minute).toFixed(1)},${baselineY} Z`,
-    usual,
-    nowX: nowVisible ? x(input.nowMinute) : null,
-    hourLabels,
-    baselineY
-  };
-}
-
-const LEVEL_WORDS: Record<EnergyZoneLevel, string> = { high: 'High', moderate: 'Moderate', low: 'Low' };
-
-export type SleepReading = { minute: number; time: string; phase: CircadianPhase; energy: number; level: string | null; x: number; y: number };
-
-/** What the chart reads at a minute: the time, the phase, the engine's energy and its window. Null off the curve. */
-export function readSleepChart(
-  briefing: Pick<CircadianBriefing, 'date' | 'energy_curve' | 'energy_zones' | 'wake_time' | 'target_bedtime'>,
-  minute: number,
-  width: number
-): SleepReading | null {
-  const day = briefing.date.slice(0, 10);
-  const points = chartPoints(briefing);
-  if (points.length < 2) return null;
-  const at = Math.min(points[points.length - 1]!.minute, Math.max(points[0]!.minute, Math.round(minute / 5) * 5));
-  const energy = energyAt(points, at);
-  if (energy === null) return null;
-  const { startHour, endHour } = threadRange(wallClockMinute(briefing.wake_time, day), wallClockMinute(briefing.target_bedtime, day));
-  const plotHeight = SLEEP_CHART.height - SLEEP_CHART.top - SLEEP_CHART.bottom;
-  const zone = briefing.energy_zones.find((candidate) => {
-    const from = wallClockMinute(candidate.start_at, day);
-    const to = wallClockMinute(candidate.end_at, day);
-    return from !== null && to !== null && at >= from && at < to;
-  });
-  return {
-    minute: at,
-    time: clock(at),
-    phase: phaseAt(points, at),
-    energy,
-    level: zone ? LEVEL_WORDS[zone.level] : null,
-    x: ((at - startHour * 60) / ((endHour - startHour) * 60)) * width,
-    y: SLEEP_CHART.top + (1 - Math.min(100, Math.max(0, energy)) / 100) * plotHeight
-  };
-}
-
-/** The minute a horizontal offset across the chart stands for. */
-export function minuteAtX(briefing: Pick<CircadianBriefing, 'date' | 'wake_time' | 'target_bedtime'>, offsetX: number, width: number): number {
-  const day = briefing.date.slice(0, 10);
-  const { startHour, endHour } = threadRange(wallClockMinute(briefing.wake_time, day), wallClockMinute(briefing.target_bedtime, day));
-  const ratio = width > 0 ? Math.min(1, Math.max(0, offsetX / width)) : 0;
-  return startHour * 60 + ratio * (endHour - startHour) * 60;
 }
 
 export type RhythmSegment = { level: EnergyZoneLevel | 'wind_down'; share: number };
@@ -197,12 +71,12 @@ export function buildRhythm(
         id: `${zone.level}-${index}`,
         level: zone.level,
         name: points.length ? phaseName(phaseAt(points, middle)) : zone.level === 'high' ? 'Higher energy' : 'Lower energy',
-        range: `${clock(zone.start)}–${clock(end)}`,
+        range: formatClockRange(zone.start, end),
         fit: zone.level === 'high' ? fitFor(zone.start, end, ['focus', 'movement']) : fitFor(zone.start, end, ['reset', 'light'])
       };
     });
   if (windDownStart !== null && bed !== null && bed > windDownStart) {
-    rows.push({ id: 'wind-down', level: 'wind_down', name: 'Wind-down', range: `${clock(windDownStart)}–${clock(bed)}`, fit: fitFor(windDownStart, bed, ['wind_down', 'dim_light']) });
+    rows.push({ id: 'wind-down', level: 'wind_down', name: 'Wind-down', range: formatClockRange(windDownStart, bed), fit: fitFor(windDownStart, bed, ['wind_down', 'dim_light']) });
   }
   return { segments, rows };
 }

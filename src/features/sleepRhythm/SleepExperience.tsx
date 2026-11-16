@@ -1,4 +1,3 @@
-import { SleepEnergyChart as EnergyField } from './SleepEnergyChart';
 import { sleepV2 } from './SleepTodayHero';
 import { ChronotypeRow, LastSevenNights, SleepBand, TodaysRhythm, TonightSummary } from './SleepThread';
 import { ExploreButton, SectionTitle, ThreadBand, ThreadHeader } from '../../components/thread/ThreadParts';
@@ -155,7 +154,10 @@ const toggleProtocol = (id: string) => setCompletedProtocol((current) => ({ ...c
   <SleepBand
     briefing={props.briefing}
     outlook={outlook}
+    now={props.now}
     nowMinute={nowMinute}
+    sessions={props.sleepSessions}
+    needMinutes={props.sleepNeed.minutes}
     support={phase.support}
     onLogSleep={() => setSheet({ type: 'manual' })}
   />
