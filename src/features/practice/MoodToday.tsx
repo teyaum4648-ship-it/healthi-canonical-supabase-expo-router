@@ -18,18 +18,21 @@ const accent = tabAccent.mood;
  * confidence beside it, the heaviest limiters named, then a single action. With too little
  * known there is no number at all, only what would help — absence is not drawn as a score.
  */
-export function MoodToday({ score, rings, week, onSuggestion }: {
+export function MoodToday({ score, rings, week, onSuggestion, inBand = false }: {
   score: MindScore;
   rings: MoodRing[];
   week: MoodWeekDay[];
   onSuggestion: (suggestion: MindSuggestion) => void;
+  /** The score and today's levers are already in the 1c band above; show what shapes the day instead. */
+  inBand?: boolean;
 }) {
   const busiest = Math.max(5, ...week.map((day) => day.minutes));
   const weekMinutes = week.reduce((sum, day) => sum + day.minutes, 0);
   return (
     <>
       <View style={styles.panel}>
-        <View style={styles.header}>
+        {inBand ? <Text accessibilityRole="header" style={styles.cardTitle}>What’s shaping today</Text> : null}
+        {inBand ? null : <View style={styles.header}>
           <View style={styles.flex}>
             <Text style={styles.eyebrow}>Mind + Life Load</Text>
             <Text style={styles.summary}>{score.summary}</Text>
@@ -40,8 +43,8 @@ export function MoodToday({ score, rings, week, onSuggestion }: {
               <Text style={styles.scoreUnit}>/ 100</Text>
             </View>
           ) : null}
-        </View>
-        {score.score !== null ? (
+        </View>}
+        {!inBand && score.score !== null ? (
           <Text style={styles.meta}>{score.confidence} confidence · {Math.round(score.coverage * 100)}% of the signals we look at</Text>
         ) : null}
         {score.limiters.length ? (
@@ -72,7 +75,7 @@ export function MoodToday({ score, rings, week, onSuggestion }: {
         </Pressable>
       </View>
 
-      <View style={styles.panel}>
+      {inBand ? null : <View style={styles.panel}>
         <Text style={styles.eyebrow}>Today so far</Text>
         <View style={styles.rings}>
           {rings.map((ring) => (
@@ -83,7 +86,7 @@ export function MoodToday({ score, rings, week, onSuggestion }: {
             </View>
           ))}
         </View>
-      </View>
+      </View>}
 
       <View style={styles.panel}>
         <View style={styles.weekHead}>
@@ -106,7 +109,8 @@ export function MoodToday({ score, rings, week, onSuggestion }: {
 }
 
 const styles = StyleSheet.create({
-  panel: { ...glassSurface, borderColor: colors.border, borderRadius: 18, borderWidth: hairlineWidth, gap: 12, padding: 18 },
+  panel: { ...glassSurface, borderColor: colors.borderStrong, borderRadius: 14, borderWidth: 1, gap: 12, padding: 16 },
+  cardTitle: { ...type.label, color: colors.text, fontSize: 15 },
   flex: { flex: 1, minWidth: 0 },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: 14 },
   eyebrow: { ...type.label, color: colors.textMuted, fontSize: 13, letterSpacing: 0 },
@@ -133,8 +137,8 @@ const styles = StyleSheet.create({
   weekTotal: { ...type.caption, color: colors.textMuted, fontVariant: ['tabular-nums'] },
   bars: { flexDirection: 'row', gap: 8, height: 84 },
   barColumn: { alignItems: 'center', flex: 1, gap: 6 },
-  barTrack: { backgroundColor: colors.surfaceInset, borderRadius: 6, flex: 1, justifyContent: 'flex-end', overflow: 'hidden', width: '100%' },
-  bar: { borderRadius: 6, width: '100%' },
+  barTrack: { borderBottomColor: colors.hairline, borderBottomWidth: 1, flex: 1, justifyContent: 'flex-end', width: '100%' },
+  bar: { width: '100%' },
   barLetter: { ...type.caption, color: colors.textFaint },
   barLetterToday: { color: colors.text }
 });
