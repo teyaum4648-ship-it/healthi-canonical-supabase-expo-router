@@ -4,6 +4,7 @@ import type { FoodPatternProfile, MealLog } from '../../engines/nutrition';
 import type { WorkoutSessionRow } from '../movement/movementPersistence';
 import { workoutSessionRowToEngineSession } from '../movement/movementPersistence';
 
+import { formatClock } from '../../utils/clockFormat';
 export type MacroTendencySlice = {
   nutrient: 'Protein' | 'Carbs' | 'Fat';
   weight: number;
@@ -51,8 +52,7 @@ function timeLabel(value: string): string | null {
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
   if (hours > 23 || minutes > 59) return null;
-  const suffix = hours >= 12 ? 'PM' : 'AM';
-  return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  return formatClock(hours * 60 + minutes);
 }
 
 function shiftedTime(value: string, minutesToSubtract: number): string | null {

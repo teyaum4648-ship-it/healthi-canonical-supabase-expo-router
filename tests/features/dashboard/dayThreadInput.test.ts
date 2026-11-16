@@ -119,10 +119,10 @@ describe('building the strand input', () => {
   it('takes the plan from the day plan, with its real times and the engine’s own words', () => {
     const planned = buildDayThreadInput(sources()).planned;
     expect(planned.find((item) => item.id === 'rec-r1')).toEqual({
-      id: 'rec-r1', start: 555, end: 705, title: 'Focus window', detail: '09:15–11:45 · Use your strongest energy window for focused work.'
+      id: 'rec-r1', start: 555, end: 705, title: 'Focus window', detail: '9:15–11:45 AM · Use your strongest energy window for focused work.'
     });
     expect(planned.some((item) => item.id === 'rec-r2')).toBe(false);
-    expect(planned.find((item) => item.id === 'block-b1')).toMatchObject({ title: 'Team meeting', detail: '13:00–14:00', listOnly: true });
+    expect(planned.find((item) => item.id === 'block-b1')).toMatchObject({ title: 'Team meeting', detail: '1:00–2:00 PM', listOnly: true });
     expect(planned.some((item) => item.id === 'block-b2')).toBe(false);
   });
 

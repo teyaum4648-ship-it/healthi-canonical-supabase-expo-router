@@ -11,6 +11,7 @@ import {
 } from '../../engines/nutrition';
 
 import { calculateNourishmentScore } from '../../engines/nutrition/calculateNourishmentScore';
+import { formatClock } from '../../utils/clockFormat';
 export type DashboardNutritionSummary = {
   meal_count: number;
   calorie_label: string;
@@ -44,11 +45,7 @@ function formatTime(value: string | null | undefined): string {
   if (!value) return 'Calibrating';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Calibrating';
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
-  const hour12 = hours % 12 || 12;
-  const suffix = hours >= 12 ? 'PM' : 'AM';
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  return formatClock(date.getUTCHours() * 60 + date.getUTCMinutes());
 }
 
 function formatWindow(window: TimeWindow | undefined): string {

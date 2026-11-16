@@ -1,5 +1,6 @@
 import { strand } from '../../styles/daywoven1c';
 
+import { formatClock, formatClockCompact } from '../../utils/clockFormat';
 /**
  * The geometry of "Your day", the energy strand on Today (docs/design/1c/HANDOFF.md, Phase 1
  * section 6). Pure and deterministic: every position comes from the inputs, nothing is
@@ -62,13 +63,11 @@ const BLOCK_MAX_MINUTES = 180;
 const NOTE_HEIGHT = 34;
 const NOW_BAND = 11;
 
-const pad = (value: number) => String(value).padStart(2, '0');
 
-/** "06:40", "14:05", and "00:30" for half past midnight tomorrow. */
+/** "6:40 AM", "2:05 PM", and "12:30 AM" for half past midnight tomorrow. */
+/** A clock label for the strand: "2:30 PM". The one shared 12-hour formatter, by another name. */
 export function clock(minute: number): string {
-  const whole = Math.round(minute);
-  const day = ((whole % 1440) + 1440) % 1440;
-  return `${pad(Math.floor(day / 60))}:${pad(day % 60)}`;
+  return formatClock(minute);
 }
 
 export function threadRange(wakeMinute: number | null, bedMinute: number | null): { startHour: number; endHour: number } {
@@ -137,7 +136,7 @@ export function buildDayThread(input: DayThreadInput): DayThreadModel {
   }
 
   const hourLabels: DayThreadModel['hourLabels'] = [];
-  for (let hour = startHour; hour <= endHour; hour += 3) hourLabels.push({ y: y(hour * 60), label: hour === 24 ? '24' : pad(hour % 24) });
+  for (let hour = startHour; hour <= endHour; hour += 3) hourLabels.push({ y: y(hour * 60), label: formatClockCompact(hour * 60) });
 
   const bandTop = nowVisible ? nowY - NOW_BAND : Infinity;
   const bandBottom = nowVisible ? nowY + NOW_BAND : -Infinity;
@@ -210,7 +209,7 @@ export function buildDayThread(input: DayThreadInput): DayThreadModel {
     height,
     hourLabels,
     area,
-    now: nowVisible ? { y: nowY, label: `Now ${Number(clock(Math.floor(now)).slice(0, 2))}:${clock(Math.floor(now)).slice(3)}` } : null,
+    now: nowVisible ? { y: nowY, label: `Now ${clock(Math.floor(now))}` } : null,
     rows,
     summary
   };

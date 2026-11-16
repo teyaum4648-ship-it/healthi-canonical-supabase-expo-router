@@ -7,6 +7,7 @@ import type {
   TimeWindow
 } from '../../engines/circadian';
 
+import { formatClock } from '../../utils/clockFormat';
 export type SleepPhasePresentation = {
   label: string;
   energy: 'Low' | 'Steady' | 'High';
@@ -237,11 +238,9 @@ export function formatSleepTime(value: string | null | undefined): string {
   return formatClockMinutes(minute);
 }
 
+/** Kept as a named export for the Sleep screens; the formatting itself is shared. */
 export function formatClockMinutes(input: number): string {
-  const minute = ((Math.round(input) % 1440) + 1440) % 1440;
-  const hour = Math.floor(minute / 60);
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${String(minute % 60).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
+  return formatClock(input);
 }
 
 export function sleepNightSummaries(sessions: SleepSession[]): SleepNightSummary[] {

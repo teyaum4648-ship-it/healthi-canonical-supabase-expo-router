@@ -208,6 +208,7 @@ import {
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 import * as dv from '../../../src/styles/daywoven1c';
+import { formatClockOfDate } from '../../../src/utils/clockFormat';
 const C = {
   bg: themeColors.background,
   card: themeColors.surface,
@@ -253,7 +254,7 @@ function dateKey(value: string): string {
 function formatClock(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return formatClockOfDate(date);
 }
 
 function confidenceLabel(value: string): string {

@@ -2,8 +2,9 @@ import type { CircadianBriefing } from '../../engines/circadian';
 import type { DayPlanResult } from '../../engines/dayPlan';
 import type { MealLog } from '../../engines/nutrition';
 import { formatHoursMinutes } from './dashboardZones';
-import { clock, type DayThreadInput } from './dayThreadModel';
+import type { DayThreadInput } from './dayThreadModel';
 
+import { formatClockRange } from '../../utils/clockFormat';
 /**
  * Turns what Today already has (the circadian briefing, the day plan, and today's logs) into
  * the DayThread model's input. Read-only: nothing here estimates, it only places.
@@ -46,7 +47,7 @@ const MEAL_NAMES: Record<MealLog['meal_type'], string> = {
 };
 
 const onToday = (minute: number | null): minute is number => minute !== null && minute >= 0 && minute < 1440;
-const range = (start: number, end: number) => `${clock(start)}–${clock(end)}`;
+const range = (start: number, end: number) => formatClockRange(start, end);
 
 export type DayThreadSources = {
   today: string;

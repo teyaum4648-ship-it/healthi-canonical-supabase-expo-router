@@ -35,14 +35,14 @@ export const onboardingQuestions: OnboardingQuestion[] = [
     key: 'bedtime',
     section: 'Recovery rhythm',
     prompt: 'What time do you usually start trying to sleep?',
-    helper: 'However you write it — 10:30pm, 22:30 or 2230.',
+    helper: 'For example 10:30 PM. Typing 10:30pm works too.',
     type: 'time'
   },
   {
     key: 'wake_time',
     section: 'Recovery rhythm',
     prompt: 'What time do you usually wake up?',
-    helper: 'However you write it — 6:45am, 06:45 or 645.',
+    helper: 'For example 6:45 AM. Typing 6:45am works too.',
     type: 'time'
   },
   {

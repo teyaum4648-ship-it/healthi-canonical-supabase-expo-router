@@ -6,6 +6,7 @@ import type { MealLog, MealType } from '../../engines/nutrition';
 import { font, HIT, ink, space, type } from '../../styles/daywoven1c';
 import { mealSectionsForDay } from './mealDiaryModel';
 
+import { formatClockOfDate } from '../../utils/clockFormat';
 /**
  * The day's meals as a 1c hairline diary (design language P4), grouped by meal: each group
  * has its name, its calories and an "Add" link; each meal is a row with its time, its name
@@ -29,7 +30,7 @@ export function MealDiarySections({ meals, date, loading, onAdd, onSelect }: {
       </View>
       {!loading && !section.meals.length ? <Text style={[styles.detail, styles.empty]}>No foods logged yet</Text> : null}
       {section.meals.map((meal, index) => {
-        const time = new Date(meal.logged_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const time = formatClockOfDate(new Date(meal.logged_at));
         const value = typeof meal.calories === 'number' ? `${Math.round(meal.calories)} kcal` : 'Not reported';
         return (
           <Pressable

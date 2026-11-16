@@ -25,6 +25,7 @@ import { createReadinessNowDemoStore, type ReadinessNowDemoData } from './readin
 
 import * as dv from '../../styles/daywoven1c';
 import * as dvSwitch from '../../styles/daywoven1c';
+import { formatClockOfDate } from '../../utils/clockFormat';
 const store = createReadinessNowDemoStore(AsyncStorage);
 const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
@@ -32,7 +33,7 @@ const timePalette = {
   text: colors.text, muted: colors.textMuted, faint: colors.textMuted, accent: colors.accentMid,
   accentSoft: colors.accentSoft, primary: colors.primary, primaryText: colors.primaryText, amber: dv.accent.amberDeep, chip: colors.surfaceMuted
 };
-const timeLabel = (value: string) => new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const timeLabel = (value: string) => formatClockOfDate(new Date(value));
 function clockLabel(value: string) {
   const [h, m] = value.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;

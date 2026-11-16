@@ -5,15 +5,12 @@ import {
 import { reviewSafetySignals, type SafetyReviewInput } from '../../engines/safety';
 import type { DailyProtocolComposerInput, DailyProtocolScreenModel, DailyProtocolSource } from './dailyProtocolTypes';
 
+import { formatClock } from '../../utils/clockFormat';
 function formatClockLabel(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
-  const hour12 = hours % 12 || 12;
-  const suffix = hours >= 12 ? 'PM' : 'AM';
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  return formatClock(date.getUTCHours() * 60 + date.getUTCMinutes());
 }
 
 function includesCode(codes: string[] | undefined, code: string): boolean {

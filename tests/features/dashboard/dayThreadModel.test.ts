@@ -79,13 +79,15 @@ describe('the day column', () => {
   it('is one hour per strand.hourHeight, with a label every three hours', () => {
     const model = buildDayThread(input());
     expect(model.height).toBeGreaterThanOrEqual(18 * strand.hourHeight);
-    expect(model.hourLabels.map((label) => label.label)).toEqual(['06', '09', '12', '15', '18', '21', '24']);
+    expect(model.hourLabels.map((label) => label.label)).toEqual(['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM', '12 AM']);
     expect(model.hourLabels[1]!.y).toBe(3 * strand.hourHeight);
   });
 
-  it('formats times on a 24-hour clock, wrapping past midnight', () => {
-    expect(clock(400)).toBe('06:40');
-    expect(clock(1470)).toBe('00:30');
+  it('formats times on a 12-hour clock, wrapping past midnight', () => {
+    expect(clock(400)).toBe('6:40 AM');
+    expect(clock(1470)).toBe('12:30 AM');
+    expect(clock(0)).toBe('12:00 AM');
+    expect(clock(720)).toBe('12:00 PM');
   });
 });
 
@@ -127,7 +129,7 @@ describe('the energy strand', () => {
 describe('the now line', () => {
   it('sits at the current time with a short label', () => {
     const model = buildDayThread(input());
-    expect(model.now?.label).toBe('Now 9:41');
+    expect(model.now?.label).toBe('Now 9:41 AM');
     expect(model.now?.y).toBeCloseTo(((581 - 360) / 60) * strand.hourHeight, 5);
   });
 
@@ -228,7 +230,7 @@ describe('scrubbing', () => {
   it('reads the time, a point on the curve and the energy window, snapped to five minutes', () => {
     const y = ((15 * 60 + 32 - 360) / 60) * strand.hourHeight;
     const reading = scrubAt(input(), 6, y)!;
-    expect(reading.time).toBe('15:30');
+    expect(reading.time).toBe('3:30 PM');
     expect(reading.level).toBe('Low');
     expect(reading.x).toBeCloseTo(energyX(energyAt(curve(), 930)!), 5);
   });
@@ -248,7 +250,7 @@ describe('scrubbing', () => {
 describe('the spoken summary', () => {
   it('describes the day without numbers that were not given', () => {
     const model = buildDayThread(input());
-    expect(model.summary).toContain('high 09:00 to 12:00');
+    expect(model.summary).toContain('high 9:00 AM to 12:00 PM');
     expect(model.summary).toContain('3 logged so far');
     expect(buildDayThread(input({ zones: [] })).summary).toContain('No energy estimate yet.');
   });

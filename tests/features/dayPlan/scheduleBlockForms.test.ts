@@ -85,7 +85,7 @@ describe('schedule block form helpers', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: 'Use 24-hour times like 09:00 or 17:30.'
+      error: 'Choose a start and end time, like 9:00 AM to 5:30 PM.'
     });
   });
 

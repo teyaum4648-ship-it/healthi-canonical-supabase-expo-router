@@ -165,7 +165,8 @@ const styles = StyleSheet.create({
   column: { marginBottom: space.section, marginTop: 14, position: 'relative' },
   abs: { left: 0, position: 'absolute', top: 0 },
   lived: { left: 0, overflow: 'hidden', position: 'absolute', top: 0, width: strand.areaWidth },
-  hour: { color: ink.muted, fontFamily: font.body, fontSize: 10.5, fontVariant: ['tabular-nums'], left: strand.hourLabelX, lineHeight: 13, position: 'absolute' },
+  /* "12 PM" is the widest label; at 9.5pt from 84pt it still clears the log dots at 112pt. */
+  hour: { color: ink.muted, fontFamily: font.body, fontSize: 9.5, fontVariant: ['tabular-nums'], left: strand.hourLabelX - 4, lineHeight: 13, position: 'absolute' },
   row: { left: strand.textX, position: 'absolute', right: space.gutter },
   rowDot: { left: strand.dotX - strand.textX, position: 'absolute' },
   dot: { backgroundColor: ink.text, borderRadius: strand.dotSize / 2, height: strand.dotSize, width: strand.dotSize },
