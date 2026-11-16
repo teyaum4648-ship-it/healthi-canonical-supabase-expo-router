@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   content: { gap: 10, paddingHorizontal: 20 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  wordmark: { ...type.heading, color: colors.text, fontSize: 22, fontFamily: fonts.displayMedium, letterSpacing: -0.6 },
+  wordmark: { ...type.heading, color: colors.text, fontSize: 22, lineHeight: 27, fontFamily: fonts.displayMedium, letterSpacing: -0.6 },
   close: { alignItems: 'center', height: 40, justifyContent: 'center', marginRight: -8, width: 40 },
   account: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingVertical: 8 },
   avatar: { alignItems: 'center', backgroundColor: colors.accentWash, borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },

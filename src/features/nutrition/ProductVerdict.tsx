@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     minWidth: 76,
     paddingVertical: 10
   },
-  gradeLetter: { ...type.title, fontSize: 38, lineHeight: 44 },
+  gradeLetter: { ...type.title, fontSize: 38, lineHeight: 47 },
   gradeScore: { ...type.label, fontVariant: ['tabular-nums'], opacity: 0.85 },
   verdictText: { ...type.body, color: colors.text, flex: 1, minWidth: 0 },
 

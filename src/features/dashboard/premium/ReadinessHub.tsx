@@ -79,7 +79,7 @@ export function ReadinessHub({
           accessibilityLabel={readinessRingLabel(score, word, pillars)}
         >
           <Text style={styles.ringLabel}>READINESS</Text>
-          <Text style={[styles.score, { fontSize: ringSize * 0.31, lineHeight: ringSize * 0.33 }, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
+          <Text style={[styles.score, { fontSize: ringSize * 0.31, lineHeight: Math.ceil(ringSize * 0.31 * 1.22) }, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
           <View style={styles.status}>
             <View style={[styles.statusDot, { backgroundColor: wordColor }]} />
             <Text numberOfLines={1} style={[styles.word, { color: wordColor, maxWidth: ringSize - ringStroke * 2 - 40 }]}>{word}</Text>

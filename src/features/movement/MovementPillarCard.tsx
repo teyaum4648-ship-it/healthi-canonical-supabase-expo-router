@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontFamily: fonts.bodySemibold, fontSize: 12, letterSpacing: 0 },
   summary: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   scoreBlock: { alignItems: 'flex-end' },
-  score: { fontFamily: fonts.displayMedium, fontSize: 34, fontVariant: ['tabular-nums'], lineHeight: 38 },
+  score: { fontFamily: fonts.displayMedium, fontSize: 34, fontVariant: ['tabular-nums'], lineHeight: 42 },
   scoreUnit: { fontFamily: fonts.body, fontSize: 12 },
   meta: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
   limiters: { gap: 10 },

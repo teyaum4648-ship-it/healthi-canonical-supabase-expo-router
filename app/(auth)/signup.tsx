@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   back: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 2, marginLeft: -4, marginTop: 4, minHeight: HIT },
   backText: { ...type.button, color: bone.text },
   pressed: { opacity: 0.7 },
-  headline: { color: bone.text, fontFamily: font.display, fontSize: 34, letterSpacing: -0.4, lineHeight: 39, marginTop: 14 },
+  headline: { color: bone.text, fontFamily: font.display, fontSize: 34, letterSpacing: -0.4, lineHeight: 42, marginTop: 14 },
   sub: { ...type.body, color: bone.soft, marginTop: 10 },
   focus: { borderColor: bone.hairline, borderRadius: radius.card, borderWidth: 1, flexDirection: 'row', gap: 12, marginTop: 20, overflow: 'hidden', padding: 14 },
   focusMark: { backgroundColor: accent.amber, borderRadius: 2, width: 3 },
