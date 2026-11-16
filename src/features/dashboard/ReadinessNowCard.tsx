@@ -24,6 +24,7 @@ import {
 import { createReadinessNowDemoStore, type ReadinessNowDemoData } from './readinessNowStore';
 
 import * as dv from '../../styles/daywoven1c';
+import * as dvSwitch from '../../styles/daywoven1c';
 const store = createReadinessNowDemoStore(AsyncStorage);
 const waterStore = createDemoWaterStore(AsyncStorage);
 const timePalette = {
@@ -88,7 +89,7 @@ function ReminderSheet({ initial, onClose, onSave }: { initial: ReadinessReminde
   if (picker) return <SleepTimePicker label="Usual lunch" value={draft.lunchTime} palette={timePalette} onCancel={() => setPicker(false)} onDone={value => { setDraft(d => ({ ...d, lunchTime: value })); setPicker(false); }} />;
   return <EntrySheet title="Gentle reminders" onClose={onClose} busy={busy} footer={<Button disabled={busy} title={busy ? 'Saving…' : 'Save preferences'} onPress={() => { setBusy(true); setError(false); void onSave(draft).then(onClose).catch(() => setError(true)).finally(() => setBusy(false)); }} />}>
     <Text style={styles.muted}>Only on Home while you have the demo open. No phone alerts, background tracking, or repeated notifications.</Text>
-    <View style={styles.row}><Text style={[styles.heading, { flex: 1 }]}>Remind me to log lunch</Text><Switch accessibilityLabel="Lunch reminders" value={draft.enabled} onValueChange={enabled => setDraft(d => ({ ...d, enabled }))} /></View>
+    <View style={styles.row}><Text style={[styles.heading, { flex: 1 }]}>Remind me to log lunch</Text><Switch thumbColor={dvSwitch.surface.card} trackColor={{ false: dvSwitch.control.switchOffOnCanvas, true: dvSwitch.control.switchOn }} ios_backgroundColor={dvSwitch.control.switchOffOnCanvas} accessibilityLabel="Lunch reminders" value={draft.enabled} onValueChange={enabled => setDraft(d => ({ ...d, enabled }))} /></View>
     <ActionRow title="Usual lunch time" detail={clockLabel(draft.lunchTime)} icon="time-outline" onPress={() => setPicker(true)} last />
     <Choices label="Remind me after" value={String(draft.delayMinutes)} options={['30', '45', '60'].map(value => ({ value, title: `${value} min` }))} onChange={value => setDraft(d => ({ ...d, delayMinutes: Number(value) as 30 | 45 | 60 }))} />
     <Text style={styles.muted}>Quiet hours: 9 PM–8 AM. A recent meal log or “Yes, I ate” check-in keeps the reminder quiet. Your lunch preference is never treated as proof you ate.</Text>

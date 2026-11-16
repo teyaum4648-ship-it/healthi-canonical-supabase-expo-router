@@ -11,16 +11,20 @@ import { describe, expect, it } from 'vitest';
  */
 describe('the clock questions are reachable from where people land', () => {
   const source = readFileSync('src/features/sleepRhythm/SleepExperience.tsx', 'utf8');
+  const thread = readFileSync('src/features/sleepRhythm/SleepThread.tsx', 'utf8');
   const today = source.slice(source.indexOf('function TodayTab'), source.indexOf('function TrendsTab') > source.indexOf('function TodayTab') ? source.indexOf('function TrendsTab') : undefined);
 
   it('offers them on the Today view', () => {
     expect(source).toMatch(/<TodayTab[\s\S]*?onOpenChronotype=\{props\.onOpenChronotype\}/);
-    expect(today).toContain('onPress={onOpenChronotype}');
-    expect(today).toContain('Where does your clock sit?');
+    // The 1c chronotype row sits in the default Today view, not behind Explore.
+    expect(today).toContain('<ChronotypeRow label={chronotypeLabel} onOpen={onOpenChronotype} />');
+    expect(today.indexOf('<ChronotypeRow')).toBeLessThan(today.indexOf('<ExploreButton'));
+    expect(thread).toContain('onPress={onOpen}');
+    expect(thread).toContain('Six questions about your clock');
   });
 
   it('shows the saved answer instead of asking again', () => {
-    expect(today).toContain('Your clock: ${chronotypeLabel}');
+    expect(thread).toContain('` · ${label} (estimate)`');
   });
 
   it('keeps the way in on Trends as well', () => {

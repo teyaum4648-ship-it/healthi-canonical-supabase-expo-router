@@ -341,6 +341,11 @@ function nextShiftLabel(briefing: CircadianBriefing, now: string): string {
   return `Next shift in ${formatSleepMinutes((nextMs - nowMs) / 60_000)}`;
 }
 
+/** The plain name of a phase of the day, e.g. "First peak", for chart readouts. */
+export function sleepPhaseLabel(phase: CircadianPhase): string {
+  return PHASE_COPY[phase]?.label ?? PHASE_COPY.unknown.label;
+}
+
 export function buildSleepPhasePresentation(briefing: CircadianBriefing, now: string): SleepPhasePresentation {
   const base = PHASE_COPY[briefing.current_phase];
   const energy = energyForNow(briefing, now);
