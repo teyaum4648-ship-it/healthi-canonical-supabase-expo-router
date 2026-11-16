@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<style>body{margin:0;background:#E9E8E4;font-family:Inter,system-ui,sans-serif;color:#1a1a1a}a{color:inherit;text-decoration:underline;text-underline-offset:2px}a:hover{color:#000}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 Inter,system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 Inter,system-ui,sans-serif;color:rgba(0,0,0,.6)}.dv-opt:target .dv-oid{background:#1a1a1a;color:#fff}.dv-next{margin:26px 0 0;font:12px/1.6 Inter,system-ui,sans-serif;color:rgba(0,0,0,.6)}*::-webkit-scrollbar{display:none}</style>
+</helmet>
+<section class="dv-turn" id="t1">
+<div style="display:flex;gap:18px;align-items:center;margin:0 0 26px">
+  <img src="assets/daywoven_logo.png" alt="Daywoven" style="width:64px;height:64px;border-radius:10px;object-fit:cover">
+  <div style="max-width:720px">
+    <div style="font:600 20px/1.2 Inter,sans-serif;letter-spacing:-.01em">Daywoven · Phase 1 · three visual directions</div>
+    <div style="font:13px/1.55 Inter,sans-serif;color:rgba(0,0,0,.62);margin-top:6px">Home and Sleep &amp; Energy for each. Same illustrative day in all three (woke 06:40, 6h 52m asleep, 6 of 7 nights logged). Features and wording rules come from the existing app; none of its visuals do. Move across any energy chart to explore it.</div>
+  </div>
+</div>
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Directions</span></div>
+<div class="dv-opts">
+
+<!-- ============ 1a ALMANAC ============ -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Almanac · light, editorial, written like a daily brief</div>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<x-import component="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+<div data-screen-label="1a Home" style="min-height:874px;background:#F3F0E9;color:#1B1A17;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;height:54px;background:#F3F0E9;z-index:5;flex:none"></div>
+  <div style="padding:8px 24px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C">Sunday · 15 Nov</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px Inter,sans-serif;color:#6A665C">Maintain day</span><div style="width:30px;height:30px;border-radius:50%;background:#1B1A17;color:#F3F0E9;font:500 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center">M</div></div>
+    </div>
+    <h1 style="font:400 32px/1.1 Newsreader,serif;letter-spacing:-.015em;margin:22px 0 0;text-wrap:pretty">Your clearest hours run <em style="color:oklch(0.5 0.13 42)">9:10 to 12:00.</em> Put the hard thing there.</h1>
+    <p style="font:13.5px/1.5 Inter,sans-serif;color:#6A665C;margin:12px 0 0">Estimated from 6h 52m of sleep and 6 logged nights this week. Confidence: medium. <a href="#1a" style="color:#1B1A17">Why this estimate</a></p>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:24px">
+      <span style="font:italic 400 13px Newsreader,serif;color:#6A665C">Fig. 1 · Predicted energy</span>
+      <span style="font:500 12px Inter,sans-serif;font-variant-numeric:tabular-nums">{{ aTime }} · {{ aLevel }}</span>
+    </div>
+    <div onPointerMove="{{ aScrub }}" onPointerDown="{{ aScrub }}" style="position:relative;height:96px;margin-top:8px;cursor:crosshair;touch-action:none;border-bottom:1px solid rgba(27,26,23,.14)">
+      <div style="position:absolute;left:17.6%;width:15.7%;top:0;bottom:0;background:oklch(0.55 0.13 42 / .13)"></div>
+      <div style="position:absolute;left:61.1%;width:13.9%;top:0;bottom:0;background:oklch(0.55 0.13 42 / .13)"></div>
+      <div style="position:absolute;left:43.5%;width:10.2%;top:0;bottom:0;background:repeating-linear-gradient(135deg,oklch(0.55 0.13 255 / .45) 0 1px,transparent 1px 5px)"></div>
+      <svg width="354" height="96" style="position:absolute;left:0;top:0"><path d="{{ pAH }}" fill="none" stroke="#1B1A17" stroke-width="1.75" stroke-linejoin="round"></path></svg>
+      <div style="position:absolute;left:20.46%;top:0;bottom:0;width:1px;background:rgba(27,26,23,.4)"></div>
+      <div style="position:absolute;left:20.46%;top:-2px;transform:translateX(5px);font:500 10px Inter,sans-serif;color:#6A665C">now</div>
+      <div style="position:absolute;left:{{ aX }}%;top:{{ aYh }}px;width:9px;height:9px;border-radius:50%;background:#F3F0E9;border:2px solid #1B1A17;transform:translate(-50%,-50%);box-sizing:content-box"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font:10px Inter,sans-serif;color:#6A665C;margin-top:5px;font-variant-numeric:tabular-nums"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:30px"><span style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C">Plan</span><span style="font:500 12px Inter,sans-serif;color:#6A665C">Edit</span></div>
+    <div style="margin-top:8px">
+      <div onClick="{{ aT0 }}" style="display:grid;grid-template-columns:48px 1fr 26px;gap:12px;padding:13px 0;border-top:1px solid rgba(27,26,23,.14);cursor:pointer;align-items:start">
+        <span style="font:500 13px/20px Inter,sans-serif;font-variant-numeric:tabular-nums">09:15</span>
+        <div style="opacity:{{ aO0 }}"><div style="font:500 15px/20px Inter,sans-serif">Deep work · 2h 30m</div><div style="font:12.5px/1.4 Inter,sans-serif;color:#6A665C;margin-top:2px">Inside your morning peak</div></div>
+        <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid #1B1A17;background:{{ aB0 }};color:#F3F0E9;display:flex;align-items:center;justify-content:center;font-size:13px"><i class="ph ph-check"></i></div>
+      </div>
+      <div onClick="{{ aT1 }}" style="display:grid;grid-template-columns:48px 1fr 26px;gap:12px;padding:13px 0;border-top:1px solid rgba(27,26,23,.14);cursor:pointer;align-items:start">
+        <span style="font:500 13px/20px Inter,sans-serif;font-variant-numeric:tabular-nums">12:30</span>
+        <div style="opacity:{{ aO1 }}"><div style="font:500 15px/20px Inter,sans-serif">Lunch, protein-forward</div><div style="font:12.5px/1.4 Inter,sans-serif;color:#6A665C;margin-top:2px">Your afternoons were steadier on 6 of 9 days like this</div></div>
+        <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid #1B1A17;background:{{ aB1 }};color:#F3F0E9;display:flex;align-items:center;justify-content:center;font-size:13px"><i class="ph ph-check"></i></div>
+      </div>
+      <div onClick="{{ aT2 }}" style="display:grid;grid-template-columns:48px 1fr 26px;gap:12px;padding:13px 0;border-top:1px solid rgba(27,26,23,.14);cursor:pointer;align-items:start">
+        <span style="font:500 13px/20px Inter,sans-serif;font-variant-numeric:tabular-nums">14:15</span>
+        <div style="opacity:{{ aO2 }}"><div style="font:500 15px/20px Inter,sans-serif">Walk · 10 min</div><div style="font:12.5px/1.4 Inter,sans-serif;color:#6A665C;margin-top:2px">A dip is likely 13:50 to 15:40</div></div>
+        <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid #1B1A17;background:{{ aB2 }};color:#F3F0E9;display:flex;align-items:center;justify-content:center;font-size:13px"><i class="ph ph-check"></i></div>
+      </div>
+      <div onClick="{{ aT3 }}" style="display:grid;grid-template-columns:48px 1fr 26px;gap:12px;padding:13px 0;border-top:1px solid rgba(27,26,23,.14);border-bottom:1px solid rgba(27,26,23,.14);cursor:pointer;align-items:start">
+        <span style="font:500 13px/20px Inter,sans-serif;font-variant-numeric:tabular-nums">17:30</span>
+        <div style="opacity:{{ aO3 }}"><div style="font:500 15px/20px Inter,sans-serif">Strength · moderate</div><div style="font:12.5px/1.4 Inter,sans-serif;color:#6A665C;margin-top:2px">Second peak. Held to moderate while sleep debt is about 4h</div></div>
+        <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid #1B1A17;background:{{ aB3 }};color:#F3F0E9;display:flex;align-items:center;justify-content:center;font-size:13px"><i class="ph ph-check"></i></div>
+      </div>
+    </div>
+
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C;margin-top:30px">Log</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);margin-top:10px;border-top:1px solid rgba(27,26,23,.14);border-bottom:1px solid rgba(27,26,23,.14)">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0;cursor:pointer" style-hover="background:rgba(27,26,23,.05)"><i class="ph ph-fork-knife" style="font-size:21px"></i><span style="font:500 11px Inter,sans-serif">Food</span></div>
+      <div onClick="{{ addWater }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0;cursor:pointer;border-left:1px solid rgba(27,26,23,.14)" style-hover="background:rgba(27,26,23,.05)"><i class="ph ph-drop" style="font-size:21px"></i><span style="font:500 11px Inter,sans-serif">Water · {{ water }}</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0;cursor:pointer;border-left:1px solid rgba(27,26,23,.14)" style-hover="background:rgba(27,26,23,.05)"><i class="ph ph-barbell" style="font-size:21px"></i><span style="font:500 11px Inter,sans-serif">Workout</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0;cursor:pointer;border-left:1px solid rgba(27,26,23,.14)" style-hover="background:rgba(27,26,23,.05)"><i class="ph ph-moon" style="font-size:21px"></i><span style="font:500 11px Inter,sans-serif">Sleep</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0;cursor:pointer;border-left:1px solid rgba(27,26,23,.14)" style-hover="background:rgba(27,26,23,.05)"><i class="ph ph-pulse" style="font-size:21px"></i><span style="font:500 11px Inter,sans-serif">Check-in</span></div>
+    </div>
+    <sc-if value="{{ undo }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font:12.5px Inter,sans-serif;color:#6A665C;margin-top:8px"><span>Water logged. {{ water }} glasses today.</span><span onClick="{{ undoWater }}" style="color:#1B1A17;font-weight:500;text-decoration:underline;cursor:pointer">Undo</span></div></sc-if>
+
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C;margin-top:30px">Understand</div>
+    <p style="font:400 19px/1.3 Newsreader,serif;margin:10px 0 0;text-wrap:pretty">A maintain day. You slept under your need and carry about 4h of sleep debt, so today favours steady effort.</p>
+    <div style="display:grid;grid-template-columns:132px 1fr 52px;gap:10px 12px;align-items:center;margin-top:16px;font:12.5px Inter,sans-serif">
+      <span>Recovery &amp; rhythm</span><div style="height:3px;background:rgba(27,26,23,.14)"><div style="width:58%;height:3px;background:#1B1A17"></div></div><span style="color:#6A665C;font-size:11px;text-align:right">medium</span>
+      <span>Nourishment</span><div style="height:3px;background:rgba(27,26,23,.14)"><div style="width:74%;height:3px;background:#1B1A17"></div></div><span style="color:#6A665C;font-size:11px;text-align:right">medium</span>
+      <span>Movement capacity</span><div style="height:3px;background:rgba(27,26,23,.14)"><div style="width:81%;height:3px;background:#1B1A17"></div></div><span style="color:#6A665C;font-size:11px;text-align:right">high</span>
+      <span>Mind &amp; life load</span><div style="height:3px;background:rgba(27,26,23,.14)"><div style="width:66%;height:3px;background:repeating-linear-gradient(90deg,#1B1A17 0 3px,transparent 3px 6px)"></div></div><span style="color:#6A665C;font-size:11px;text-align:right">low</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 24px;margin-top:14px;border-top:1px solid rgba(27,26,23,.14);font:500 14px Inter,sans-serif;cursor:pointer"><span>Explore your analysis</span><i class="ph ph-caret-right" style="font-size:15px"></i></div>
+  </div>
+  <div style="position:sticky;bottom:0;margin-top:auto;display:grid;grid-template-columns:repeat(5,1fr);padding:9px 8px 30px;background:rgba(243,240,233,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(27,26,23,.14);z-index:6">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#1B1A17"><i class="ph ph-sun-horizon" style="font-size:23px"></i><span style="font:600 10px Inter,sans-serif">Today</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-moon" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Sleep</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-fork-knife" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Food</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-person-simple-run" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Move</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-wind" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Mind</span></div>
+  </div>
+</div>
+</x-import>
+
+<x-import component="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+<div data-screen-label="1a Sleep" style="min-height:874px;background:#F3F0E9;color:#1B1A17;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;height:54px;background:#F3F0E9;z-index:5;flex:none"></div>
+  <div style="padding:8px 24px 0">
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C">Sleep &amp; Energy</div>
+    <h1 style="font:400 28px/1.14 Newsreader,serif;letter-spacing:-.01em;margin:18px 0 0;text-wrap:pretty">Strongest <em style="color:oklch(0.5 0.13 42)">9:10–12:00</em> and <em style="color:oklch(0.5 0.13 42)">17:00–19:30.</em> A dip is likely near <em style="color:oklch(0.5 0.13 255)">14:30.</em></h1>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:end;margin-top:24px;min-height:44px">
+      <span style="font:400 40px/1 Newsreader,serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em">{{ aTime }}</span>
+      <div style="padding-bottom:2px"><div style="font:600 13px/1.3 Inter,sans-serif">{{ aName }} · {{ aLevel }}</div><div style="font:13px/1.35 Inter,sans-serif;color:#6A665C">{{ aFit }}</div></div>
+    </div>
+    <div onPointerMove="{{ aScrub }}" onPointerDown="{{ aScrub }}" style="position:relative;height:180px;margin-top:14px;cursor:crosshair;touch-action:none;border-bottom:1px solid rgba(27,26,23,.14)">
+      <div style="position:absolute;left:17.6%;width:15.7%;top:0;bottom:0;background:oklch(0.55 0.13 42 / .13)"><span style="position:absolute;left:5px;bottom:5px;font:600 10px Inter,sans-serif;color:oklch(0.45 0.13 42)">Peak</span></div>
+      <div style="position:absolute;left:61.1%;width:13.9%;top:0;bottom:0;background:oklch(0.55 0.13 42 / .13)"><span style="position:absolute;left:5px;bottom:5px;font:600 10px Inter,sans-serif;color:oklch(0.45 0.13 42)">Peak</span></div>
+      <div style="position:absolute;left:43.5%;width:10.2%;top:0;bottom:0;background:repeating-linear-gradient(135deg,oklch(0.55 0.13 255 / .45) 0 1px,transparent 1px 5px)"><span style="position:absolute;left:5px;bottom:5px;font:600 10px Inter,sans-serif;color:oklch(0.45 0.13 255);background:#F3F0E9;padding:0 2px">Dip</span></div>
+      <svg width="354" height="180" style="position:absolute;left:0;top:0"><path d="{{ pAS }}" fill="none" stroke="#1B1A17" stroke-width="2" stroke-linejoin="round"></path><circle cx="29.5" cy="134" r="3.5" fill="#1B1A17"></circle><circle cx="68.8" cy="62" r="3.5" fill="#1B1A17"></circle></svg>
+      <div style="position:absolute;left:20.46%;top:0;bottom:0;width:1px;background:rgba(27,26,23,.4)"></div>
+      <div style="position:absolute;left:{{ aX }}%;top:0;bottom:0;width:1px;background:#1B1A17"></div>
+      <div style="position:absolute;left:{{ aX }}%;top:{{ aYs }}px;width:10px;height:10px;border-radius:50%;background:#F3F0E9;border:2px solid #1B1A17;transform:translate(-50%,-50%);box-sizing:content-box"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font:10px Inter,sans-serif;color:#6A665C;margin-top:5px;font-variant-numeric:tabular-nums"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
+    <div style="display:flex;gap:16px;font:11.5px Inter,sans-serif;color:#6A665C;margin-top:10px;align-items:center"><span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:2px;background:#1B1A17"></span>Estimate</span><span style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#1B1A17"></span>Your check-ins (measured)</span></div>
+
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C;margin-top:30px">Today's rhythm</div>
+    <div style="margin-top:8px;font:13px Inter,sans-serif">
+      <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;padding:12px 0;border-top:1px solid rgba(27,26,23,.14)"><span style="font-variant-numeric:tabular-nums;color:#6A665C">06:40–07:40</span><div><div style="font-weight:500;font-size:14.5px">Waking up</div><div style="color:#6A665C;margin-top:2px">Daylight, water, an easy start</div></div></div>
+      <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;padding:12px 0;border-top:1px solid rgba(27,26,23,.14)"><span style="font-variant-numeric:tabular-nums;color:oklch(0.45 0.13 42);font-weight:500">09:10–12:00</span><div><div style="font-weight:500;font-size:14.5px">Morning peak</div><div style="color:#6A665C;margin-top:2px">Deep work, hard decisions</div></div></div>
+      <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;padding:12px 0;border-top:1px solid rgba(27,26,23,.14)"><span style="font-variant-numeric:tabular-nums;color:oklch(0.45 0.13 255);font-weight:500">13:50–15:40</span><div><div style="font-weight:500;font-size:14.5px">Afternoon dip</div><div style="color:#6A665C;margin-top:2px">A walk, admin, or a short nap before 15:00</div></div></div>
+      <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;padding:12px 0;border-top:1px solid rgba(27,26,23,.14)"><span style="font-variant-numeric:tabular-nums;color:oklch(0.45 0.13 42);font-weight:500">17:00–19:30</span><div><div style="font-weight:500;font-size:14.5px">Second peak</div><div style="color:#6A665C;margin-top:2px">Training, social plans</div></div></div>
+      <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;padding:12px 0;border-top:1px solid rgba(27,26,23,.14);border-bottom:1px solid rgba(27,26,23,.14)"><span style="font-variant-numeric:tabular-nums;color:#6A665C">21:45–23:15</span><div><div style="font-weight:500;font-size:14.5px">Wind-down</div><div style="color:#6A665C;margin-top:2px">Lights low, screens away</div></div></div>
+    </div>
+
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C;margin-top:30px">Last night</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+      <div><div style="font:400 30px/1 Newsreader,serif">6h 52m</div><div style="font:12px/1.4 Inter,sans-serif;color:#6A665C;margin-top:6px">Asleep · measured, Apple Health</div></div>
+      <div style="border-left:1px solid rgba(27,26,23,.14);padding-left:16px"><div style="font:italic 400 30px/1 Newsreader,serif">7h 45m</div><div style="font:12px/1.4 Inter,sans-serif;color:#6A665C;margin-top:6px">Sleep need · estimate</div></div>
+    </div>
+    <div style="position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:14px;align-items:end;height:64px;margin-top:22px">
+      <div style="height:52px;background:#1B1A17"></div><div style="height:43px;background:#1B1A17"></div><div style="height:55px;background:#1B1A17"></div><div style="height:49px;border:1px dashed rgba(27,26,23,.4);box-sizing:border-box"></div><div style="height:46px;background:#1B1A17"></div><div style="height:58px;background:#1B1A17"></div><div style="height:49px;background:oklch(0.55 0.13 42)"></div>
+      <div style="position:absolute;left:0;right:0;bottom:55px;border-top:1px dashed #1B1A17"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:14px;font:10px Inter,sans-serif;color:#6A665C;text-align:center;margin-top:6px"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span style="color:#1B1A17;font-weight:600">S</span></div>
+    <p style="font:13px/1.5 Inter,sans-serif;color:#6A665C;margin:12px 0 0">Dashed line is your estimated need. Sleep debt is about 4h across 7 nights. Thursday was not logged, which keeps confidence at medium.</p>
+
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#6A665C;margin-top:30px">Tonight</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);margin-top:12px;border-top:1px solid rgba(27,26,23,.14);border-bottom:1px solid rgba(27,26,23,.14)">
+      <div style="padding:14px 0"><div style="font:400 24px/1 Newsreader,serif;font-variant-numeric:tabular-nums">13:30</div><div style="font:12px Inter,sans-serif;color:#6A665C;margin-top:6px">Last caffeine</div></div>
+      <div style="padding:14px 0 14px 14px;border-left:1px solid rgba(27,26,23,.14)"><div style="font:400 24px/1 Newsreader,serif;font-variant-numeric:tabular-nums">21:45</div><div style="font:12px Inter,sans-serif;color:#6A665C;margin-top:6px">Wind-down</div></div>
+      <div style="padding:14px 0 14px 14px;border-left:1px solid rgba(27,26,23,.14)"><div style="font:400 24px/1 Newsreader,serif;font-variant-numeric:tabular-nums">23:15</div><div style="font:12px Inter,sans-serif;color:#6A665C;margin-top:6px">In bed</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 24px;font:14px Inter,sans-serif;cursor:pointer"><span><span style="font-weight:500">Chronotype</span> <span style="color:#6A665C">· Intermediate, leaning late (estimate)</span></span><i class="ph ph-caret-right" style="font-size:15px"></i></div>
+  </div>
+  <div style="position:sticky;bottom:0;margin-top:auto;display:grid;grid-template-columns:repeat(5,1fr);padding:9px 8px 30px;background:rgba(243,240,233,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(27,26,23,.14);z-index:6">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-sun-horizon" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Today</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#1B1A17"><i class="ph ph-moon" style="font-size:23px"></i><span style="font:600 10px Inter,sans-serif">Sleep</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-fork-knife" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Food</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-person-simple-run" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Move</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#6A665C"><i class="ph ph-wind" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Mind</span></div>
+  </div>
+</div>
+</x-import>
+
+<sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+<div style="width:250px;font:13px/1.55 Inter,sans-serif;color:rgba(0,0,0,.7);display:flex;flex-direction:column;gap:14px;padding-top:8px">
+  <div style="font:400 26px/1.1 Newsreader,serif;color:#1B1A17">Almanac</div>
+  <div>The day reads as a short brief: one written sentence, one figure, then Plan, Log, Understand in that order. Hairline rules replace cards.</div>
+  <div><b style="color:#1a1a1a">Type</b> · Newsreader for statements and figures, Inter for interface.</div>
+  <div style="display:flex;gap:6px;align-items:center"><span style="width:26px;height:26px;background:#F3F0E9;border:1px solid rgba(0,0,0,.15)"></span><span style="width:26px;height:26px;background:#1B1A17"></span><span style="width:26px;height:26px;background:oklch(0.55 0.13 42)"></span><span style="width:26px;height:26px;background:oklch(0.55 0.13 255)"></span></div>
+  <div><b style="color:#1a1a1a">Navigation</b> · Five domain tabs. Insights and Profile open from Today.</div>
+  <div><b style="color:#1a1a1a">Charts</b> · Ink line, tinted peaks, hatched dips, like an annotated figure. Dots are measured, the line is an estimate.</div>
+  <div><b style="color:#1a1a1a">Try</b> · Move over either chart. Tap plan rows to tick them. Tap Water, then Undo.</div>
+</div>
+</sc-if>
+</div>
+</div>
+
+<!-- ============ 1b INSTRUMENT ============ -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Instrument · dark, precise, plan aligned to the energy band</div>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<x-import component="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div data-screen-label="1b Home" style="min-height:874px;background:#0D0E10;color:#ECEAE3;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;height:54px;background:#0D0E10;z-index:5;flex:none"></div>
+  <div style="padding:6px 20px 0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div><div style="font:600 28px/1.1 Inter,sans-serif;letter-spacing:-.02em">Today</div><div style="font:11px 'JetBrains Mono',monospace;color:#9B9A94;margin-top:5px">SUN 15 NOV</div></div>
+      <div style="text-align:right"><div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.06em">DAY MODE</div><div style="font:500 14px Inter,sans-serif;margin-top:4px;display:flex;align-items:center;gap:7px;justify-content:flex-end"><span style="width:7px;height:7px;background:#ECEAE3;transform:rotate(45deg)"></span>Maintain</div></div>
+    </div>
+    <div style="margin-top:30px;font:10px 'JetBrains Mono',monospace;color:oklch(0.82 0.11 75);letter-spacing:.08em">NOW · MORNING PEAK</div>
+    <div style="font:300 46px/1 Inter,sans-serif;letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin-top:10px">09:10 – 12:00</div>
+    <div style="font:15px/1.45 Inter,sans-serif;color:#9B9A94;margin-top:12px"><span style="color:#ECEAE3">2h 19m left.</span> Best for deep work and hard decisions.</div>
+
+    <div style="display:flex;justify-content:space-between;font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.06em;margin-top:28px"><span>ENERGY · ESTIMATE</span><span style="color:#ECEAE3">{{ bTime }} {{ bLevelUp }}</span></div>
+    <div onPointerMove="{{ bScrub }}" onPointerDown="{{ bScrub }}" style="position:relative;margin-top:8px;cursor:crosshair;touch-action:none">
+      <div style="position:relative;height:110px">
+        <svg width="362" height="110" style="position:absolute;left:0;top:0"><path d="{{ pBH }}" fill="rgba(236,234,227,.2)"></path></svg>
+        <div style="position:absolute;left:63.7px;width:56.8px;top:0;bottom:0;overflow:hidden"><svg width="362" height="110" style="position:absolute;left:-63.7px;top:0"><path d="{{ pBH }}" fill="oklch(0.82 0.11 75)"></path></svg></div>
+        <div style="position:absolute;left:221.2px;width:50.3px;top:0;bottom:0;overflow:hidden"><svg width="362" height="110" style="position:absolute;left:-221.2px;top:0"><path d="{{ pBH }}" fill="oklch(0.82 0.11 75)"></path></svg></div>
+        <div style="position:absolute;left:157.5px;width:36.9px;top:0;bottom:0;overflow:hidden"><svg width="362" height="110" style="position:absolute;left:-157.5px;top:0"><path d="{{ pBH }}" fill="oklch(0.82 0.11 245)"></path></svg></div>
+      </div>
+      <div style="height:6px;background:repeating-linear-gradient(90deg,rgba(236,234,227,.4) 0 1px,transparent 1px 5.5556%);border-right:1px solid rgba(236,234,227,.4)"></div>
+      <div style="display:flex;justify-content:space-between;font:10px 'JetBrains Mono',monospace;color:#9B9A94;margin-top:5px"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
+      <div style="margin-top:14px;border-top:1px solid rgba(236,234,227,.11);font:12.5px Inter,sans-serif">
+        <div style="position:relative;height:30px;border-bottom:1px solid rgba(236,234,227,.11)"><div style="position:absolute;left:18.06%;width:13.89%;top:10px;height:10px;background:#ECEAE3;border-radius:2px"></div><span style="position:absolute;left:calc(31.95% + 8px);top:7px">Deep work · 2h 30m</span></div>
+        <div style="position:relative;height:30px;border-bottom:1px solid rgba(236,234,227,.11)"><div style="position:absolute;left:36.1%;width:2.8%;top:10px;height:10px;background:#ECEAE3;border-radius:2px"></div><span style="position:absolute;left:calc(38.9% + 8px);top:7px">Lunch, protein-forward</span></div>
+        <div style="position:relative;height:30px;border-bottom:1px solid rgba(236,234,227,.11)"><div style="position:absolute;left:45.8%;width:6px;top:10px;height:10px;background:#ECEAE3;border-radius:2px"></div><span style="position:absolute;left:calc(45.8% + 14px);top:7px">Walk · 10 min</span></div>
+        <div style="position:relative;height:30px;border-bottom:1px solid rgba(236,234,227,.11)"><div style="position:absolute;left:63.9%;width:5.6%;top:10px;height:10px;background:#ECEAE3;border-radius:2px"></div><span style="position:absolute;right:calc(36.1% + 8px);top:7px">Strength · moderate</span></div>
+        <div style="position:relative;height:30px;border-bottom:1px solid rgba(236,234,227,.11)"><div style="position:absolute;left:87.5%;width:8.3%;top:10px;height:10px;border:1px solid #ECEAE3;box-sizing:border-box;border-radius:2px"></div><span style="position:absolute;right:calc(12.5% + 8px);top:7px">Wind-down</span></div>
+      </div>
+      <div style="position:absolute;left:20.46%;top:0;bottom:0;width:1px;background:rgba(236,234,227,.35)"></div>
+      <div style="position:absolute;left:{{ bX }}%;top:-4px;bottom:0;width:1px;background:#ECEAE3"></div>
+      <div style="position:absolute;left:{{ bX }}%;top:-7px;width:7px;height:7px;background:#ECEAE3;transform:translateX(-50%) rotate(45deg)"></div>
+    </div>
+
+    <div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.08em;margin-top:28px">LOG</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px">
+      <div style="height:60px;border:1px solid rgba(236,234,227,.16);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" style-hover="background:#1A1C20"><i class="ph ph-fork-knife" style="font-size:20px"></i><span style="font:500 10.5px Inter,sans-serif;color:#9B9A94">Food</span></div>
+      <div style="height:60px;border:1px solid rgba(236,234,227,.16);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" style-hover="background:#1A1C20"><i class="ph ph-drop" style="font-size:20px"></i><span style="font:500 10.5px Inter,sans-serif;color:#9B9A94">Water</span></div>
+      <div style="height:60px;border:1px solid rgba(236,234,227,.16);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" style-hover="background:#1A1C20"><i class="ph ph-barbell" style="font-size:20px"></i><span style="font:500 10.5px Inter,sans-serif;color:#9B9A94">Workout</span></div>
+      <div style="height:60px;border:1px solid rgba(236,234,227,.16);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" style-hover="background:#1A1C20"><i class="ph ph-moon" style="font-size:20px"></i><span style="font:500 10.5px Inter,sans-serif;color:#9B9A94">Sleep</span></div>
+      <div style="height:60px;border:1px solid rgba(236,234,227,.16);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" style-hover="background:#1A1C20"><i class="ph ph-pulse" style="font-size:20px"></i><span style="font:500 10.5px Inter,sans-serif;color:#9B9A94">Check-in</span></div>
+    </div>
+
+    <div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.08em;margin-top:28px">SIGNALS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;margin-top:10px;border-top:1px solid rgba(236,234,227,.11)">
+      <div style="padding:14px 14px 14px 0;border-bottom:1px solid rgba(236,234,227,.11)"><div style="font:9.5px 'JetBrains Mono',monospace;color:#9B9A94;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;background:#ECEAE3"></span>MEASURED</div><div style="font:400 24px/1 Inter,sans-serif;letter-spacing:-.02em;margin-top:10px;font-variant-numeric:tabular-nums">6h 52m</div><div style="font:12px Inter,sans-serif;color:#9B9A94;margin-top:5px">Sleep · Apple Health</div></div>
+      <div style="padding:14px 0 14px 14px;border-bottom:1px solid rgba(236,234,227,.11);border-left:1px solid rgba(236,234,227,.11)"><div style="font:9.5px 'JetBrains Mono',monospace;color:#9B9A94;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border:1px solid #ECEAE3;box-sizing:border-box"></span>ESTIMATE</div><div style="font:400 24px/1 Inter,sans-serif;letter-spacing:-.02em;margin-top:10px">≈ 4h</div><div style="font:12px Inter,sans-serif;color:#9B9A94;margin-top:5px">Sleep debt · 6 of 7 nights</div></div>
+      <div style="padding:14px 14px 14px 0;border-bottom:1px solid rgba(236,234,227,.11)"><div style="font:9.5px 'JetBrains Mono',monospace;color:#9B9A94;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;background:#ECEAE3"></span>MEASURED</div><div style="font:400 24px/1 Inter,sans-serif;letter-spacing:-.02em;margin-top:10px">58 bpm</div><div style="font:12px Inter,sans-serif;color:#9B9A94;margin-top:5px">Resting HR · +3 vs usual</div></div>
+      <div style="padding:14px 0 14px 14px;border-bottom:1px solid rgba(236,234,227,.11);border-left:1px solid rgba(236,234,227,.11)"><div style="font:9.5px 'JetBrains Mono',monospace;color:#9B9A94;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border:1px solid #ECEAE3;box-sizing:border-box"></span>ESTIMATE</div><div style="font:400 24px/1 Inter,sans-serif;letter-spacing:-.02em;margin-top:10px">Moderate</div><div style="font:12px Inter,sans-serif;color:#9B9A94;margin-top:5px">Movement load · 7 days</div></div>
+    </div>
+    <div onClick="{{ toggleWhy }}" style="display:flex;justify-content:space-between;align-items:center;min-height:52px;font:500 14px Inter,sans-serif;cursor:pointer"><span>Why a Maintain day</span><i class="ph ph-caret-down" style="font-size:15px;transform:rotate({{ whyRot }}deg);transition:transform .2s"></i></div>
+    <sc-if value="{{ why }}" hint-placeholder-val="{{ false }}"><p style="font:13.5px/1.55 Inter,sans-serif;color:#9B9A94;margin:0 0 20px">Sleep debt is moderate and resting heart rate sits slightly above your usual, so intensity is held at moderate. One more logged night this week would raise confidence from medium to high.</p></sc-if>
+    <div style="height:16px"></div>
+  </div>
+  <div style="position:sticky;bottom:0;margin-top:auto;display:grid;grid-template-columns:1fr 1fr 64px 1fr 1fr;align-items:center;padding:8px 10px 30px;background:rgba(13,14,16,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(236,234,227,.11);z-index:6">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center"><i class="ph ph-sun-horizon" style="font-size:23px"></i><span style="font:600 10px Inter,sans-serif">Today</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#9B9A94"><i class="ph ph-wave-sine" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Rhythm</span></div>
+    <div style="width:46px;height:46px;border-radius:13px;background:#ECEAE3;color:#0D0E10;display:flex;align-items:center;justify-content:center;font-size:22px;justify-self:center"><i class="ph ph-plus"></i></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#9B9A94"><i class="ph ph-chart-line-up" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Insights</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#9B9A94"><i class="ph ph-user" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">You</span></div>
+  </div>
+</div>
+</x-import>
+
+<x-import component="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div data-screen-label="1b Sleep" style="min-height:874px;background:#0D0E10;color:#ECEAE3;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;height:54px;background:#0D0E10;z-index:5;flex:none"></div>
+  <div style="padding:6px 20px 0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div style="font:600 28px/1.1 Inter,sans-serif;letter-spacing:-.02em">Rhythm</div>
+      <div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.06em;display:flex;align-items:center;gap:6px">CONFIDENCE<span style="display:flex;gap:2px"><span style="width:6px;height:6px;background:#ECEAE3"></span><span style="width:6px;height:6px;background:#ECEAE3"></span><span style="width:6px;height:6px;border:1px solid #9B9A94;box-sizing:border-box"></span></span>MEDIUM</div>
+    </div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:end;margin-top:26px;min-height:60px">
+      <div style="font:300 58px/.9 Inter,sans-serif;letter-spacing:-.04em;font-variant-numeric:tabular-nums">{{ bTime }}</div>
+      <div><div style="font:600 15px/1.25 Inter,sans-serif">{{ bName }}</div><div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.06em;margin-top:4px">{{ bLevelUp }} · ESTIMATE</div></div>
+    </div>
+    <div style="font:14px/1.45 Inter,sans-serif;color:#9B9A94;margin-top:12px;min-height:20px">Fits now: <span style="color:#ECEAE3">{{ bFit }}</span></div>
+
+    <div onPointerMove="{{ bScrub }}" onPointerDown="{{ bScrub }}" style="position:relative;margin-top:22px;cursor:crosshair;touch-action:none">
+      <div style="position:relative;height:16px;font:9.5px 'JetBrains Mono',monospace;letter-spacing:.06em"><span style="position:absolute;left:17.6%;color:oklch(0.82 0.11 75)">PEAK</span><span style="position:absolute;left:43.5%;color:oklch(0.82 0.11 245)">DIP</span><span style="position:absolute;left:61.1%;color:oklch(0.82 0.11 75)">PEAK</span><span style="position:absolute;right:0;color:#9B9A94">WIND-DOWN</span></div>
+      <div style="position:relative;height:170px">
+        <svg width="362" height="170" style="position:absolute;left:0;top:0"><path d="{{ pBS }}" fill="rgba(236,234,227,.2)"></path></svg>
+        <div style="position:absolute;left:63.7px;width:56.8px;top:0;bottom:0;overflow:hidden"><svg width="362" height="170" style="position:absolute;left:-63.7px;top:0"><path d="{{ pBS }}" fill="oklch(0.82 0.11 75)"></path></svg></div>
+        <div style="position:absolute;left:221.2px;width:50.3px;top:0;bottom:0;overflow:hidden"><svg width="362" height="170" style="position:absolute;left:-221.2px;top:0"><path d="{{ pBS }}" fill="oklch(0.82 0.11 75)"></path></svg></div>
+        <div style="position:absolute;left:157.5px;width:36.9px;top:0;bottom:0;overflow:hidden"><svg width="362" height="170" style="position:absolute;left:-157.5px;top:0"><path d="{{ pBS }}" fill="oklch(0.82 0.11 245)"></path></svg></div>
+      </div>
+      <div style="height:6px;background:repeating-linear-gradient(90deg,rgba(236,234,227,.4) 0 1px,transparent 1px 5.5556%);border-right:1px solid rgba(236,234,227,.4)"></div>
+      <div style="display:flex;justify-content:space-between;font:10px 'JetBrains Mono',monospace;color:#9B9A94;margin-top:5px"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
+      <div style="position:absolute;left:20.46%;top:16px;bottom:18px;width:1px;background:rgba(236,234,227,.35)"></div>
+      <div style="position:absolute;left:{{ bX }}%;top:12px;bottom:18px;width:1px;background:#ECEAE3"></div>
+      <div style="position:absolute;left:{{ bX }}%;top:9px;width:7px;height:7px;background:#ECEAE3;transform:translateX(-50%) rotate(45deg)"></div>
+    </div>
+    <div style="font:12px/1.5 Inter,sans-serif;color:#9B9A94;margin-top:10px">Band thickness is predicted energy. Thinner than a rested day because of about 4h sleep debt.</div>
+
+    <div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.08em;margin-top:28px">TODAY'S RHYTHM</div>
+    <div style="margin-top:8px;border-top:1px solid rgba(236,234,227,.11)">
+      <sc-for list="{{ bRows }}" as="r" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:8px 96px 1fr;gap:10px;align-items:start;padding:12px 8px;margin:0 -8px;border-bottom:1px solid rgba(236,234,227,.11);background:{{ r.bg }};transition:background .15s">
+          <span style="width:7px;height:7px;margin-top:6px;background:{{ r.color }}"></span>
+          <span style="font:11.5px/20px 'JetBrains Mono',monospace;color:#9B9A94">{{ r.range }}</span>
+          <div><div style="font:500 14.5px/20px Inter,sans-serif">{{ r.name }}</div><div style="font:12.5px/1.4 Inter,sans-serif;color:#9B9A94;margin-top:1px">{{ r.fit }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.08em;margin-top:28px"><span>LAST 7 NIGHTS · MEASURED</span><span>NEED 7H 45M · EST</span></div>
+    <div style="position:relative;margin-top:12px;display:grid;grid-template-columns:22px 1fr;gap:5px 10px;align-items:center;font:10px 'JetBrains Mono',monospace;color:#9B9A94">
+      <span>M</span><div style="position:relative;height:9px"><div style="position:absolute;left:13.6%;width:66.7%;height:9px;background:rgba(236,234,227,.55);border-radius:2px"></div></div>
+      <span>T</span><div style="position:relative;height:9px"><div style="position:absolute;left:25%;width:55.3%;height:9px;background:rgba(236,234,227,.55);border-radius:2px"></div></div>
+      <span>W</span><div style="position:relative;height:9px"><div style="position:absolute;left:12.1%;width:69.7%;height:9px;background:rgba(236,234,227,.55);border-radius:2px"></div></div>
+      <span>T</span><div style="position:relative;height:9px"><div style="position:absolute;left:11.4%;width:70.4%;height:9px;border:1px dashed rgba(236,234,227,.35);box-sizing:border-box;border-radius:2px"></div><span style="position:absolute;left:38%;top:-2px;background:#0D0E10;padding:0 5px">NOT LOGGED</span></div>
+      <span>F</span><div style="position:relative;height:9px"><div style="position:absolute;left:19.7%;width:59.1%;height:9px;background:rgba(236,234,227,.55);border-radius:2px"></div></div>
+      <span>S</span><div style="position:relative;height:9px"><div style="position:absolute;left:15.2%;width:74.2%;height:9px;background:rgba(236,234,227,.55);border-radius:2px"></div></div>
+      <span style="color:#ECEAE3">S</span><div style="position:relative;height:9px"><div style="position:absolute;left:16.4%;width:62.4%;height:9px;background:oklch(0.82 0.11 245);border-radius:2px"></div></div>
+      <span></span><div style="position:relative;height:14px;margin-top:3px"><span style="position:absolute;left:0">22</span><span style="position:absolute;left:18.2%">00</span><span style="position:absolute;left:36.4%">02</span><span style="position:absolute;left:54.5%">04</span><span style="position:absolute;left:72.7%">06</span><span style="position:absolute;left:90.9%">08</span></div>
+    </div>
+
+    <div style="font:10px 'JetBrains Mono',monospace;color:#9B9A94;letter-spacing:.08em;margin-top:28px">TONIGHT</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+      <div><div style="font:300 40px/1 Inter,sans-serif;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ bBed }}</div><div style="font:12px Inter,sans-serif;color:#9B9A94;margin-top:6px">In bed · wake 07:00</div></div>
+      <div style="display:flex;gap:8px">
+        <div onClick="{{ bedMinus }}" style="width:48px;height:48px;border:1px solid rgba(236,234,227,.22);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;user-select:none" style-hover="background:#1A1C20" style-active="background:#26292E"><i class="ph ph-minus"></i></div>
+        <div onClick="{{ bedPlus }}" style="width:48px;height:48px;border:1px solid rgba(236,234,227,.22);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;user-select:none" style-hover="background:#1A1C20" style-active="background:#26292E"><i class="ph ph-plus"></i></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:1px solid rgba(236,234,227,.11);border-bottom:1px solid rgba(236,234,227,.11);font-variant-numeric:tabular-nums">
+      <div style="padding:13px 0"><div style="font:500 16px Inter,sans-serif">{{ bWind }}</div><div style="font:11.5px Inter,sans-serif;color:#9B9A94;margin-top:4px">Wind-down starts</div></div>
+      <div style="padding:13px 0 13px 12px;border-left:1px solid rgba(236,234,227,.11)"><div style="font:500 16px Inter,sans-serif">{{ bOpp }}</div><div style="font:11.5px Inter,sans-serif;color:#9B9A94;margin-top:4px">Sleep opportunity</div></div>
+      <div style="padding:13px 0 13px 12px;border-left:1px solid rgba(236,234,227,.11)"><div style="font:500 16px Inter,sans-serif;color:{{ bVsColor }}">{{ bVs }}</div><div style="font:11.5px Inter,sans-serif;color:#9B9A94;margin-top:4px">vs. need (est.)</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;min-height:56px;font:14px Inter,sans-serif;cursor:pointer"><span><span style="font-weight:500">Chronotype</span> <span style="color:#9B9A94">· Intermediate, leaning late</span></span><i class="ph ph-caret-right" style="font-size:15px"></i></div>
+  </div>
+  <div style="position:sticky;bottom:0;margin-top:auto;display:grid;grid-template-columns:1fr 1fr 64px 1fr 1fr;align-items:center;padding:8px 10px 30px;background:rgba(13,14,16,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(236,234,227,.11);z-index:6">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#9B9A94"><i class="ph ph-sun-horizon" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Today</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center"><i class="ph ph-wave-sine" style="font-size:23px"></i><span style="font:600 10px Inter,sans-serif">Rhythm</span></div>
+    <div style="width:46px;height:46px;border-radius:13px;background:#ECEAE3;color:#0D0E10;display:flex;align-items:center;justify-content:center;font-size:22px;justify-self:center"><i class="ph ph-plus"></i></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#9B9A94"><i class="ph ph-chart-line-up" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Insights</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;color:#9B9A94"><i class="ph ph-user" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">You</span></div>
+  </div>
+</div>
+</x-import>
+
+<sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+<div style="width:250px;font:13px/1.55 Inter,sans-serif;color:rgba(0,0,0,.7);display:flex;flex-direction:column;gap:14px;padding-top:8px">
+  <div style="font:600 24px/1.1 Inter,sans-serif;letter-spacing:-.02em;color:#0D0E10">Instrument</div>
+  <div>Energy is a band whose thickness is the reading. The plan sits on the same time axis directly beneath it, so every block lines up with the energy it uses.</div>
+  <div><b style="color:#1a1a1a">Type</b> · Inter throughout, light weights for large times, JetBrains Mono for labels and sources.</div>
+  <div style="display:flex;gap:6px;align-items:center"><span style="width:26px;height:26px;background:#0D0E10"></span><span style="width:26px;height:26px;background:#ECEAE3;border:1px solid rgba(0,0,0,.15)"></span><span style="width:26px;height:26px;background:oklch(0.82 0.11 75)"></span><span style="width:26px;height:26px;background:oklch(0.82 0.11 245)"></span></div>
+  <div><b style="color:#1a1a1a">Navigation</b> · Today, Rhythm, Insights, You, with one central Log button. Food, Movement and Mind live inside Today and Log.</div>
+  <div><b style="color:#1a1a1a">Charts</b> · Band and ruler. Every figure carries a Measured or Estimate tag.</div>
+  <div><b style="color:#1a1a1a">Try</b> · Move the needle; the rhythm table follows. Step bedtime with − and +. Open "Why a Maintain day".</div>
+</div>
+</sc-if>
+</div>
+</div>
+
+<!-- ============ 1c THREAD ============ -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Thread · chosen direction · readiness on Today, five tabs at the bottom</div>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<x-import component="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div data-screen-label="1c Today" style="min-height:874px;background:#F4F4F2;color:#121314;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;height:54px;background:#121314;z-index:5;flex:none"></div>
+  <div style="background:#121314;color:#EDEAE2;padding:4px 20px 22px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:baseline;gap:10px"><span style="font:400 18px Jost,sans-serif;letter-spacing:.02em">daywoven</span><span style="font:12.5px Inter,sans-serif;color:rgba(237,234,226,.7)">Sun 15 Nov</span></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button type="button" aria-label="Open your plan and calendar" style="display:flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;background:none;border:0;color:#EDEAE2;font:500 13px Inter,sans-serif;cursor:pointer"><i class="ph ph-calendar-blank" aria-hidden="true" style="font-size:19px"></i>Plan</button>
+        <button type="button" aria-label="You · profile and settings" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0;cursor:pointer"><span style="width:32px;height:32px;border-radius:50%;background:#EDEAE2;color:#121314;display:flex;align-items:center;justify-content:center;font-size:16px"><i class="ph ph-user" aria-hidden="true"></i></span></button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:18px;align-items:center;margin-top:18px">
+      <div style="position:relative;width:124px;height:124px;flex:none">
+        <svg width="124" height="124" viewBox="0 0 124 124" role="img" aria-label="Readiness 68 out of 100, steady. Recovery minus 6, Nourish plus 2, Movement plus 3, Mind minus 1." style="transform:rotate(-90deg)">
+          <circle cx="62" cy="62" r="52" fill="none" stroke="rgba(237,234,226,.13)" stroke-width="9" stroke-dasharray="75.68 326.73" stroke-dashoffset="-3"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="rgba(237,234,226,.13)" stroke-width="9" stroke-dasharray="75.68 326.73" stroke-dashoffset="-84.68"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="rgba(237,234,226,.13)" stroke-width="9" stroke-dasharray="75.68 326.73" stroke-dashoffset="-166.36"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="rgba(237,234,226,.13)" stroke-width="9" stroke-dasharray="75.68 326.73" stroke-dashoffset="-248.05"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="oklch(0.72 0.13 285)" stroke-width="9" stroke-dasharray="43.9 326.73" stroke-dashoffset="-3"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="oklch(0.82 0.13 72)" stroke-width="9" stroke-dasharray="56 326.73" stroke-dashoffset="-84.68"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="#EDEAE2" stroke-width="9" stroke-dasharray="61.3 326.73" stroke-dashoffset="-166.36"></circle>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="oklch(0.64 0.11 230)" stroke-width="9" stroke-dasharray="49.9 326.73" stroke-dashoffset="-248.05"></circle>
+        </svg>
+        <div aria-hidden="true" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font:600 9px Inter,sans-serif;letter-spacing:.14em;color:rgba(237,234,226,.62)">READINESS</span>
+          <span style="font:400 40px/1 Jost,sans-serif;margin-top:4px;font-variant-numeric:tabular-nums">68</span>
+          <span style="font:500 12px Inter,sans-serif;color:oklch(0.82 0.13 72);margin-top:4px">Steady</span>
+        </div>
+      </div>
+      <div style="min-width:0">
+        <div style="font:400 21px/1.2 Jost,sans-serif">You’re steady, not fully charged.</div>
+        <div style="font:13px/1.45 Inter,sans-serif;color:rgba(237,234,226,.74);margin-top:6px">Keep today’s effort moderate.</div>
+        <div style="font:11.5px/1.45 Inter,sans-serif;color:rgba(237,234,226,.66);margin-top:10px">Maintain day · estimate<br>Medium confidence · Apple Health + logs</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px;border-top:1px solid rgba(237,234,226,.14)">
+      <div style="padding-top:12px"><div style="display:flex;align-items:center;gap:6px;font:11.5px Inter,sans-serif;color:rgba(237,234,226,.74)"><span style="width:8px;height:8px;border-radius:2px;background:oklch(0.72 0.13 285)"></span>Recovery</div><div style="font:400 20px/1 Jost,sans-serif;margin-top:7px;font-variant-numeric:tabular-nums">−6</div></div>
+      <div style="padding-top:12px"><div style="display:flex;align-items:center;gap:6px;font:11.5px Inter,sans-serif;color:rgba(237,234,226,.74)"><span style="width:8px;height:8px;border-radius:2px;background:oklch(0.82 0.13 72)"></span>Nourish</div><div style="font:400 20px/1 Jost,sans-serif;margin-top:7px;font-variant-numeric:tabular-nums">+2</div></div>
+      <div style="padding-top:12px"><div style="display:flex;align-items:center;gap:6px;font:11.5px Inter,sans-serif;color:rgba(237,234,226,.74)"><span style="width:8px;height:8px;border-radius:2px;background:#EDEAE2"></span>Movement</div><div style="font:400 20px/1 Jost,sans-serif;margin-top:7px;font-variant-numeric:tabular-nums">+3</div></div>
+      <div style="padding-top:12px"><div style="display:flex;align-items:center;gap:6px;font:11.5px Inter,sans-serif;color:rgba(237,234,226,.74)"><span style="width:8px;height:8px;border-radius:2px;background:oklch(0.64 0.11 230)"></span>Mind</div><div style="font:400 20px/1 Jost,sans-serif;margin-top:7px;font-variant-numeric:tabular-nums">−1</div></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button type="button" style="flex:1;height:46px;border-radius:12px;border:0;background:#EDEAE2;color:#121314;font:500 14px Inter,sans-serif;cursor:pointer">Check in</button>
+      <button type="button" onClick="{{ toggleCWhy }}" aria-expanded="{{ cWhy }}" style="flex:1;height:46px;border-radius:12px;border:1px solid rgba(237,234,226,.3);background:transparent;color:#EDEAE2;font:500 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">Why this estimate?<i class="ph ph-caret-down" aria-hidden="true" style="font-size:13px;transform:rotate({{ cWhyRot }}deg);transition:transform .2s"></i></button>
+    </div>
+    <sc-if value="{{ cWhy }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:14px;font:13px Inter,sans-serif">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-top:1px solid rgba(237,234,226,.14)"><span style="color:rgba(237,234,226,.74)">Your starting point</span><span style="font-variant-numeric:tabular-nums">70</span></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-top:1px solid rgba(237,234,226,.14)"><div><div style="font-weight:500">Recovery &amp; rhythm</div><div style="color:rgba(237,234,226,.7);font-size:12px;margin-top:2px">About 4h sleep debt · resting HR +3 vs usual</div></div><span style="font-variant-numeric:tabular-nums">−6</span></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-top:1px solid rgba(237,234,226,.14)"><div><div style="font-weight:500">Nourishment</div><div style="color:rgba(237,234,226,.7);font-size:12px;margin-top:2px">Breakfast with 31 g protein · water logged</div></div><span style="font-variant-numeric:tabular-nums">+2</span></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-top:1px solid rgba(237,234,226,.14)"><div><div style="font-weight:500">Movement capacity</div><div style="color:rgba(237,234,226,.7);font-size:12px;margin-top:2px">7-day training load is moderate</div></div><span style="font-variant-numeric:tabular-nums">+3</span></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-top:1px solid rgba(237,234,226,.14);border-bottom:1px solid rgba(237,234,226,.14)"><div><div style="font-weight:500">Mind &amp; life load</div><div style="color:rgba(237,234,226,.7);font-size:12px;margin-top:2px">Check-in: a demanding day</div></div><span style="font-variant-numeric:tabular-nums">−1</span></div>
+        <p style="font:12px/1.5 Inter,sans-serif;color:rgba(237,234,226,.7);margin:10px 0 0">4 of 4 foundations have signals today. Missing information lowers confidence, not your score.</p>
+        <button type="button" style="display:flex;align-items:center;gap:4px;min-height:44px;padding:0;background:none;border:0;color:#EDEAE2;font:500 13.5px Inter,sans-serif;cursor:pointer">See the full daily protocol<i class="ph ph-caret-right" aria-hidden="true"></i></button>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="padding:24px 20px 0">
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#63666A">Today’s direction</div>
+    <h1 style="font:400 30px/1.12 Jost,sans-serif;letter-spacing:-.01em;margin:10px 0 0">Strong until noon.<br>Ease off around 2:30.</h1>
+    <p style="font:13px/1.5 Inter,sans-serif;color:#63666A;margin:10px 0 0">Estimate · medium confidence · from 6h 52m of sleep</p>
+    <button type="button" style="display:flex;align-items:center;gap:4px;min-height:44px;padding:0;background:none;border:0;color:#121314;font:500 14px Inter,sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Open today’s plan<i class="ph ph-caret-right" aria-hidden="true"></i></button>
+
+    <div style="font:500 20px Jost,sans-serif;margin-top:18px">Quick log</div>
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px">
+      <button type="button" style="height:66px;border:1px solid rgba(18,19,20,.14);border-radius:12px;background:#fff;color:#121314;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0"><i class="ph ph-fork-knife" aria-hidden="true" style="font-size:20px"></i><span style="font:500 11px Inter,sans-serif">Food</span></button>
+      <button type="button" onClick="{{ addWater }}" style="height:66px;border:1px solid rgba(18,19,20,.14);border-radius:12px;background:#fff;color:#121314;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0"><i class="ph ph-drop" aria-hidden="true" style="font-size:20px"></i><span style="font:500 11px Inter,sans-serif">Water · {{ water }}</span></button>
+      <button type="button" style="height:66px;border:1px solid rgba(18,19,20,.14);border-radius:12px;background:#fff;color:#121314;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0"><i class="ph ph-barbell" aria-hidden="true" style="font-size:20px"></i><span style="font:500 11px Inter,sans-serif">Workout</span></button>
+      <button type="button" style="height:66px;border:1px solid rgba(18,19,20,.14);border-radius:12px;background:#fff;color:#121314;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0"><i class="ph ph-moon" aria-hidden="true" style="font-size:20px"></i><span style="font:500 11px Inter,sans-serif">Sleep</span></button>
+      <button type="button" style="height:66px;border:1px solid rgba(18,19,20,.14);border-radius:12px;background:#fff;color:#121314;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0"><i class="ph ph-pulse" aria-hidden="true" style="font-size:20px"></i><span style="font:500 11px Inter,sans-serif">Check-in</span></button>
+    </div>
+    <sc-if value="{{ undo }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;align-items:center;font:12.5px Inter,sans-serif;color:#63666A;margin-top:4px"><span>Glass of water added · {{ water }} today</span><button type="button" onClick="{{ undoWater }}" style="min-height:44px;padding:0 4px;background:none;border:0;color:#121314;font:500 12.5px Inter,sans-serif;text-decoration:underline;cursor:pointer">Undo</button></div></sc-if>
+
+    <div style="font:500 20px Jost,sans-serif;margin-top:26px">Your day</div>
+  </div>
+  <div style="display:flex;gap:16px;padding:10px 20px 0 126px;font:11.5px Inter,sans-serif;color:#63666A"><span style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#121314"></span>Logged or measured</span><span style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;border:1.5px solid #121314;box-sizing:border-box"></span>Planned</span></div>
+  <div onPointerMove="{{ cScrub }}" onPointerDown="{{ cScrub }}" style="position:relative;height:648px;margin:14px 0 26px;touch-action:none">
+    <svg width="84" height="648" style="position:absolute;left:0;top:0"><path d="{{ pCA }}" fill="rgba(18,19,20,.09)"></path><path d="{{ pCL }}" fill="none" stroke="#121314" stroke-width="1.5" stroke-dasharray="2 4"></path></svg>
+    <div style="position:absolute;left:0;top:0;width:84px;height:132.5px;overflow:hidden"><svg width="84" height="648" style="position:absolute;left:0;top:0"><path d="{{ pCA }}" fill="#121314"></path></svg></div>
+    <div style="position:absolute;left:88px;top:0;font:10.5px Inter,sans-serif;color:#63666A;font-variant-numeric:tabular-nums"><span style="position:absolute;top:-6px">06</span><span style="position:absolute;top:102px">09</span><span style="position:absolute;top:210px">12</span><span style="position:absolute;top:318px">15</span><span style="position:absolute;top:426px">18</span><span style="position:absolute;top:534px">21</span><span style="position:absolute;top:636px">24</span></div>
+
+    <span style="position:absolute;left:116px;top:20.5px;width:7px;height:7px;border-radius:50%;background:#121314"></span>
+    <div style="position:absolute;left:132px;right:20px;top:15px;font:13.5px/18px Inter,sans-serif"><span style="color:#63666A;font-variant-numeric:tabular-nums">06:40</span>&nbsp; Woke · 6h 52m asleep</div>
+    <span style="position:absolute;left:116px;top:62.5px;width:7px;height:7px;border-radius:50%;background:#121314"></span>
+    <div style="position:absolute;left:132px;right:20px;top:57px;font:13.5px/18px Inter,sans-serif"><span style="color:#63666A;font-variant-numeric:tabular-nums">07:50</span>&nbsp; Breakfast · 31 g protein</div>
+    <span style="position:absolute;left:116px;top:86.5px;width:7px;height:7px;border-radius:50%;background:#121314"></span>
+    <div style="position:absolute;left:132px;right:20px;top:81px;font:13.5px/18px Inter,sans-serif"><span style="color:#63666A;font-variant-numeric:tabular-nums">08:30</span>&nbsp; Water · 2 glasses</div>
+
+    <div style="position:absolute;left:132px;right:20px;top:117px;height:90px;background:oklch(0.74 0.14 62 / .26);border-radius:8px;padding:24px 12px 0;box-sizing:border-box"><div style="font:500 14.5px/1.3 Inter,sans-serif">Deep work</div><div style="font:12px/1.4 Inter,sans-serif;color:#4B4D50;margin-top:2px">09:15–11:45 · inside your morning peak</div></div>
+    <div style="position:absolute;left:0;right:0;top:132.5px;height:1px;background:oklch(0.5 0.14 62)"></div>
+    <div style="position:absolute;left:84px;top:123.5px;background:oklch(0.74 0.14 62);color:#121314;font:600 10.5px/18px Inter,sans-serif;padding:0 6px;border-radius:3px">Now 9:41</div>
+
+    <span style="position:absolute;left:116px;top:230.5px;width:7px;height:7px;border-radius:50%;border:1.5px solid #121314;box-sizing:border-box"></span>
+    <div style="position:absolute;left:132px;right:20px;top:224px"><div style="font:500 14.5px/20px Inter,sans-serif">Lunch, protein-forward</div><div style="font:12px/1.4 Inter,sans-serif;color:#63666A">Steadier afternoons on 6 of 9 days like this</div></div>
+    <span style="position:absolute;left:116px;top:293.5px;width:7px;height:7px;border-radius:50%;border:1.5px solid #121314;box-sizing:border-box"></span>
+    <div style="position:absolute;left:132px;right:20px;top:287px"><div style="font:500 14.5px/20px Inter,sans-serif">Walk · 10 min</div><div style="font:12px/1.4 Inter,sans-serif;color:#63666A">A dip is likely 13:50 to 15:40</div></div>
+    <div style="position:absolute;left:132px;right:20px;top:414px;height:36px;background:oklch(0.74 0.14 62 / .26);border-radius:8px;padding:0 12px;box-sizing:border-box;font:500 14.5px/36px Inter,sans-serif">Strength · moderate, 60 min</div>
+    <div style="position:absolute;left:132px;right:20px;top:455px;font:12px/1.4 Inter,sans-serif;color:#63666A">Held to moderate while sleep debt is about 4h</div>
+    <span style="position:absolute;left:116px;top:563.5px;width:7px;height:7px;border-radius:50%;border:1.5px solid #121314;box-sizing:border-box"></span>
+    <div style="position:absolute;left:132px;right:20px;top:557px;font:500 14.5px/20px Inter,sans-serif">Wind-down <span style="font-weight:400;color:#63666A">· lights low</span></div>
+    <span style="position:absolute;left:116px;top:617.5px;width:7px;height:7px;border-radius:50%;border:1.5px solid #121314;box-sizing:border-box"></span>
+    <div style="position:absolute;left:132px;right:20px;top:611px;font:500 14.5px/20px Inter,sans-serif">Bed <span style="font-weight:400;color:#63666A">· 7h 45m opportunity</span></div>
+
+    <div style="position:absolute;left:0;width:112px;top:{{ cTop }}px;height:1px;background:#121314;pointer-events:none"></div>
+    <div style="position:absolute;left:{{ cDot }}px;top:{{ cTop }}px;width:8px;height:8px;border-radius:50%;background:#F4F4F2;border:2px solid #121314;transform:translate(-50%,-50%);pointer-events:none"></div>
+    <div style="position:absolute;left:6px;top:{{ cTop }}px;transform:translateY(-26px);background:#F4F4F2;border:1px solid #121314;color:#121314;font:500 10.5px/18px Inter,sans-serif;padding:0 6px;border-radius:3px;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums">{{ cTime }} · {{ cLevel }}</div>
+  </div>
+
+  <div style="padding:0 20px 28px">
+    <button type="button" onClick="{{ toggleMore }}" aria-expanded="{{ cMore }}" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border:1px solid rgba(18,19,20,.14);border-radius:14px;background:#fff;color:#121314;text-align:left;cursor:pointer;font-family:Inter,sans-serif">
+      <span><span style="display:block;font:600 15px Inter,sans-serif">{{ cMoreTitle }}</span><span style="display:block;font:12.5px/1.4 Inter,sans-serif;color:#63666A;margin-top:3px">Biomarker trends, your starting point and the reasons behind your plan</span></span>
+      <i class="ph ph-caret-down" aria-hidden="true" style="font-size:17px;flex:none;transform:rotate({{ cMoreRot }}deg);transition:transform .2s"></i>
+    </button>
+    <sc-if value="{{ cMore }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+        <button type="button" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(18,19,20,.14);border-radius:14px;background:#fff;color:#121314;text-align:left;cursor:pointer;font-family:Inter,sans-serif">
+          <i class="ph ph-compass" aria-hidden="true" style="font-size:19px"></i>
+          <span style="flex:1"><span style="display:block;font:600 14px Inter,sans-serif">Set your starting point</span><span style="display:block;font:12px/1.4 Inter,sans-serif;color:#63666A;margin-top:2px">A short load check, so readiness starts from you instead of 70.</span></span>
+          <i class="ph ph-caret-right" aria-hidden="true" style="color:#63666A"></i>
+        </button>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <div style="padding:14px;border:1px solid rgba(18,19,20,.14);border-radius:14px;background:#fff">
+            <div style="font:12px Inter,sans-serif;color:#63666A">Last night · measured</div>
+            <div style="font:400 26px/1 Jost,sans-serif;margin-top:10px">6h 52m</div>
+            <div style="height:4px;background:rgba(18,19,20,.12);margin-top:12px"><div style="width:89%;height:4px;background:oklch(0.6 0.14 285)"></div></div>
+            <div style="font:12px Inter,sans-serif;color:#63666A;margin-top:7px">89% of your 7h 45m need</div>
+          </div>
+          <div style="padding:14px;border:1px solid rgba(18,19,20,.14);border-radius:14px;background:#fff">
+            <div style="font:12px Inter,sans-serif;color:#63666A">Today’s load · estimate</div>
+            <div style="font:400 26px/1 Jost,sans-serif;margin-top:10px">Moderate</div>
+            <div style="display:flex;gap:3px;margin-top:12px"><span style="flex:1;height:4px;background:#121314"></span><span style="flex:1;height:4px;background:#121314"></span><span style="flex:1;height:4px;background:rgba(18,19,20,.14)"></span></div>
+            <div style="font:12px Inter,sans-serif;color:#63666A;margin-top:7px">Strength planned at 17:30</div>
+          </div>
+        </div>
+        <div style="padding:14px 16px;border:1px solid rgba(18,19,20,.14);border-radius:14px;background:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 14px Inter,sans-serif">Resting heart rate</span><span style="font:12px Inter,sans-serif;color:#63666A">7 days · measured</span></div>
+          <div style="font:12.5px Inter,sans-serif;color:#63666A;margin-top:4px"><span style="color:#121314;font-weight:500">58 bpm today</span> · +3 vs your usual 55</div>
+          <svg width="100%" height="60" viewBox="0 0 322 60" preserveAspectRatio="none" role="img" aria-label="Resting heart rate this week: 55, 56, 54, not logged, 57, 55, 58 beats per minute" style="display:block;margin-top:10px;overflow:visible">
+            <line x1="0" y1="36" x2="322" y2="36" stroke="rgba(18,19,20,.25)" stroke-width="1" stroke-dasharray="3 4"></line>
+            <path d="M6 36L57.7 30L109.3 42" fill="none" stroke="#121314" stroke-width="1.75"></path>
+            <path d="M212.7 24L264.3 36L316 18" fill="none" stroke="#121314" stroke-width="1.75"></path>
+            <circle cx="6" cy="36" r="3" fill="#121314"></circle><circle cx="57.7" cy="30" r="3" fill="#121314"></circle><circle cx="109.3" cy="42" r="3" fill="#121314"></circle><circle cx="212.7" cy="24" r="3" fill="#121314"></circle><circle cx="264.3" cy="36" r="3" fill="#121314"></circle><circle cx="316" cy="18" r="4" fill="oklch(0.6 0.14 285)"></circle>
+          </svg>
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));font:10.5px Inter,sans-serif;color:#63666A;text-align:center;margin:6px -6px 0"><span>M</span><span>T</span><span>W</span><span>T · none</span><span>F</span><span>S</span><span style="color:#121314;font-weight:600">S</span></div>
+          <button type="button" style="display:flex;align-items:center;gap:6px;min-height:44px;padding:0;margin-top:4px;background:none;border:0;color:#121314;font:500 13px Inter,sans-serif;cursor:pointer"><i class="ph ph-plus" aria-hidden="true"></i>Add a reading</button>
+        </div>
+        <button type="button" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:0;border-radius:14px;background:#121314;color:#EDEAE2;text-align:left;cursor:pointer;font-family:Inter,sans-serif">
+          <span style="flex:1"><span style="display:block;font:600 10.5px Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(237,234,226,.7)">Next best action</span><span style="display:block;font:500 15px Inter,sans-serif;margin-top:4px">Deep work until 11:45</span><span style="display:block;font:12px/1.4 Inter,sans-serif;color:rgba(237,234,226,.74);margin-top:2px">Inside your morning peak. A 10-minute walk at 14:15 covers the dip.</span></span>
+          <i class="ph ph-caret-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ cRecap }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 8px 12px 16px;margin-top:16px;background:oklch(0.74 0.14 62 / .26);border-radius:14px">
+        <i class="ph ph-sparkle" aria-hidden="true" style="font-size:19px"></i>
+        <div style="flex:1;min-width:0"><div style="font:600 14px Inter,sans-serif">Your week in review</div><div style="font:12px/1.4 Inter,sans-serif;color:#4B4D50;margin-top:2px">Sleep, food, movement and mind across 7 days</div></div>
+        <button type="button" style="min-height:44px;padding:0 10px;background:none;border:0;color:#121314;font:600 13.5px Inter,sans-serif;cursor:pointer">Open</button>
+        <button type="button" onClick="{{ dismissRecap }}" aria-label="Not now, hide this week’s review" style="width:44px;height:44px;background:none;border:0;color:#121314;font-size:16px;cursor:pointer"><i class="ph ph-x" aria-hidden="true"></i></button>
+      </div>
+    </sc-if>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
+      <span style="font:500 20px Jost,sans-serif">This week</span>
+      <button type="button" style="display:flex;align-items:center;gap:2px;min-height:44px;padding:0 0 0 12px;background:none;border:0;color:#121314;font:500 14px Inter,sans-serif;cursor:pointer">Trends<i class="ph ph-caret-right" aria-hidden="true"></i></button>
+    </div>
+    <div style="font:12.5px Inter,sans-serif;color:#63666A;margin-top:-4px">Tap a card to see what to work on.</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">
+      <sc-for list="{{ cWeek }}" as="w" hint-placeholder-count="4">
+        <button type="button" onClick="{{ w.flip }}" aria-pressed="{{ w.flipped }}" style="min-height:142px;padding:14px;border-radius:14px;border:1px solid {{ w.line }};background:{{ w.bg }};color:{{ w.fg }};text-align:left;cursor:pointer;font-family:Inter,sans-serif;display:flex;flex-direction:column;align-items:stretch;transition:background .2s">
+          <sc-if value="{{ w.front }}" hint-placeholder-val="{{ true }}">
+            <span style="display:flex;align-items:center;gap:6px;font:600 13px Inter,sans-serif"><i class="ph {{ w.icon }}" aria-hidden="true" style="font-size:16px"></i>{{ w.title }}</span>
+            <span style="display:block;font:400 26px/1 Jost,sans-serif;margin-top:14px">{{ w.value }}</span>
+            <span style="display:block;font:12px/1.35 Inter,sans-serif;margin-top:6px">{{ w.label }}</span>
+            <span style="display:block;font:12px/1.35 Inter,sans-serif;color:{{ w.mute }};margin-top:2px">{{ w.caption }}</span>
+          </sc-if>
+          <sc-if value="{{ w.flipped }}" hint-placeholder-val="{{ false }}">
+            <span style="display:block;font:600 10.5px Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ w.mute }}">{{ w.title }} · work on</span>
+            <span style="display:block;font:600 14px/1.3 Inter,sans-serif;margin-top:8px">{{ w.head }}</span>
+            <span style="display:block;font:12px/1.4 Inter,sans-serif;color:{{ w.mute }};margin-top:4px">{{ w.detail }}</span>
+            <span style="display:block;font:500 12.5px Inter,sans-serif;margin-top:auto;padding-top:8px;text-decoration:underline;text-underline-offset:3px">{{ w.action }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <nav aria-label="Main" style="position:sticky;bottom:0;margin-top:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px 8px 30px;background:rgba(244,244,242,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(18,19,20,.12);z-index:6">
+    <button type="button" aria-current="page" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#121314;cursor:pointer"><i class="ph ph-sun-horizon" aria-hidden="true" style="font-size:23px"></i><span style="font:600 10px Inter,sans-serif">Today</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-moon" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Sleep</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-fork-knife" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Food</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-person-simple-run" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Move</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-wind" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Mind</span></button>
+  </nav>
+</div>
+</x-import>
+
+<x-import component="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div data-screen-label="1c Sleep" style="min-height:874px;background:#F4F4F2;color:#121314;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;height:54px;background:#121314;z-index:5;flex:none"></div>
+  <div style="background:#121314;color:#EDEAE2;padding:8px 20px 22px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:400 18px Jost,sans-serif;letter-spacing:.02em">daywoven</span><span style="font:12.5px Inter,sans-serif;color:rgba(237,234,226,.7)">Sun 15 Nov</span></div>
+    <div style="font:600 11px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:rgba(237,234,226,.7);margin-top:22px">Sleep &amp; energy</div>
+    <h1 style="font:400 27px/1.15 Jost,sans-serif;margin:10px 0 0;text-wrap:pretty">Your energy is the space between two threads.</h1>
+    <p style="font:13px/1.5 Inter,sans-serif;color:rgba(237,234,226,.72);margin:10px 0 0">Your body clock lifts you through the day. Sleep pressure builds from the moment you wake, and started higher today after a short week.</p>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:20px;min-height:22px"><span style="font:400 20px Jost,sans-serif;font-variant-numeric:tabular-nums">{{ cTime }} · {{ cName }}</span><span style="font:12.5px Inter,sans-serif;color:rgba(237,234,226,.72)">{{ cLevel }} energy · est.</span></div>
+    <div onPointerMove="{{ cScrubX }}" onPointerDown="{{ cScrubX }}" style="position:relative;height:190px;margin-top:8px;cursor:crosshair;touch-action:none">
+      <svg width="362" height="190" style="position:absolute;left:0;top:0"><path d="{{ pCG }}" fill="oklch(0.74 0.14 62 / .22)"></path><path d="{{ pCC }}" fill="none" stroke="oklch(0.74 0.14 62)" stroke-width="2"></path><path d="{{ pCS }}" fill="none" stroke="oklch(0.74 0.14 285)" stroke-width="2"></path></svg>
+      <sc-if value="{{ rested }}" hint-placeholder-val="{{ false }}"><svg width="362" height="190" style="position:absolute;left:0;top:0"><path d="{{ pCR }}" fill="none" stroke="#EDEAE2" stroke-width="1.5" stroke-dasharray="3 4"></path></svg></sc-if>
+      <span style="position:absolute;right:0;top:44px;font:500 11px Inter,sans-serif;color:oklch(0.74 0.14 62)">Body clock</span>
+      <span style="position:absolute;right:0;top:118px;font:500 11px Inter,sans-serif;color:oklch(0.74 0.14 285)">Sleep pressure</span>
+      <div style="position:absolute;left:20.46%;top:0;bottom:0;width:1px;background:rgba(237,234,226,.3)"></div>
+      <div style="position:absolute;left:{{ cX }}%;top:{{ cYc }}px;height:{{ cGapH }}px;width:2px;background:#EDEAE2;transform:translateX(-50%)"></div>
+      <div style="position:absolute;left:{{ cX }}%;top:{{ cYc }}px;width:8px;height:8px;border-radius:50%;background:oklch(0.74 0.14 62);border:2px solid #121314;transform:translate(-50%,-50%)"></div>
+      <div style="position:absolute;left:{{ cX }}%;top:{{ cYs }}px;width:8px;height:8px;border-radius:50%;background:oklch(0.74 0.14 285);border:2px solid #121314;transform:translate(-50%,-50%)"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font:10px Inter,sans-serif;color:rgba(237,234,226,.6);font-variant-numeric:tabular-nums"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
+    <div onClick="{{ toggleRested }}" style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid rgba(237,234,226,.14);cursor:pointer;min-height:44px">
+      <div><div style="font:500 14px Inter,sans-serif">Compare with a rested week</div><div style="font:12px Inter,sans-serif;color:rgba(237,234,226,.7);margin-top:2px">Dashed line: pressure with no sleep debt</div></div>
+      <div style="position:relative;width:46px;height:28px;border-radius:14px;background:{{ cTrack }};transition:background .2s;flex:none"><div style="position:absolute;top:2px;left:{{ cKnob }}px;width:24px;height:24px;border-radius:50%;background:#EDEAE2;transition:left .2s"></div></div>
+    </div>
+  </div>
+  <div style="padding:22px 20px 0">
+    <div style="font:500 20px Jost,sans-serif">Today's rhythm</div>
+    <div style="display:flex;height:10px;margin-top:14px;gap:2px">
+      <div style="flex:1.67;background:rgba(18,19,20,.14)"></div><div style="flex:1.5;background:rgba(18,19,20,.28)"></div><div style="flex:2.83;background:oklch(0.74 0.14 62)"></div><div style="flex:1.83;background:rgba(18,19,20,.28)"></div><div style="flex:1.83;background:oklch(0.74 0.14 285)"></div><div style="flex:1.33;background:rgba(18,19,20,.28)"></div><div style="flex:2.5;background:oklch(0.74 0.14 62)"></div><div style="flex:2.25;background:rgba(18,19,20,.28)"></div><div style="flex:2.25;background:rgba(18,19,20,.14)"></div>
+    </div>
+    <div style="margin-top:12px;font:13px Inter,sans-serif">
+      <div style="display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(18,19,20,.12)"><span style="width:8px;height:8px;background:oklch(0.74 0.14 62)"></span><div><span style="font-weight:500;font-size:14.5px">Morning peak</span><div style="color:#63666A;margin-top:2px">Deep work, hard decisions</div></div><span style="color:#63666A;font-variant-numeric:tabular-nums">09:10–12:00</span></div>
+      <div style="display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(18,19,20,.12)"><span style="width:8px;height:8px;background:oklch(0.74 0.14 285)"></span><div><span style="font-weight:500;font-size:14.5px">Afternoon dip</span><div style="color:#63666A;margin-top:2px">A walk, admin, or a short nap before 15:00</div></div><span style="color:#63666A;font-variant-numeric:tabular-nums">13:50–15:40</span></div>
+      <div style="display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(18,19,20,.12)"><span style="width:8px;height:8px;background:oklch(0.74 0.14 62)"></span><div><span style="font-weight:500;font-size:14.5px">Second peak</span><div style="color:#63666A;margin-top:2px">Training, social plans</div></div><span style="color:#63666A;font-variant-numeric:tabular-nums">17:00–19:30</span></div>
+      <div style="display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(18,19,20,.12)"><span style="width:8px;height:8px;background:rgba(18,19,20,.2)"></span><div><span style="font-weight:500;font-size:14.5px">Wind-down</span><div style="color:#63666A;margin-top:2px">Lights low, screens away</div></div><span style="color:#63666A;font-variant-numeric:tabular-nums">21:45–23:15</span></div>
+    </div>
+
+    <div style="font:500 20px Jost,sans-serif;margin-top:28px">Tonight</div>
+    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px">
+      <div style="background:#121314;color:#EDEAE2;border-radius:12px;padding:16px"><div style="font:12px Inter,sans-serif;color:rgba(237,234,226,.72)">In bed by</div><div style="font:400 38px/1 Jost,sans-serif;margin-top:10px;font-variant-numeric:tabular-nums">23:15</div><div style="font:12px/1.4 Inter,sans-serif;color:rgba(237,234,226,.72);margin-top:10px">7h 45m opportunity, matching your estimated need</div></div>
+      <div style="display:flex;flex-direction:column;justify-content:space-between;padding:4px 0"><div><div style="font:400 24px/1 Jost,sans-serif;font-variant-numeric:tabular-nums">13:30</div><div style="font:12px Inter,sans-serif;color:#63666A;margin-top:4px">Last caffeine</div></div><div style="border-top:1px solid rgba(18,19,20,.12);padding-top:12px"><div style="font:400 24px/1 Jost,sans-serif;font-variant-numeric:tabular-nums">21:45</div><div style="font:12px Inter,sans-serif;color:#63666A;margin-top:4px">Wind-down</div></div></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:28px"><span style="font:500 20px Jost,sans-serif">Last 7 nights</span><span style="font:12px Inter,sans-serif;color:#63666A">Measured · Apple Health</span></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;font:11px Inter,sans-serif;text-align:center;font-variant-numeric:tabular-nums">
+      <div><div style="height:4px;background:rgba(18,19,20,.12)"><div style="width:95%;height:4px;background:#121314"></div></div><div style="margin-top:7px">7h20</div><div style="color:#63666A;margin-top:2px">M</div></div>
+      <div><div style="height:4px;background:rgba(18,19,20,.12)"><div style="width:78%;height:4px;background:#121314"></div></div><div style="margin-top:7px">6h05</div><div style="color:#63666A;margin-top:2px">T</div></div>
+      <div><div style="height:4px;background:rgba(18,19,20,.12)"><div style="width:99%;height:4px;background:#121314"></div></div><div style="margin-top:7px">7h40</div><div style="color:#63666A;margin-top:2px">W</div></div>
+      <div><div style="height:4px;border:1px dashed rgba(18,19,20,.35);box-sizing:border-box"></div><div style="margin-top:7px;color:#63666A">none</div><div style="color:#63666A;margin-top:2px">T</div></div>
+      <div><div style="height:4px;background:rgba(18,19,20,.12)"><div style="width:84%;height:4px;background:#121314"></div></div><div style="margin-top:7px">6h30</div><div style="color:#63666A;margin-top:2px">F</div></div>
+      <div><div style="height:4px;background:#121314"></div><div style="margin-top:7px">8h10</div><div style="color:#63666A;margin-top:2px">S</div></div>
+      <div><div style="height:4px;background:rgba(18,19,20,.12)"><div style="width:89%;height:4px;background:oklch(0.6 0.14 285)"></div></div><div style="margin-top:7px;font-weight:600">6h52</div><div style="margin-top:2px;font-weight:600">S</div></div>
+    </div>
+    <p style="font:12.5px/1.5 Inter,sans-serif;color:#63666A;margin:12px 0 0">Each bar is filled against your estimated need of 7h 45m. Sleep debt is about 4h. One night was not logged, so confidence stays at medium.</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;min-height:56px;margin-top:8px;border-top:1px solid rgba(18,19,20,.12);font:14px Inter,sans-serif;cursor:pointer"><span><span style="font-weight:500">Chronotype</span> <span style="color:#63666A">· Intermediate, leaning late (estimate)</span></span><i class="ph ph-caret-right" style="font-size:15px"></i></div>
+  </div>
+  <nav aria-label="Main" style="position:sticky;bottom:0;margin-top:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px 8px 30px;background:rgba(244,244,242,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(18,19,20,.12);z-index:6">
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-sun-horizon" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Today</span></button>
+    <button type="button" aria-current="page" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#121314;cursor:pointer"><i class="ph ph-moon" aria-hidden="true" style="font-size:23px"></i><span style="font:600 10px Inter,sans-serif">Sleep</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-fork-knife" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Food</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-person-simple-run" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Move</span></button>
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center;background:none;border:0;padding:0;color:#63666A;cursor:pointer"><i class="ph ph-wind" aria-hidden="true" style="font-size:23px"></i><span style="font:500 10px Inter,sans-serif">Mind</span></button>
+  </nav>
+</div>
+</x-import>
+
+<sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+<div style="width:250px;font:13px/1.55 Inter,sans-serif;color:rgba(0,0,0,.7);display:flex;flex-direction:column;gap:14px;padding-top:8px">
+  <div style="font:400 28px/1.1 Jost,sans-serif;color:#121314">Thread</div>
+  <div><b style="color:#1a1a1a">Chosen direction.</b> Today opens on readiness: a ring split into the four foundations, one sentence, and what each foundation moved. Below it sit today's direction, Quick log, the energy strand, the detailed analysis and the week. Sleep explains the estimate with two threads and the gap between them.</div>
+  <div><b style="color:#1a1a1a">Type</b> · Jost for display, echoing the wordmark. Inter for interface.</div>
+  <div style="display:flex;gap:6px;align-items:center"><span style="width:26px;height:26px;background:#121314"></span><span style="width:26px;height:26px;background:#F4F4F2;border:1px solid rgba(0,0,0,.15)"></span><span style="width:26px;height:26px;background:oklch(0.74 0.14 62)"></span><span style="width:26px;height:26px;background:oklch(0.74 0.14 285)"></span></div>
+  <div><b style="color:#1a1a1a">Navigation</b> · Five tabs at the bottom: Today, Sleep, Food, Move, Mind. Plan and You open from the header; Trends from This week.</div>
+  <div><b style="color:#1a1a1a">Charts</b> · Solid strand is lived, dotted is predicted. The two-thread chart shows how sleep history changes the estimate.</div>
+  <div><b style="color:#1a1a1a">Try</b> · Open "Why this estimate?". Tap Water, then Undo. Move down the day strand. Open "Explore your analysis". Flip a week card. On Sleep, switch on the rested-week comparison.</div>
+</div>
+</sc-if>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "go with <a class="dv-oid" href="#1b">1b</a>" · "<a class="dv-oid" href="#1a">1a</a> layout with the two-thread chart from <a class="dv-oid" href="#1c">1c</a>" · "<a class="dv-oid" href="#1b">1b</a> in a light theme"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showNotes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Presentation&quot;},&quot;scrubMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;hover&quot;,&quot;drag&quot;],&quot;default&quot;:&quot;hover&quot;,&quot;tsType&quot;:&quot;'hover'|'drag'&quot;,&quot;section&quot;:&quot;Interaction&quot;}}">
+class Component extends DCLogic {
+  state = { a: 10.5, b: 9.68, c: 15.75, done: {}, water: 2, undo: false, why: false, bed: 23.25, rested: false, cWhy: false, cMore: false, cRecap: true, flip: {} };
+  g(t, m, s) { return Math.exp(-((t - m) * (t - m)) / (2 * s * s)); }
+  E(t) {
+    const ss = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+    const k = ss((t - 6.1) / 0.7);
+    const raw = 0.18 + 0.72 * this.g(t, 10.5, 1.9) + 0.58 * this.g(t, 18.2, 1.9) + 0.25 * this.g(t, 14.3, 3.5) - 0.1 * Math.exp(-Math.max(0, t - 6.67) / 0.6);
+    return Math.max(5, raw / 1.04 * 83 * k + 5 * (1 - k));
+  }
+  S(t) { return t < 6.67 ? 0.3 + 0.15 * (6.67 - t) / 0.67 : 0.3 + 0.42 * (1 - Math.exp(-(t - 6.67) / 8)); }
+  Yc(v) { return 12 + (1 - v / 1.2) * 166; }
+  fmt(t) { const tm = Math.round(t * 60); const h = Math.floor(tm / 60) % 24, m = tm % 60; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); }
+  paths() {
+    if (this._p) return this._p;
+    const ts = []; for (let i = 0; i <= 72; i++) ts.push(6 + i * 0.25);
+    const f = n => Math.round(n * 10) / 10;
+    const line = pts => pts.map((p, i) => (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1])).join('');
+    const a = (W, H, pt, pb) => line(ts.map(t => [(t - 6) / 18 * W, pt + (1 - this.E(t) / 100) * (H - pt - pb)]));
+    const rib = (W, H) => {
+      const hf = t => 3 + this.E(t) / 100 * (H / 2 - 8);
+      const top = ts.map(t => [(t - 6) / 18 * W, H / 2 - hf(t)]);
+      const bot = ts.slice().reverse().map(t => [(t - 6) / 18 * W, H / 2 + hf(t)]);
+      return line(top) + line(bot).replace('M', 'L') + 'Z';
+    };
+    const cp = ts.map(t => [6 + this.E(t) / 100 * 70, (t - 6) * 36]);
+    const W = 362, X = t => (t - 6) / 18 * W;
+    const sp = ts.map(t => [X(t), this.Yc(this.S(t))]);
+    const cc = ts.map(t => [X(t), this.Yc(this.S(t) + this.E(t) / 100 * 0.6)]);
+    const rp = ts.map(t => [X(t), this.Yc(this.S(t) - 0.1)]);
+    this._p = {
+      pAH: a(354, 96, 8, 8), pAS: a(354, 180, 12, 6), pBH: rib(362, 110), pBS: rib(362, 170),
+      pCL: line(cp), pCA: 'M0 0' + line(cp).replace('M', 'L') + 'L0 648Z',
+      pCS: line(sp), pCC: line(cc), pCR: line(rp), pCG: line(cc) + line(sp.slice().reverse()).replace('M', 'L') + 'Z'
+    };
+    return this._p;
+  }
+  win(t) {
+    const W = [
+      [6.67, 7.67, 'Waking up', 'Low', 'Daylight, water, an easy start'],
+      [7.67, 9.17, 'Rising', 'Building', 'Routine tasks, planning the day'],
+      [9.17, 12, 'Morning peak', 'High', 'Deep work, hard decisions'],
+      [12, 13.83, 'Steady', 'Steady', 'Meetings, lunch, collaboration'],
+      [13.83, 15.67, 'Afternoon dip', 'Lower', 'A walk, admin, a short nap before 15:00'],
+      [15.67, 17, 'Rising again', 'Building', 'Errands, lighter work'],
+      [17, 19.5, 'Second peak', 'High', 'Training, social plans'],
+      [19.5, 21.75, 'Easing', 'Steady', 'Dinner, low-stakes tasks'],
+      [21.75, 23.25, 'Wind-down', 'Low', 'Lights low, screens away'],
+      [23.25, 24.01, 'Sleep window', 'Rest', 'In bed by 23:15']
+    ];
+    const w = W.find(x => t >= x[0] && t < x[1]);
+    return w ? { name: w[2], level: w[3], fit: w[4] } : { name: 'Asleep', level: 'Rest', fit: 'Sleep window' };
+  }
+  scrub(key, axis) {
+    return e => {
+      if ((this.props.scrubMode ?? 'hover') === 'drag' && e.type === 'pointermove' && !e.buttons) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      const f = axis === 'y' ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width;
+      const t = Math.round(Math.max(6.1, Math.min(23.9, 6 + f * 18)) * 12) / 12;
+      if (t !== this.state[key]) this.setState({ [key]: t });
+    };
+  }
+  renderVals() {
+    const s = this.state;
+    this._h = this._h || {
+      aScrub: this.scrub('a', 'x'), bScrub: this.scrub('b', 'x'), cScrub: this.scrub('c', 'y'), cScrubX: this.scrub('c', 'x'),
+      addWater: () => this.setState(st => ({ water: st.water + 1, undo: true })),
+      undoWater: () => this.setState(st => ({ water: st.water - 1, undo: false })),
+      toggleWhy: () => this.setState(st => ({ why: !st.why })),
+      toggleRested: () => this.setState(st => ({ rested: !st.rested })),
+      toggleCWhy: () => this.setState(st => ({ cWhy: !st.cWhy })),
+      toggleMore: () => this.setState(st => ({ cMore: !st.cMore })),
+      dismissRecap: () => this.setState({ cRecap: false }),
+      cF: [0, 1, 2, 3].map(i => () => this.setState(st => ({ flip: { ...st.flip, [i]: !st.flip[i] } }))),
+      bedMinus: () => this.setState(st => ({ bed: Math.max(22, st.bed - 0.25) })),
+      bedPlus: () => this.setState(st => ({ bed: Math.min(25.5, st.bed + 0.25) })),
+      aT0: () => this.tog(0), aT1: () => this.tog(1), aT2: () => this.tog(2), aT3: () => this.tog(3)
+    };
+    const pct = t => Math.round((t - 6) / 18 * 10000) / 100;
+    const wa = this.win(s.a), wb = this.win(s.b), wc = this.win(s.c);
+    const ea = this.E(s.a), ec = this.E(s.c);
+    const out = { ...this.paths(), ...this._h, showNotes: this.props.showNotes ?? true, water: s.water, undo: s.undo, why: s.why, whyRot: s.why ? 180 : 0, rested: s.rested };
+    for (let i = 0; i < 4; i++) { out['aO' + i] = s.done[i] ? 0.4 : 1; out['aB' + i] = s.done[i] ? '#1B1A17' : 'transparent'; }
+    Object.assign(out, {
+      aTime: this.fmt(s.a), aLevel: wa.level, aName: wa.name, aFit: wa.fit, aX: pct(s.a),
+      aYh: 8 + (1 - ea / 100) * 80, aYs: 12 + (1 - ea / 100) * 162,
+      bTime: this.fmt(s.b), bLevelUp: wb.level.toUpperCase(), bName: wb.name, bFit: wb.fit, bX: pct(s.b),
+      cTime: this.fmt(s.c), cLevel: wc.level, cName: wc.name, cX: pct(s.c), cTop: (s.c - 6) * 36, cDot: 6 + ec / 100 * 70,
+      cYc: this.Yc(this.S(s.c) + ec / 100 * 0.6), cYs: this.Yc(this.S(s.c)), cGapH: this.Yc(this.S(s.c)) - this.Yc(this.S(s.c) + ec / 100 * 0.6),
+      cTrack: s.rested ? 'oklch(0.74 0.14 62)' : 'rgba(237,234,226,.22)', cKnob: s.rested ? 20 : 2
+    });
+    const amber = 'oklch(0.82 0.11 75)', ice = 'oklch(0.82 0.11 245)', grey = 'rgba(236,234,227,.4)';
+    out.bRows = [
+      [9.17, 12, '09:10–12:00', 'Morning peak', 'Deep work, hard decisions', amber],
+      [13.83, 15.67, '13:50–15:40', 'Afternoon dip', 'A walk, admin, a short nap before 15:00', ice],
+      [17, 19.5, '17:00–19:30', 'Second peak', 'Training, social plans', amber],
+      [21.75, 23.25, '21:45–23:15', 'Wind-down', 'Lights low, screens away', grey]
+    ].map(r => ({ range: r[2], name: r[3], fit: r[4], color: r[5], bg: s.b >= r[0] && s.b < r[1] ? 'rgba(236,234,227,.08)' : 'transparent' }));
+    const opp = 31 - s.bed, om = Math.round(opp * 60), diff = om - 465;
+    Object.assign(out, {
+      cWhy: s.cWhy, cWhyRot: s.cWhy ? 180 : 0, cMore: s.cMore, cMoreRot: s.cMore ? 180 : 0, cRecap: s.cRecap,
+      cMoreTitle: s.cMore ? 'Hide the detailed picture' : 'Explore your analysis'
+    });
+    out.cWeek = [
+      ['ph-moon', 'Sleep', '7h 06m', 'average, 6 of 7 nights', 'About 4h under your need', 'Protect a 23:15 bedtime', 'Three nights at your need would clear most of the debt.', 'Open Sleep'],
+      ['ph-fork-knife', 'Food', '14 meals', 'logged this week', 'Protein target met on 5 days', 'Lead lunch with protein', 'Your afternoons were steadier on 6 of 9 days like this.', 'Log food'],
+      ['ph-person-simple-run', 'Move', '3 sessions', 'this week', 'Training load moderate', 'Keep today moderate', 'Strength at 17:30, held back while sleep debt is about 4h.', 'Open Move'],
+      ['ph-wind', 'Mind', '4 check-ins', '2 breathing sessions', 'One demanding day logged', 'A 5-minute breath at 14:30', 'It lands inside your afternoon dip.', 'Open Mind']
+    ].map((c, i) => {
+      const f = !!s.flip[i];
+      return { icon: c[0], title: c[1], value: c[2], label: c[3], caption: c[4], head: c[5], detail: c[6], action: c[7],
+        flip: this._h.cF[i], flipped: f, front: !f, bg: f ? '#121314' : '#fff', fg: f ? '#EDEAE2' : '#121314',
+        mute: f ? 'rgba(237,234,226,.74)' : '#63666A', line: f ? '#121314' : 'rgba(18,19,20,.14)' };
+    });
+    out.bBed = this.fmt(s.bed); out.bWind = this.fmt(s.bed - 1.5);
+    out.bOpp = Math.floor(om / 60) + 'h ' + String(om % 60).padStart(2, '0') + 'm';
+    out.bVs = diff === 0 ? 'Meets need' : diff > 0 ? '+' + diff + 'm' : Math.abs(diff) + 'm short';
+    out.bVsColor = diff < 0 ? 'oklch(0.82 0.11 75)' : '#ECEAE3';
+    return out;
+  }
+  tog(i) { this.setState(st => ({ done: { ...st.done, [i]: !st.done[i] } })); }
+}
+</script>
+</body>
+</html>

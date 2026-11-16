@@ -5,8 +5,10 @@ import {
 } from '@expo-google-fonts/fraunces';
 import {
   Inter_400Regular,
-  Inter_500Medium
+  Inter_500Medium,
+  Inter_600SemiBold
 } from '@expo-google-fonts/inter';
+import { Jost_400Regular, Jost_500Medium } from '@expo-google-fonts/jost';
 import { DarkTheme, ThemeProvider, type Theme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
@@ -42,6 +44,10 @@ export default function RootLayout() {
     Fraunces_400Regular_Italic,
     Inter_400Regular,
     Inter_500Medium,
+    Inter_600SemiBold,
+    /* The 1c "Thread" display face (src/styles/daywoven1c.ts). Fraunces stays for screens not yet moved. */
+    Jost_400Regular,
+    Jost_500Medium,
     Ionicons: require('../assets/fonts/Ionicons.ttf')
   });
 
