@@ -1,23 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EntrySheet } from '../../components/mobile/EntrySheet';
-import { colors, type, glassSurface } from '../../styles/mobileTheme';
+import { accent, font, HIT, ink, radius } from '../../styles/daywoven1c';
+import { colors, type } from '../../styles/mobileTheme';
 import { pillarColors } from '../../styles/pillarColors';
 import type { WeeklyRecap } from './weekCards';
 
-/** The single row Home shows on Sunday and Monday. It can be put away for the week. */
+/**
+ * The single row Today shows on Sunday and Monday, as a 1c amber-wash row. It can be put
+ * away for the week. The row and the dismiss button are separate targets of at least 44pt.
+ */
 export function WeeklyRecapRow({ onOpen, onDismiss }: { onOpen: () => void; onDismiss: () => void }) {
   return <View style={styles.row}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Your week in review" onPress={onOpen} style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}>
-      <View style={styles.rowIcon}><Ionicons accessible={false} color={colors.accent} name="calendar-clear-outline" size={19} /></View>
+    <Pressable accessibilityRole="button" accessibilityLabel="Your week in review. Open" onPress={onOpen} style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}>
+      <Ionicons accessible={false} color={ink.text} name="sparkles-outline" size={19} />
       <View style={styles.rowCopy}>
         <Text style={styles.rowTitle}>Your week in review</Text>
         <Text style={styles.rowDetail}>Four lines and one thing for next week</Text>
       </View>
-      <Ionicons accessible={false} color={colors.textMuted} name="chevron-forward" size={17} />
+      <Text style={styles.rowOpen}>Open</Text>
     </Pressable>
-    <Pressable accessibilityRole="button" accessibilityLabel="Not now" hitSlop={6} onPress={onDismiss} style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}>
-      <Ionicons accessible={false} color={colors.textMuted} name="close" size={17} />
+    <Pressable accessibilityRole="button" accessibilityLabel="Not now" accessibilityHint="Hides this week’s review" onPress={onDismiss} style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}>
+      <Ionicons accessible={false} color={ink.text} name="close" size={17} />
     </Pressable>
   </View>;
 }
@@ -48,13 +52,13 @@ export function WeeklyRecapSheet({ recap, onClose, onTrends }: { recap: WeeklyRe
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', ...glassSurface, borderRadius: 20, paddingLeft: 16, paddingRight: 6 },
-  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 12 },
-  rowIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentWash },
-  rowCopy: { flex: 1, gap: 2 },
-  rowTitle: { ...type.body, fontWeight: '600', color: colors.text },
-  rowDetail: { ...type.caption, fontSize: 14, lineHeight: 20, color: colors.textMuted },
-  dismiss: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  row: { alignItems: 'center', backgroundColor: accent.amberWash, borderRadius: radius.card, flexDirection: 'row', marginTop: 16, paddingLeft: 16, paddingRight: 4 },
+  rowMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 12, minHeight: HIT, paddingVertical: 12 },
+  rowCopy: { flex: 1, gap: 2, minWidth: 0 },
+  rowTitle: { fontFamily: font.bodySemibold, fontSize: 14, color: ink.text },
+  rowDetail: { fontFamily: font.body, fontSize: 12, lineHeight: 16.8, color: ink.mutedOnWash },
+  rowOpen: { fontFamily: font.bodySemibold, fontSize: 13.5, color: ink.text, paddingHorizontal: 10 },
+  dismiss: { alignItems: 'center', height: HIT, justifyContent: 'center', width: HIT },
   pressed: { opacity: 0.6 },
   lede: { ...type.body, color: colors.textMuted },
   list: { backgroundColor: colors.surfaceInset, borderRadius: 16, paddingHorizontal: 14 },

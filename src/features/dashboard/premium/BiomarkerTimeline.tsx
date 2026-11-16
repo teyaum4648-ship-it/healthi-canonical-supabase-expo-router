@@ -1,15 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Polyline } from 'react-native-svg';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 
-import { FluidPressable } from '../../../components/mobile/FluidPressable';
-import { BIOMARKER_SPECS, compareToUsual, formatBiomarkerValue, type BiomarkerSummary } from '../../../engines/biomarkers';
-import { cardSurface, colors, fonts, surfaces, type, zones } from '../../../styles/mobileTheme';
-import { ZoneChip } from './ZoneChip';
+import { BIOMARKER_SPECS, formatBiomarkerValue, type BiomarkerSummary } from '../../../engines/biomarkers';
+import { accent, font, HIT, ink, radius, surface, type } from '../../../styles/daywoven1c';
 
-const CHART_HEIGHT = 72;
-const CHART_WIDTH = 300;
-const DOT = 4;
+const CHART_HEIGHT = 60;
+const PAD_Y = 8;
 
 function dayLabel(date: string, today: string): string {
   if (date === today) return 'Today';
@@ -23,21 +21,37 @@ function initial(date: string): string {
 }
 
 /**
- * A flat line of the week's values: no gridlines, no axis, no fill. Days without a
- * reading break the line instead of dragging it to zero.
+ * Component C: resting heart rate over the last seven days, in the 1c chart grammar (P8):
+ * an ink line, a dashed line at the person's usual, the latest reading in deep lavender, no
+ * gridlines. A day without a reading is a gap in the line and is labelled "none", never
+ * drawn as zero. Each day under the chart opens the entry sheet for that day, so readings
+ * can still be added or fixed for any day of the week.
  */
-function TrendLine({ summary, color }: { summary: BiomarkerSummary; color: string }) {
+export function BiomarkerTimeline({ summary, today, color = accent.lavenderDeep, onEditDay }: {
+  summary: BiomarkerSummary;
+  today: string;
+  /** The latest reading's dot. */
+  color?: string;
+  onEditDay: (date: string) => void;
+}) {
+  const spec = BIOMARKER_SPECS[summary.kind];
+  const baseline = summary.baseline;
+  const [width, setWidth] = useState(0);
   const values = summary.series.map((day) => day.value).filter((value): value is number => value !== null);
-  if (!values.length) return null;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(max - min, 4);
-  const low = min - (span - (max - min)) / 2;
-  const step = (CHART_WIDTH - DOT * 2) / (summary.series.length - 1);
-  const points = summary.series.map((day, index) => day.value === null ? null : {
-    x: DOT + index * step,
-    y: DOT + (1 - (day.value - low) / span) * (CHART_HEIGHT - DOT * 2)
-  });
+  const latest = summary.latest;
+  const latestIndex = latest ? summary.series.findIndex((day) => day.date === latest.date) : -1;
+
+  const scale = (() => {
+    const all = baseline === null ? values : [...values, baseline];
+    if (!all.length) return null;
+    const min = Math.min(...all);
+    const max = Math.max(...all);
+    const span = Math.max(max - min, 4);
+    const low = min - (span - (max - min)) / 2;
+    return (value: number) => PAD_Y + (1 - (value - low) / span) * (CHART_HEIGHT - PAD_Y * 2);
+  })();
+  const column = width / Math.max(summary.series.length, 1);
+  const points = summary.series.map((day, index) => (day.value === null || !scale ? null : { x: column * (index + 0.5), y: scale(day.value), index }));
   const segments: { x: number; y: number }[][] = [];
   let current: { x: number; y: number }[] = [];
   for (const point of points) {
@@ -46,124 +60,88 @@ function TrendLine({ summary, color }: { summary: BiomarkerSummary; color: strin
   }
   if (current.length) segments.push(current);
 
-  return (
-    <Svg width="100%" height={CHART_HEIGHT} viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} preserveAspectRatio="none">
-      {segments.filter((segment) => segment.length > 1).map((segment, index) => (
-        <Polyline key={index} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeOpacity={0.35} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      ))}
-      {points.map((point, index) => point ? (
-        <Circle key={index} cx={point.x} cy={point.y} r={index === points.length - 1 ? DOT + 1 : DOT} fill={index === points.length - 1 ? color : colors.surface} stroke={color} strokeWidth={2} />
-      ) : null)}
-    </Svg>
-  );
-}
-
-/**
- * Component C: resting heart rate over the last seven days, as a quiet line and a
- * day-by-day log, newest first. Every day has a row, logged or not, and every row opens
- * the entry sheet for that day, so the log is also where readings are added or fixed.
- */
-export function BiomarkerTimeline({ summary, today, color, onEditDay }: {
-  summary: BiomarkerSummary;
-  today: string;
-  color: string;
-  onEditDay: (date: string) => void;
-}) {
-  const spec = BIOMARKER_SPECS[summary.kind];
-  const baseline = summary.baseline;
-  const days = [...summary.series].reverse();
+  const value = (input: number) => formatBiomarkerValue(summary.kind, input);
+  const headline = latest
+    ? `${value(latest.value)} ${spec.unit} ${latest.date === today ? 'today' : dayLabel(latest.date, today).toLowerCase()}`
+    : null;
+  const comparison = latest && baseline !== null && summary.deltaLabel
+    ? summary.deltaLabel.replace(/ vs usual$/, ` vs your usual ${value(baseline)}`)
+    : summary.status;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text accessibilityRole="header" style={styles.title}>{spec.label}</Text>
-          <Text style={styles.subtitle}>Last 7 days{baseline !== null ? ` · usual ${formatBiomarkerValue(summary.kind, baseline)} ${spec.unit}` : ''}</Text>
-        </View>
-        <ZoneChip tone={summary.zone} label={summary.latest ? summary.status : 'No reading yet'} />
+        <Text accessibilityRole="header" style={styles.title}>{spec.label}</Text>
+        <Text style={styles.meta}>7 days</Text>
       </View>
 
       {summary.days_with_data ? (
-        <View accessible accessibilityRole="image" accessibilityLabel={`${spec.label} over the last seven days: ${summary.series.map((day) => day.value === null ? 'no reading' : `${formatBiomarkerValue(summary.kind, day.value)}`).join(', ')}`}>
-          <TrendLine summary={summary} color={color} />
-          <View style={styles.initials}>
-            {summary.series.map((day) => <Text key={day.date} style={[styles.initial, day.date === today && styles.initialToday]}>{initial(day.date)}</Text>)}
+        <>
+          {headline ? (
+            <Text style={styles.sub}><Text style={styles.subStrong}>{headline}</Text> · {comparison}</Text>
+          ) : null}
+          <View
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={`${spec.label} over the last seven days: ${summary.series.map((day) => (day.value === null ? 'not logged' : value(day.value))).join(', ')} ${spec.unit}${baseline !== null ? `. Your usual is ${value(baseline)}` : ''}`}
+            onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+            style={styles.chart}
+          >
+            {width > 0 && scale ? (
+              <Svg width={width} height={CHART_HEIGHT}>
+                {baseline !== null ? <Line x1={0} x2={width} y1={scale(baseline)} y2={scale(baseline)} stroke={ink.track} strokeWidth={1} strokeDasharray={[3, 4]} /> : null}
+                {segments.filter((segment) => segment.length > 1).map((segment, index) => (
+                  <Polyline key={index} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={ink.text} strokeWidth={1.75} strokeLinejoin="round" />
+                ))}
+                {points.map((point) => (point ? (
+                  <Circle key={point.index} cx={point.x} cy={point.y} r={point.index === latestIndex ? 4 : 3} fill={point.index === latestIndex ? color : ink.text} />
+                ) : null))}
+              </Svg>
+            ) : null}
           </View>
-        </View>
+        </>
       ) : (
-        <Text style={styles.empty}>
-          No readings yet. Add the resting heart rate your watch or ring shows for last night, or connect a health app from your profile.
-        </Text>
+        <Text style={styles.empty}>No readings yet. Add the resting heart rate your watch or ring shows for last night, or connect a health app from your profile.</Text>
       )}
 
-      <View style={styles.log}>
-        {days.map((day, index) => {
-          const comparison = day.value !== null && baseline !== null ? compareToUsual(summary.kind, day.value, baseline) : null;
-          const delta = comparison?.delta ?? null;
-          const tone = comparison?.zone ?? null;
-          const deltaText = delta === null ? '' : `${delta > 0 ? '+' : delta < 0 ? '−' : '±'}${Math.abs(delta)}${spec.deltaMode === 'percent' ? '%' : ''}`;
-          return (
-            <FluidPressable
-              key={day.date}
-              accessibilityRole="button"
-              accessibilityLabel={`${dayLabel(day.date, today)}: ${day.value === null ? 'no reading' : `${formatBiomarkerValue(summary.kind, day.value)} ${spec.unit}`}. ${day.value === null ? 'Add' : 'Edit'} reading`}
-              onPress={() => onEditDay(day.date)}
-              pressedScale={0.99}
-              style={[styles.row, index < days.length - 1 && styles.rowDivider]}
-              hoverStyle={styles.rowHover}
-            >
-              <Text style={[styles.rowDay, day.date === today && styles.rowDayToday]}>{dayLabel(day.date, today)}</Text>
-              {day.value === null ? (
-                <View style={styles.rowAdd}>
-                  <Ionicons accessible={false} color={colors.accent} name="add-circle-outline" size={16} />
-                  <Text style={styles.rowAddText}>Add</Text>
-                </View>
-              ) : (
-                <View style={styles.rowValueWrap}>
-                  {delta !== null && tone ? (
-                    <Text style={[styles.rowDelta, { color: zones[tone].text }]}>{deltaText}</Text>
-                  ) : null}
-                  <Text style={styles.rowValue}>{formatBiomarkerValue(summary.kind, day.value)}</Text>
-                  <Text style={styles.rowUnit}>{spec.unit}</Text>
-                </View>
-              )}
-            </FluidPressable>
-          );
-        })}
+      <View style={styles.days}>
+        {summary.series.map((day) => (
+          <Pressable
+            key={day.date}
+            accessibilityRole="button"
+            accessibilityLabel={`${dayLabel(day.date, today)}: ${day.value === null ? 'no reading' : `${value(day.value)} ${spec.unit}`}. ${day.value === null ? 'Add' : 'Edit'} reading`}
+            onPress={() => onEditDay(day.date)}
+            style={({ pressed }) => [styles.day, pressed && styles.pressed]}
+          >
+            <Text numberOfLines={1} style={[styles.dayText, day.date === today && styles.dayToday]}>
+              {initial(day.date)}{day.value === null && summary.days_with_data ? ' · none' : ''}
+            </Text>
+          </Pressable>
+        ))}
       </View>
+
+      <Pressable accessibilityRole="button" accessibilityLabel={`Add a ${spec.label.toLowerCase()} reading for today`} onPress={() => onEditDay(today)} style={({ pressed }) => [styles.add, pressed && styles.pressed]}>
+        <Ionicons accessible={false} color={ink.text} name="add" size={16} />
+        <Text style={styles.addText}>Add a reading</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    ...cardSurface,
-    borderColor: surfaces.edge,
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 14,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 6
-  },
-  header: { alignItems: 'flex-start', flexDirection: 'row', gap: 10 },
-  headerCopy: { flex: 1, gap: 2 },
-  title: { ...type.label, color: colors.text, fontSize: 17, lineHeight: 22 },
-  subtitle: { ...type.caption, color: colors.textMuted },
-  initials: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, paddingHorizontal: 0 },
-  initial: { ...type.caption, color: colors.textMuted, fontSize: 11, textAlign: 'center', width: 14 },
-  initialToday: { color: colors.text, fontWeight: '700' },
-  empty: { ...type.body, color: colors.textMuted, fontSize: 15, lineHeight: 21 },
-  log: { marginHorizontal: -8 },
-  row: { alignItems: 'center', borderRadius: 14, flexDirection: 'row', justifyContent: 'space-between', minHeight: 46, paddingHorizontal: 8 },
-  rowDivider: { borderBottomColor: surfaces.edge, borderBottomWidth: 1 },
-  rowHover: { backgroundColor: 'rgba(235, 240, 255, 0.05)' },
-  rowDay: { ...type.body, color: colors.text, fontSize: 15 },
-  rowDayToday: { fontWeight: '600' },
-  rowValueWrap: { alignItems: 'baseline', flexDirection: 'row', gap: 6 },
-  rowDelta: { ...type.caption, fontSize: 12, fontVariant: ['tabular-nums'], fontWeight: '600' },
-  rowValue: { color: colors.text, fontFamily: fonts.display, fontSize: 17, fontVariant: ['tabular-nums'], fontWeight: '600' },
-  rowUnit: { ...type.caption, color: colors.textMuted, fontSize: 12, width: 28 },
-  rowAdd: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-  rowAddText: { ...type.label, color: colors.accent }
+  card: { backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, paddingBottom: 2, paddingHorizontal: 16, paddingTop: 14 },
+  header: { alignItems: 'baseline', flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  title: { fontFamily: font.bodySemibold, fontSize: 14, color: ink.text },
+  meta: { ...type.caption, color: ink.muted },
+  sub: { ...type.caption, fontSize: 12.5, color: ink.muted, marginTop: 4 },
+  subStrong: { fontFamily: font.bodyMedium, color: ink.text },
+  chart: { height: CHART_HEIGHT, marginTop: 10 },
+  empty: { ...type.body, color: ink.muted, marginTop: 8 },
+  days: { flexDirection: 'row', marginTop: 2 },
+  day: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: HIT, minWidth: 0 },
+  dayText: { fontFamily: font.body, fontSize: 10.5, color: ink.muted },
+  dayToday: { fontFamily: font.bodySemibold, color: ink.text },
+  pressed: { opacity: 0.6 },
+  add: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 6, minHeight: HIT },
+  addText: { fontFamily: font.bodyMedium, fontSize: 13, color: ink.text }
 });

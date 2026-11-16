@@ -27,8 +27,7 @@ import {
 import {
   generateDayPlan,
   type DayPlanRecommendation,
-  type DayScheduleBlockType,
-  type GenerateDayPlanInput
+  type DayScheduleBlockType
 } from '../../../src/engines/dayPlan';
 import { calculateMovementSummary, generateMovementReadinessSignal } from '../../../src/engines/movement';
 import { generateDailyReadiness } from '../../../src/engines/readiness';
@@ -63,6 +62,7 @@ import {
 import { getLocalDemoMovementState } from '../../../src/features/movement/localDemoMovementStore';
 import { movementSignalToDayPlanInput } from '../../../src/features/movement/movementIntegration';
 import { readinessToDayPlanInput } from '../../../src/features/morningBriefing';
+import { briefingToDayPlanRhythm } from '../../../src/features/dayPlan/briefingRhythm';
 import {
   getWorkoutExerciseEntriesForSession,
   getWorkoutSessionsForRange,
@@ -185,25 +185,6 @@ function buildRecommendationBands(briefing: CircadianBriefing | null): CalendarB
     });
   }
   return bands;
-}
-
-function briefingToDayPlanRhythm(briefing: CircadianBriefing | null): GenerateDayPlanInput['rhythm'] {
-  if (!briefing || !briefing.wake_time) return undefined;
-  const plan = briefing.rhythm_plan;
-  const deepWork = plan.deep_work_windows[0];
-  const exercise = plan.best_exercise_windows[0];
-  return {
-    energy_windows: plan.deep_work_windows.map((window) => ({
-      start: window.start_at,
-      end: window.end_at,
-      label: window.label,
-      intensity: 'high' as const
-    })),
-    deep_work_window: deepWork ? { start: deepWork.start_at, end: deepWork.end_at } : null,
-    exercise_window: exercise ? { start: exercise.start_at, end: exercise.end_at } : null,
-    caffeine_cutoff: plan.caffeine_cutoff,
-    wind_down_start: plan.wind_down_start
-  };
 }
 
 function formatWindow(start?: string, end?: string): string {

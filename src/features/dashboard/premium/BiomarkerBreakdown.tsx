@@ -1,45 +1,43 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { FluidPressable } from '../../../components/mobile/FluidPressable';
 import { BIOMARKER_SPECS, formatBiomarkerValue, type BiomarkerKind, type BiomarkerSummary } from '../../../engines/biomarkers';
-import { colors, fonts, type, zones } from '../../../styles/mobileTheme';
+import { font, ink, radius, surface, type } from '../../../styles/daywoven1c';
 
 /**
- * The deep layer behind the readiness ring: last night's HRV, resting heart rate and
- * respiratory rate, each against the person's own usual. Each tile opens the entry sheet
- * for that measure, so an empty tile is also the way to fill it.
+ * Last night's HRV, resting heart rate and respiratory rate, each against the person's own
+ * usual. In 1c it sits under "Explore your analysis" on Today (it used to open from the
+ * readiness ring). Each tile opens the entry sheet for that measure, so an empty tile is
+ * also the way to fill it.
  */
 export function BiomarkerBreakdown({ summaries, onEdit }: {
   summaries: BiomarkerSummary[];
   onEdit: (kind: BiomarkerKind) => void;
 }) {
   return (
-    <View style={styles.wrap}>
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text accessibilityRole="header" style={styles.title}>Overnight readings</Text>
+        <Text style={styles.meta}>vs your usual</Text>
+      </View>
       <View style={styles.grid}>
         {summaries.map((summary) => {
           const spec = BIOMARKER_SPECS[summary.kind];
-          const zone = zones[summary.zone];
           const value = summary.latest ? formatBiomarkerValue(summary.kind, summary.latest.value) : null;
           return (
-            <FluidPressable
+            <Pressable
               key={summary.kind}
               accessibilityRole="button"
-              accessibilityLabel={`${spec.label}: ${value ? `${value} ${spec.unit}, ${summary.status}` : 'no reading yet'}. ${value ? 'Update' : 'Add'} reading`}
+              accessibilityLabel={`${spec.label}: ${value ? `${value} ${spec.unit}, ${summary.deltaLabel ?? summary.status}` : 'no reading yet'}. ${value ? 'Update' : 'Add'} reading`}
               onPress={() => onEdit(summary.kind)}
-              style={styles.tile}
-              hoverStyle={styles.tileHover}
+              style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
             >
               <Text numberOfLines={1} style={styles.name}>{spec.shortLabel}</Text>
               <View style={styles.valueRow}>
                 <Text style={[styles.value, !value && styles.valueEmpty]}>{value ?? '—'}</Text>
                 {value ? <Text style={styles.unit}>{spec.unit}</Text> : null}
               </View>
-              <View style={[styles.status, { backgroundColor: zone.background }]}>
-                <Text numberOfLines={2} style={[styles.statusText, { color: zone.text }]}>
-                  {summary.deltaLabel ?? (value ? summary.status : 'Add reading')}
-                </Text>
-              </View>
-            </FluidPressable>
+              <Text numberOfLines={2} style={styles.status}>{summary.deltaLabel ?? (value ? summary.status : 'Add reading')}</Text>
+            </Pressable>
           );
         })}
       </View>
@@ -51,24 +49,18 @@ export function BiomarkerBreakdown({ summaries, onEdit }: {
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignSelf: 'stretch', gap: 10, paddingBottom: 12 },
+  card: { backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
+  header: { alignItems: 'baseline', flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  title: { fontFamily: font.bodySemibold, fontSize: 14, color: ink.text },
+  meta: { ...type.caption, color: ink.muted },
   grid: { flexDirection: 'row', gap: 8 },
-  tile: {
-    backgroundColor: colors.surfaceInset,
-    borderCurve: 'continuous',
-    borderRadius: 14,
-    flex: 1,
-    gap: 6,
-    minHeight: 112,
-    padding: 12
-  },
-  tileHover: { backgroundColor: colors.surfaceMuted },
-  name: { ...type.caption, color: colors.textMuted, fontWeight: '600' },
+  tile: { backgroundColor: surface.canvas, borderRadius: radius.tile, flex: 1, gap: 4, minHeight: 88, minWidth: 0, padding: 10 },
+  pressed: { opacity: 0.7 },
+  name: { ...type.small, color: ink.muted },
   valueRow: { alignItems: 'baseline', flexDirection: 'row', gap: 3 },
-  value: { color: colors.text, fontFamily: fonts.display, fontSize: 24, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.5, lineHeight: 28 },
-  valueEmpty: { color: colors.textMuted },
-  unit: { ...type.caption, color: colors.textMuted, fontSize: 12 },
-  status: { alignSelf: 'flex-start', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
-  statusText: { fontFamily: fonts.bodyMedium, fontSize: 11, fontWeight: '600', lineHeight: 14 },
-  note: { ...type.caption, color: colors.textMuted, fontSize: 12, lineHeight: 16, textAlign: 'center' }
+  value: { fontFamily: font.display, fontSize: 22, lineHeight: 26, color: ink.text, fontVariant: ['tabular-nums'] },
+  valueEmpty: { color: ink.muted },
+  unit: { fontFamily: font.body, fontSize: 11, color: ink.muted },
+  status: { fontFamily: font.body, fontSize: 11, lineHeight: 14, color: ink.muted },
+  note: { ...type.small, color: ink.muted }
 });

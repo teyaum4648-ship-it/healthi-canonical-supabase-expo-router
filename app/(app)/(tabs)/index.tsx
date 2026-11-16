@@ -5,9 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Line, Polyline } from 'react-native-svg';
 
 import { generateCircadianBriefing, type SleepNeedEstimate, type SleepSession } from '../../../src/engines/circadian';
 import { generateDayPlan } from '../../../src/engines/dayPlan';
@@ -29,7 +28,10 @@ import { localBiomarkerStore, saveManualReading } from '../../../src/features/bi
 import { BIOMARKER_KINDS, summarizeBiomarker, type BiomarkerKind, type BiomarkerReading } from '../../../src/engines/biomarkers';
 import { summarizeLoad } from '../../../src/engines/load';
 import { LoggingPrompts } from '../../../src/features/dashboard/LoggingPromptsPanel';
-import { TodayDirectionCard, InsightShortcuts, daywovenV2 } from '../../../src/features/dashboard/TodayDirectionCard';
+import { TodayDirectionCard } from '../../../src/features/dashboard/TodayDirectionCard';
+import { DayThread } from '../../../src/features/dashboard/DayThread';
+import type { DayThreadSources } from '../../../src/features/dashboard/dayThreadInput';
+import { QuickLog, type QuickLogAction } from '../../../src/features/dashboard/QuickLog';
 import { WeekFlipCard } from '../../../src/features/dashboard/WeekFlipCard';
 import { dietWeekCard, isRecapDay, moodWeekCard, moveWeekCard, recapWeekKey, sleepWeekCard, weeklyRecap, type WeekCard } from '../../../src/features/dashboard/weekCards';
 import { WeeklyRecapRow, WeeklyRecapSheet } from '../../../src/features/dashboard/WeeklyRecap';
@@ -38,24 +40,23 @@ import type { PracticeSession } from '../../../src/features/practice/practiceMod
 import { localPracticeStore } from '../../../src/features/practice/practiceStore';
 import { readGoalSetup } from '../../../src/features/nutrition/nutritionGoalStore';
 import { addGlassOfWater, GLASS_ML, removeWater } from '../../../src/features/nutrition/quickWater';
-import { createDemoWaterStore, readWater, waterForDay, type HydrationClient } from '../../../src/features/nutrition/hydrationStore';
+import { createDemoWaterStore, readWater, waterForDay, type HydrationClient, type WaterEntry } from '../../../src/features/nutrition/hydrationStore';
 import { waterPace } from '../../../src/features/nutrition/waterPace';
 import { EMPTY_MIND_ENTRIES, loadMindEntries, mindReadinessSignals, type MindEntries } from '../../../src/features/practice/mindSignals';
 import { latestLoadCheck, localLoadCheckStore, personalBaselineFrom, type LoadCheckRecord } from '../../../src/features/loadCheck/loadCheckStore';
-import { dietAccents } from '../../../src/features/nutrition/DietDashboard';
 import { recordReadiness } from '../../../src/features/trends/readinessHistoryStore';
 import { targetRowToTarget as goalTargetsFromRow } from '../../../src/features/nutrition/nutritionTargetModel';
 import { loggingPrompts, type LoggingPromptId } from '../../../src/features/dashboard/loggingPrompts';
-import {
-  boundedProgress,
-  greetingForHour,
-  greetingName,
-  homeGreeting
-} from '../../../src/features/dashboard/homeDashboardPresentation';
+/*
+ * The greeting line ("Good morning, …") is not drawn in 1c. Its helpers stay in
+ * src/features/dashboard/homeDashboardPresentation.ts (homeGreeting, greetingForHour,
+ * greetingName) so it is easy to bring back.
+ */
 import { readOnboardingV2Setup } from '../../../src/features/onboarding/onboardingV2Model';
 import type { OnboardingV2BaselineSetup } from '../../../src/features/onboarding/onboardingV2Types';
 import { getDemoScheduleBlocksForDate } from '../../../src/features/dayPlan/localDemoScheduleStore';
 import { buildDayPlanInput } from '../../../src/features/dayPlan/scheduleBlockForms';
+import { briefingToDayPlanRhythm } from '../../../src/features/dayPlan/briefingRhythm';
 import {
   getScheduleBlocksForDate,
   type DayScheduleBlockRow,
@@ -85,7 +86,8 @@ import {
 } from '../../../src/features/nutrition/persistence';
 import {
   composeMorningBriefing,
-  morningBriefingToDashboardHero
+  morningBriefingToDashboardHero,
+  readinessToDayPlanInput
 } from '../../../src/features/morningBriefing';
 import {
   composeDailyProtocol,
@@ -99,44 +101,15 @@ import {
 import type { SleepRhythmSupabaseClient } from '../../../src/features/sleepRhythm/persistence';
 import { createDefaultSleepNeedEstimate } from '../../../src/features/sleepRhythm/rhythmInputs';
 import { supabase } from '../../../src/lib/supabase';
-import { fonts, glass, glassSurface, type } from '../../../src/styles/mobileTheme';
-import { pillarColors } from '../../../src/styles/pillarColors';
-import { ActionRow } from '../../../src/components/mobile/ActionRow';
-import { Disclosure } from '../../../src/components/mobile/Disclosure';
+import { accent, bone, font, HIT, ink, radius, space, surface, type } from '../../../src/styles/daywoven1c';
+import { ExploreButton, HairlineRow, SectionTitle, TextLink, ThreadBand, ThreadCard, ThreadHeader } from '../../../src/components/thread/ThreadParts';
 import { quickEntryHref } from '../../../src/features/navigation/navigationModel';
+import { useSideMenu } from '../../../src/features/navigation/SideMenu';
 import { useTabBarSpace } from '../../../src/features/navigation/tabBarSpace';
 
 
 const demoOnboardingResultKey = 'healthi:demo:onboardingResult';
 const recapDismissedKey = 'healthi:recap:dismissed:v1';
-const waterColor = dietAccents.water;
-const homePalette = {
-  background: '#0C0E13',
-  surface: '#151920',
-  surfaceRaised: '#1A1F28',
-  surfaceSoft: '#202632',
-  border: 'rgba(255, 255, 255, 0.075)',
-  borderStrong: 'rgba(255, 255, 255, 0.12)',
-  blue: '#9FCCFF',
-  blueBright: '#9FCCFF',
-  blueSoft: '#9FCCFF',
-  cyan: '#8DDAE3',
-  violet: '#B6B2FA',
-  amber: '#FFC6A6',
-  text: '#F0F3F7',
-  textMuted: '#B5BDCC',
-  textFaint: '#929EAD',
-  track: '#2B303C',
-  white: '#F0F3F7',
-  onAccent: '#0C0E13'
-} as const;
-
-const homeFont = Platform.select({
-  ios: 'System',
-  android: 'sans-serif',
-  web: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif'
-}) ?? fonts.body;
-
 const isUuid = (value: string | undefined): value is string =>
   Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
@@ -144,16 +117,21 @@ function movementRangeStart(date: string): string {
   return new Date(new Date(`${date}T12:00:00.000Z`).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+/** "Mon 16 Nov" beside the wordmark; read aloud in full. */
 function displayDate(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    .format(new Date(`${value}T12:00:00`));
+}
+
+function spokenDate(value: string): string {
   return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
     .format(new Date(`${value}T12:00:00`));
 }
 
-function readinessIcon(domain: string): keyof typeof Ionicons.glyphMap {
-  if (domain === 'recovery_rhythm') return 'moon-outline';
-  if (domain === 'nourishment') return 'nutrition-outline';
-  if (domain === 'movement_capacity') return 'walk-outline';
-  return 'sparkles-outline';
+/** How last night is known, for the figure's tag: a health app measured it, or it was logged. */
+function sleepSourceTag(source: SleepSession['source'] | undefined): 'measured' | 'logged' | null {
+  if (!source || source === 'estimated') return null;
+  return source === 'manual' || source === 'user_corrected' || source === 'demo' ? 'logged' : 'measured';
 }
 
 function formatClockTime(value: string | null | undefined): string {
@@ -227,98 +205,10 @@ type DashboardBaselineClient = {
   };
 };
 
-type QuickLogAction = {
-  label: string;
-  detail: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  onPress: () => void;
-};
-
-function QuickLog({ actions, notice }: { actions: QuickLogAction[]; notice?: { text: string; onUndo?: () => void } | null }) {
-  return (
-    <View style={styles.quickLogSection}>
-      <View style={styles.quickLogHeader}>
-        <Text style={styles.quickLogTitle}>Quick log</Text>
-      </View>
-      <View style={styles.quickLogRow}>
-        {actions.map((action) => (
-          <Pressable
-            accessibilityLabel={`${action.label}. ${action.detail}`}
-            accessibilityRole="button"
-            key={action.label}
-            onPress={action.onPress}
-            style={({ pressed }) => [styles.quickLogButton, pressed && styles.quickLogButtonPressed]}
-          >
-            <View style={[styles.quickLogIcon, { backgroundColor: `${action.color}1C` }]}>
-              <Ionicons color={action.color} name={action.icon} size={20} />
-            </View>
-            <Text style={styles.quickLogLabel}>{action.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-      {notice ? (
-        <View accessibilityLiveRegion="polite" style={styles.quickNotice}>
-          <Ionicons accessible={false} color={homePalette.textMuted} name="checkmark-circle" size={16} />
-          <Text style={styles.quickNoticeText}>{notice.text}</Text>
-          {notice.onUndo ? <Pressable accessibilityRole="button" hitSlop={8} onPress={notice.onUndo} style={styles.quickUndo}><Text style={styles.quickUndoText}>Undo</Text></Pressable> : null}
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function ProgressRail({ progress, color }: { progress: number; color: string }) {
-  return (
-    <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, { backgroundColor: color, width: `${Math.round(progress * 100)}%` }]} />
-    </View>
-  );
-}
-
-function SleepSparkline({ values }: { values: number[] }) {
-  if (values.length < 2) {
-    return (
-      <View style={styles.emptyChart}>
-        <Ionicons color={homePalette.textFaint} name="pulse-outline" size={22} />
-        <Text style={styles.emptyChartText}>Two recorded nights will reveal your rhythm trend.</Text>
-      </View>
-    );
-  }
-
-  const width = 300;
-  const height = 76;
-  const padding = 6;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(max - min, 30);
-  const points = values.map((value, index) => {
-    const x = padding + (index / Math.max(values.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - ((value - min) / range) * (height - padding * 2);
-    return `${x},${y}`;
-  }).join(' ');
-
-  return (
-    <View style={styles.chartShell}>
-      <Svg height="76" preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`} width="100%">
-        <Line stroke={homePalette.track} strokeWidth="1" x1="0" x2={width} y1="24" y2="24" />
-        <Line stroke={homePalette.track} strokeWidth="1" x1="0" x2={width} y1="52" y2="52" />
-        <Polyline
-          fill="none"
-          points={points}
-          stroke={homePalette.blue}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-        />
-      </Svg>
-    </View>
-  );
-}
-
 export default function DashboardScreen() {
   const tabSpace = useTabBarSpace();
-  const { user, mode, profile } = useAuth();
+  const { user, mode } = useAuth();
+  const sideMenu = useSideMenu();
   const isFocused = useIsFocused();
   const today = useLocalToday();
   const [readinessCheckinRequest, setReadinessCheckinRequest] = useState(0);
@@ -326,7 +216,7 @@ export default function DashboardScreen() {
   const [recapOpen, setRecapOpen] = useState(false);
   const [waterNotice, setWaterNotice] = useState<{ id: string | null; text: string } | null>(null);
   const [waterVersion, setWaterVersion] = useState(0);
-  const [waterTodayMl, setWaterTodayMl] = useState(0);
+  const [waterToday, setWaterToday] = useState<WaterEntry[]>([]);
   const [waterTargetMl, setWaterTargetMl] = useState<number | null>(null);
   const [mindEntries, setMindEntries] = useState<MindEntries>(EMPTY_MIND_ENTRIES);
   const [mindVersion, setMindVersion] = useState(0);
@@ -504,11 +394,12 @@ export default function DashboardScreen() {
           ? readWater(supabase as unknown as HydrationClient, userId, today)
           : Promise.resolve([]);
       load
-        .then((rows) => { if (active) setWaterTodayMl(rows.reduce((sum, row) => sum + row.amount_ml, 0)); })
-        .catch(() => { if (active) setWaterTodayMl(0); });
+        .then((rows) => { if (active) setWaterToday(rows); })
+        .catch(() => { if (active) setWaterToday([]); });
       return () => { active = false; };
     }, [mode, today, user?.id, waterVersion])
   );
+  const waterTodayMl = useMemo(() => waterToday.reduce((sum, row) => sum + row.amount_ml, 0), [waterToday]);
 
   /* The load check, which sets where readiness starts for this person. */
   useFocusEffect(
@@ -745,7 +636,6 @@ export default function DashboardScreen() {
   );
   const dashboardHero = morningBriefingToDashboardHero(morningBriefing);
   const rhythmDriver = morningBriefing.driver_cards.find((driver) => driver.domain === 'recovery_rhythm');
-  const firstName = greetingName(user?.user_metadata?.first_name, profile?.display_name, mode === 'demo');
 
   const protocolModel = useMemo(
     () =>
@@ -838,7 +728,6 @@ export default function DashboardScreen() {
     : dashboardHero.source_label === 'demo'
       ? 'Demo signals'
       : 'Signals calibrating';
-  const greeting = greetingForHour(new Date().getHours());
   const openCheckin = () => {
     if (mode === 'demo') {
       // The readiness card is always mounted at the top of Home.
@@ -876,11 +765,11 @@ export default function DashboardScreen() {
     }
   }
   const quickLogActions: QuickLogAction[] = [
-    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'nutrition-outline', color: pillarColors.nourishment, onPress: () => router.navigate(quickEntryHref('food')) },
-    { label: 'Water', detail: `Add a ${GLASS_ML} mL glass`, icon: 'water-outline', color: waterColor, onPress: () => void logGlass() },
-    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', color: pillarColors.movement_capacity, onPress: () => router.navigate(quickEntryHref('workout')) },
-    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', color: pillarColors.recovery_rhythm, onPress: () => router.navigate(quickEntryHref('sleep')) },
-    { label: 'Check-in', detail: mode === 'demo' ? 'Update how you feel right now' : 'Record how today felt', icon: 'pulse-outline', color: pillarColors.mind_life_load, onPress: openCheckin }
+    { label: 'Food', detail: 'Search, scan, or build a meal', icon: 'restaurant-outline', onPress: () => router.navigate(quickEntryHref('food')) },
+    { label: 'Water', detail: `Add a ${GLASS_ML} mL glass`, icon: 'water-outline', count: waterToday.length, onPress: () => void logGlass() },
+    { label: 'Workout', detail: 'Open the fast workout logger', icon: 'barbell-outline', onPress: () => router.navigate(quickEntryHref('workout')) },
+    { label: 'Sleep', detail: 'Add last night’s sleep', icon: 'moon-outline', onPress: () => router.navigate(quickEntryHref('sleep')) },
+    { label: 'Check-in', detail: mode === 'demo' ? 'Update how you feel right now' : 'Record how today felt', icon: 'pulse-outline', onPress: openCheckin }
   ];
   /* A night is dated by the morning it ends on, so last night is the session dated today. */
   const sleepMissing = !sleepSessions.some((session) => session.date.slice(0, 10) === today);
@@ -923,6 +812,62 @@ export default function DashboardScreen() {
   /* With nothing logged there is no number to check in against, so the button asks for an entry. */
   const needsEntry = morningBriefing.readiness.reason_codes.includes('readiness_needs_entry');
   const biomarkerBreakdown = <BiomarkerBreakdown summaries={biomarkerSummaries} onEdit={(kind) => setBiomarkerSheet({ kind, date: today })} />;
+  /*
+   * "Your day" places the plan the way /plan does: the same rhythm windows from the
+   * briefing, with today's readiness. Display only; the briefing and protocol above keep
+   * using preliminaryDayPlan, unchanged.
+   */
+  const threadReadiness = useMemo(() => readinessToDayPlanInput(morningBriefing.readiness), [morningBriefing.readiness]);
+  const threadDayPlan = useMemo(
+    () =>
+      generateDayPlan(
+        buildDayPlanInput({
+          date: today,
+          scheduleBlocks,
+          wake_time: circadianBriefing.wake_time ?? undefined,
+          target_bedtime: circadianBriefing.target_bedtime ?? undefined,
+          nutritionMealCount: nutritionSummary.meal_count,
+          movement: movementSignalToDayPlanInput(movementSignal),
+          rhythm: briefingToDayPlanRhythm(circadianBriefing),
+          readinessScore: threadReadiness.score ?? undefined,
+          readinessMode: threadReadiness.mode,
+          readinessConfidence: threadReadiness.confidence,
+          readinessReasonCodes: threadReadiness.reason_codes
+        })
+      ),
+    [circadianBriefing, movementSignal, nutritionSummary.meal_count, scheduleBlocks, threadReadiness, today]
+  );
+  const todaySleep = sleepSessions.find((session) => session.date.slice(0, 10) === today);
+  const threadSources = useMemo<Omit<DayThreadSources, 'nowMinute'>>(() => ({
+    today,
+    briefing: circadianBriefing,
+    lastNight: sleepAtGlance.lastNight ? { minutes: sleepAtGlance.lastNight.minutes } : null,
+    meals: nutritionMeals,
+    water: waterToday,
+    workouts: movementSessions,
+    plan: threadDayPlan,
+    glassMl: GLASS_ML
+  }), [circadianBriefing, movementSessions, nutritionMeals, sleepAtGlance.lastNight, threadDayPlan, today, waterToday]);
+  const safetyActive = shouldSurfaceSafety(protocol.safety.status);
+  const accountWhy = (
+    <View>
+      <HairlineRow tone="band" title="Your starting point" detail={readinessLedgerSummary(morningBriefing.readiness.baseline_score, morningBriefing.readiness.score, morningBriefing.readiness.raw_score)} value={String(morningBriefing.readiness.baseline_score)} />
+      {morningBriefing.driver_cards.map((driver, index) => (
+        <HairlineRow
+          key={driver.domain}
+          tone="band"
+          title={driver.label}
+          detail={driver.detail}
+          value={contributionLabel(driver)}
+          accessibilityHint="Opens where this signal comes from"
+          onPress={() => router.navigate(foundationRoute(driver.domain))}
+          last={index === morningBriefing.driver_cards.length - 1}
+        />
+      ))}
+      <Text style={styles.whyNote}>{foundationSourceCount} of 4 foundations have signals today. Missing information lowers confidence, not your score.</Text>
+      <TextLink tone="band" label="See the full daily protocol" onPress={() => router.navigate('/protocol')} />
+    </View>
+  );
   function weekCardAction(card: WeekCard) {
     if (card.back.quickEntry) router.navigate(quickEntryHref(card.back.quickEntry));
     else router.navigate(card.back.route);
@@ -934,148 +879,144 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabSpace }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* The date shares a line with the buttons so the greeting gets the full width, like a large title. */}
-        <View style={styles.header}>
-          <View style={styles.headerCopy}>
-            <Text style={styles.date}>{displayDate(today)}</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.calendarButton, pressed && styles.pressed]}>
-              <Ionicons name="calendar-outline" color={homePalette.blueSoft} size={22} />
-              <Text style={styles.calendarLabel}>Plan</Text>
-            </Pressable>
-          </View>
-        </View>
-        <Text accessibilityRole="header" style={styles.greeting}>{homeGreeting(greeting, firstName)}</Text>
-
-
-        {/* Readiness is the first Home insight; the existing live/demo cards keep their own calculations and drilldowns. */}
-        {/*
-          Component A: one score, one sentence. The biomarkers wait behind a tap on the ring.
-          The demo's card owns its check-in and "Why this estimate?" sheets; an account
-          reads the morning briefing and checks in through the evening closeout.
-        */}
-        {mode === 'demo' ? (
-          <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={shouldSurfaceSafety(protocol.safety.status)} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} details={biomarkerBreakdown} />
-        ) : (
-          <ReadinessHub
-            score={visibleReadinessScore}
-            zone={accountZone}
-            word={accountHeadline.word}
-            insight={accountHeadline.insight}
-            meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
-            primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Check in'}
-            onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : openCheckin}
-            details={biomarkerBreakdown}
-            pillars={morningBriefing.driver_cards}
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: tabSpace }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ThreadBand>
+          <ThreadHeader
+            date={displayDate(today)}
+            dateAccessibilityLabel={spokenDate(today)}
+            right={
+              <>
+                <Pressable accessibilityRole="button" accessibilityLabel="Open your plan and calendar" onPress={() => router.navigate('/plan')} style={({ pressed }) => [styles.planButton, pressed && styles.pressed]}>
+                  <Ionicons accessible={false} name="calendar-outline" color={bone.text} size={19} />
+                  <Text style={styles.planLabel}>Plan</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="You · profile and settings" onPress={sideMenu.open} style={({ pressed }) => [styles.youButton, pressed && styles.pressed]}>
+                  <View style={styles.avatar}>
+                    <Ionicons accessible={false} name="person-outline" color={ink.text} size={17} />
+                  </View>
+                </Pressable>
+              </>
+            }
           />
-        )}
 
-        <TodayDirectionCard
-          headline={needsEntry ? 'Start with last night’s sleep' : primaryAction?.title ?? dashboardHero.top_action}
-          explanation={needsEntry ? 'Your sleep entry helps Daywoven build a more useful picture of today. Add it to get started.' : primaryAction?.detail ?? protocol.summary}
-          source={sourceLabel}
-          confidence={dashboardHero.confidence}
-          availableFoundationCount={foundationSourceCount}
-          drivers={morningBriefing.driver_cards}
-          primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Open today’s plan'}
-          onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : () => router.navigate('/protocol')}
-          onFullPlan={() => router.navigate('/protocol')}
-        />
-        {shouldSurfaceSafety(protocol.safety.status) ? (
-          <View style={styles.safetyRow}>
-            <Ionicons color={homePalette.amber} name="shield-checkmark-outline" size={18} />
-            <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
-          </View>
-        ) : null}
+          {/*
+            Readiness is the first thing on Today, in the band. The demo's card owns its
+            check-in and "Why this estimate?" sheets; an account reads the morning briefing,
+            checks in through the evening close-out, and opens "Why" inline.
+          */}
+          {mode === 'demo' ? (
+            <ReadinessNowCard base={morningBriefing.readiness} mealTimes={mealTimes} safetyActive={safetyActive} checkinRequest={readinessCheckinRequest} refreshKey={waterVersion} onCheckinSaved={() => setMindVersion((value) => value + 1)} sleepMissing={sleepMissing} sessionsThisWeek={sessionsThisWeek} />
+          ) : (
+            <ReadinessHub
+              score={visibleReadinessScore}
+              zone={accountZone}
+              word={accountHeadline.word}
+              insight={accountHeadline.insight}
+              meta={`${dayModeLabel(protocol.day_mode)} · ${sourceLabel} · ${dashboardHero.confidence} confidence`}
+              primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Check in'}
+              onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : openCheckin}
+              whyPanel={accountWhy}
+              pillars={morningBriefing.driver_cards}
+            />
+          )}
+        </ThreadBand>
 
+        <View style={styles.canvas}>
+          <TodayDirectionCard
+            headline={needsEntry ? 'Start with last night’s sleep' : primaryAction?.title ?? dashboardHero.top_action}
+            explanation={needsEntry ? 'Your sleep entry helps Daywoven build a more useful picture of today. Add it to get started.' : primaryAction?.detail ?? protocol.summary}
+            source={sourceLabel}
+            confidence={dashboardHero.confidence}
+            availableFoundationCount={foundationSourceCount}
+            drivers={morningBriefing.driver_cards}
+            primaryLabel={needsEntry ? 'Log last night’s sleep' : 'Open today’s plan'}
+            onPrimary={needsEntry ? () => router.navigate(quickEntryHref('sleep')) : () => router.navigate('/protocol')}
+            onFullPlan={() => router.navigate('/protocol')}
+          />
+          {/* Safety guidance is always visible here, above Quick log, and never inside a disclosure. */}
+          {shouldSurfaceSafety(protocol.safety.status) ? (
+            <View accessible accessibilityRole="alert" style={styles.safetyRow}>
+              <Ionicons accessible={false} color={accent.amberDeep} name="shield-checkmark-outline" size={19} />
+              <Text style={styles.safetyText}>{safetyStatusLabel(protocol.safety.status)} · easier guidance today</Text>
+            </View>
+          ) : null}
 
-        <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
+          <QuickLog actions={quickLogActions} notice={waterNotice ? { text: waterNotice.text, onUndo: waterNotice.id ? () => void undoGlass(waterNotice.id!) : undefined } : null} />
 
-        <InsightShortcuts shortcuts={[
-          { label: 'Energy outlook', description: 'Sleep rhythm and timing guidance', icon: 'moon-outline', color: daywovenV2.lavender, onPress: () => router.navigate('/rhythm') },
-          { label: 'Food quality', description: 'Beyond macros and calorie counts', icon: 'nutrition-outline', color: daywovenV2.peach, onPress: () => router.navigate('/food') },
-          { label: 'Movement guidance', description: 'Match activity to your current load', icon: 'walk-outline', color: daywovenV2.blue, onPress: () => router.navigate('/movement') }
-        ]} />
+          <SectionTitle style={styles.dayTitle}>Your day</SectionTitle>
+        </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: showExtendedHome }}
-          accessibilityLabel={showExtendedHome ? 'Hide detailed wellness analysis' : 'Explore your detailed wellness analysis'}
-          onPress={() => setShowExtendedHome(value => !value)}
-          style={({ pressed }) => [styles.analysisToggle, pressed && styles.pressed]}
-        >
-          <View style={styles.primaryActionCopy}>
-            <Text style={styles.analysisTitle}>{showExtendedHome ? 'Hide the detailed picture' : 'Explore your analysis'}</Text>
-            <Text style={styles.analysisDetail}>Biomarker trends, your starting point and the detailed reasons behind your plan</Text>
-          </View>
-          <Ionicons accessible={false} name={showExtendedHome ? 'chevron-up' : 'chevron-down'} color={daywovenV2.blue} size={20} />
-        </Pressable>
-        {showExtendedHome ? (
-          <View style={styles.analysisContents}>
-        <Pressable
-          accessibilityHint="Opens the load check"
-          accessibilityRole="button"
-          onPress={() => router.navigate('/load-check')}
-          style={({ pressed }) => [styles.startingPoint, pressed && styles.pressed]}
-        >
-          <Ionicons accessible={false} color={homePalette.blueSoft} name={personalBaseline ? 'flag-outline' : 'compass-outline'} size={18} />
-          <View style={styles.primaryActionCopy}>
-            <Text style={styles.startingPointTitle}>{personalBaseline ? `Your days start at ${personalBaseline.score}` : 'Set your starting point'}</Text>
-            <Text style={styles.startingPointDetail}>{personalBaseline ? 'From your load check. Retake it any time.' : 'A short load check, so readiness starts from you instead of 70.'}</Text>
-          </View>
-          <Ionicons accessible={false} color={homePalette.textFaint} name="chevron-forward" size={17} />
-        </Pressable>
+        <DayThread sources={threadSources} onLogSleep={() => router.navigate(quickEntryHref('sleep'))} />
 
-        {/* Component B: last night and today's load, side by side. */}
-        <MetricGrid sleep={sleepAtGlance} load={loadToday} onOpenSleep={() => router.navigate('/rhythm')} onOpenLoad={() => router.navigate('/movement')} />
+        <View style={styles.lower}>
+          <ExploreButton
+            title={showExtendedHome ? 'Hide the detailed picture' : 'Explore your analysis'}
+            detail="Biomarker trends, your starting point and the reasons behind your plan"
+            expanded={showExtendedHome}
+            accessibilityLabel={showExtendedHome ? 'Hide detailed wellness analysis' : 'Explore your detailed wellness analysis'}
+            onPress={() => setShowExtendedHome(value => !value)}
+          />
+          {showExtendedHome ? (
+            <View style={styles.analysis}>
+              <Pressable
+                accessibilityHint="Opens the load check"
+                accessibilityRole="button"
+                onPress={() => router.navigate('/load-check')}
+                style={({ pressed }) => [styles.startingPoint, pressed && styles.pressed]}
+              >
+                <Ionicons accessible={false} color={ink.text} name={personalBaseline ? 'flag-outline' : 'compass-outline'} size={19} />
+                <View style={styles.startingCopy}>
+                  <Text style={styles.startingTitle}>{personalBaseline ? `Your days start at ${personalBaseline.score}` : 'Set your starting point'}</Text>
+                  <Text style={styles.startingDetail}>{personalBaseline ? 'From your load check. Retake it any time.' : 'A short load check, so readiness starts from you instead of 70.'}</Text>
+                </View>
+                <Ionicons accessible={false} color={ink.muted} name="chevron-forward" size={16} />
+              </Pressable>
 
-        {/* Component C: the week's resting heart rate, a line and a day-by-day log. */}
-        <BiomarkerTimeline summary={restingHeartRate} today={today} color={homePalette.blueBright} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
+              {/* Last night against need, and today's load, side by side. */}
+              <MetricGrid sleep={sleepAtGlance} load={loadToday} sleepSource={sleepSourceTag(todaySleep?.source)} onOpenSleep={() => router.navigate('/rhythm')} onOpenLoad={() => router.navigate('/movement')} />
 
-        <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.homeNextAction, pressed && styles.pressed]}>
-          <View style={styles.primaryActionCopy}>
-            <Text style={styles.homeEyebrow}>{mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}</Text>
-            <Text style={styles.primaryActionTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
-            <Text style={styles.homeDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
-          </View>
-          <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={20} />
-        </Pressable>
+              {/* The week's resting heart rate, with any day's reading one tap away. */}
+              <BiomarkerTimeline summary={restingHeartRate} today={today} onEditDay={(date) => setBiomarkerSheet({ kind: 'resting_heart_rate', date })} />
 
-        {/* In the demo the readiness card has its own "Why this estimate?"; one is enough. */}
-        {mode !== 'demo' ? (
-        <Disclosure title="Why this estimate?" detail={readinessLedgerSummary(morningBriefing.readiness.baseline_score, morningBriefing.readiness.score, morningBriefing.readiness.raw_score)}>
-          <LoggingPrompts rows={promptRows} onAction={promptAction} />
-          <Text style={styles.homeDetail}>These are the inputs behind your daily guidance, and the points each one moved. Missing information lowers confidence, not your score — {foundationSourceCount} of 4 foundations have signals today.</Text>
-          {morningBriefing.driver_cards.map((driver, index) => (
-            <ActionRow key={driver.domain} title={driver.label} detail={driver.detail} value={contributionLabel(driver)} icon={readinessIcon(driver.domain)} onPress={() => router.navigate(foundationRoute(driver.domain))} last={index === morningBriefing.driver_cards.length - 1} />
-          ))}
-          <ActionRow title="See the full daily protocol" detail="Reasons, confidence and your next steps" icon="list-outline" onPress={() => router.navigate('/protocol')} last />
-        </Disclosure>
-        ) : null}
+              {/* Moved here from the readiness ring in 1c. */}
+              {biomarkerBreakdown}
 
+              <Pressable accessibilityRole="button" onPress={() => router.navigate('/protocol')} style={({ pressed }) => [styles.nextAction, pressed && styles.pressed]}>
+                <View style={styles.startingCopy}>
+                  <Text style={styles.nextEyebrow}>{mode === 'demo' ? 'Daily plan · starting point' : 'Next best action'}</Text>
+                  <Text style={styles.nextTitle}>{primaryAction?.title ?? dashboardHero.top_action}</Text>
+                  <Text style={styles.nextDetail}>{primaryAction?.detail ?? protocol.summary}</Text>
+                </View>
+                <Ionicons accessible={false} color={bone.text} name="chevron-forward" size={18} />
+              </Pressable>
 
-          </View>
-        ) : null}
+              {/* An account's logging rows used to sit inside "Why this estimate?"; they stay reachable here. The demo keeps them in its own sheet. */}
+              {mode !== 'demo' ? (
+                <ThreadCard>
+                  <LoggingPrompts tone="canvas" rows={promptRows} onAction={promptAction} />
+                </ThreadCard>
+              ) : null}
+            </View>
+          ) : null}
 
-        {showRecap ? <WeeklyRecapRow onOpen={() => setRecapOpen(true)} onDismiss={dismissRecap} /> : null}
-        {recapOpen ? <WeeklyRecapSheet recap={weeklyRecap(weekCards)} onClose={() => setRecapOpen(false)} onTrends={() => { setRecapOpen(false); router.navigate('/progress'); }} /> : null}
+          {showRecap ? <WeeklyRecapRow onOpen={() => setRecapOpen(true)} onDismiss={dismissRecap} /> : null}
+          {recapOpen ? <WeeklyRecapSheet recap={weeklyRecap(weekCards)} onClose={() => setRecapOpen(false)} onTrends={() => { setRecapOpen(false); router.navigate('/progress'); }} /> : null}
 
-        <View style={styles.weekSection}>
           <View style={styles.weekHeader}>
-            <Text accessibilityRole="header" style={styles.weekTitle}>This week</Text>
-            <Pressable accessibilityRole="link" accessibilityLabel="Open Trends" hitSlop={8} onPress={() => router.navigate('/progress')} style={({ pressed }) => [styles.weekLink, pressed && styles.pressed]}>
+            <SectionTitle>This week</SectionTitle>
+            <Pressable accessibilityRole="link" accessibilityLabel="Open Trends" onPress={() => router.navigate('/progress')} style={({ pressed }) => [styles.weekLink, pressed && styles.pressed]}>
               <Text style={styles.weekLinkText}>Trends</Text>
-              <Ionicons accessible={false} color={homePalette.blueSoft} name="chevron-forward" size={15} />
+              <Ionicons accessible={false} color={ink.text} name="chevron-forward" size={15} />
             </Pressable>
           </View>
           <Text style={styles.weekHint}>Tap a card to see what to work on.</Text>
-          {[weekCards.slice(0, 2), weekCards.slice(2, 4)].map((pair) => (
-            <View key={pair[0]!.id} style={styles.weekRow}>
-              {pair.map((card) => <WeekFlipCard key={card.id} card={card} onAction={weekCardAction} />)}
-            </View>
-          ))}
+          <View style={styles.weekGrid}>
+            {[weekCards.slice(0, 2), weekCards.slice(2, 4)].map((pair) => (
+              <View key={pair[0]!.id} style={styles.weekRow}>
+                {pair.map((card) => <WeekFlipCard key={card.id} card={card} onAction={weekCardAction} />)}
+              </View>
+            ))}
+          </View>
         </View>
       </ScrollView>
       {biomarkerSheet ? (
@@ -1092,674 +1033,33 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  analysisToggle: { backgroundColor: daywovenV2.surface, borderColor: daywovenV2.border, borderWidth: 1, borderRadius: 18, paddingVertical: 17, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 74 },
-  analysisTitle: { color: daywovenV2.text, fontFamily: homeFont, fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  analysisDetail: { color: daywovenV2.muted, fontFamily: homeFont, fontSize: 12, lineHeight: 18 },
-  analysisContents: { gap: 16 },
-  weekSection: { gap: 10, marginTop: 4 },
-  weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
-  weekTitle: { fontFamily: homeFont, fontSize: 19, fontWeight: '600', letterSpacing: -0.3, color: homePalette.text },
-  weekHint: { fontFamily: homeFont, fontSize: 13, lineHeight: 18, color: homePalette.textMuted, paddingHorizontal: 4, marginTop: -6 },
-  weekLink: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 44, paddingLeft: 12 },
-  weekLinkText: { fontFamily: homeFont, fontSize: 15, fontWeight: '500', color: homePalette.blueSoft },
-  weekRow: { flexDirection: 'row', gap: 10 },
-  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  calendarButton: { ...glassSurface, alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 44, paddingLeft: 12, paddingRight: 14, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
-  calendarLabel: { fontFamily: homeFont, fontSize: 14, fontWeight: '600', color: homePalette.blueSoft },
-  homeSummary: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 12 },
-  homeMeta: { fontFamily: homeFont, fontSize: 13, lineHeight: 19, color: homePalette.textMuted, marginTop: 10 },
-  homeNextAction: { backgroundColor: daywovenV2.elevated, borderColor: daywovenV2.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 20, borderRadius: 24 },
-  homeEyebrow: { fontFamily: homeFont, fontSize: 14, fontWeight: '500', color: homePalette.blueSoft, marginBottom: 6 },
-  homeDetail: { fontFamily: homeFont, fontSize: 16, lineHeight: 23, color: homePalette.textMuted, marginTop: 4 },
-  safe: {
-    backgroundColor: homePalette.background,
-    flex: 1
-  },
-  scroll: {
-    gap: 16,
-    paddingBottom: 28,
-    paddingHorizontal: 20
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    paddingBottom: 3,
-    paddingTop: 20
-  },
-  headerCopy: {
-    flex: 1
-  },
-  date: {
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: 0.25,
-    lineHeight: 20
-  },
-  greeting: {
-    ...type.largeTitle,
-    color: homePalette.text,
-    fontFamily: homeFont,
-    marginTop: -8,
-    paddingHorizontal: 4
-  },
-  avatar: {
-    alignItems: 'center',
-    backgroundColor: homePalette.blue,
-    borderColor: 'rgba(255,255,255,0.24)',
-    borderRadius: 20,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: 'center',
-    width: 40
-  },
-  avatarText: {
-    color: homePalette.onAccent,
-    fontFamily: homeFont,
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  pressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.992 }]
-  },
-  quickNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingHorizontal: 4, minHeight: 32 },
-  quickNoticeText: { flex: 1, fontFamily: homeFont, fontSize: 14, lineHeight: 19, color: homePalette.textMuted },
-  quickUndo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 6 },
-  quickUndoText: { fontFamily: homeFont, fontSize: 15, fontWeight: '600', color: homePalette.blueSoft },
-  quickLogSection: {
-    backgroundColor: daywovenV2.surface,
-    borderColor: daywovenV2.border,
-    borderRadius: 22,
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingBottom: 13,
-    paddingTop: 12
-  },
-  quickLogHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 3
-  },
-  quickLogTitle: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 14.5,
-    fontWeight: '600',
-    letterSpacing: -0.15,
-    lineHeight: 20
-  },
-  quickLogHint: {
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    fontSize: 13,
-    lineHeight: 19
-  },
-  quickLogRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 11
-  },
-  quickLogButton: {
-    alignItems: 'center',
-    borderColor: 'transparent',
-    borderRadius: 14,
-    borderWidth: 1,
-    flex: 1,
-    minWidth: 56,
-    minHeight: 78,
-    paddingHorizontal: 1,
-    paddingVertical: 9
-  },
-  quickLogButtonPressed: {
-    backgroundColor: homePalette.surfaceRaised,
-    borderColor: homePalette.border
-  },
-  quickLogIcon: {
-    alignItems: 'center',
-    borderRadius: 12,
-    height: 38,
-    justifyContent: 'center',
-    width: 38
-  },
-  quickLogLabel: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 20,
-    marginTop: 7
-  },
-  heroCard: {
-    ...glassSurface,
-    borderColor: homePalette.borderStrong,
-    borderRadius: 26,
-    borderWidth: 1,
-    elevation: 2,
-    overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 18
-  },
-  heroGlow: {
-    padding: 18
-  },
-  heroTopRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    minHeight: 128
-  },
-  heroCopy: {
-    flex: 1,
-    minWidth: 126,
-    paddingLeft: 2,
-    paddingRight: 4
-  },
-  livePill: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(143, 227, 196, 0.12)',
-    borderRadius: 999,
-    flexDirection: 'row',
-    gap: 7,
-    paddingHorizontal: 9,
-    paddingVertical: 6
-  },
-  liveDot: {
-    backgroundColor: homePalette.blueSoft,
-    borderRadius: 4,
-    height: 7,
-    width: 7
-  },
-  liveText: {
-    ...type.eyebrow,
-    color: homePalette.blueSoft,
-    fontFamily: homeFont,
-    fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0
-  },
-  dayMode: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 27,
-    fontWeight: '600',
-    letterSpacing: -0.7,
-    lineHeight: 33,
-    marginTop: 8
-  },
-  heroLabel: {
-    ...type.caption,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 7
-  },
-  ringShell: {
-    alignItems: 'center',
-    height: 128,
-    justifyContent: 'center',
-    width: 128
-  },
-  ringCenter: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0
-  },
-  score: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 44,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
-    lineHeight: 50
-  },
-  scoreCalibrating: {
-    color: homePalette.textMuted
-  },
-  scoreHero: {
-    fontWeight: '600',
-    letterSpacing: -2
-  },
-  ringEyebrow: {
-    color: homePalette.textFaint,
-    fontFamily: homeFont,
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2
-  },
-  scoreLabel: {
-    ...type.eyebrow,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    fontSize: 12,
-    letterSpacing: 0,
-    marginTop: 2
-  },
-  heroSummaryRow: {
-    alignItems: 'center',
-    borderTopColor: homePalette.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    paddingTop: 15
-  },
-  heroSummaryCopy: {
-    flex: 1
-  },
-  heroSummary: {
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    fontSize: 13.5,
-    lineHeight: 20
-  },
-  heroMeta: {
-    ...type.caption,
-    color: homePalette.textFaint,
-    fontFamily: homeFont,
-    marginTop: 7,
-    textTransform: 'capitalize'
-  },
-  roundArrow: {
-    alignItems: 'center',
-    backgroundColor: homePalette.blue,
-    borderRadius: 18,
-    height: 36,
-    justifyContent: 'center',
-    width: 36
-  },
-  panel: {
-    ...glassSurface,
-    borderColor: glass.edge,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    elevation: 1,
-    padding: 17
-  },
-  panelHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  panelTitle: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 15.5,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    lineHeight: 21
-  },
-  panelAction: {
-    ...type.caption,
-    color: homePalette.blueSoft,
-    fontFamily: homeFont,
-    textTransform: 'capitalize'
-  },
-  foundationList: {
-    gap: 15,
-    marginTop: 17
-  },
-  foundationRow: {
-    alignItems: 'center',
-    borderRadius: 13,
-    flexDirection: 'row',
-    gap: 11,
-    marginHorizontal: -5,
-    minHeight: 46,
-    paddingHorizontal: 5,
-    paddingVertical: 4
-  },
-  foundationRowPressed: {
-    backgroundColor: homePalette.surfaceRaised
-  },
-  foundationIcon: {
-    alignItems: 'center',
-    borderRadius: 13,
-    height: 38,
-    justifyContent: 'center',
-    width: 38
-  },
-  foundationBody: {
-    flex: 1,
-    gap: 7
-  },
-  foundationLabelRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  foundationLabel: {
-    ...type.label,
-    color: homePalette.textMuted,
-    fontFamily: homeFont
-  },
-  foundationStatus: {
-    ...type.caption,
-    fontFamily: homeFont,
-    fontWeight: '600'
-  },
-  progressTrack: {
-    backgroundColor: homePalette.track,
-    borderRadius: 999,
-    height: 5,
-    overflow: 'hidden'
-  },
-  progressFill: {
-    borderRadius: 999,
-    height: '100%'
-  },
-  coverageRow: {
-    alignItems: 'center',
-    borderTopColor: homePalette.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 17,
-    paddingTop: 13
-  },
-  coverageText: {
-    ...type.caption,
-    color: homePalette.textFaint,
-    fontFamily: homeFont
-  },
-  primaryAction: {
-    ...glassSurface,
-    borderColor: homePalette.border,
-    borderRadius: 20,
-    borderWidth: 1,
-    elevation: 1,
-    overflow: 'hidden'
-  },
-  primaryActionGradient: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16
-  },
-  primaryActionIcon: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(143, 227, 196, 0.13)',
-    borderRadius: 15,
-    height: 42,
-    justifyContent: 'center',
-    width: 42
-  },
-  primaryActionCopy: {
-    flex: 1
-  },
-  primaryActionEyebrow: {
-    ...type.eyebrow,
-    color: homePalette.textFaint,
-    fontFamily: homeFont,
-    fontSize: 10,
-    letterSpacing: 0.25
-  },
-  primaryActionTitle: {
-    color: homePalette.white,
-    fontFamily: homeFont,
-    fontSize: 20,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-    lineHeight: 25,
-    marginTop: 2
-  },
-  primaryActionDetail: {
-    ...type.caption,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    marginTop: 3
-  },
-  startingPoint: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingHorizontal: 4, paddingVertical: 2 },
-  startingPointTitle: { color: homePalette.white, fontFamily: homeFont, fontSize: 15, fontWeight: '600', lineHeight: 20 },
-  startingPointDetail: { color: homePalette.textMuted, fontFamily: homeFont, fontSize: 13, lineHeight: 18, marginTop: 1 },
-  safetyRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 9
-  },
-  safetyText: {
-    ...type.caption,
-    color: homePalette.amber,
-    flex: 1,
-    fontFamily: homeFont
-  },
-  calorieRow: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 11,
-    marginTop: 18
-  },
-  metricEyebrow: {
-    ...type.eyebrow,
-    color: homePalette.textFaint,
-    fontFamily: homeFont,
-    fontSize: 10,
-    letterSpacing: 0.2
-  },
-  calorieValue: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 36,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
-    lineHeight: 42,
-    marginTop: 3
-  },
-  calorieTargetWrap: {
-    alignItems: 'flex-end',
-    paddingBottom: 5
-  },
-  calorieTarget: {
-    ...type.number,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    marginTop: 3
-  },
-  macroGrid: {
-    flexDirection: 'row',
-    gap: 9,
-    marginTop: 16
-  },
-  macroCell: {
-    backgroundColor: homePalette.surfaceRaised,
-    borderRadius: 14,
-    flex: 1,
-    gap: 7,
-    padding: 11
-  },
-  macroLabel: {
-    ...type.caption,
-    color: homePalette.textFaint,
-    fontFamily: homeFont
-  },
-  macroValue: {
-    ...type.number,
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontWeight: '600'
-  },
-  inlineAction: {
-    alignItems: 'center',
-    borderTopColor: homePalette.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 7,
-    justifyContent: 'flex-end',
-    marginTop: 15,
-    paddingTop: 13
-  },
-  inlineActionText: {
-    ...type.label,
-    color: homePalette.blue,
-    fontFamily: homeFont,
-    fontWeight: '600'
-  },
-  twoColumn: {
-    flexDirection: 'row',
-    gap: 12
-  },
-  miniCard: {
-    ...glassSurface,
-    borderColor: homePalette.border,
-    borderRadius: 20,
-    borderWidth: 1,
-    flex: 1,
-    minHeight: 170,
-    padding: 15
-  },
-  miniIcon: {
-    alignItems: 'center',
-    borderRadius: 13,
-    height: 38,
-    justifyContent: 'center',
-    marginBottom: 14,
-    width: 38
-  },
-  miniEyebrow: {
-    ...type.eyebrow,
-    color: homePalette.textFaint,
-    fontFamily: homeFont,
-    fontSize: 10,
-    letterSpacing: 0.2
-  },
-  miniValue: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 32,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
-    lineHeight: 37,
-    marginTop: 5
-  },
-  miniValueSmall: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 22,
-    fontWeight: '600',
-    lineHeight: 28,
-    marginTop: 7
-  },
-  miniUnit: {
-    ...type.caption,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    marginTop: 1
-  },
-  miniDetail: {
-    ...type.caption,
-    color: homePalette.textFaint,
-    fontFamily: homeFont,
-    marginTop: 8
-  },
-  trendTopRow: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 18
-  },
-  trendValue: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 28,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
-    lineHeight: 34,
-    marginTop: 4
-  },
-  confidencePill: {
-    backgroundColor: homePalette.surfaceSoft,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6
-  },
-  confidenceText: {
-    ...type.caption,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    textTransform: 'capitalize'
-  },
-  chartShell: {
-    height: 76,
-    marginTop: 14,
-    width: '100%'
-  },
-  emptyChart: {
-    alignItems: 'center',
-    backgroundColor: homePalette.surfaceRaised,
-    borderRadius: 14,
-    flexDirection: 'row',
-    gap: 9,
-    marginTop: 14,
-    minHeight: 76,
-    paddingHorizontal: 13
-  },
-  emptyChartText: {
-    ...type.caption,
-    color: homePalette.textFaint,
-    flex: 1,
-    fontFamily: homeFont
-  },
-  trendCaption: {
-    ...type.caption,
-    color: homePalette.textMuted,
-    fontFamily: homeFont,
-    marginTop: 9
-  },
-  focusTitle: {
-    color: homePalette.text,
-    fontFamily: homeFont,
-    fontSize: 19,
-    fontWeight: '600',
-    letterSpacing: -0.35,
-    lineHeight: 25,
-    marginTop: 15
-  },
-  actionPreviewList: {
-    gap: 9,
-    marginTop: 15
-  },
-  actionPreviewRow: {
-    alignItems: 'center',
-    backgroundColor: homePalette.surfaceRaised,
-    borderRadius: 12,
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 9
-  },
-  actionIndex: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(143, 227, 196, 0.13)',
-    borderRadius: 10,
-    height: 24,
-    justifyContent: 'center',
-    width: 24
-  },
-  actionIndexText: {
-    ...type.caption,
-    color: homePalette.blueSoft,
-    fontFamily: homeFont,
-    fontWeight: '600'
-  },
-  actionPreviewText: {
-    ...type.label,
-    color: homePalette.textMuted,
-    flex: 1,
-    fontFamily: homeFont
-  }
+  /* The top inset is the band's colour, so the status bar sits on charcoal (light content). */
+  safe: { backgroundColor: surface.band, flex: 1 },
+  scroll: { backgroundColor: surface.canvas, flex: 1 },
+  pressed: { opacity: 0.72 },
+  planButton: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: HIT, paddingHorizontal: 10 },
+  planLabel: { fontFamily: font.bodyMedium, fontSize: 13, color: bone.text },
+  youButton: { alignItems: 'center', height: HIT, justifyContent: 'center', width: HIT },
+  avatar: { alignItems: 'center', backgroundColor: bone.text, borderRadius: 16, height: 32, justifyContent: 'center', width: 32 },
+  whyNote: { ...type.caption, color: bone.muted, marginTop: 10 },
+  canvas: { paddingHorizontal: space.gutter },
+  safetyRow: { alignItems: 'center', backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.tile, borderWidth: 1, flexDirection: 'row', gap: 10, marginTop: 14, paddingHorizontal: 14, paddingVertical: 12 },
+  safetyText: { ...type.body, color: ink.text, flex: 1 },
+  dayTitle: { marginTop: space.section },
+  lower: { paddingBottom: 28, paddingHorizontal: space.gutter },
+  analysis: { gap: 10, marginTop: 10 },
+  startingPoint: { alignItems: 'center', backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  startingCopy: { flex: 1, gap: 2, minWidth: 0 },
+  startingTitle: { fontFamily: font.bodySemibold, fontSize: 14, color: ink.text },
+  startingDetail: { ...type.caption, color: ink.muted },
+  nextAction: { alignItems: 'center', backgroundColor: surface.band, borderRadius: radius.card, flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  nextEyebrow: { fontFamily: font.bodySemibold, fontSize: 10.5, letterSpacing: 0.84, textTransform: 'uppercase', color: bone.muted },
+  nextTitle: { fontFamily: font.bodyMedium, fontSize: 15, lineHeight: 20, color: bone.text, marginTop: 2 },
+  nextDetail: { ...type.caption, color: bone.soft },
+  weekHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: space.xxl },
+  weekLink: { alignItems: 'center', flexDirection: 'row', gap: 2, minHeight: HIT, paddingLeft: 12 },
+  weekLinkText: { fontFamily: font.bodyMedium, fontSize: 14, color: ink.text },
+  weekHint: { ...type.caption, fontSize: 12.5, color: ink.muted, marginTop: -4 },
+  weekGrid: { gap: 10, marginTop: 12 },
+  weekRow: { flexDirection: 'row', gap: 10 }
 });

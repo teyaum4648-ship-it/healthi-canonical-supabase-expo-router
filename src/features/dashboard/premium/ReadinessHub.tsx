@@ -1,36 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { FluidPressable } from '../../../components/mobile/FluidPressable';
-import { useReducedMotion } from '../../../components/mobile/useReducedMotion';
-import { cardSurface, colors, fonts, motion, surfaces, type, zones, type ZoneTone } from '../../../styles/mobileTheme';
-import { pillarColors } from '../../../styles/pillarColors';
-import { MetricRing } from './MetricRing';
+import { RotatingChevron } from '../../../components/thread/RotatingChevron';
+import { ThreadButton } from '../../../components/thread/ThreadParts';
+import { bone, pillar, radius, ring, type, zoneWord } from '../../../styles/daywoven1c';
+import type { ZoneTone } from '../../../styles/mobileTheme';
 import { PILLAR_ORDER, PillarRing, type PillarReading } from './PillarRing';
-import { ZoneChip } from './ZoneChip';
-
-const PILLAR_NAMES: Record<PillarReading['domain'], string> = {
-  recovery_rhythm: 'Recovery',
-  nourishment: 'Nourish',
-  movement_capacity: 'Movement',
-  mind_life_load: 'Mind'
-};
-
-/** Signed points, short enough for a quarter of the row. */
-function points(contribution: number): string {
-  const value = Math.round(contribution);
-  return value > 0 ? `+${value}` : value < 0 ? `\u2212${Math.abs(value)}` : '0';
-}
-
-const curve = Easing.bezier(...motion.bezier);
+import { PILLAR_NAMES, points, readinessRingLabel, splitFirstSentence } from './readinessHubModel';
 
 /**
- * Component A: the one number on Home.
+ * Component A: the one number on Today, drawn in the 1c band.
  *
- * The ring shows the readiness estimate and its zone; one line under it says what that
- * means for today. Everything deeper — the overnight biomarkers — waits behind a tap on
- * the ring, so the first glance is a single score and a single sentence.
+ * The ring shows the readiness estimate split into its four foundations, with the zone word
+ * under the score. Beside it, the engine's line about what that means for today, and the
+ * meta line (day mode, source, confidence). Under it, what each foundation moved the
+ * estimate, then the two things to do next. "Why this estimate?" either opens the inline
+ * panel it is given (account) or calls `onWhy` (the demo's own sheet), never both.
  */
 export function ReadinessHub({
   score,
@@ -43,7 +28,7 @@ export function ReadinessHub({
   primaryAccessibilityLabel,
   onPrimary,
   onWhy,
-  details,
+  whyPanel,
   pillars
 }: {
   score: number | null;
@@ -56,168 +41,102 @@ export function ReadinessHub({
   primaryLabel: string;
   primaryAccessibilityLabel?: string;
   onPrimary: () => void;
+  /** Opens an explanation elsewhere (the demo's sheet). */
   onWhy?: () => void;
-  /** Revealed when the ring is tapped. */
-  details: ReactNode;
-  /** What each foundation moved the estimate. Given, the ring splits into the four of them. */
+  /** The explanation, expanded inline under the buttons (account). Wins over `onWhy`. */
+  whyPanel?: ReactNode;
+  /**
+   * Formerly revealed by tapping the ring. In 1c the biomarker breakdown lives under
+   * "Explore your analysis" on Today, so this is accepted for compatibility and not drawn.
+   */
+  details?: ReactNode;
+  /** What each foundation moved the estimate. */
   pillars?: readonly PillarReading[];
 }) {
-  const reducedMotion = useReducedMotion();
-  const [open, setOpen] = useState(false);
-  const [reveal] = useState(() => new Animated.Value(0));
-
-  useEffect(() => {
-    Animated.timing(reveal, {
-      toValue: open ? 1 : 0,
-      duration: reducedMotion ? 0 : motion.duration,
-      easing: curve,
-      useNativeDriver: Platform.OS !== 'web'
-    }).start();
-  }, [open, reducedMotion, reveal]);
-
-  const ringColor = zones[zone].solid;
+  const [whyOpen, setWhyOpen] = useState(false);
+  const copy = splitFirstSentence(insight);
+  const wordColor = zoneWord[zone as keyof typeof zoneWord] ?? bone.muted;
+  const readings = pillars ?? [];
+  const hasWhy = Boolean(whyPanel) || Boolean(onWhy);
 
   return (
-    <View style={pillars ? styles.open : styles.card}>
-      {/* The pillar ring carries its own label and status, and stands on the page, not in a card. */}
-      {pillars ? null : (
-        <View style={styles.headRow}>
-          <Text style={styles.eyebrow}>Readiness</Text>
-          <ZoneChip tone={zone} label={word} />
+    <View>
+      <View style={styles.hub}>
+        <PillarRing pillars={readings} accessibilityLabel={readinessRingLabel(score, word, pillars)}>
+          <Text style={styles.ringLabel}>READINESS</Text>
+          <Text style={[styles.score, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
+          <Text numberOfLines={1} style={[styles.word, { color: wordColor }]}>{word}</Text>
+        </PillarRing>
+        <View style={styles.copy}>
+          <Text style={styles.headline}>{copy.headline}</Text>
+          {copy.rest ? <Text style={styles.sub}>{copy.rest}</Text> : null}
+          {note ? <Text style={styles.sub}>{note}</Text> : null}
+          <Text style={styles.meta}>{meta}</Text>
         </View>
-      )}
+      </View>
 
-      <FluidPressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${score === null ? 'No readiness estimate yet' : `Readiness ${score} out of 100, ${word}`}. ${open ? 'Hide' : 'Show'} biomarker breakdown`}
-        onPress={() => setOpen((value) => !value)}
-        pressedScale={0.97}
-        style={styles.ringButton}
-      >
-        {pillars ? (
-          <PillarRing pillars={pillars}>
-            <Text style={styles.ringLabel}>READINESS</Text>
-            <Text style={[styles.heroScore, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: zones[zone].text }]} />
-              <Text style={[styles.statusWord, { color: zones[zone].text }]}>{word}</Text>
-            </View>
-          </PillarRing>
-        ) : (
-          <MetricRing value={score} size={184} stroke={14} color={ringColor}>
-            <Text style={[styles.score, score === null && styles.scoreEmpty]}>{score === null ? '—' : score}</Text>
-            <Text style={styles.scoreCaption}>{score === null ? 'No estimate' : 'of 100'}</Text>
-          </MetricRing>
-        )}
-      </FluidPressable>
-
-      {pillars ? (
-        <View style={styles.pillarRow}>
-          {PILLAR_ORDER.map(domain => {
-            const reading = pillars.find(p => p.domain === domain);
-            const known = reading && !reading.missing;
-            const value = known ? points(reading.contribution) : '—';
-            return (
-              <View key={domain} accessible accessibilityLabel={`${PILLAR_NAMES[domain]}: ${known ? `${value} points` : 'no signal yet'}`} style={styles.pillar}>
-                <Text style={[styles.pillarValue, !known && styles.pillarValueMissing]}>{value}</Text>
-                <View style={styles.pillarNameRow}>
-                  <View style={[styles.pillarDot, { backgroundColor: pillarColors[domain] }]} />
-                  <Text numberOfLines={1} style={styles.pillarName}>{PILLAR_NAMES[domain]}</Text>
-                </View>
+      <View style={styles.pillarRow}>
+        {PILLAR_ORDER.map((domain) => {
+          const reading = readings.find((item) => item.domain === domain);
+          const known = Boolean(reading && !reading.missing);
+          const value = known && reading ? points(reading.contribution) : '—';
+          return (
+            <View key={domain} accessible accessibilityLabel={`${PILLAR_NAMES[domain]}: ${known ? `${value} points` : 'no signal yet'}`} style={styles.pillar}>
+              <View style={styles.pillarName}>
+                <View style={[styles.swatch, { backgroundColor: pillar[domain] }]} />
+                <Text numberOfLines={1} style={styles.pillarLabel}>{PILLAR_NAMES[domain]}</Text>
               </View>
-            );
-          })}
-        </View>
-      ) : null}
-
-      <Text style={styles.insight}>{insight}</Text>
-      {note ? <Text style={styles.note}>{note}</Text> : null}
-      <Text style={styles.meta}>{meta}</Text>
+              <Text style={[styles.pillarValue, !known && styles.pillarMissing]}>{value}</Text>
+            </View>
+          );
+        })}
+      </View>
 
       <View style={styles.actions}>
-        <FluidPressable
-          accessibilityRole="button"
+        <ThreadButton
+          tone="band"
+          label={primaryLabel}
           accessibilityLabel={primaryAccessibilityLabel ?? primaryLabel}
           onPress={onPrimary}
-          style={[styles.action, styles.primary]}
-          hoverStyle={styles.primaryHover}
-        >
-          <Text numberOfLines={1} style={styles.primaryText}>{primaryLabel}</Text>
-        </FluidPressable>
-        {onWhy ? (
-          <FluidPressable accessibilityRole="button" onPress={onWhy} style={[styles.action, styles.secondary]} hoverStyle={styles.secondaryHover}>
-            <Text numberOfLines={1} style={styles.secondaryText}>Why this estimate?</Text>
-          </FluidPressable>
+          style={styles.action}
+        />
+        {hasWhy ? (
+          <ThreadButton
+            tone="band"
+            variant="secondary"
+            label="Why this estimate?"
+            accessibilityState={whyPanel ? { expanded: whyOpen } : undefined}
+            accessibilityHint={whyPanel ? undefined : 'Opens what went into the estimate'}
+            onPress={whyPanel ? () => setWhyOpen((open) => !open) : () => onWhy?.()}
+            trailing={whyPanel ? <RotatingChevron open={whyOpen} color={bone.text} size={13} /> : null}
+            style={styles.action}
+          />
         ) : null}
       </View>
 
-      <FluidPressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        onPress={() => setOpen((value) => !value)}
-        pressedScale={1}
-        style={styles.disclosure}
-        hoverStyle={styles.disclosureHover}
-      >
-        <Text style={styles.disclosureText}>{open ? 'Hide biomarkers' : 'Biomarkers'}</Text>
-        <Animated.View style={{ transform: [{ rotate: reveal.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
-          <Ionicons accessible={false} color={colors.textMuted} name="chevron-down" size={16} />
-        </Animated.View>
-      </FluidPressable>
-
-      {open ? (
-        <Animated.View style={{ opacity: reveal, transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }}>
-          {details}
-        </Animated.View>
-      ) : null}
+      {whyPanel && whyOpen ? <View style={styles.why}>{whyPanel}</View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    ...cardSurface,
-    alignItems: 'center',
-    borderColor: surfaces.edge,
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 14,
-    paddingBottom: 8,
-    paddingHorizontal: 20,
-    paddingTop: 18
-  },
-  open: { alignItems: 'center', gap: 14, paddingBottom: 4, paddingTop: 2 },
-  headRow: { alignItems: 'center', alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between' },
-  eyebrow: { ...type.label, color: colors.text, fontSize: 17, lineHeight: 22 },
-  ringButton: { alignItems: 'center', borderRadius: 999, marginTop: 2 },
-  score: { color: colors.text, fontFamily: fonts.display, fontSize: 56, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -2, lineHeight: 60 },
-  scoreEmpty: { color: colors.textMuted, fontSize: 36, lineHeight: 44 },
-  scoreCaption: { ...type.caption, color: colors.textMuted, marginTop: 2 },
-  ringLabel: { color: colors.textFaint, fontFamily: fonts.bodyMedium, fontSize: 12, fontWeight: '600', letterSpacing: 1.4 },
-  heroScore: { color: colors.text, fontFamily: fonts.display, fontSize: 84, fontVariant: ['tabular-nums'], fontWeight: '600', letterSpacing: -3, lineHeight: 90 },
-  statusRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  statusDot: { borderRadius: 4, height: 7, width: 7 },
-  statusWord: { fontFamily: fonts.bodyMedium, fontSize: 15, fontWeight: '600' },
-  pillarRow: { alignSelf: 'stretch', flexDirection: 'row', marginTop: -2 },
-  pillar: { alignItems: 'center', flex: 1, gap: 3 },
-  pillarValue: { color: colors.text, fontFamily: fonts.display, fontSize: 20, fontVariant: ['tabular-nums'], fontWeight: '600' },
-  pillarValueMissing: { color: colors.textFaint },
-  pillarNameRow: { alignItems: 'center', flexDirection: 'row', gap: 5 },
-  pillarDot: { borderRadius: 3, height: 6, width: 6 },
-  pillarName: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  insight: { ...type.body, color: colors.text, fontSize: 17, fontWeight: '500', lineHeight: 24, textAlign: 'center' },
-  note: { ...type.body, color: colors.textMuted, fontSize: 15, lineHeight: 21, marginTop: -6, textAlign: 'center' },
-  meta: { ...type.caption, color: colors.textMuted, textAlign: 'center' },
-  actions: { alignSelf: 'stretch', flexDirection: 'row', gap: 10, marginTop: 2 },
-  action: { alignItems: 'center', borderCurve: 'continuous', borderRadius: 14, flex: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 8 },
-  primary: { backgroundColor: colors.primary },
-  primaryHover: { backgroundColor: colors.primaryPressed },
-  primaryText: { ...type.label, color: colors.primaryText, fontSize: 15 },
-  secondary: { backgroundColor: colors.surfaceInset, flex: 1.2 },
-  secondaryHover: { backgroundColor: colors.surfaceMuted },
-  secondaryText: { ...type.label, color: colors.text, fontSize: 15 },
-  disclosure: { alignItems: 'center', alignSelf: 'stretch', borderRadius: 14, flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 44 },
-  disclosureHover: { backgroundColor: 'rgba(235, 240, 255, 0.05)' },
-  disclosureText: { ...type.label, color: colors.textMuted }
+  hub: { alignItems: 'center', flexDirection: 'row', gap: 18, marginTop: 18 },
+  ringLabel: { ...type.readinessLabel, color: bone.label },
+  score: { ...type.readinessScore, color: bone.text, fontVariant: ['tabular-nums'], marginTop: 4 },
+  scoreEmpty: { color: bone.muted },
+  word: { ...type.readinessWord, marginTop: 4, maxWidth: ring.size - ring.stroke * 2 - 12, textAlign: 'center' },
+  copy: { flex: 1, minWidth: 0 },
+  headline: { ...type.readinessHeadline, color: bone.text },
+  sub: { ...type.body, lineHeight: 18.85, color: bone.soft, marginTop: 6 },
+  meta: { ...type.small, lineHeight: 16.7, color: bone.faint, marginTop: 10 },
+  pillarRow: { borderTopColor: bone.hairline, borderTopWidth: 1, flexDirection: 'row', marginTop: 18 },
+  pillar: { flex: 1, minWidth: 0, paddingTop: 12 },
+  pillarName: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  swatch: { borderRadius: radius.swatch, height: 8, width: 8 },
+  pillarLabel: { ...type.small, color: bone.soft, flexShrink: 1 },
+  pillarValue: { ...type.pillarValue, color: bone.text, fontVariant: ['tabular-nums'], marginTop: 7 },
+  pillarMissing: { color: bone.label },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  action: { flex: 1 },
+  why: { marginTop: 14 }
 });

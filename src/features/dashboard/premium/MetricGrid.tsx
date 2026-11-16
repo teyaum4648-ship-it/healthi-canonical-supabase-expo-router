@@ -1,118 +1,79 @@
-import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { FluidPressable } from '../../../components/mobile/FluidPressable';
-import type { LoadSummary } from '../../../engines/load';
-import { cardSurface, colors, fonts, surfaces, type } from '../../../styles/mobileTheme';
-import { pillarColors } from '../../../styles/pillarColors';
+import type { LoadBand, LoadSummary } from '../../../engines/load';
+import { accent, font, ink, radius, surface, type } from '../../../styles/daywoven1c';
 import { formatHoursMinutes, type SleepGlance } from '../dashboardZones';
-import { MiniBars } from './MiniBars';
-import { ZoneChip } from './ZoneChip';
 
-function MetricCard({ icon, iconColor, title, value, unit, caption, zone, zoneLabel, bars, barsColor, barsLabel, onPress, accessibilityLabel }: {
-  icon: 'moon' | 'flame';
-  iconColor: string;
-  title: string;
-  value: string;
-  unit?: string;
-  caption: string;
-  zone: SleepGlance['zone'];
-  zoneLabel: string;
-  bars: (number | null)[];
-  barsColor: string;
-  barsLabel: string;
-  onPress: () => void;
-  accessibilityLabel: string;
-}) {
-  return (
-    <FluidPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={styles.card} hoverStyle={styles.cardHover}>
-      <View style={styles.titleRow}>
-        <Ionicons accessible={false} color={iconColor} name={icon} size={15} />
-        <Text style={styles.title}>{title}</Text>
-        <Ionicons accessible={false} color={colors.textMuted} name="chevron-forward" size={14} style={styles.chevron} />
-      </View>
-      <View style={styles.valueRow}>
-        <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={[styles.value, value === '—' && styles.valueEmpty]}>{value}</Text>
-        {unit ? <Text style={styles.unit}>{unit}</Text> : null}
-      </View>
-      <Text numberOfLines={2} style={styles.caption}>{caption}</Text>
-      <ZoneChip tone={zone} label={zoneLabel} />
-      <MiniBars values={bars} color={barsColor} label={barsLabel} />
-    </FluidPressable>
-  );
-}
+/** How far along the four effort bands today sits: rest is none, very heavy is all four. */
+const BAND_STEPS: Record<LoadBand, number> = { rest: 0, light: 1, moderate: 2, heavy: 3, very_heavy: 4 };
 
 /**
- * Component B: last night's sleep and today's training load, side by side on the canvas.
- * Each card is one number, one caption, one zone and the shape of the week, and opens the
- * tab that holds the detail.
+ * Component B: last night's sleep against the estimated need, and today's training load,
+ * side by side as 1c white cards (P5, P12). Each figure says where it came from, and each
+ * card still opens the tab that holds the detail.
  */
-export function MetricGrid({ sleep, load, onOpenSleep, onOpenLoad }: {
+export function MetricGrid({ sleep, load, sleepSource, onOpenSleep, onOpenLoad }: {
   sleep: SleepGlance;
   load: LoadSummary;
+  /** How last night is known: "measured" from a health app, "logged" by hand. */
+  sleepSource?: 'measured' | 'logged' | null;
   onOpenSleep: () => void;
   onOpenLoad: () => void;
 }) {
   const sleepValue = sleep.lastNight ? formatHoursMinutes(sleep.lastNight.minutes) : '—';
+  const fraction = sleep.fraction === null ? null : Math.min(1, Math.max(0, sleep.fraction));
   const sleepCaption = sleep.lastNight
-    ? `of ${formatHoursMinutes(sleep.needMinutes)} estimated need`
+    ? `${sleep.fraction === null ? '' : `${Math.round(sleep.fraction * 100)}% of `}your ${formatHoursMinutes(sleep.needMinutes)} estimated need`
     : 'Log last night to compare it with your need';
   const loadCaption = load.today.sessions
-    ? `effort × minutes · ${load.today.sessions} session${load.today.sessions === 1 ? '' : 's'}`
+    ? `${load.today.load} effort × minutes · ${load.today.sessions} session${load.today.sessions === 1 ? '' : 's'}`
     : `${load.activeDays} of 7 days trained`;
+  const steps = BAND_STEPS[load.band];
 
   return (
     <View style={styles.grid}>
-      <MetricCard
-        icon="moon"
-        iconColor={pillarColors.recovery_rhythm}
-        title="Sleep"
-        value={sleepValue}
-        caption={sleepCaption}
-        zone={sleep.zone}
-        zoneLabel={sleep.label}
-        bars={sleep.series.map((night) => night.minutes)}
-        barsColor={pillarColors.recovery_rhythm}
-        barsLabel={`Sleep over the last seven nights, ${sleep.nightsLogged} logged`}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Last night: ${sleep.lastNight ? `${sleepValue}, ${sleepCaption}` : 'not logged'}. Open Sleep`}
         onPress={onOpenSleep}
-        accessibilityLabel={`Sleep: ${sleep.lastNight ? `${sleepValue} last night, ${sleep.label}` : 'last night not logged'}. Open Sleep`}
-      />
-      <MetricCard
-        icon="flame"
-        iconColor={pillarColors.movement_capacity}
-        title="Load"
-        value={load.today.load ? String(load.today.load) : '0'}
-        caption={loadCaption}
-        zone={load.zone}
-        zoneLabel={load.label}
-        bars={load.series.map((day) => (day.load > 0 ? day.load : null))}
-        barsColor={pillarColors.movement_capacity}
-        barsLabel={`Training load over the last seven days, ${load.activeDays} days with training`}
+        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      >
+        <Text style={styles.label}>Last night{sleep.lastNight && sleepSource ? ` · ${sleepSource}` : ''}</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={[styles.value, !sleep.lastNight && styles.valueEmpty]}>{sleepValue}</Text>
+        {fraction !== null ? (
+          <View style={styles.track}><View style={[styles.fill, { width: `${Math.round(fraction * 100)}%` }]} /></View>
+        ) : null}
+        <Text style={styles.caption}>{sleepCaption}</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Today’s load, estimate: ${load.label}. ${loadCaption}. Open Movement`}
         onPress={onOpenLoad}
-        accessibilityLabel={`Load today: ${load.today.load}, ${load.label}. Open Movement`}
-      />
+        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      >
+        <Text style={styles.label}>Today’s load · estimate</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.value}>{load.label}</Text>
+        <View style={styles.steps}>
+          {[1, 2, 3, 4].map((step) => <View key={step} style={[styles.step, step <= steps && styles.stepOn]} />)}
+        </View>
+        <Text style={styles.caption}>{loadCaption}</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', gap: 12 },
-  card: {
-    ...cardSurface,
-    borderColor: surfaces.edge,
-    borderRadius: 22,
-    borderWidth: 1,
-    flex: 1,
-    gap: 8,
-    padding: 16
-  },
-  cardHover: { borderColor: 'rgba(235, 240, 255, 0.16)' },
-  titleRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  title: { ...type.label, color: colors.text, flex: 1 },
-  chevron: { marginRight: -2 },
-  valueRow: { alignItems: 'baseline', flexDirection: 'row', gap: 4, marginTop: 2 },
-  value: { color: colors.text, flexShrink: 1, fontFamily: fonts.display, fontSize: 28, fontVariant: ['tabular-nums'], fontWeight: '700', letterSpacing: -0.8, lineHeight: 32 },
-  valueEmpty: { color: colors.textMuted },
-  unit: { ...type.caption, color: colors.textMuted },
-  caption: { ...type.caption, color: colors.textMuted, fontSize: 12, lineHeight: 16, minHeight: 32 }
+  grid: { flexDirection: 'row', gap: 10 },
+  card: { backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.card, borderWidth: 1, flex: 1, minWidth: 0, padding: 14 },
+  pressed: { opacity: 0.72 },
+  label: { ...type.caption, color: ink.muted },
+  value: { ...type.bigNumber, color: ink.text, fontVariant: ['tabular-nums'], marginTop: 10 },
+  valueEmpty: { color: ink.muted },
+  track: { backgroundColor: ink.track, height: 4, marginTop: 12 },
+  fill: { backgroundColor: accent.lavenderDeep, height: 4 },
+  steps: { flexDirection: 'row', gap: 3, marginTop: 12 },
+  step: { backgroundColor: ink.border, flex: 1, height: 4 },
+  stepOn: { backgroundColor: ink.text },
+  caption: { ...type.caption, color: ink.muted, fontFamily: font.body, marginTop: 7 }
 });

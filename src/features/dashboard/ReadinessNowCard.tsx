@@ -6,6 +6,8 @@ import { ActivityIndicator, AppState, Pressable, StyleSheet, Switch, Text, View 
 import { EntrySheet } from '../../components/mobile/EntrySheet';
 import { ActionRow } from '../../components/mobile/ActionRow';
 import type { DailyReadinessResult } from '../../engines/readiness';
+import { ThreadButton } from '../../components/thread/ThreadParts';
+import { bone, pillar, type as type1c } from '../../styles/daywoven1c';
 import { accentFill, colors, glass, glassSurface, type } from '../../styles/mobileTheme';
 import { localDay } from '../../utils/localDay';
 import { createDemoWaterStore, type WaterEntry } from '../nutrition/hydrationStore';
@@ -156,7 +158,8 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
     catch { setReminderError(true); }
     finally { setSavingReminder(false); }
   }
-  if (!data) return <View style={styles.card}><Text style={styles.heading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.muted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><Button secondary title="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={colors.accentMid} />}</View>;
+  /* These states sit in the 1c band at the top of Today, so they use the band's colours. */
+  if (!data) return <View style={styles.bandState}><Text style={styles.bandHeading}>Readiness now</Text>{loadError ? <><Text accessibilityRole="alert" style={styles.bandMuted}>Your saved context could not load. We won’t show a number based on a partial read.</Text><ThreadButton tone="band" variant="secondary" label="Try again" onPress={() => setRetry(n => n + 1)} /></> : <ActivityIndicator accessibilityLabel="Loading readiness context" color={bone.text} />}</View>;
   const remind = focused && shouldRemindAboutLunch(now, data.reminders, mealTimes, data.checkins);
   const zone = readinessZone(result.publicScore, safetyActive);
   const headline = readinessHeadline(zone, result.attention[0]?.text ?? result.summary);
@@ -178,7 +181,7 @@ export function ReadinessNowCard({ base, mealTimes, safetyActive, details, check
       details={details}
       pillars={result.ledger}
     />
-    {remind ? <View style={styles.card}><Text style={styles.heading}>A moment for your food diary?</Text><Text style={styles.muted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><Button title="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><Button secondary disabled={savingReminder} title="In 30 minutes" onPress={() => void quietReminder('later')} /><Button secondary disabled={savingReminder} title="Not today" onPress={() => void quietReminder('today')} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.notice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
+    {remind ? <View style={styles.bandReminder}><Text style={styles.bandHeading}>A moment for your food diary?</Text><Text style={styles.bandMuted}>If you’ve had lunch, you can add it now. An empty diary doesn’t mean you skipped a meal.</Text><ThreadButton tone="band" label="Log lunch" onPress={() => router.navigate(quickEntryHref('food'))} /><View style={styles.choices}><ThreadButton tone="band" variant="secondary" label={savingReminder ? 'Saving…' : 'In 30 minutes'} onPress={() => { if (!savingReminder) void quietReminder('later'); }} style={styles.grow} /><ThreadButton tone="band" variant="secondary" label={savingReminder ? 'Saving…' : 'Not today'} onPress={() => { if (!savingReminder) void quietReminder('today'); }} style={styles.grow} /></View>{reminderError ? <Text accessibilityRole="alert" style={styles.bandNotice}>Could not save that preference. Please try again.</Text> : null}</View> : null}
     {sheet === 'checkin' ? <CheckinSheet onClose={() => setSheet(null)} onSave={async c => { setData(await store.saveCheckin(c)); setNow(new Date().toISOString()); onCheckinSaved?.(); }} /> : null}
     {sheet === 'reminders' ? <ReminderSheet initial={data.reminders} onSave={saveReminders} onClose={() => setSheet(null)} /> : null}
     {sheet === 'why' ? <EntrySheet title="Your current picture" onClose={() => setSheet(null)}>
@@ -221,5 +224,10 @@ const styles = StyleSheet.create({
   choice: { minHeight: 46, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 13, backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderStrong },
   selected: { backgroundColor: colors.accentWash, borderColor: colors.accentMid },
   notice: { ...type.body, color: '#F2C87E' },
+  bandState: { gap: 12, marginTop: 18, minHeight: 124, justifyContent: 'center' },
+  bandReminder: { gap: 10, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: bone.hairline },
+  bandHeading: { ...type1c.bodyStrong, color: bone.text },
+  bandMuted: { ...type1c.body, color: bone.soft },
+  bandNotice: { ...type1c.body, color: pillar.nourishment },
   auditRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.borderStrong, paddingTop: 12, gap: 4 }
 });

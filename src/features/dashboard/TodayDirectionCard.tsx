@@ -2,6 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { RotatingChevron } from '../../components/thread/RotatingChevron';
+import { Eyebrow, HairlineRow, TextLink } from '../../components/thread/ThreadParts';
+import { ink, type as type1c } from '../../styles/daywoven1c';
+
 export const daywovenV2 = {
   background: '#0C0E13',
   surface: '#151920',
@@ -30,84 +34,54 @@ type TodayDirectionProps = {
   drivers: Driver[];
   primaryLabel: string;
   onPrimary: () => void;
+  /** Kept for callers; in 1c the primary link is the way to the full plan. */
   onFullPlan: () => void;
 };
 
 /**
  * View layer only: all text and signals come from the existing protocol and
  * readiness engines. No derived medical score or new storage is introduced.
+ *
+ * 1c "Today's direction": an eyebrow, the engine's headline in Jost, one confidence/source
+ * line, then the action as a text link. "Why this direction?" expands the drivers inline
+ * (design language P3). The explanation paragraph and the separate "Full plan" button are
+ * not drawn in 1c: the same explanation is the "Next best action" detail under Explore,
+ * and the full plan is the link itself. Both props stay so callers do not change.
  */
 export function TodayDirectionCard({
   headline,
-  explanation,
   source,
   confidence,
   availableFoundationCount,
   drivers,
   primaryLabel,
-  onPrimary,
-  onFullPlan
+  onPrimary
 }: TodayDirectionProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.topline}>
-        <View style={styles.eyebrowWrap}>
-          <View style={styles.signalDot} />
-          <Text style={styles.eyebrow}>TODAY · DIRECTION</Text>
-        </View>
-        <Text style={styles.source}>{source}</Text>
-      </View>
-
+    <View style={styles.section}>
+      <Eyebrow>Today’s direction</Eyebrow>
       <Text accessibilityRole="header" style={styles.title}>{headline}</Text>
-      <Text style={styles.explanation}>{explanation}</Text>
+      <Text style={styles.meta}>{source} · {confidence} confidence</Text>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={primaryLabel}
-        onPress={onPrimary}
-        style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
-      >
-        <Text style={styles.primaryText}>{primaryLabel}</Text>
-        <Ionicons accessible={false} color={daywovenV2.background} name="arrow-forward-outline" size={18} />
-      </Pressable>
-
-      <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
+      <View style={styles.links}>
+        <TextLink label={primaryLabel} onPress={onPrimary} />
+        <TextLink
+          label="Why this direction?"
+          variant="quiet"
           accessibilityState={{ expanded }}
           onPress={() => setExpanded(open => !open)}
-          style={({ pressed }) => [styles.quietAction, pressed && styles.pressed]}
-        >
-          <Ionicons accessible={false} color={daywovenV2.blue} name="information-circle-outline" size={17} />
-          <Text style={styles.quietText}>{expanded ? 'Hide the reasons' : 'Why this direction?'}</Text>
-          <Ionicons accessible={false} color={daywovenV2.muted} name={expanded ? 'chevron-up' : 'chevron-down'} size={15} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open your complete daily plan"
-          onPress={onFullPlan}
-          style={({ pressed }) => [styles.quietAction, pressed && styles.pressed]}
-        >
-          <Text style={styles.quietText}>Full plan</Text>
-          <Ionicons accessible={false} color={daywovenV2.blue} name="arrow-forward-outline" size={15} />
-        </Pressable>
+          trailing={<RotatingChevron open={expanded} color={ink.muted} size={14} />}
+        />
       </View>
 
       {expanded ? (
         <View style={styles.detailPanel}>
-          <View style={styles.detailHeader}>
-            <Text style={styles.detailLabel}>What informed this</Text>
-            <Text style={styles.detailMeta}>{availableFoundationCount} of 4 foundations · {confidence} confidence</Text>
-          </View>
-          {drivers.length > 0 ? drivers.map(driver => (
-            <View key={driver.domain} style={styles.driver}>
-              <Text style={styles.driverName}>{driver.label}</Text>
-              <Text style={styles.driverDetail}>{driver.detail}</Text>
-            </View>
-          )) : <Text style={styles.driverDetail}>As you add logs, Daywoven can explain more of the signals behind your plan.</Text>}
-          <Text style={styles.disclaimer}>These are wellness estimates, not a diagnosis. Missing information limits confidence; it does not mean something is wrong.</Text>
+          {drivers.length > 0 ? drivers.map((driver, index) => (
+            <HairlineRow key={driver.domain} title={driver.label} detail={driver.detail} last={index === drivers.length - 1} />
+          )) : <Text style={styles.note}>As you add logs, Daywoven can explain more of the signals behind your plan.</Text>}
+          <Text style={styles.note}>{availableFoundationCount} of 4 foundations · {confidence} confidence. These are wellness estimates, not a diagnosis. Missing information limits confidence; it does not mean something is wrong.</Text>
         </View>
       ) : null}
     </View>
@@ -151,48 +125,13 @@ export function InsightShortcuts({ shortcuts }: { shortcuts: Shortcut[] }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: daywovenV2.surface,
-    borderColor: daywovenV2.border,
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 20,
-    gap: 14
-  },
-  topline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  eyebrowWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  signalDot: { height: 7, width: 7, borderRadius: 4, backgroundColor: daywovenV2.blue },
-  eyebrow: { color: daywovenV2.blue, fontSize: 11, fontWeight: '700', letterSpacing: 1.1 },
-  source: { color: daywovenV2.muted, fontSize: 11, flexShrink: 1 },
-  title: { color: daywovenV2.text, fontSize: 28, fontWeight: '700', letterSpacing: -0.8, lineHeight: 34 },
-  explanation: { color: daywovenV2.secondary, fontSize: 15, lineHeight: 23 },
-  primary: {
-    minHeight: 50,
-    backgroundColor: daywovenV2.blue,
-    borderRadius: 13,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 17
-  },
-  primaryText: { color: daywovenV2.background, fontWeight: '700', fontSize: 15 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  quietAction: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  quietText: { color: daywovenV2.blue, fontSize: 13, fontWeight: '600' },
+  section: { paddingTop: 24 },
+  title: { ...type1c.directionTitle, color: ink.text, marginTop: 10 },
+  meta: { ...type1c.body, color: ink.muted, marginTop: 10 },
+  links: { alignItems: 'center', columnGap: 18, flexDirection: 'row', flexWrap: 'wrap' },
+  detailPanel: { marginTop: 2 },
+  note: { ...type1c.caption, color: ink.muted, marginTop: 10 },
   pressed: { opacity: 0.72 },
-  detailPanel: {
-    gap: 13,
-    paddingTop: 15,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: daywovenV2.border
-  },
-  detailHeader: { gap: 4 },
-  detailLabel: { color: daywovenV2.text, fontWeight: '700', fontSize: 15 },
-  detailMeta: { color: daywovenV2.muted, fontSize: 12 },
-  driver: { gap: 3 },
-  driverName: { color: daywovenV2.text, fontWeight: '600', fontSize: 13 },
-  driverDetail: { color: daywovenV2.secondary, fontSize: 13, lineHeight: 19 },
-  disclaimer: { color: daywovenV2.muted, fontSize: 11, lineHeight: 17 },
   shortcutGroup: { gap: 12 },
   shortcutHeader: { color: daywovenV2.text, fontSize: 19, fontWeight: '700', letterSpacing: -0.4, paddingHorizontal: 3 },
   shortcutList: {
