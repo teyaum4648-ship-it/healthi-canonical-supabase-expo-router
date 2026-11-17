@@ -87,32 +87,113 @@ export function SleepBand({ briefing, outlook, now, nowMinute, sessions, needMin
 
 const LEVEL_COLOUR: Record<RhythmRow['level'], string> = { high: accent.amber, low: accent.lavender, moderate: ink.track, wind_down: ink.hairline };
 
-/** "Today's rhythm": a 10pt composition bar of the day's windows, then the windows themselves as hairline rows. */
-export function TodaysRhythm({ briefing, protocol }: { briefing: CircadianBriefing; protocol: SleepProtocolItem[] }) {
+export type RhythmStep = {
+  item: SleepProtocolItem;
+  icon: keyof typeof Ionicons.glyphMap;
+  /** "8:17–9:17 AM", or one time for a point like the caffeine cutoff. */
+  range: string;
+  /** "Now", "Upcoming", "Earlier" or "Done", from the screen's own clock. */
+  status: string;
+  done: boolean;
+};
+
+/** Steps in the order the day meets them; a step the engine could not place yet goes last. */
+function byTime(steps: RhythmStep[]): RhythmStep[] {
+  return [...steps].sort((a, b) => (a.item.start_at ?? '9999').localeCompare(b.item.start_at ?? '9999'));
+}
+
+/**
+ * "Today's rhythm": the day's energy windows as a 10pt composition bar (P10), then the
+ * day's steps from the sleep protocol as a timeline, in time order. Each step keeps the
+ * engine's own window and reason. Tap the icon to mark it done; tap the row for why it
+ * sits there. Without steps the high and low windows are listed instead.
+ */
+export function TodaysRhythm({ briefing, protocol, steps = [], onToggleStep, onOpenStep }: {
+  briefing: CircadianBriefing;
+  protocol: SleepProtocolItem[];
+  steps?: RhythmStep[];
+  onToggleStep?: (id: SleepProtocolItem['id']) => void;
+  onOpenStep?: (item: SleepProtocolItem) => void;
+}) {
   const rhythm = useMemo(() => buildRhythm(briefing, protocol, sleepPhaseLabel), [briefing, protocol]);
-  if (!rhythm.segments.length) return null;
+  const ordered = useMemo(() => byTime(steps), [steps]);
+  if (!rhythm.segments.length && !ordered.length) return null;
+  const doneCount = ordered.filter((step) => step.done).length;
   return (
     <View style={styles.section}>
-      <SectionTitle>Today’s rhythm</SectionTitle>
-      <View accessible accessibilityLabel={`Today in windows: ${rhythm.rows.map((row) => `${row.name} ${row.range}`).join(', ')}`} style={styles.rhythmBar}>
-        {rhythm.segments.map((segment, index) => (
-          <View key={index} style={{ backgroundColor: segment.level === 'moderate' ? ink.track : segment.level === 'wind_down' ? ink.hairline : LEVEL_COLOUR[segment.level], flex: segment.share, height: 10 }} />
-        ))}
+      <View style={styles.sectionHead}>
+        <SectionTitle>Today’s rhythm</SectionTitle>
+        {ordered.length ? <Text style={styles.sectionMeta}>{doneCount} of {ordered.length} done</Text> : null}
       </View>
-      <View style={styles.rows}>
-        {rhythm.rows.map((row, index) => (
-          <View key={row.id} accessible accessibilityLabel={`${row.name}, ${row.range}${row.fit ? `. ${row.fit}` : ''}`} style={[styles.row, index === rhythm.rows.length - 1 && styles.rowLast]}>
-            <View style={[styles.swatch, { backgroundColor: row.level === 'wind_down' ? ink.track : LEVEL_COLOUR[row.level] }]} />
-            <View style={styles.rowCopy}>
-              <View style={styles.rowHead}>
-                <Text style={styles.rowTitle}>{row.name}</Text>
-                <Text style={styles.rowTime}>{row.range}</Text>
-              </View>
-              {row.fit ? <Text style={styles.rowDetail}>{row.fit}</Text> : null}
-            </View>
+      {rhythm.segments.length ? (
+        <>
+          <View accessible accessibilityLabel={`Today in windows: ${rhythm.rows.map((row) => `${row.name} ${row.range}`).join(', ')}`} style={styles.rhythmBar}>
+            {rhythm.segments.map((segment, index) => (
+              <View key={index} style={{ backgroundColor: segment.level === 'moderate' ? ink.track : segment.level === 'wind_down' ? ink.hairline : LEVEL_COLOUR[segment.level], flex: segment.share, height: 10 }} />
+            ))}
           </View>
-        ))}
-      </View>
+          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={styles.legend}>
+            <View style={styles.legendItem}><View style={[styles.legendSwatch, { backgroundColor: accent.amber }]} /><Text style={styles.legendText}>Higher energy</Text></View>
+            <View style={styles.legendItem}><View style={[styles.legendSwatch, { backgroundColor: accent.lavender }]} /><Text style={styles.legendText}>Dip</Text></View>
+            <View style={styles.legendItem}><View style={[styles.legendSwatch, { backgroundColor: ink.hairline }]} /><Text style={styles.legendText}>Wind-down</Text></View>
+          </View>
+        </>
+      ) : null}
+
+      {ordered.length ? (
+        <View style={styles.steps}>
+          {ordered.map((step, index) => {
+            const isNow = step.status === 'Now' && !step.done;
+            const last = index === ordered.length - 1;
+            return (
+              <View key={step.item.id} style={styles.step}>
+                <View style={styles.stepRail}>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: step.done }}
+                    accessibilityLabel={`${step.item.name}: ${step.done ? 'done' : 'mark as done'}`}
+                    hitSlop={6}
+                    onPress={() => onToggleStep?.(step.item.id)}
+                    style={({ pressed }) => [styles.stepIcon, isNow && styles.stepIconNow, step.done && styles.stepIconDone, pressed && styles.pressed]}
+                  >
+                    <Ionicons accessible={false} color={step.done ? bone.text : isNow ? accent.amberDeep : ink.text} name={step.done ? 'checkmark' : step.icon} size={17} />
+                  </Pressable>
+                  {last ? null : <View style={styles.stepLine} />}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${step.item.name}, ${step.range}, ${step.done ? 'done' : step.status}. ${step.item.reason}`}
+                  accessibilityHint="Shows why this step sits here"
+                  onPress={() => onOpenStep?.(step.item)}
+                  style={({ pressed }) => [styles.stepBody, last && styles.stepBodyLast, pressed && styles.pressed]}
+                >
+                  <View style={styles.stepHead}>
+                    <Text style={[styles.stepName, step.done && styles.stepNameDone]}>{step.item.name}</Text>
+                    <Text style={[styles.stepStatus, isNow && styles.stepStatusNow]}>{step.done ? 'Done' : step.status}</Text>
+                  </View>
+                  <Text style={styles.stepTime}>{step.range}</Text>
+                  <Text style={styles.stepReason}>{step.item.reason}</Text>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.rows}>
+          {rhythm.rows.map((row, index) => (
+            <View key={row.id} accessible accessibilityLabel={`${row.name}, ${row.range}${row.fit ? `. ${row.fit}` : ''}`} style={[styles.row, index === rhythm.rows.length - 1 && styles.rowLast]}>
+              <View style={[styles.swatch, { backgroundColor: row.level === 'wind_down' ? ink.track : LEVEL_COLOUR[row.level] }]} />
+              <View style={styles.rowCopy}>
+                <View style={styles.rowHead}>
+                  <Text style={styles.rowTitle}>{row.name}</Text>
+                  <Text style={styles.rowTime}>{row.range}</Text>
+                </View>
+                {row.fit ? <Text style={styles.rowDetail}>{row.fit}</Text> : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -249,6 +330,26 @@ const styles = StyleSheet.create({
   sectionHead: { alignItems: 'baseline', flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
   sectionMeta: { ...type.caption, color: ink.muted, flexShrink: 1, textAlign: 'right' },
   rhythmBar: { flexDirection: 'row', gap: 3, marginTop: 14 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 8 },
+  legendItem: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  legendSwatch: { borderRadius: radius.swatch, height: 8, width: 8 },
+  legendText: { ...type.small, color: ink.muted },
+  steps: { marginTop: 18 },
+  step: { flexDirection: 'row', gap: 14 },
+  stepRail: { alignItems: 'center', width: 38 },
+  stepIcon: { alignItems: 'center', backgroundColor: surface.card, borderColor: ink.border, borderRadius: 19, borderWidth: 1, height: 38, justifyContent: 'center', width: 38 },
+  stepIconNow: { borderColor: accent.amberDeep, borderWidth: 1.5 },
+  stepIconDone: { backgroundColor: ink.text, borderColor: ink.text },
+  stepLine: { backgroundColor: ink.hairline, flex: 1, marginVertical: 4, width: 2 },
+  stepBody: { flex: 1, minWidth: 0, paddingBottom: 18, paddingTop: 1 },
+  stepBodyLast: { paddingBottom: 4 },
+  stepHead: { alignItems: 'baseline', flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
+  stepName: { ...type.bodyStrong, color: ink.text, flexShrink: 1 },
+  stepNameDone: { color: ink.muted, textDecorationLine: 'line-through' },
+  stepStatus: { ...type.small, color: ink.muted },
+  stepStatusNow: { color: accent.amberDeep, fontFamily: font.bodySemibold },
+  stepTime: { color: ink.text, fontFamily: font.body, fontSize: 13, fontVariant: ['tabular-nums'], lineHeight: 18, marginTop: 2 },
+  stepReason: { ...type.caption, color: ink.muted, marginTop: 3 },
   rows: { marginTop: 12 },
   row: { borderTopColor: ink.hairline, borderTopWidth: 1, flexDirection: 'row', gap: 12, minHeight: HIT, paddingVertical: 11 },
   rowLast: { borderBottomColor: ink.hairline, borderBottomWidth: 1 },
@@ -261,11 +362,11 @@ const styles = StyleSheet.create({
   tonight: { flexDirection: 'row', gap: 14, marginTop: 14 },
   tonightCard: { backgroundColor: surface.band, borderRadius: radius.card, flex: 1.15, padding: 16 },
   tonightLabel: { color: bone.muted, fontFamily: font.body, fontSize: 12.5 },
-  tonightTime: { color: bone.text, fontFamily: font.display, fontSize: 38, fontVariant: ['tabular-nums'], lineHeight: 44, marginTop: 6 },
+  tonightTime: { color: bone.text, fontFamily: font.display, fontSize: 38, fontVariant: ['tabular-nums'], lineHeight: 47, marginTop: 6 },
   tonightNote: { color: bone.soft, fontFamily: font.body, fontSize: 12, lineHeight: 17, marginTop: 8 },
   tonightSide: { flex: 1, justifyContent: 'center' },
   tonightFigure: { paddingVertical: 6 },
-  tonightFigureValue: { color: ink.text, fontFamily: font.display, fontSize: 24, fontVariant: ['tabular-nums'], lineHeight: 28 },
+  tonightFigureValue: { color: ink.text, fontFamily: font.display, fontSize: 24, fontVariant: ['tabular-nums'], lineHeight: 30 },
   tonightFigureLabel: { ...type.caption, color: ink.muted, marginTop: 2 },
   tonightDivider: { backgroundColor: ink.hairline, height: 1, marginVertical: 6 },
   nights: { flexDirection: 'row', gap: 6, marginTop: 14 },

@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   padLive: { backgroundColor: pillarTint('mind_life_load', 0.11), borderColor: tabAccent.mood },
   padPressed: { opacity: 0.85 },
   padLead: { ...type.heading, color: colors.text },
-  padCount: { ...type.hero, color: colors.text, fontSize: 52, lineHeight: 56 },
+  padCount: { ...type.hero, color: colors.text, fontSize: 52, lineHeight: 64 },
   padHint: { ...type.caption, color: colors.textMuted, textAlign: 'center' },
 
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

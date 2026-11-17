@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bodyMedium, fontSize: 20, letterSpacing: -0.35, lineHeight: 25, marginTop: 3 },
   result: { gap: 8 },
   scoreRow: { alignItems: 'center', flexDirection: 'row', gap: 14 },
-  score: { fontFamily: fonts.display, fontSize: 40, fontVariant: ['tabular-nums'], letterSpacing: -1, lineHeight: 46 },
+  score: { fontFamily: fonts.display, fontSize: 40, fontVariant: ['tabular-nums'], letterSpacing: -1, lineHeight: 49 },
   scoreCopy: { gap: 4 },
   scoreLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16 },
   zone: { alignSelf: 'flex-start', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 3 },

@@ -27,21 +27,21 @@ export const type = {
   hero: {
     fontFamily: fonts.display,
     fontSize: 56,
-    lineHeight: 58,
+    lineHeight: 69,
     letterSpacing: -1,
     fontVariant: ['tabular-nums']
   },
   title: {
     fontFamily: fonts.display,
     fontSize: 30,
-    lineHeight: 34,
+    lineHeight: 37,
     letterSpacing: -0.3
   },
   /** Every screen's name, the same size everywhere. */
   largeTitle: {
     fontFamily: fonts.display,
     fontSize: 30,
-    lineHeight: 34,
+    lineHeight: 37,
     letterSpacing: -0.3
   },
   /** A section title on the canvas (design language P2). */
@@ -81,7 +81,7 @@ export const type = {
   numberLg: {
     fontFamily: fonts.display,
     fontSize: 28,
-    lineHeight: 32,
+    lineHeight: 35,
     fontVariant: ['tabular-nums']
   },
   number: {

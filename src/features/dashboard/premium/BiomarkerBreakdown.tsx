@@ -31,7 +31,7 @@ export function BiomarkerBreakdown({ summaries, onEdit }: {
               onPress={() => onEdit(summary.kind)}
               style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
             >
-              <Text numberOfLines={1} style={styles.name}>{spec.shortLabel}</Text>
+              <Text numberOfLines={2} style={styles.name}>{spec.shortLabel}</Text>
               <View style={styles.valueRow}>
                 <Text style={[styles.value, !value && styles.valueEmpty]}>{value ?? '—'}</Text>
                 {value ? <Text style={styles.unit}>{spec.unit}</Text> : null}
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   name: { ...type.small, color: ink.muted },
   valueRow: { alignItems: 'baseline', flexDirection: 'row', gap: 3 },
-  value: { fontFamily: font.display, fontSize: 22, lineHeight: 26, color: ink.text, fontVariant: ['tabular-nums'] },
+  value: { fontFamily: font.display, fontSize: 22, lineHeight: 27, color: ink.text, fontVariant: ['tabular-nums'] },
   valueEmpty: { color: ink.muted },
   unit: { fontFamily: font.body, fontSize: 11, color: ink.muted },
   status: { fontFamily: font.body, fontSize: 11, lineHeight: 14, color: ink.muted },

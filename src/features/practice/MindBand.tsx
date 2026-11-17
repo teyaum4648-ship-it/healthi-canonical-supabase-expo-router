@@ -46,7 +46,7 @@ export function MindBand({ score, rings, onPractice }: { score: MindScore; rings
           <View key={ring.id} accessible accessibilityLabel={`${ring.label}: ${ring.value}`} style={styles.lever}>
             <View style={styles.leverName}>
               <View style={[styles.swatch, { backgroundColor: LEVER_COLOUR[ring.id] }]} />
-              <Text numberOfLines={1} style={styles.leverLabel}>{ring.label}</Text>
+              <Text numberOfLines={2} style={styles.leverLabel}>{ring.label}</Text>
             </View>
             <Text numberOfLines={1} style={styles.leverValue}>{ring.value}</Text>
           </View>

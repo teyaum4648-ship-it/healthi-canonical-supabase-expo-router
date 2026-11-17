@@ -74,7 +74,7 @@ export function FoodQuickAdd({ tiles }: { tiles: QuickAddTile[] }) {
       {tiles.map((tile) => (
         <Pressable key={tile.label} accessibilityRole="button" accessibilityLabel={tile.accessibilityLabel} onPress={tile.onPress} style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}>
           <Ionicons accessible={false} color={ink.text} name={tile.icon} size={20} />
-          <Text numberOfLines={1} style={styles.tileLabel}>{tile.label}</Text>
+          <Text numberOfLines={2} style={styles.tileLabel}>{tile.label}</Text>
         </Pressable>
       ))}
     </View>
@@ -97,11 +97,12 @@ const styles = StyleSheet.create({
   trackNone: { borderColor: bone.outline, borderStyle: 'dashed', borderWidth: 1, height: 6 },
   fill: { height: 6 },
   mark: { backgroundColor: bone.text, height: 12, marginLeft: -1, position: 'absolute', top: -3, width: 2 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  action: { flex: 1 },
+  /* Side by side on most phones; on a narrow one they stack rather than cut a label short. */
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20 },
+  action: { flexBasis: 150, flexGrow: 1 },
   tiles: { flexDirection: 'row', gap: 8, marginTop: 12 },
   tile: { alignItems: 'center', backgroundColor: surface.card, borderColor: ink.border, borderRadius: radius.tile, borderWidth: 1, flex: 1, gap: 5, height: 66, justifyContent: 'center', minHeight: HIT, minWidth: 0 },
   tilePressed: { backgroundColor: surface.canvas },
-  tileLabel: { color: ink.text, fontFamily: font.bodyMedium, fontSize: 11 },
+  tileLabel: { color: ink.text, fontFamily: font.bodyMedium, fontSize: 11, textAlign: 'center' },
   spacer: { height: space.sm }
 });

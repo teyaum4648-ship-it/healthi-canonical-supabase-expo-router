@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     maxWidth: 520
   },
   eyebrow: { color: dv.accent.amber, fontSize: 11, fontFamily: fonts.bodySemibold, letterSpacing: 1.2 },
-  headline: { color: dv.bone.text, fontFamily: fonts.displayMedium, fontSize: 46, lineHeight: 50, letterSpacing: -1.8 },
+  headline: { color: dv.bone.text, fontFamily: fonts.displayMedium, fontSize: 46, lineHeight: 57, letterSpacing: -1.8 },
   headlineAccent: { color: dv.accent.amber, fontFamily: fonts.bodySemibold },
   subcopy: {
     maxWidth: 430,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 74,
     fontWeight: '300',
-    lineHeight: 78
+    lineHeight: 91
   },
   ringLabel: {
     color: dv.accent.amber,

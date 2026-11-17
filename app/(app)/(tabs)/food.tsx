@@ -2774,7 +2774,7 @@ const styles = StyleSheet.create({
     color: dv.ink.text,
     fontFamily: serif,
     fontSize: 42,
-    lineHeight: 46
+    lineHeight: 52
   },
   trackerEnergyLabel: {
     color: dv.ink.muted,
@@ -3553,7 +3553,7 @@ const styles = StyleSheet.create({
     color: C.ink,
     fontFamily: serifLight,
     fontSize: 38,
-    lineHeight: 44,
+    lineHeight: 47,
     marginTop: 4
   },
   cardTitle: {

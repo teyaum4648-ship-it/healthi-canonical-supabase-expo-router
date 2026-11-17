@@ -69,8 +69,8 @@ export function SleepTwoThread({ day, nowMinute }: { day: TwoProcessDay | null; 
     <View style={styles.section}>
       <Eyebrow tone="band">Body clock & sleep pressure</Eyebrow>
       <View style={styles.readout}>
-        <Text style={styles.readoutTime} numberOfLines={1}>{formatClock(reading.minute)} · {reading.name}</Text>
-        <Text style={styles.readoutLevel} numberOfLines={1}>{reading.energy.replace(' energy', '')} · est.</Text>
+        <Text style={styles.readoutTime}>{formatClock(reading.minute)} · {reading.name}</Text>
+        <Text style={styles.readoutLevel}>{reading.energy.replace(' energy', '')} · est.</Text>
       </View>
       <GestureDetector gesture={pan}>
         <View
@@ -153,7 +153,8 @@ export function SleepTwoThread({ day, nowMinute }: { day: TwoProcessDay | null; 
 const styles = StyleSheet.create({
   section: { borderTopColor: bone.hairline, borderTopWidth: 1, marginTop: 22, paddingTop: 18 },
   empty: { ...type.body, color: bone.soft, marginTop: 10 },
-  readout: { alignItems: 'baseline', flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 12, minHeight: 24 },
+  /* One line on most phones; on a narrow one the level drops under the time instead of cutting either. */
+  readout: { alignItems: 'baseline', columnGap: 10, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 12, minHeight: 24, rowGap: 2 },
   readoutTime: { color: bone.text, flexShrink: 1, fontFamily: font.display, fontSize: 20, fontVariant: ['tabular-nums'] },
   readoutLevel: { color: bone.soft, fontFamily: font.body, fontSize: 12.5 },
   chart: { height: HEIGHT, marginTop: 8 },

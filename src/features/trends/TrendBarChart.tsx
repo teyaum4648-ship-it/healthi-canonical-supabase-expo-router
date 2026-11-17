@@ -54,7 +54,7 @@ export function TrendBarChart({ series, color, unit, label }: {
 
   return <View style={styles.wrap}>
     <View style={styles.header}>
-      <Text style={styles.readout} numberOfLines={1}>{readout}</Text>
+      <Text style={styles.readout} numberOfLines={2}>{readout}</Text>
       <Text style={styles.scale}>{formatTrendValue(ceiling, unit)}</Text>
     </View>
     <View style={styles.plot}>
