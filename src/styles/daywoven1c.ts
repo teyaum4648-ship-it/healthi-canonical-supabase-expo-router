@@ -32,6 +32,19 @@ export const surface = {
   sunken: '#EAEAE7'
 } as const;
 
+/** Membership uses the same charcoal, bone, and canvas as the app. */
+export const membership = {
+  forest: surface.band,
+  forestLight: surface.band,
+  lime: '#EDEAE2',
+  onForest: '#EDEAE2',
+  mutedOnForest: '#B4B2AC',
+  lineOnForest: 'rgba(237, 234, 226, 0.14)',
+  selected: '#EAEAE7',
+  selectedBorder: '#121314',
+  onSelected: '#121314'
+} as const;
+
 /** Text and lines on the light canvas. */
 export const ink = {
   text: '#121314',

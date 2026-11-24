@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const membershipScreen = readFileSync('app/(app)/subscription.tsx', 'utf8');
+const membershipScreen = readFileSync('app/(app)/subscription.tsx', 'utf8')
+  + readFileSync('src/features/subscriptions/MembershipPaywall.tsx', 'utf8');
 const tour = readFileSync('app/app-preview.tsx', 'utf8');
 const protectedLayout = readFileSync('app/(app)/_layout.tsx', 'utf8');
 
