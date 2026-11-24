@@ -1,22 +1,34 @@
 # Daywoven: Apple subscriptions + RevenueCat activation handoff
 
-Updated November 10, 2026. **Billing is NOT live.** Use this checklist to prepare a reviewed iOS release. Do not publish prices or benefits until they are confirmed and implemented.
+Updated November 24, 2026. **Billing is NOT live.** Use this checklist to prepare a reviewed iOS release. The native paywall is merged into main; real purchase and restore testing remains outstanding.
 
-## Exact app identifiers and products to create
+## Verified app identifiers and existing Apple products
 
 | Setting | Value |
 |---|---|
 | Apple bundle identifier | `com.daywovenapp.daywoven` |
 | Subscription group display name | `Daywoven Premium` |
-| Apple monthly product ID | `daywoven_pro_monthly` |
-| Apple annual product ID | `daywoven_pro_annual` |
+| Apple monthly product ID | `11` (reference name `daywoven_pro_monthly`) |
+| Apple annual product ID | `22` (reference name `daywoven_pro_annual`) |
+| Apple monthly subscription ID | `6836603578` |
+| Apple annual subscription ID | `6836604473` |
+| US monthly price | $6.99 / month |
+| US annual upfront price | $39.99 / year |
 | RevenueCat entitlement ID | `pro` |
 | RevenueCat offering ID | `default` |
 | Offering package mapping | `$rc_monthly` → monthly product; `$rc_annual` → annual product |
 | Launch region | United States |
 | Purchase type | Auto-renewable subscriptions, free-to-download iOS app |
 
-The product IDs above are **proposed configuration IDs**, not already created Apple products. Decide and enter real monthly and annual prices in App Store Connect. Start with no trial unless the introductory-offer wording, eligibility and testing are ready.
+These product IDs were verified in App Store Connect. Import `11` and `22` into RevenueCat; the longer names are reference names, not purchase identifiers. Do not create duplicate Apple products. The US monthly price was corrected to $6.99 and the US annual upfront price verified at $39.99. Store-returned localized prices remain authoritative in the app. Do not advertise a trial unless its configuration, eligibility and testing are ready.
+
+## Configuration progress (November 24)
+
+- The Supabase secrets `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_ENTITLEMENT_ID=pro`, and `REVENUECAT_WEBHOOK_AUTH_TOKEN` are saved. No private values are stored in this repository.
+- The RevenueCat webhook **Daywoven Supabase membership** is active for production and sandbox. Its dashboard test returned HTTP 200 with `{"received":true}`. This checks authenticated delivery and the missing-profile acknowledgement path; it does not prove a purchase has been verified.
+- EAS production has entitlement `pro`. The Apple SDK key and subscription release flag still depend on completing the Apple app connection.
+- Safari failed to download the Apple purchase key with `WebKitBlobResource error 1`; the Apple app is not yet saved in RevenueCat. Product attachment and native testing remain incomplete.
+- The database billing gate remains off. Do not enable it until the sandbox acceptance checks below pass.
 
 **Paywall sequence:** anonymous 16-question questionnaire (locally stored) → free baseline results and two-week focus → signup with health-data consent → explicit save of the preview answers → optional monthly/annual subscription purchase → verified access to ongoing Daywoven tracking, planning, and insights. Restore purchase and account deletion remain accessible without a current subscription.
 
@@ -32,7 +44,7 @@ The product IDs above are **proposed configuration IDs**, not already created Ap
 
 ## Actions in accounts the owner controls
 
-1. In **App Store Connect**, confirm Paid Apps Agreement, banking and taxes. Create an auto-renewable subscription group and the two subscription products with the exact IDs above, prices, localizations, screenshots for subscription review, and relevant availability.
+1. In **App Store Connect**, confirm Paid Apps Agreement, banking and taxes. Complete the existing subscription products above, including localizations, screenshots for subscription review, and relevant availability.
 2. In **RevenueCat**, create an iOS app matching the bundle ID, connect App Store Connect credentials, import both products, create entitlement `pro`, and attach them to the `default` offering's monthly/annual packages.
 3. In Supabase **Edge Function Secrets**, add `REVENUECAT_SECRET_API_KEY` (RevenueCat server-side REST API v1 secret), `REVENUECAT_ENTITLEMENT_ID=pro`, and a *new random* `REVENUECAT_WEBHOOK_AUTH_TOKEN`. Never commit these, paste them in chat, or put them under `EXPO_PUBLIC_`.
 4. Configure the RevenueCat webhook URL as `https://lhqpexnepgvuohmhltnr.supabase.co/functions/v1/revenuecat-webhook`; set HTTP Authorization header to `Bearer <your-secret-token>`, using the same private token configured above. The endpoint verifies that header and independently asks RevenueCat for the account's current entitlement. Test the webhook from RevenueCat and inspect that it succeeds before launch.
