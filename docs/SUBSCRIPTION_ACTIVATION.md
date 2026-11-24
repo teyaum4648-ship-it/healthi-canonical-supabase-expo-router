@@ -26,8 +26,10 @@ These product IDs were verified in App Store Connect. Import `11` and `22` into 
 
 - The Supabase secrets `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_ENTITLEMENT_ID=pro`, and `REVENUECAT_WEBHOOK_AUTH_TOKEN` are saved. No private values are stored in this repository.
 - The RevenueCat webhook **Daywoven Supabase membership** is active for production and sandbox. Its dashboard test returned HTTP 200 with `{"received":true}`. This checks authenticated delivery and the missing-profile acknowledgement path; it does not prove a purchase has been verified.
-- EAS production has entitlement `pro`. The Apple SDK key and subscription release flag still depend on completing the Apple app connection.
-- Safari failed to download the Apple purchase key with `WebKitBlobResource error 1`; the Apple app is not yet saved in RevenueCat. Product attachment and native testing remain incomplete.
+- The RevenueCat Apple app is configured for `com.daywovenapp.daywoven`, with its purchase key configured. Products `11` and `22` are registered in its catalog and attached to entitlement `pro`.
+- The current `default` offering maps `$rc_monthly` to Apple product `11` and `$rc_annual` to `22`. A public iOS SDK API check returned HTTP 200 and both mappings; real StoreKit price loading and checkout still require native testing.
+- EAS production has the public iOS SDK key, entitlement `pro`, and `EXPO_PUBLIC_SUBSCRIPTIONS_ENABLED=true` for the new TestFlight build. This does not publish an update to existing installations.
+- Signed iOS build 11 was started from commit `2e88687cec1323eb3daa33d50dacb2539becab18`: https://expo.dev/accounts/tiamshinkais-team/projects/daywoven/builds/2ab2bb58-e1fe-4637-add8-27a2d7653374. Build completion, TestFlight processing, and purchase/restore testing must be checked before marking the release ready.
 - The database billing gate remains off. Do not enable it until the sandbox acceptance checks below pass.
 
 **Paywall sequence:** anonymous 16-question questionnaire (locally stored) → free baseline results and two-week focus → signup with health-data consent → explicit save of the preview answers → optional monthly/annual subscription purchase → verified access to ongoing Daywoven tracking, planning, and insights. Restore purchase and account deletion remain accessible without a current subscription.
