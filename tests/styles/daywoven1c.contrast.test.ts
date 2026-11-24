@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { contrastRatio, WCAG } from '../../src/styles/contrast';
-import { accent, bone, control, grade, ink, macro, pillar, pillarOnCanvas, safety, surface, zoneOnCanvas, zoneWord } from '../../src/styles/daywoven1c';
+import { accent, bone, control, grade, ink, macro, membership, pillar, pillarOnCanvas, safety, surface, zoneOnCanvas, zoneWord } from '../../src/styles/daywoven1c';
 
 /**
  * The 1c "Thread" palette: a light canvas with a charcoal band. Text on the canvas and on
@@ -55,6 +55,10 @@ describe('the flattened values written in the tokens file match the real blends'
 
 describe('1c text meets WCAG 2.2 AA (4.5:1)', () => {
   const pairs: [string, string, string][] = [
+    ['membership text on forest', membership.onForest, membership.forest],
+    ['membership muted text on gradient', membership.mutedOnForest, membership.forestLight],
+    ['membership CTA', membership.forest, membership.lime],
+    ['selected plan label', membership.onSelected, membership.selected],
     ['ink.text on canvas', ink.text, surface.canvas],
     ['ink.text on card', ink.text, surface.card],
     ['ink.text on the amber wash', ink.text, accent.amberWashFlat],
