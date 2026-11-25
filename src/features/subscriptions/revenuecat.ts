@@ -1,4 +1,4 @@
-import Purchases, { type CustomerInfo, type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
+import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
 import { Platform } from 'react-native';
 
 // RevenueCat's public *iOS* SDK key is expected here. No secret Store API key in Expo.
@@ -31,21 +31,29 @@ export function hasPremiumAccess(customerInfo: Pick<CustomerInfo, 'entitlements'
   return Boolean(customerInfo?.entitlements.active[entitlementId]);
 }
 
-export async function getSubscriptionCatalog(userId: string): Promise<{
-  enabled: boolean;
-  active: boolean;
-  packages: PurchasesPackage[];
-}> {
-  if (!(await connectPurchases(userId))) return { enabled: false, active: false, packages: [] };
-  const [customerInfo, offerings]: [CustomerInfo, PurchasesOfferings] = await Promise.all([
-    Purchases.getCustomerInfo(),
-    Purchases.getOfferings()
-  ]);
-  return {
-    enabled: true,
-    active: hasPremiumAccess(customerInfo),
-    packages: offerings.current?.availablePackages ?? []
-  };
+/** The paywall has already connected the signed-in account. Only prices are needed here. */
+export async function getCurrentSubscriptionPackages(): Promise<PurchasesPackage[]> {
+  const offerings = await Purchases.getOfferings();
+  return offerings.current?.availablePackages ?? [];
+}
+
+export function catalogErrorMessage(error: unknown): string {
+  const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+  const codes = Purchases.PURCHASES_ERROR_CODE;
+  switch (code) {
+    case codes.NETWORK_ERROR:
+    case codes.OFFLINE_CONNECTION_ERROR:
+      return 'Could not connect to load membership plans. Check your connection and try again.';
+    case codes.STORE_PROBLEM_ERROR:
+    case codes.PRODUCT_REQUEST_TIMED_OUT_ERROR:
+    case codes.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR:
+      return `The App Store could not return membership prices. Please try again. (Code ${code})`;
+    case codes.CONFIGURATION_ERROR:
+    case codes.INVALID_CREDENTIALS_ERROR:
+      return `Membership plans are temporarily unavailable. (Code ${code})`;
+    default:
+      return 'Membership plans could not be loaded. Please try again.';
+  }
 }
 
 export async function buySubscription(userId: string, item: PurchasesPackage): Promise<boolean> {

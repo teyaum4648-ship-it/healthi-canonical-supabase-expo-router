@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { supabase } from '../../src/lib/supabase';
 import { useMembership } from '../../src/features/subscriptions/MembershipProvider';
-import { connectPurchases, getSubscriptionCatalog, buySubscription, restoreSubscriptions } from '../../src/features/subscriptions/revenuecat';
+import { connectPurchases, getCurrentSubscriptionPackages, catalogErrorMessage, buySubscription, restoreSubscriptions } from '../../src/features/subscriptions/revenuecat';
 import { MembershipPaywall } from '../../src/features/subscriptions/MembershipPaywall';
 
 import { useBandStatusBar } from '../../src/components/thread/useBandStatusBar';
@@ -50,18 +50,16 @@ export function MembershipScreen({ gated = false, onUnlocked }: { gated?: boolea
     setLoading(true);
     // Keep restore available when the SDK connects but loading the offering fails.
     void connectPurchases(userId)
-      .then(ready => {
-        if (!live) return null;
+      .then(async ready => {
+        if (!live) return;
         setEnabled(ready);
-        return ready ? getSubscriptionCatalog(userId) : null;
+        if (!ready) return;
+        const available = await getCurrentSubscriptionPackages();
+        if (!live) return;
+        setPackages(available);
+        setSelected(available[0]?.identifier ?? null);
       })
-      .then(result => {
-        if (!live || !result) return;
-        setEnabled(result.enabled);
-        setPackages(result.packages);
-        setSelected(result.packages[0]?.identifier ?? null);
-      })
-      .catch(() => { if (live) setError('Subscriptions could not load. Please retry when connected.'); })
+      .catch(failure => { if (live) setError(catalogErrorMessage(failure)); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
   }, [mode, user?.id, catalogAttempt]);
