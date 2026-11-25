@@ -1,7 +1,8 @@
 export const demoSessionActiveKey = 'healthi:demo:sessionActive';
 export const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
 
-export function parseDemoOnboardingStatus(value: string | null): 'not_started' | 'in_progress' | 'completed' {
+export function parseDemoOnboardingStatus(value: string | null): 'not_started' | 'in_progress' | 'completed' | 'skipped' {
+  if (value === 'skipped') return 'skipped';
   return value === 'true' ? 'completed' : value === 'false' ? 'in_progress' : 'not_started';
 }
 

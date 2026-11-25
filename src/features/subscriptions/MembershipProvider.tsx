@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { subscriptionsEnabled } from './revenuecat';
+import { hasFinishedSetup } from '../onboarding/questionnaireDraft';
 
 export type MembershipStatus = 'checking' | 'active' | 'locked';
 type MembershipContextValue = {
@@ -21,7 +22,7 @@ const MembershipContext = createContext<MembershipContextValue | null>(null);
 export function MembershipProvider({ children }: PropsWithChildren) {
   const { mode, user, session, profile } = useAuth();
   const userId = user?.id ?? null;
-  const ready = subscriptionsEnabled && mode === 'account' && !!session && !!userId && profile?.onboarding_status === 'completed';
+  const ready = subscriptionsEnabled && mode === 'account' && !!session && !!userId && hasFinishedSetup(profile?.onboarding_status);
   const [access, setAccess] = useState<{ userId: string | null; status: MembershipStatus }>({
     userId: null, status: 'checking'
   });

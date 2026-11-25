@@ -70,7 +70,7 @@ type HealthiProfile = {
   display_name: string | null;
   primary_goal: string | null;
   training_experience: string | null;
-  onboarding_status: 'not_started' | 'in_progress' | 'completed';
+  onboarding_status: 'not_started' | 'in_progress' | 'completed' | 'skipped';
 };
 
 async function unavailableInDemo(): Promise<never> {

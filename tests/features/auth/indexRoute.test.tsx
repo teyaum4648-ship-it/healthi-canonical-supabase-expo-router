@@ -36,10 +36,12 @@ describe('installed app root screen', () => {
     expect(html).toContain('Opening daywoven');
     expect(html).not.toContain('data-destination');
   });
-  it('starts the questionnaire before account creation', () => {
+  it('offers either the questionnaire or account creation without it', () => {
     const source = readFileSync('app/index.tsx', 'utf8');
     expect(source).toContain("router.push('/(onboarding)')");
-    expect(source).not.toContain("router.push('/(auth)/signup')");
+    expect(source).toContain("router.push('/(auth)/signup')");
+    auth.current = { ...auth.current, mode: 'account' };
+    expect(renderToStaticMarkup(<IndexRoute />)).toContain('Skip questionnaire');
   });
   it('keeps the account welcome flow separate from local demo entry', () => {
     auth.current = { ...auth.current, mode: 'account' };

@@ -8,7 +8,7 @@ export type HealthiProfileRecord = {
   id?: string | null;
   display_name?: string | null;
   primary_goal?: string | null;
-  onboarding_status?: 'not_started' | 'in_progress' | 'completed' | null;
+  onboarding_status?: 'not_started' | 'in_progress' | 'completed' | 'skipped' | null;
 };
 
 export type ProfileScreenModel = {

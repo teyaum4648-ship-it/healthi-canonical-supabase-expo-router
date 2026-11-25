@@ -191,6 +191,10 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {profile?.onboarding_status !== 'completed' ? <ActionRow title="Resume questionnaire"
+            detail="Optional · your unfinished answers stay on this device" icon="list-outline"
+            onPress={() => router.push('/questionnaire')} last /> : null}
+
           <Disclosure title="Your profile and preferences" detail="Goals, nourishment, sleep and movement context">
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Your profile</Text>

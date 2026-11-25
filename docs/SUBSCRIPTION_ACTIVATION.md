@@ -32,7 +32,7 @@ These product IDs were verified in App Store Connect. Import `11` and `22` into 
 - Signed iOS build 11 was started from commit `2e88687cec1323eb3daa33d50dacb2539becab18`: https://expo.dev/accounts/tiamshinkais-team/projects/daywoven/builds/2ab2bb58-e1fe-4637-add8-27a2d7653374. Build completion, TestFlight processing, and purchase/restore testing must be checked before marking the release ready.
 - The database billing gate remains off. Do not enable it until the sandbox acceptance checks below pass.
 
-**Paywall sequence:** anonymous 16-question questionnaire (locally stored) → free baseline results and two-week focus → signup with health-data consent → explicit save of the preview answers → optional monthly/annual subscription purchase → verified access to ongoing Daywoven tracking, planning, and insights. Restore purchase and account deletion remain accessible without a current subscription.
+**Paywall sequence:** optional anonymous questionnaire (locally stored), or **Skip for now** → signup with health-data consent → explicit save of completed answers or a skipped setup status → optional monthly/annual subscription purchase → verified access to ongoing Daywoven tracking, planning, and insights. Only submitted answers generate baseline results and a two-week focus. Skipped questionnaires can be resumed from Profile or the membership screen; see `docs/OPTIONAL_QUESTIONNAIRE.md`. Restore purchase and account deletion remain accessible without a current subscription.
 
 ## Already implemented in GitHub / production
 
