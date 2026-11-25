@@ -18,6 +18,10 @@ describe('cold-launch entry routing', () => {
   it('never treats an old completed profile as an active account session', () => {
     expect(entryDestination({ mode: 'account', isLoading: false, hasSession: false, onboardingStatus: 'completed' })).toBe('welcome');
   });
+  it('does not force a returning user through the questionnaire after an explicit skip', () => {
+    expect(entryDestination({ mode: 'account', isLoading: false, hasSession: true, onboardingStatus: 'skipped' })).toBe('/(app)/(tabs)');
+    expect(entryDestination({ mode: 'account', isLoading: false, hasSession: false, onboardingStatus: 'skipped' })).toBe('welcome');
+  });
   it('offers Continue demo when a completed local demo has been signed out', () => {
     expect(entryDestination({ mode: 'demo', isLoading: false, hasSession: false, onboardingStatus: 'completed' })).toBe('demo');
   });

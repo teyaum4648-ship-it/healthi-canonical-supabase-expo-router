@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../src/components/Button';
@@ -36,6 +36,7 @@ import { BandStatusBar } from '../../src/components/thread/useBandStatusBar';
 import { PersonalReviewScreen } from '../../src/features/onboarding/PersonalReview';
 import { buildPersonalReview } from '../../src/features/onboarding/personalReviewModel';
 import { GUEST_ONBOARDING_DRAFT_KEY } from '../../src/features/onboarding/guestPreview';
+import { hasFinishedSetup, questionnaireKey, readQuestionnaireDraft, saveQuestionnaireForLater, type QuestionnaireDraft } from '../../src/features/onboarding/questionnaireDraft';
 const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 const shouldUseLocalOnboarding = isDemoMode || !isSupabaseConfigured;
 const demoOnboardingCompletedKey = 'healthi:demo:onboardingCompleted';
@@ -107,7 +108,7 @@ function formatConfidence(confidence: BiweeklyFocusProfile['confidence']) {
   return `${confidence[0].toUpperCase()}${confidence.slice(1)} confidence`;
 }
 
-export default function OnboardingScreen() {
+export default function OnboardingScreen({ revisiting = false }: { revisiting?: boolean }) {
   const { profile, refreshProfile, user, mode } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -116,10 +117,12 @@ export default function OnboardingScreen() {
   const [resultStage, setResultStage] = useState<'baseline' | 'focus'>('baseline');
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
+  const [usingGuestDraft, setUsingGuestDraft] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const actionLock = useRef(false);
   const [previewNeedsSave, setPreviewNeedsSave] = useState(false);
   const step = onboardingSteps[Math.min(currentIndex, onboardingSteps.length - 1)];
-  const draftKey = user ? `healthi:onboarding:${user.id}` : guestOnboardingDraftKey;
+  const draftKey = questionnaireKey(user?.id);
   const progressPercent = ((currentIndex + 1) / onboardingSteps.length) * 100;
   // A step advances once its required questions are answered; optional detail can be left.
   const unanswered = requiredQuestions(step).filter((item) => !isAnswered(item, answers[item.key]));
@@ -130,6 +133,7 @@ export default function OnboardingScreen() {
     let active = true;
     setIsDraftLoaded(false);
     setLoadedDraftKey(null);
+    setUsingGuestDraft(false);
     setAnswers({});
     setCurrentIndex(0);
     setSetupResult(null);
@@ -144,16 +148,18 @@ export default function OnboardingScreen() {
         const guestDraft = user?.id ? await AsyncStorage.getItem(guestOnboardingDraftKey) : null;
         const rawDraft = ownDraft ?? guestDraft;
         if (!rawDraft || !active) return;
+        setUsingGuestDraft(Boolean(user?.id && !ownDraft && guestDraft));
 
-        const parsed = JSON.parse(rawDraft) as {
-          answers?: OnboardingAnswers;
-          currentIndex?: number;
-          previewComplete?: boolean;
-        };
-        const restoredAnswers = parsed.answers ?? {};
+        const parsed = readQuestionnaireDraft(rawDraft, onboardingSteps.length);
+        const restoredAnswers = parsed.answers;
         if (!active) return;
         setAnswers(restoredAnswers);
-        setCurrentIndex(Math.max(0, Math.min(parsed.currentIndex ?? 0, onboardingSteps.length - 1)));
+        setCurrentIndex(parsed.currentIndex);
+
+        if (user?.id && !ownDraft && parsed.deferred && !hasFinishedSetup(profile?.onboarding_status)) {
+          await continueWithoutQuestionnaire(parsed);
+          return;
+        }
 
         if (user?.id && !ownDraft && parsed.previewComplete) {
           setSetupResult(generateOnboardingV2Result({ answers: restoredAnswers }));
@@ -187,7 +193,7 @@ export default function OnboardingScreen() {
   }, [answers, currentIndex, draftKey, isDraftLoaded, loadedDraftKey]);
 
   useEffect(() => {
-    if (!user?.id || profile?.onboarding_status !== 'not_started') {
+    if (!user?.id || profile?.onboarding_status !== 'not_started' || actionLock.current || !isDraftLoaded) {
       return;
     }
 
@@ -196,7 +202,8 @@ export default function OnboardingScreen() {
         const { error } = await supabase
           .from('profiles')
           .update({ onboarding_status: 'in_progress' })
-          .eq('id', user.id);
+          .eq('id', user.id)
+          .eq('onboarding_status', 'not_started');
 
         if (error) {
           throw error;
@@ -205,7 +212,7 @@ export default function OnboardingScreen() {
         // The completed submission updates this status again; this is only a helpful marker.
       }
     })();
-  }, [profile?.onboarding_status, user?.id]);
+  }, [profile?.onboarding_status, user?.id, isDraftLoaded]);
 
   const sectionLabel = useMemo(
     () => `Step ${currentIndex + 1} of ${onboardingSteps.length}`,
@@ -213,6 +220,7 @@ export default function OnboardingScreen() {
   );
 
   function setAnswer(key: OnboardingQuestion['key'], value: OnboardingAnswerValue) {
+    if (actionLock.current) return;
     setAnswers((current) => ({
       ...current,
       [key]: value
@@ -220,13 +228,14 @@ export default function OnboardingScreen() {
   }
 
   function handleBack() {
+    if (actionLock.current) return;
     setCurrentIndex((index) => Math.max(index - 1, 0));
   }
 
   function handleNext() {
     // The button is disabled while anything required is missing, so there is nothing
     // to alert about; the unanswered prompts are named inline instead.
-    if (!canContinue) return;
+    if (!canContinue || actionLock.current) return;
 
     if (isLastStep) {
       void submitOnboarding();
@@ -236,9 +245,43 @@ export default function OnboardingScreen() {
     setCurrentIndex((index) => index + 1);
   }
 
-  async function submitOnboarding() {
-    if (!draftKey || isSubmitting) return;
+  async function continueWithoutQuestionnaire(draft: QuestionnaireDraft = { answers, currentIndex }) {
+    if (actionLock.current) return;
+    actionLock.current = true;
+    setIsSubmitting(true);
+    try {
+      await saveQuestionnaireForLater({
+        storage: AsyncStorage,
+        draft,
+        userId: user?.id,
+        status: profile?.onboarding_status,
+        localDemo: shouldUseLocalOnboarding,
+        consumeGuestDraft: usingGuestDraft || Boolean(draft.deferred),
+        saveSkippedStatus: async () => {
+          const { error } = await supabase.from('profiles')
+            .update({ onboarding_status: 'skipped' }).eq('id', user!.id)
+            .select('id').single();
+          if (error) throw error;
+        }
+      });
+      if (!user?.id) {
+        router.push('/(auth)/signup');
+      } else {
+        await refreshProfile();
+        router.replace(subscriptionsEnabled && mode === 'account' ? '/paywall' : '/(app)/(tabs)');
+      }
+    } catch {
+      Alert.alert('Could not continue', 'Your questionnaire has not been submitted. Please try Skip for now again.');
+    } finally {
+      actionLock.current = false;
+      setIsSubmitting(false);
+    }
+  }
 
+  async function submitOnboarding() {
+    if (!draftKey || actionLock.current) return;
+
+    actionLock.current = true;
     setIsSubmitting(true);
 
     try {
@@ -382,6 +425,7 @@ export default function OnboardingScreen() {
         error instanceof Error ? error.message : 'Unable to save onboarding right now.';
       Alert.alert('Setup could not be saved', message);
     } finally {
+      actionLock.current = false;
       setIsSubmitting(false);
     }
   }
@@ -631,7 +675,11 @@ export default function OnboardingScreen() {
       <BandStatusBar />
       <View style={styles.brandRow}>
         <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>
-        <Text style={styles.brandSide}>YOUR BASELINE</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Skip questionnaire for now"
+          accessibilityState={{ disabled: isSubmitting }} disabled={isSubmitting}
+          hitSlop={8} onPress={() => void continueWithoutQuestionnaire()} style={styles.skipButton}>
+          <Text style={styles.skipText}>{revisiting ? 'Finish later' : 'Skip for now'}</Text>
+        </Pressable>
       </View>
       <View style={styles.progressHeading}>
         <Text style={styles.stepCount}>{sectionLabel.toUpperCase()}</Text>
@@ -645,6 +693,7 @@ export default function OnboardingScreen() {
         <Text accessibilityRole="header" style={styles.stageTitle}>{step.title}</Text>
         <Text style={styles.stageIntro}>{step.intro}</Text>
       </View>
+      <Text style={styles.welcomeNote}>This questionnaire is optional. Skip now and finish later from Profile. Your progress stays on this device.</Text>
       {currentIndex === 0 ? <Text style={styles.welcomeNote}>{onboardingV2Welcome}</Text> : null}
       {step.questions.map(renderQuestion)}
 
@@ -667,7 +716,7 @@ export default function OnboardingScreen() {
           tone="band"
         />
         <Button
-          disabled={!canContinue}
+          disabled={!canContinue || isSubmitting}
           isLoading={isSubmitting}
           label={isLastStep ? 'Review your baseline' : 'Next'}
           onPress={handleNext}
@@ -686,6 +735,8 @@ const styles = StyleSheet.create({
   brandMark: { color: dv.bone.text, fontSize: 25, fontFamily: fonts.bodySemibold, letterSpacing: -1.2 },
   brandDot: { color: dv.accent.amber },
   brandSide: { color: dv.bone.soft, fontSize: 10, fontFamily: fonts.bodySemibold, letterSpacing: 1.1 },
+  skipButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
+  skipText: { color: dv.bone.text, fontFamily: fonts.bodySemibold, fontSize: 14 },
   progressHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   stepCount: { color: dv.bone.text, fontSize: 12, fontFamily: fonts.bodySemibold },
   stepPercent: { color: dv.bone.soft, fontSize: 11, fontFamily: fonts.bodySemibold },

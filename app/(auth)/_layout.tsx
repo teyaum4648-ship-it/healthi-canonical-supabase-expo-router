@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { SectionHeader } from '../../src/components/SectionHeader';
 import { useAuth } from '../../src/features/auth/AuthProvider';
+import { hasFinishedSetup } from '../../src/features/onboarding/questionnaireDraft';
 
 export default function AuthLayout() {
   const { profile, session, isLoading, isPasswordRecovery } = useAuth();
@@ -20,7 +21,7 @@ export default function AuthLayout() {
   if (session) {
     return (
       <Redirect
-        href={profile?.onboarding_status === 'completed' ? '/(app)/(tabs)' : '/(onboarding)'}
+        href={hasFinishedSetup(profile?.onboarding_status) ? '/(app)/(tabs)' : '/(onboarding)'}
       />
     );
   }

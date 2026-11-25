@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -7,6 +8,8 @@ import { Screen } from '../src/components/Screen';
 import { useAuth } from '../src/features/auth/AuthProvider';
 import { DemoEntry } from '../src/features/auth/DemoEntry';
 import { entryDestination } from '../src/features/auth/entryRouting';
+import { guestQuestionnaireKey, hasFinishedSetup, readQuestionnaireDraft, saveQuestionnaireForLater } from '../src/features/onboarding/questionnaireDraft';
+import { onboardingSteps } from '../src/features/onboarding/onboardingSteps';
 import { colors, fonts, spacing, glassSurface } from '../src/styles/mobileTheme';
 import { colors as mobileColors, type } from '../src/styles/mobileTheme';
 
@@ -19,6 +22,7 @@ export default function IndexRoute() {
   const { width } = useWindowDimensions();
   const isWide = width >= 820;
   const [startError, setStartError] = useState('');
+  const [isSkipping, setIsSkipping] = useState(false);
 
   const destination = entryDestination({ isLoading, mode, hasSession: Boolean(session), onboardingStatus: profile?.onboarding_status });
   if (destination === 'loading') return <Screen><Text accessibilityLiveRegion="polite" style={{ ...type.body, color: mobileColors.text }}>Opening daywoven…</Text></Screen>;
@@ -45,7 +49,7 @@ export default function IndexRoute() {
         return;
       }
 
-      if (profile?.onboarding_status === 'completed') {
+      if (hasFinishedSetup(profile?.onboarding_status)) {
         router.replace('/(app)/(tabs)');
         return;
       }
@@ -61,13 +65,29 @@ export default function IndexRoute() {
     }
   }
 
+  async function skipQuestionnaire() {
+    if (isSkipping) return;
+    setIsSkipping(true);
+    setStartError('');
+    try {
+      const raw = await AsyncStorage.getItem(guestQuestionnaireKey);
+      const draft = raw ? readQuestionnaireDraft(raw, onboardingSteps.length) : { answers: {}, currentIndex: 0 };
+      await saveQuestionnaireForLater({ storage: AsyncStorage, draft, saveSkippedStatus: async () => undefined });
+      router.push('/(auth)/signup');
+    } catch {
+      setStartError('Could not save your progress. Please try again.');
+    } finally {
+      setIsSkipping(false);
+    }
+  }
+
   /**
    * Someone who has already finished onboarding does not need the pitch again.
    * Without this the landing screen is unconditional, so relaunching the installed
    * app — or reopening the demo — drops a returning person back on the marketing
    * page with their own data one tap away behind it.
    */
-  if (!isLoading && session && profile?.onboarding_status === 'completed') {
+  if (!isLoading && session && hasFinishedSetup(profile?.onboarding_status)) {
     return <Redirect href="/(app)/(tabs)" />;
   }
 
@@ -88,16 +108,19 @@ export default function IndexRoute() {
           </Text>
           <Text style={styles.subcopy}>
             Sleep, food, movement and stress tell different parts of your story. Explore your
-            starting point first, see a clear focus, and create an account only when you are ready to save.
+            starting point with an optional questionnaire, or skip it and add your details later.
           </Text>
 
           <Button
-            disabled={isLoading}
+            disabled={isLoading || isSkipping}
             label="Explore your wellness baseline"
             tone="band"
             onPress={() => void handleStart()}
             style={styles.cta}
           />
+
+          <Button label="Skip questionnaire" variant="secondary" tone="band" isLoading={isSkipping}
+            onPress={() => void skipQuestionnaire()} style={styles.cta} />
 
           {!session && mode === 'account' ? (
             <Text onPress={() => router.push('/(auth)/login')} accessibilityRole="link" style={styles.signInLink}>Already have an account? Sign in</Text>

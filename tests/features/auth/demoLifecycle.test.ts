@@ -23,6 +23,9 @@ describe('clean demo lifecycle', () => {
       expect(parseDemoOnboardingStatus(value)).toBe('not_started');
     }
   });
+  it('restores an explicit questionnaire skip without reporting completed answers', () => {
+    expect(parseDemoOnboardingStatus('skipped')).toBe('skipped');
+  });
 
   it('resets the explicit demo stores and returns to first-time onboarding', async () => {
     const storage = memoryStorage(Object.fromEntries(resettableDemoKeys.map((key) => [key, 'saved data'])));

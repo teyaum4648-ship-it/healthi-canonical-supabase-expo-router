@@ -63,12 +63,15 @@ export default function SignupScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
   const [focus, setFocus] = useState<{ name: string; summary: string } | null>(null);
+  const [questionnaireDeferred, setQuestionnaireDeferred] = useState(false);
 
   /* The focus from the Personal Review, read from the same on-device draft it was built from. */
   useEffect(() => {
     let live = true;
     void loadGuestPreview().then((preview) => {
-      if (!live || !preview?.previewComplete) return;
+      if (!live) return;
+      setQuestionnaireDeferred(Boolean(preview?.deferred));
+      if (!preview?.previewComplete) return;
       const profile = generateBiweeklyFocusProfile({ userId: 'local-preview', answers: preview.answers });
       setFocus({ name: focusName(profile.primary_focus), summary: profile.dynamic_score_sheet.summary });
     });
@@ -132,7 +135,9 @@ export default function SignupScreen() {
         ) : null}
         <Text accessibilityRole="header" style={styles.headline}>Make this yours.</Text>
         <Text style={styles.sub}>
-          Save your starting point and keep building from it. Your answers stay on this device until you agree below.
+          {questionnaireDeferred
+            ? 'Create your account and finish the optional questionnaire later from Profile. Your progress stays on this device.'
+            : 'Save your starting point and keep building from it. Your answers stay on this device until you agree below.'}
         </Text>
         {focus ? (
           <View accessible accessibilityLabel={`Saving your 14-day focus: ${focus.name}`} style={styles.focus}>

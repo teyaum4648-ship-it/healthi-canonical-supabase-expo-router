@@ -66,7 +66,9 @@ Deno.serve(async (request: Request) => {
     const { data: profile, error } = await serviceClient().from('profiles')
       .select('onboarding_status').eq('id', user.id).maybeSingle();
     if (error) return json({ error: 'account_unavailable' }, 503);
-    if (profile?.onboarding_status !== 'completed') return json({ error: 'complete_free_onboarding_first' }, 403);
+    if (profile?.onboarding_status !== 'completed' && profile?.onboarding_status !== 'skipped') {
+      return json({ error: 'complete_free_onboarding_first' }, 403);
+    }
 
     const token = await issueTicket(user.id, config.secret);
     return json({ url: SITE + '/pricing?session=' + encodeURIComponent(token), expires_in_seconds: TTL_SECONDS });

@@ -47,9 +47,14 @@ describe('account-linked website checkout', () => {
     expect(r.status).toBe(503);
     expect((await r.json()).error).toBe('web_checkout_not_configured');
   });
-  it('requires a signed-in account that has finished the free assessment', async () => {
+  it('requires a signed-in account with an explicit setup choice', async () => {
     expect((await edgeHandler(baseEnv, null)(appRequest())).status).toBe(401);
     expect((await edgeHandler(baseEnv, sampleUser, 'in_progress')(appRequest())).status).toBe(403);
+  });
+  it('allows membership checkout after explicitly skipping the optional questionnaire', async () => {
+    expect((await edgeHandler(baseEnv, sampleUser, 'skipped')(appRequest())).status).toBe(200);
+    expect((await edgeHandler(baseEnv, sampleUser, 'not_started')(appRequest())).status).toBe(403);
+    expect((await edgeHandler(baseEnv, sampleUser, 'unknown')(appRequest())).status).toBe(403);
   });
   it('signs the authenticated account ID and rejects an attacker-supplied ID', async () => {
     const handler = edgeHandler();
