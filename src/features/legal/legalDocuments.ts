@@ -37,6 +37,6 @@ export const LEGAL_TITLES: Record<LegalDocument, string> = {
  * person agreed to changes, so `user_consents.version` says which text they saw rather
  * than only that they ticked something once.
  */
-export const CONSENT_VERSION = '2026-09-16.1';
+export const CONSENT_VERSION = '2026-11-27.1';
 
 export const MINIMUM_AGE = 18;

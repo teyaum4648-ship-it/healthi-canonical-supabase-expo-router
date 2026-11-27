@@ -615,7 +615,7 @@ export default function OnboardingScreen({ revisiting = false }: { revisiting?: 
 
   if (setupResult) {
     return (
-      <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
+      <Screen key="baseline" backgroundStyle={styles.onboardingBackground} contentStyle={styles.resultScreen}>
         <BandStatusBar />
         <View style={styles.brandRow}><Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandSide}>YOUR BASELINE</Text></View>
         <View style={styles.focusHeader}>
@@ -671,7 +671,7 @@ export default function OnboardingScreen({ revisiting = false }: { revisiting?: 
   }
 
   return (
-    <Screen backgroundStyle={styles.onboardingBackground} contentStyle={styles.onboardingContent}>
+    <Screen key={currentIndex} backgroundStyle={styles.onboardingBackground} contentStyle={styles.onboardingContent}>
       <BandStatusBar />
       <View style={styles.brandRow}>
         <Text style={styles.brandMark}>daywoven<Text style={styles.brandDot}>.</Text></Text>

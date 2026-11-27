@@ -59,28 +59,20 @@ export function SignupConsent({
     <View style={styles.wrap}>
       <CheckBox
         checked={value.agreement}
-        label={`I am ${MINIMUM_AGE} or older, and I agree to the Terms of Service and the Privacy Policy`}
+        label={`I’m ${MINIMUM_AGE} or older and agree to the Terms of Service and Privacy Policy.`}
         onChange={(agreement) => onChange({ ...value, agreement })}
-      >
-        <Text style={styles.label}>
-          I am {MINIMUM_AGE} or older, and I agree to the{' '}
-          <InlineLink doc="terms">Terms of Service</InlineLink> and the{' '}
-          <InlineLink doc="privacy">Privacy Policy</InlineLink>.
-        </Text>
-      </CheckBox>
+      />
+      <View style={styles.policyLinks}>
+        <InlineLink doc="terms">Terms of Service</InlineLink>
+        <InlineLink doc="privacy">Privacy Policy</InlineLink>
+        <InlineLink doc="cookies">Cookies &amp; local storage</InlineLink>
+      </View>
 
       <CheckBox
         checked={value.healthData}
-        hint="Required, because the app is built on this data. You can withdraw it later by deleting your account."
-        label="I consent to daywoven collecting and storing my health information to produce my scores and guidance"
+        label="Daywoven can save my food, sleep, movement and mood entries to my account and use them for my scores and daily guidance."
         onChange={(healthData) => onChange({ ...value, healthData })}
-      >
-        <Text style={styles.label}>
-          I consent to daywoven collecting and storing my <Text style={styles.emphasis}>health
-          information</Text> — what I eat, how I sleep, how I move and how I feel — in order to
-          produce my scores and daily guidance.
-        </Text>
-      </CheckBox>
+      />
 
       <Text style={styles.footnote}>
         We do not sell your health information or use it for advertising. Service providers
@@ -92,7 +84,7 @@ export function SignupConsent({
       {showError ? (
         <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.error}>
           <Text style={styles.errorText}>
-            Please tick both boxes to continue. We cannot create an account without them.
+            Select both boxes to create your account.
           </Text>
         </View>
       ) : null}
@@ -102,12 +94,7 @@ export function SignupConsent({
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xs },
-  label: {
-    ...type.caption,
-    color: colors.textMuted,
-    lineHeight: 19
-  },
-  emphasis: { color: colors.text, fontFamily: fonts.bodySemibold },
+  policyLinks: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.sm, rowGap: spacing.xs },
   link: {
     ...type.caption,
     color: colors.accent,
