@@ -45,14 +45,11 @@ export function FoodBand({ summary, targets, mealCount, isToday, dayLabel, onAdd
               </View>
               <Text style={styles.barValue}>{bar.value}<Text style={styles.barTarget}>  {bar.target}</Text></Text>
             </View>
-            {bar.fill === null ? (
-              <View style={styles.trackNone} />
-            ) : (
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${Math.round(Math.min(1, bar.fill) * 100)}%`, backgroundColor: BAR_COLOUR[bar.key] }]} />
-                {bar.targetMark !== null ? <View style={[styles.mark, { left: `${Math.round(bar.targetMark * 100)}%` }]} /> : null}
-              </View>
-            )}
+            <View style={styles.track}>
+              {bar.fill !== null && bar.fill > 0 ? (
+                <View style={[styles.fill, { width: `${bar.fill * 100}%`, backgroundColor: BAR_COLOUR[bar.key] }]} />
+              ) : null}
+            </View>
           </View>
         ))}
       </View>
@@ -94,9 +91,7 @@ const styles = StyleSheet.create({
   barValue: { color: bone.text, fontFamily: font.bodyMedium, fontSize: 13.5, fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' },
   barTarget: { color: bone.muted, fontFamily: font.body, fontSize: 12 },
   track: { backgroundColor: bone.ringTrack, height: 6, position: 'relative' },
-  trackNone: { borderColor: bone.outline, borderStyle: 'dashed', borderWidth: 1, height: 6 },
   fill: { height: 6 },
-  mark: { backgroundColor: bone.text, height: 12, marginLeft: -1, position: 'absolute', top: -3, width: 2 },
   /* Side by side on most phones; on a narrow one they stack rather than cut a label short. */
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20 },
   action: { flexBasis: 150, flexGrow: 1 },

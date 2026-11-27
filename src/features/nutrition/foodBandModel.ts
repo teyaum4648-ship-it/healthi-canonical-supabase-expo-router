@@ -1,13 +1,6 @@
 import type { NutrientSummary, NutritionTargets } from '../../engines/nutrition';
 import { intakeProgress } from './dietDashboardModel';
 
-/**
- * The Food band's hero (handoff Phase 5): the day's intake against working targets, as
- * bars with a dashed mark at the target (design language P8). Presentation only: the
- * numbers are the nutrient summary's, the targets are the person's own working targets,
- * and a target that is not set is shown as an outline labelled so, never as a fill.
- */
-
 export type IntakeBar = {
   key: 'energy' | 'protein' | 'carbs' | 'fat';
   label: string;
@@ -17,8 +10,7 @@ export type IntakeBar = {
   target: string;
   /** Fill as a share of the bar, or null when there is nothing to draw against. */
   fill: number | null;
-  /** Where the target sits along the bar, 0–1, or null without a target. */
-  targetMark: number | null;
+
 };
 
 const round = (value: number) => Math.round(value).toLocaleString('en-US');
@@ -32,15 +24,12 @@ export function intakeBars(summary: Pick<NutrientSummary, 'calories' | 'protein_
   ] as const;
   return rows.map((row) => {
     const progress = intakeProgress(row.amount, row.goal);
-    /* The bar runs a little past the target, so going over it is visible rather than clipped. */
-    const scale = progress.target === null ? null : Math.max(progress.target * 1.15, progress.amount ?? 0);
     return {
       key: row.key,
       label: row.label,
       value: progress.amount === null ? 'Not logged' : `${round(progress.amount)} ${row.unit}`,
       target: progress.target === null ? 'No target set' : `of ${round(progress.target)} ${row.unit}`,
-      fill: scale === null || progress.amount === null ? null : progress.amount / scale,
-      targetMark: scale === null || progress.target === null ? null : progress.target / scale
+      fill: progress.fraction
     };
   });
 }

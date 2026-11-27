@@ -11,8 +11,10 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -553,7 +555,7 @@ function TrackerProgress({
 export default function FoodScreen() {
   const tabSpace = useTabBarSpace();
   const { session, mode } = useAuth();
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraPermission, requestCameraPermission, refreshCameraPermission] = useCameraPermissions();
   const [activeSegment, setActiveSegment] = useState<Segment>('Diary');
   const actualToday = useLocalToday();
   const [selectedDay, setSelectedDay] = useState(actualToday);
@@ -612,6 +614,13 @@ export default function FoodScreen() {
     return () => cancelAnimationFrame(frame);
   }, [activeSegment, scannerOpen]);
   const [cameraOpen, setCameraOpen] = useState(false);
+  useEffect(() => {
+    if (!scannerOpen || Platform.OS === 'web') return;
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active') void refreshCameraPermission().catch(() => {});
+    });
+    return () => listener.remove();
+  }, [scannerOpen, refreshCameraPermission]);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scannerProduct, setScannerProduct] = useState<HealthiProductSnapshot | null>(null);
   const [showBetterOptions, setShowBetterOptions] = useState(false);
@@ -1208,8 +1217,7 @@ export default function FoodScreen() {
 
   async function handleStartCamera() {
     try {
-      const cameraAvailable = await CameraView.isAvailableAsync();
-      if (!cameraAvailable) {
+      if (Platform.OS === 'web' && !(await CameraView.isAvailableAsync())) {
         setScannerMessage('A camera is not available here. Enter the barcode manually below.');
         setCameraOpen(false);
         return;
@@ -1226,7 +1234,7 @@ export default function FoodScreen() {
         setScannerMessage('Starting camera...');
         setCameraOpen(true);
       } else {
-        setScannerMessage('Camera access is unavailable. Enter the barcode manually below.');
+        setScannerMessage(nextPermission.canAskAgain ? 'Allow camera access to scan, or enter the barcode below.' : 'Enable camera access for Daywoven in Settings, or enter the barcode below.');
         setCameraOpen(false);
       }
     } catch {
@@ -1631,6 +1639,11 @@ export default function FoodScreen() {
                 <Text style={styles.cameraCancelText}>Cancel camera</Text>
               </Pressable>
             </View>
+          ) : Platform.OS !== 'web' && cameraPermission?.canAskAgain === false && !cameraPermission.granted ? (
+            <PrimaryButton
+              label="Open camera settings"
+              onPress={() => void Linking.openSettings().catch(() => setScannerMessage('Open Settings and enable camera access for Daywoven.'))}
+            />
           ) : (
             <PrimaryButton label="Use camera" onPress={() => void handleStartCamera()} />
           )}
