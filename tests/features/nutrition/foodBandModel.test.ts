@@ -6,14 +6,11 @@ const noTargets = { calories_target: null, protein_g_target: null, carbs_g_targe
 const targets = { calories_target: 2000, protein_g_target: 120, carbs_g_target: 220, fat_g_target: 70 };
 
 describe('the Food band', () => {
-  it('fills each bar against the working target and marks where the target sits', () => {
+  it('fills each bar against the working target and caps the fill at the goal', () => {
     const [energy, protein] = intakeBars({ calories: 1000, protein_g: 138, carbs_g: null, fat_g: 20 }, targets);
     expect(energy).toMatchObject({ value: '1,000 kcal', target: 'of 2,000 kcal' });
-    expect(energy!.fill).toBeCloseTo(1000 / 2300, 5);
-    expect(energy!.targetMark).toBeCloseTo(1 / 1.15, 5);
-    // Over target: the bar grows to the amount, so the overshoot is visible, not clipped.
+    expect(energy!.fill).toBeCloseTo(0.5, 5);
     expect(protein!.fill).toBe(1);
-    expect(protein!.targetMark).toBeCloseTo(120 / 138, 5);
   });
 
   it('shows a missing value as not logged, never as zero', () => {
@@ -24,7 +21,6 @@ describe('the Food band', () => {
   it('draws nothing to fill against when no target is set', () => {
     for (const bar of intakeBars({ calories: 520, protein_g: 31, carbs_g: null, fat_g: null }, noTargets)) {
       expect(bar.fill).toBeNull();
-      expect(bar.targetMark).toBeNull();
       expect(bar.target).toBe('No target set');
     }
   });
